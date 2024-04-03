@@ -2865,17 +2865,22 @@ public class LeAudioService extends ProfileService {
     }
 
     private void notifyGroupStreamStatusChanged(int groupId, int groupStreamStatus) {
-        synchronized (mLeAudioCallbacks) {
-            int n = mLeAudioCallbacks.beginBroadcast();
-            for (int i = 0; i < n; i++) {
-                try {
-                    mLeAudioCallbacks
+        if (mLeAudioCallbacks != null) {
+            try {
+                mutex.lock();
+                int n = mLeAudioCallbacks.beginBroadcast();
+                for (int i = 0; i < n; i++) {
+                    try {
+                        mLeAudioCallbacks
                             .getBroadcastItem(i)
                             .onGroupStreamStatusChanged(groupId, groupStreamStatus);
-                } catch (RemoteException e) {
+                    } catch (RemoteException e) {
                         continue;
+                    }
                 }
                 mLeAudioCallbacks.finishBroadcast();
+            } finally {
+               mutex.unlock();
             }
         }
     }
@@ -4826,16 +4831,20 @@ public class LeAudioService extends ProfileService {
         if (volumeControlService != null) {
             volumeControlService.handleGroupNodeAdded(groupId, device);
         }
-
-        synchronized (mLeAudioCallbacks) {
-            int n = mLeAudioCallbacks.beginBroadcast();
-            for (int i = 0; i < n; i++) {
-                try {
-                    mLeAudioCallbacks.getBroadcastItem(i).onGroupNodeAdded(device, groupId);
-                } catch (RemoteException e) {
-                    continue;
+        if (mLeAudioCallbacks != null) {
+            try {
+                mutex.lock();
+                int n = mLeAudioCallbacks.beginBroadcast();
+                for (int i = 0; i < n; i++) {
+                    try {
+                        mLeAudioCallbacks.getBroadcastItem(i).onGroupNodeAdded(device, groupId);
+                    } catch (RemoteException e) {
+                       continue;
+                    }
                 }
                 mLeAudioCallbacks.finishBroadcast();
+            } finally {
+                mutex.unlock();
             }
         }
     }
@@ -4902,29 +4911,39 @@ public class LeAudioService extends ProfileService {
     }
 
     private void notifyGroupNodeRemoved(BluetoothDevice device, int groupId) {
-        synchronized (mLeAudioCallbacks) {
-            int n = mLeAudioCallbacks.beginBroadcast();
-            for (int i = 0; i < n; i++) {
-                try {
-                    mLeAudioCallbacks.getBroadcastItem(i).onGroupNodeRemoved(device, groupId);
-                } catch (RemoteException e) {
-                    continue;
+        if (mLeAudioCallbacks != null) {
+            try {
+                mutex.lock();
+                int n = mLeAudioCallbacks.beginBroadcast();
+                for (int i = 0; i < n; i++) {
+                    try {
+                        mLeAudioCallbacks.getBroadcastItem(i).onGroupNodeRemoved(device, groupId);
+                    } catch (RemoteException e) {
+                        continue;
+                    }
                 }
                 mLeAudioCallbacks.finishBroadcast();
+            } finally {
+                mutex.unlock();
             }
         }
     }
 
     private void notifyGroupStatusChanged(int groupId, int status) {
-        synchronized (mLeAudioCallbacks) {
-            int n = mLeAudioCallbacks.beginBroadcast();
-            for (int i = 0; i < n; i++) {
-                try {
-                    mLeAudioCallbacks.getBroadcastItem(i).onGroupStatusChanged(groupId, status);
-                } catch (RemoteException e) {
-                    continue;
+        if (mLeAudioCallbacks != null) {
+            try {
+                mutex.lock();
+                int n = mLeAudioCallbacks.beginBroadcast();
+                for (int i = 0; i < n; i++) {
+                    try {
+                        mLeAudioCallbacks.getBroadcastItem(i).onGroupStatusChanged(groupId, status);
+                    } catch (RemoteException e) {
+                        continue;
+                    }
                 }
                 mLeAudioCallbacks.finishBroadcast();
+            } finally {
+                mutex.unlock();
             }
         }
     }
