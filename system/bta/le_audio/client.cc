@@ -66,9 +66,6 @@
 #include "state_machine.h"
 #include "storage_helper.h"
 
-#define HCI_VSQC_CONTROLLER_A2DP_OPCODE 0x000A
-#define VS_QHCI_USECASE_UPDATE 0x15
-
 using namespace bluetooth;
 
 // TODO(b/369381361) Enfore -Wmissing-prototypes
@@ -924,13 +921,6 @@ public:
         !sink_monitor_mode_ && source_monitor_mode_ && !group_is_streaming) {
       callbacks_->OnUnicastMonitorModeStatus(bluetooth::le_audio::types::kLeAudioDirectionSource,
                                              UnicastMonitorModeStatus::STREAMING_REQUESTED);
-    }
-
-    auto device = group->GetFirstDevice();
-    if (device) {
-      send_vs_cmd(device->GetBdAddress(),
-        static_cast<uint16_t>(configuration_context_type),
-        group->GetFirstDevice()->snk_pacs_);
     }
 
     bool result = groupStateMachine_->StartStream(group, configuration_context_type,
@@ -5315,28 +5305,6 @@ public:
     return remote_metadata;
   }
 
-  void send_vs_cmd(const RawAddress& bd_addr, uint16_t content_type,
-    const bluetooth::le_audio::types::PublishedAudioCapabilities& group_pacs) {
-    bool remote_support = false;
-    for (auto& [handles, pacs_record] : group_pacs) {
-      for (auto& pac : pacs_record) {
-        if (pac.codec_id.vendor_codec_id == bluetooth::le_audio::types::kLeAudioCodingFormatAptxLeX) {
-          remote_support = true;
-          break;
-        }
-      }
-    }
-    if (osi_property_get_bool("persist.vendor.service.bt.adv_transport", false) && remote_support) {
-      uint8_t param[4] = {0};
-      param[0] = VS_QHCI_USECASE_UPDATE;
-      param[1] = (BTM_GetHCIConnHandle(bd_addr, BT_TRANSPORT_LE)) & 0x00FF;
-      param[2] = ((BTM_GetHCIConnHandle(bd_addr, BT_TRANSPORT_LE)) & 0xFF00) >> 8;
-      param[3] = (uint8_t)content_type;
-      // BTM_VendorSpecificCommand(HCI_VSQC_CONTROLLER_A2DP_OPCODE, 4, param, NULL);
-      btsnd_hcic_vendor_spec_cmd(HCI_VSQC_CONTROLLER_A2DP_OPCODE, 4, param, NULL);
-    }
-  }
-
   bool ReconfigureOrUpdateRemoteForPTS(LeAudioDeviceGroup* group, int remote_direction) {
     log::info("{}", group->group_id_);
     // Use common audio stream contexts exposed by the PTS
@@ -5466,12 +5434,6 @@ public:
         DsaReconfigureNeeded(group, new_configuration_context)) {
       log::info("Checking whether to change configuration context from {} to {}",
                 ToString(configuration_context_type_), ToString(new_configuration_context));
-
-      auto device = group->GetFirstDevice();
-      if (device) {
-        send_vs_cmd(device->GetBdAddress(), static_cast<uint16_t>(new_configuration_context),
-                    group->GetFirstDevice()->snk_pacs_);
-      }
 
       LeAudioLogHistory::Get()->AddLogHistory(
               kLogAfCallBt, active_group_id_, RawAddress::kEmpty,
