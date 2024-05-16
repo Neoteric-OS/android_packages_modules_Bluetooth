@@ -2430,6 +2430,12 @@ public class HeadsetService extends ProfileService {
     /** Called from {@link HeadsetClientStateMachine} to update inband ringing status. */
     public void updateInbandRinging(BluetoothDevice device, boolean connected) {
         synchronized (mStateMachines) {
+            if (SystemProperties.getBoolean(DISABLE_INBAND_RINGING_PROPERTY, false)) {
+                Log.i(TAG, "updateInbandRinging(): in-band ringtone disabled " +
+                            "through property");
+                return;
+            }
+
             final boolean inbandRingingRuntimeDisable = mInbandRingingRuntimeDisable;
 
             if (getConnectedDevices().size() > 1
