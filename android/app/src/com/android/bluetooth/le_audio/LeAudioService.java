@@ -2694,7 +2694,10 @@ public class LeAudioService extends ProfileService {
          */
         if (status == LeAudioStackEvent.STATUS_LOCAL_STREAM_REQUESTED) {
             Optional<Integer> broadcastId = getFirstNotStoppedBroadcastId();
-            if (broadcastId.isEmpty() || (mBroadcastDescriptors.get(broadcastId.get()) == null)) {
+            BluetoothDevice unicastDevice =
+                    getLeadDeviceForTheGroup(mUnicastGroupIdDeactivatedForBroadcastTransition);
+            if (broadcastId.isEmpty() || (mBroadcastDescriptors.get(broadcastId.get()) == null)
+                    || (unicastDevice == null)) {
                 Log.e(
                         TAG,
                         "handleUnicastStreamStatusChange: Broadcast to Unicast handover not"
