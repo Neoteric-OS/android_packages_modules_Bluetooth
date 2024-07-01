@@ -6724,10 +6724,10 @@ class LeAudioClientImpl : public LeAudioClient {
                                    defer_notify_inactive_until_stop_);
         if (!defer_notify_inactive_until_stop_ &&
             active_group_id_ != bluetooth::groups::kGroupUnknown &&
-            (active_group_id_ == group->group_id_) &&
-            !group->IsPendingConfiguration() &&
+            (active_group_id_ == group->group_id_) && !group->IsPendingConfiguration() &&
             (audio_sender_state_ == AudioState::STARTED ||
-             audio_receiver_state_ == AudioState::STARTED)) {
+             audio_receiver_state_ == AudioState::STARTED) &&
+            group->GetTargetState() != AseState::BTA_LE_AUDIO_ASE_STATE_IDLE) {
           /* If releasing state is happening but it was not initiated either by
            * reconfiguration or Audio Framework actions either by the Active group change,
            * it means that it is some internal state machine error. This is very unlikely and
