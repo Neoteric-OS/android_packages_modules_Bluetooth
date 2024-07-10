@@ -90,12 +90,12 @@ public:
   }
 
   void ReportRemoteNameRequestCancellation(Address address) {
-    if (pending_) {
+    if (requests_.count(address) > 0) {
       log::info(
               "Received CONNECTION_COMPLETE (corresponding INCORRECTLY to an RNR cancellation) "
               "from {}",
               address.ToRedactedStringForLogging());
-      pending_ = false;
+      requests_.erase(address);
       on_remote_name_complete_(ErrorCode::UNKNOWN_CONNECTION, {});
       acl_scheduler_->ReportRemoteNameRequestCompletion(address);
     } else {
@@ -112,8 +112,8 @@ private:
           RemoteHostSupportedFeaturesCallback on_remote_host_supported_features_notification,
           std::shared_ptr<RemoteNameCallback> on_remote_name_complete_ptr) {
     log::info("Starting remote name request to {}", address.ToRedactedStringForLogging());
-    log::assert_that(pending_ == false, "assert failed: pending_ == false");
-    pending_ = true;
+    log::assert_that(requests_.count(address) == 0, "assert failed: requests_.count(address) == 0");
+    requests_.insert(address);
     on_remote_host_supported_features_notification_ =
             std::move(on_remote_host_supported_features_notification);
     on_remote_name_complete_ = std::move(*on_remote_name_complete_ptr.get());
@@ -128,9 +128,9 @@ private:
     // TODO(b/294961421): Remove the ifdef when firmware fix in place. Realtek controllers
     // unexpectedly sent a Remote Name Req Complete HCI event without the corresponding HCI command.
 #ifndef TARGET_FLOSS
-    log::assert_that(pending_ == true, "assert failed: pending_ == true");
+    log::assert_that(requests_.count(address) > 0, "assert failed: requests_.count(address) > 0");
 #else
-    if (pending_ != true) {
+    if (requests_.count(address) == 0) {
       log::warn("Unexpected remote name response with no request pending");
       return;
     }
@@ -141,13 +141,13 @@ private:
               ErrorCodeText(status.GetStatus()));
     on_completion(status.GetStatus());
     if (status.GetStatus() != ErrorCode::SUCCESS /* pending */) {
-      pending_ = false;
+      requests_.erase(address);
       acl_scheduler_->ReportRemoteNameRequestCompletion(address);
     }
   }
 
   void actually_cancel_remote_name_request(Address address) {
-    if (pending_) {
+    if (requests_.count(address) > 0) {
       log::info("Cancelling remote name request to {}", address.ToRedactedStringForLogging());
       hci_layer_->EnqueueCommand(RemoteNameRequestCancelBuilder::Create(address),
                                  handler_->BindOnceOn(this, &impl::check_cancel_status, address));
@@ -160,13 +160,13 @@ private:
   void on_remote_host_supported_features_notification(EventView view) {
     auto packet = RemoteHostSupportedFeaturesNotificationView::Create(view);
     log::assert_that(packet.IsValid(), "assert failed: packet.IsValid()");
-    if (pending_ && on_remote_host_supported_features_notification_) {
+    if (requests_.count(packet.GetBdAddr()) > 0 && on_remote_host_supported_features_notification_) {
       log::info("Received REMOTE_HOST_SUPPORTED_FEATURES_NOTIFICATION from {}",
                 packet.GetBdAddr().ToRedactedStringForLogging());
       on_remote_host_supported_features_notification_(packet.GetHostSupportedFeatures());
       // Remove the callback so that we won't call it again.
       on_remote_host_supported_features_notification_ = RemoteHostSupportedFeaturesCallback();
-    } else if (!pending_) {
+    } else if (requests_.count(packet.GetBdAddr()) == 0) {
       log::error(
               "Received unexpected REMOTE_HOST_SUPPORTED_FEATURES_NOTIFICATION when no Remote Name "
               "Request is outstanding");
@@ -178,10 +178,10 @@ private:
   }
 
   void completed(ErrorCode status, std::array<uint8_t, 248> name, Address address) {
-    if (pending_) {
+    if (requests_.count(address) > 0) {
       log::info("Received REMOTE_NAME_REQUEST_COMPLETE from {} with status {}",
                 address.ToRedactedStringForLogging(), ErrorCodeText(status));
-      pending_ = false;
+      requests_.erase(address);
       on_remote_name_complete_(status, name);
       acl_scheduler_->ReportRemoteNameRequestCompletion(address);
     } else {
@@ -213,7 +213,7 @@ private:
   acl_manager::AclScheduler* acl_scheduler_;
   os::Handler* handler_;
 
-  bool pending_ = false;
+  std::set<Address> requests_ = {};
   RemoteHostSupportedFeaturesCallback on_remote_host_supported_features_notification_;
   RemoteNameCallback on_remote_name_complete_;
 };
