@@ -1011,6 +1011,11 @@ public class BassClientService extends ProfileService {
                                 + sink.getAnonymizedAddress()
                                 + ", and sourceId:"
                                 + sourceId);
+                for (BluetoothDevice device : getTargetDeviceList(sink, true)) {
+                    map.put(device, sourceId);
+                }
+                return new Pair<BluetoothLeBroadcastMetadata, Map<BluetoothDevice, Integer>>(
+                        null, map);
             }
         }
 
