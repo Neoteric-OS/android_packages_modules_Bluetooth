@@ -2442,7 +2442,7 @@ public class BluetoothInCallService extends InCallService {
         public BluetoothCall getCallByState(int state) {
             List<BluetoothCall> calls = getBluetoothCalls();
             for (BluetoothCall call : calls) {
-                if (state == call.getState()) {
+                if (state == call.getState() && call.getParentId() == null) {
                     return call;
                 }
             }
