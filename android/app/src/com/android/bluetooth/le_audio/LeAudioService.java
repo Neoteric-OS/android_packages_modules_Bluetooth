@@ -1884,18 +1884,57 @@ public class LeAudioService extends ProfileService {
                 mAdapterService
                         .getBluetoothScanController()
                         .getTransitionalScanHelper()
+                        .stopScanInternal(mScannerId);
+
+                mAdapterService
+                        .getBluetoothScanController()
+                        .getTransitionalScanHelper()
                         .unregisterScannerInternal(mScannerId);
             } else {
                 mAdapterService
                         .getBluetoothGattService()
                         .getTransitionalScanHelper()
+                        .stopScanInternal(mScannerId);
+
+                mAdapterService
+                        .getBluetoothGattService()
+                        .getTransitionalScanHelper()
                         .unregisterScannerInternal(mScannerId);
             }
+            mScannerId = 0;
         }
 
         @Override
         public synchronized void onScannerRegistered(int status, int scannerId) {
             mScannerId = scannerId;
+
+            /* Filter we are building here will not match to anything.
+             * Eventually we should be able to start scan from native when
+             * b/276350722 is done
+             */
+            ScanFilter filter =
+                    new ScanFilter.Builder()
+                            .setServiceData(BluetoothUuid.LE_AUDIO, new byte[] {0x11})
+                            .build();
+
+            ScanSettings settings =
+                    new ScanSettings.Builder()
+                            .setLegacy(false)
+                            .setScanMode(ScanSettings.SCAN_MODE_BALANCED)
+                            .setPhy(BluetoothDevice.PHY_LE_1M)
+                            .build();
+
+            if (Flags.scanManagerRefactor()) {
+                mAdapterService
+                        .getBluetoothScanController()
+                        .getTransitionalScanHelper()
+                        .startScanInternal(scannerId, settings, List.of(filter));
+            } else {
+                mAdapterService
+                        .getBluetoothGattService()
+                        .getTransitionalScanHelper()
+                        .startScanInternal(scannerId, settings, List.of(filter));
+            }
         }
 
         // Eventually we should be able to start scan from native when b/276350722 is done
@@ -2309,18 +2348,31 @@ public class LeAudioService extends ProfileService {
                         + ", isBroadcastPlaying: "
                         + isBroadcastPlaying);
 
+        LeAudioGroupDescriptor groupDescriptor = getGroupDescriptor(currentlyActiveGroupId);
         if (isBroadcastActive()
                 && currentlyActiveGroupId == LE_AUDIO_GROUP_ID_INVALID
                 && (mUnicastGroupIdDeactivatedForBroadcastTransition != LE_AUDIO_GROUP_ID_INVALID
-                || isBroadcastPlaying)
-                && groupId != LE_AUDIO_GROUP_ID_INVALID) {
+                || isBroadcastPlaying)) {
             // If broadcast is ongoing and need to update unicast fallback active group
             // we need to update the cached group id and skip changing the active device
             updateFallbackUnicastGroupIdForBroadcast(groupId);
+
+            /* In case of removing fallback unicast group, monitoring input device should be
+             * removed from active devices.
+             */
+            if (groupDescriptor != null && groupId == LE_AUDIO_GROUP_ID_INVALID) {
+                updateActiveDevices(
+                        groupId,
+                        groupDescriptor.mDirection,
+                        AUDIO_DIRECTION_NONE,
+                        false,
+                        groupDescriptor.mHasFallbackDeviceWhenGettingInactive,
+                        false);
+            }
+
             return true;
         }
 
-        LeAudioGroupDescriptor groupDescriptor = getGroupDescriptor(currentlyActiveGroupId);
         if (groupDescriptor != null && groupId == currentlyActiveGroupId) {
             /* Make sure active group is already exposed to audio framework.
              * If not, lets wait for it and don't sent additional intent.
@@ -2834,9 +2886,8 @@ public class LeAudioService extends ProfileService {
                     mLeAudioCallbacks
                             .getBroadcastItem(i)
                             .onGroupStreamStatusChanged(groupId, groupStreamStatus);
-                    } catch (RemoteException e) {
+                } catch (RemoteException e) {
                         continue;
-                    }
                 }
                 mLeAudioCallbacks.finishBroadcast();
             }
