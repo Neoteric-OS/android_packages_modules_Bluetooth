@@ -25,6 +25,7 @@
 #include <base/logging.h>
 #include <base/strings/string_number_conversions.h>
 #include <bluetooth/log.h>
+#include <com_android_bluetooth_flags.h>
 #include <hardware/bluetooth.h>
 #include <hardware/bt_gatt.h>
 #include <com_android_bluetooth_flags.h>
@@ -341,10 +342,26 @@ class BleAdvertiserInterfaceImpl : public BleAdvertiserInterface,
   }
 
   void OnAdvertisingDataSet(uint8_t advertiser_id, uint8_t status) {
+    if (com::android::bluetooth::flags::
+            leaudio_broadcast_update_metadata_callback()) {
+      int reg_id =
+          bluetooth::shim::GetAdvertising()->GetAdvertiserRegId(advertiser_id);
+      uint8_t client_id = is_native_advertiser(reg_id);
+      if (client_id != kAdvertiserClientIdJni) {
+        // Invoke callback for native client
+        do_in_main_thread(
+            FROM_HERE,
+            base::Bind(&AdvertisingCallbacks::OnAdvertisingDataSet,
+                       base::Unretained(native_adv_callbacks_map_[client_id]),
+                       advertiser_id, status));
+        return;
+      }
+    }
     do_in_jni_thread(base::BindOnce(&AdvertisingCallbacks::OnAdvertisingDataSet,
                                     base::Unretained(advertising_callbacks_),
                                     advertiser_id, status));
   }
+
   void OnScanResponseDataSet(uint8_t advertiser_id, uint8_t status) {
     do_in_jni_thread(base::BindOnce(
         &AdvertisingCallbacks::OnScanResponseDataSet,
@@ -367,6 +384,21 @@ class BleAdvertiserInterfaceImpl : public BleAdvertiserInterface,
   }
 
   void OnPeriodicAdvertisingDataSet(uint8_t advertiser_id, uint8_t status) {
+    if (com::android::bluetooth::flags::
+            leaudio_broadcast_update_metadata_callback()) {
+      int reg_id =
+          bluetooth::shim::GetAdvertising()->GetAdvertiserRegId(advertiser_id);
+      uint8_t client_id = is_native_advertiser(reg_id);
+      if (client_id != kAdvertiserClientIdJni) {
+        // Invoke callback for native client
+        do_in_main_thread(
+            FROM_HERE,
+            base::Bind(&AdvertisingCallbacks::OnPeriodicAdvertisingDataSet,
+                       base::Unretained(native_adv_callbacks_map_[client_id]),
+                       advertiser_id, status));
+        return;
+      }
+    }
     do_in_jni_thread(base::BindOnce(
         &AdvertisingCallbacks::OnPeriodicAdvertisingDataSet,
         base::Unretained(advertising_callbacks_), advertiser_id, status));

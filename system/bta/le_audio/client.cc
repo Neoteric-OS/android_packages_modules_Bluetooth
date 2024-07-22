@@ -285,12 +285,10 @@ class LeAudioClientImpl : public LeAudioClient {
       reconnection_mode_ = BTM_BLE_BKG_CONNECT_ALLOW_LIST;
     }
 
-    if (com::android::bluetooth::flags::leaudio_enable_health_based_actions()) {
-      log::info("Loading health status module");
-      leAudioHealthStatus_ = LeAudioHealthStatus::Get();
-      leAudioHealthStatus_->RegisterCallback(
-          base::BindRepeating(le_audio_health_status_callback));
-    }
+    log::info("Loading health status module");
+    leAudioHealthStatus_ = LeAudioHealthStatus::Get();
+    leAudioHealthStatus_->RegisterCallback(
+        base::BindRepeating(le_audio_health_status_callback));
 
     BTA_GATTC_AppRegister(
         le_audio_gattc_callback,
@@ -1347,12 +1345,19 @@ class LeAudioClientImpl : public LeAudioClient {
 
     L2CA_SetEcosystemBaseInterval(frame_duration_us / 1250);
 
-    audio_framework_source_config.data_interval_us = frame_duration_us;
+    // Scale by the codec frame blocks per SDU if set
+    uint8_t codec_frame_blocks_per_sdu =
+        group->stream_conf.stream_params.source.codec_frames_blocks_per_sdu
+            ?: 1;
+    audio_framework_source_config.data_interval_us =
+        frame_duration_us * codec_frame_blocks_per_sdu;
+
     le_audio_source_hal_client_->Start(audio_framework_source_config,
                                        audioSinkReceiver, dsa_modes);
 
     /* We use same frame duration for sink/source */
-    audio_framework_sink_config.data_interval_us = frame_duration_us;
+    audio_framework_sink_config.data_interval_us =
+        frame_duration_us * codec_frame_blocks_per_sdu;
 
     /* If group supports more than 16kHz for the microphone in converstional
      * case let's use that also for Audio Framework.
@@ -3688,6 +3693,12 @@ class LeAudioClientImpl : public LeAudioClient {
         right_cis_handle = cis_handle;
     }
 
+    if (stream_params.codec_frames_blocks_per_sdu != 1) {
+      log::error(
+          "Codec Frame Blocks of {} is not supported by the software encoding",
+          +stream_params.codec_frames_blocks_per_sdu);
+    }
+
     uint16_t byte_count = stream_params.octets_per_codec_frame;
     bool mix_to_mono = (left_cis_handle == 0) || (right_cis_handle == 0);
     if (mix_to_mono) {
@@ -3734,6 +3745,12 @@ class LeAudioClientImpl : public LeAudioClient {
                             number_of_required_samples_per_channel)) {
       log::error("Missing samples");
       return;
+    }
+
+    if (stream_params.codec_frames_blocks_per_sdu != 1) {
+      log::error(
+          "Codec Frame Blocks of {} is not supported by the software encoding",
+          +stream_params.codec_frames_blocks_per_sdu);
     }
 
     uint16_t byte_count = stream_params.octets_per_codec_frame;
@@ -6028,8 +6045,12 @@ class LeAudioClientImpl : public LeAudioClient {
 
     switch (status) {
       case GroupStreamStatus::STREAMING: {
-        log::assert_that(group_id == active_group_id_,
-                         "invalid group id {}!={}", group_id, active_group_id_);
+        if (group_id != active_group_id_) {
+          log::error("Streaming group {} is no longer active. Stop the group.",
+                     group_id);
+          GroupStop(group_id);
+          return;
+        }
 
         take_stream_time();
 

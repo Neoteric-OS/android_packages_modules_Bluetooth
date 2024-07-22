@@ -29,7 +29,6 @@
 #include <string>
 
 #include "common/circular_buffer.h"
-#include "internal_include/bt_target.h"
 #include "osi/include/fixed_queue.h"
 #include "stack/acl/acl.h"
 #include "stack/btm/btm_ble_int_types.h"
@@ -37,6 +36,7 @@
 #include "stack/btm/neighbor_inquiry.h"
 #include "stack/include/btm_ble_api_types.h"
 #include "stack/include/security_client_callbacks.h"
+#include "stack/rnr/remote_name_request.h"
 #include "types/raw_address.h"
 
 constexpr size_t kMaxLogSize = 255;
@@ -185,6 +185,8 @@ typedef struct tBTM_CB {
             kMaxInquiryScanHistory);
   } neighbor;
 
+  bluetooth::rnr::RemoteNameRequest rnr;
+
   void Init() {
     memset(&devcb, 0, sizeof(devcb));
     memset(&ble_ctr_cb, 0, sizeof(ble_ctr_cb));
@@ -195,6 +197,8 @@ typedef struct tBTM_CB {
 
     acl_cb_ = {};
     neighbor = {};
+    rnr = {};
+    rnr.remote_name_timer = alarm_new("rnr.remote_name_timer");
 
     /* Initialize BTM component structures */
     btm_inq_vars.Init(); /* Inquiry Database and Structures */
@@ -209,6 +213,7 @@ typedef struct tBTM_CB {
   }
 
   void Free() {
+    alarm_free(rnr.remote_name_timer);
     history_.reset();
 
     devcb.Free();

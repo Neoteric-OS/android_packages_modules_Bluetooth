@@ -245,7 +245,6 @@ public final class BluetoothCodecConfig implements Parcelable {
             value = {CHANNEL_MODE_NONE, CHANNEL_MODE_MONO, CHANNEL_MODE_STEREO})
 
     @Retention(RetentionPolicy.SOURCE)
-    /** @hide */
     public @interface ChannelMode {}
 
     /** Codec channel mode NONE. Default value of the codec channel mode. */
