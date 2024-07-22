@@ -241,7 +241,9 @@ uint16_t CodecConfigSetting::GetOctectsPerFrame() const {
 uint32_t CodecConfigSetting::GetDataIntervalUs() const {
   switch (id.coding_format) {
     case kLeAudioCodingFormatLC3:
-      return params.GetAsCoreCodecConfig().GetFrameDurationUs();
+      return params.GetAsCoreCodecConfig().GetFrameDurationUs() *
+             params.GetAsCoreCodecConfig().codec_frames_blocks_per_sdu.value_or(
+                 1);
     case types::kLeAudioCodingFormatVendorSpecific:
       switch (id.vendor_company_id) {
         case types::kLeAudioVendorCompanyIdQualcomm:
