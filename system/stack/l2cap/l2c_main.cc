@@ -903,7 +903,7 @@ tL2CAP_DW_RESULT l2c_data_write(uint16_t cid, BT_HDR* p_data, uint16_t flags) {
   if (!p_ccb) {
     log::warn("L2CAP - no CCB for L2CA_DataWrite, CID: {}", cid);
     osi_free(p_data);
-    return (tL2CAP_DW_RESULT::L2CAP_DW_FAILED);
+    return (tL2CAP_DW_RESULT::FAILED);
   }
 
   /* Sending message bigger than mtu size of peer is a violation of protocol */
@@ -917,7 +917,7 @@ tL2CAP_DW_RESULT l2c_data_write(uint16_t cid, BT_HDR* p_data, uint16_t flags) {
   if (p_data->len > mtu) {
     log::warn("L2CAP - CID: 0x{:04x}  cannot send message bigger than peer's mtu size: len={} mtu={}", cid, p_data->len, mtu);
     osi_free(p_data);
-    return (tL2CAP_DW_RESULT::L2CAP_DW_FAILED);
+    return (tL2CAP_DW_RESULT::FAILED);
   }
 
   /* channel based, packet based flushable or non-flushable */
@@ -928,12 +928,12 @@ tL2CAP_DW_RESULT l2c_data_write(uint16_t cid, BT_HDR* p_data, uint16_t flags) {
     log::error("L2CAP - CID: 0x{:04x} cannot send, already congested  xmit_hold_q.count: {}  buff_quota: {}", p_ccb->local_cid, fixed_queue_length(p_ccb->xmit_hold_q), p_ccb->buff_quota);
 
     osi_free(p_data);
-    return (tL2CAP_DW_RESULT::L2CAP_DW_FAILED);
+    return (tL2CAP_DW_RESULT::FAILED);
   }
 
   l2c_csm_execute(p_ccb, L2CEVT_L2CA_DATA_WRITE, p_data);
 
-  if (p_ccb->cong_sent) return (tL2CAP_DW_RESULT::L2CAP_DW_CONGESTED);
+  if (p_ccb->cong_sent) return (tL2CAP_DW_RESULT::CONGESTED);
 
-  return (tL2CAP_DW_RESULT::L2CAP_DW_SUCCESS);
+  return (tL2CAP_DW_RESULT::SUCCESS);
 }

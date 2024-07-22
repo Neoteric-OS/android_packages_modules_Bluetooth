@@ -72,6 +72,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Queue;
+import java.util.Set;
 import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.TreeMap;
@@ -2429,7 +2430,7 @@ public class BluetoothInCallService extends InCallService {
             return null;
         }
 
-        public BluetoothCall getCallByStates(LinkedHashSet<Integer> states) {
+        public BluetoothCall getCallByStates(Set<Integer> states) {
             List<BluetoothCall> calls = getBluetoothCalls();
             for (BluetoothCall call : calls) {
                 if (states.contains(call.getState())) {

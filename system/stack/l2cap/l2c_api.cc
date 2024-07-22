@@ -1286,13 +1286,13 @@ tL2CAP_DW_RESULT L2CA_SendFixedChnlData(uint16_t fixed_cid,
        NULL)) {
     log::warn("No service registered or invalid CID: 0x{:04x}", fixed_cid);
     osi_free(p_buf);
-    return (tL2CAP_DW_RESULT::L2CAP_DW_FAILED);
+    return (tL2CAP_DW_RESULT::FAILED);
   }
 
   if (!BTM_IsDeviceUp()) {
     log::warn("Controller is not ready CID: 0x{:04x}", fixed_cid);
     osi_free(p_buf);
-    return (tL2CAP_DW_RESULT::L2CAP_DW_FAILED);
+    return (tL2CAP_DW_RESULT::FAILED);
   }
 
   p_lcb = l2cu_find_lcb_by_bd_addr(rem_bda, transport);
@@ -1300,7 +1300,7 @@ tL2CAP_DW_RESULT L2CA_SendFixedChnlData(uint16_t fixed_cid,
     /* if link is disconnecting, also report data sending failure */
     log::warn("Link is disconnecting or does not exist CID: 0x{:04x}", fixed_cid);
     osi_free(p_buf);
-    return (tL2CAP_DW_RESULT::L2CAP_DW_FAILED);
+    return (tL2CAP_DW_RESULT::FAILED);
   }
 
   tL2C_BLE_FIXED_CHNLS_MASK peer_channel_mask;
@@ -1314,7 +1314,7 @@ tL2CAP_DW_RESULT L2CA_SendFixedChnlData(uint16_t fixed_cid,
   if ((peer_channel_mask & (1 << fixed_cid)) == 0) {
     log::warn("Peer does not support fixed channel CID: 0x{:04x}", fixed_cid);
     osi_free(p_buf);
-    return (tL2CAP_DW_RESULT::L2CAP_DW_FAILED);
+    return (tL2CAP_DW_RESULT::FAILED);
   }
 
   p_buf->event = 0;
@@ -1324,7 +1324,7 @@ tL2CAP_DW_RESULT L2CA_SendFixedChnlData(uint16_t fixed_cid,
     if (!l2cu_initialize_fixed_ccb(p_lcb, fixed_cid)) {
       log::warn("No channel control block found for CID: 0x{:4x}", fixed_cid);
       osi_free(p_buf);
-      return (tL2CAP_DW_RESULT::L2CAP_DW_FAILED);
+      return (tL2CAP_DW_RESULT::FAILED);
     }
   }
 
@@ -1333,7 +1333,7 @@ tL2CAP_DW_RESULT L2CA_SendFixedChnlData(uint16_t fixed_cid,
             p_lcb->p_fixed_ccbs[fixed_cid - L2CAP_FIRST_FIXED_CHNL]
                 ->xmit_hold_q), p_lcb->p_fixed_ccbs[fixed_cid - L2CAP_FIRST_FIXED_CHNL]->buff_quota);
     osi_free(p_buf);
-    return (tL2CAP_DW_RESULT::L2CAP_DW_FAILED);
+    return (tL2CAP_DW_RESULT::FAILED);
   }
 
   log::debug("Enqueued data for CID: 0x{:04x} len:{}", fixed_cid, p_buf->len);
@@ -1351,10 +1351,10 @@ tL2CAP_DW_RESULT L2CA_SendFixedChnlData(uint16_t fixed_cid,
 
   if (p_lcb->p_fixed_ccbs[fixed_cid - L2CAP_FIRST_FIXED_CHNL]->cong_sent) {
     log::debug("Link congested for CID: 0x{:04x}", fixed_cid);
-    return (tL2CAP_DW_RESULT::L2CAP_DW_CONGESTED);
+    return (tL2CAP_DW_RESULT::CONGESTED);
   }
 
-  return (tL2CAP_DW_RESULT::L2CAP_DW_SUCCESS);
+  return (tL2CAP_DW_RESULT::SUCCESS);
 }
 
 /*******************************************************************************

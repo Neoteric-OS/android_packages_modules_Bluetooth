@@ -36,11 +36,6 @@ struct btm_client_interface_t {
   struct {
     [[nodiscard]] tBTM_STATUS (*BTM_PmRegister)(uint8_t mask, uint8_t* p_pm_id,
                                                 tBTM_PM_STATUS_CBACK* p_cback);
-    [[nodiscard]] uint16_t (*BTM_GetHCIConnHandle)(const RawAddress& bd_addr,
-                                                   tBT_TRANSPORT transport);
-    void (*BTM_VendorSpecificCommand)(uint16_t opcode, uint8_t param_len,
-                                      uint8_t* p_param_buf,
-                                      tBTM_VSC_CMPL_CB* p_cb);
     void (*ACL_RegisterClient)(struct acl_client_callback_s* callbacks);
     void (*ACL_UnregisterClient)(struct acl_client_callback_s* callbacks);
     void (*btm_init)();
@@ -77,6 +72,8 @@ struct btm_client_interface_t {
                                             tBT_TRANSPORT transport);
     [[nodiscard]] bool (*BTM_IsPhy2mSupported)(const RawAddress& remote_bda,
                                                tBT_TRANSPORT transport);
+    [[nodiscard]] uint16_t (*BTM_GetHCIConnHandle)(const RawAddress& bd_addr,
+                                                   tBT_TRANSPORT transport);
   } peer;
 
   struct {
@@ -193,6 +190,9 @@ struct btm_client_interface_t {
     bool (*BTM_IsQHSPhySupported)(const RawAddress& bda,
                                   tBT_TRANSPORT transport);
     void (*BTM_SetPowerBackOffState)(bool status);
+    void (*BTM_VendorSpecificCommand)(uint16_t opcode, uint8_t param_len,
+                                      uint8_t* p_param_buf,
+                                      tBTM_VSC_CMPL_CB* p_cb);
   } vendor;
 };
 

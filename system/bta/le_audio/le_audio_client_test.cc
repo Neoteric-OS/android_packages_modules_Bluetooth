@@ -3164,10 +3164,7 @@ TEST_F(UnicastTest, ConnectOneEarbudWithInvalidCsis) {
   Mock::VerifyAndClearExpectations(&mock_audio_hal_client_callbacks_);
 }
 
-TEST_F_WITH_FLAGS(UnicastTestHealthStatus,
-                  ConnectOneEarbudEmpty_withHealthStatus,
-                  REQUIRES_FLAGS_ENABLED(ACONFIG_FLAG(
-                      TEST_BT, leaudio_enable_health_based_actions))) {
+TEST_F(UnicastTestHealthStatus, ConnectOneEarbudEmpty_withHealthStatus) {
   const RawAddress test_address0 = GetTestAddress(0);
   SetSampleDatabaseEmpty(1, test_address0);
   EXPECT_CALL(mock_audio_hal_client_callbacks_,
@@ -3187,10 +3184,7 @@ TEST_F_WITH_FLAGS(UnicastTestHealthStatus,
       test_address0, bluetooth::groups::kGroupUnknown);
 }
 
-TEST_F_WITH_FLAGS(UnicastTestHealthStatus,
-                  ConnectOneEarbudNoPacs_withHealthStatus,
-                  REQUIRES_FLAGS_ENABLED(ACONFIG_FLAG(
-                      TEST_BT, leaudio_enable_health_based_actions))) {
+TEST_F(UnicastTestHealthStatus, ConnectOneEarbudNoPacs_withHealthStatus) {
   const RawAddress test_address0 = GetTestAddress(0);
   SetSampleDatabaseEarbudsValid(
       1, test_address0, codec_spec_conf::kLeAudioLocationStereo,
@@ -3217,10 +3211,7 @@ TEST_F_WITH_FLAGS(UnicastTestHealthStatus,
       test_address0, bluetooth::groups::kGroupUnknown);
 }
 
-TEST_F_WITH_FLAGS(UnicastTestHealthStatus,
-                  ConnectOneEarbudNoAscs_withHealthStatus,
-                  REQUIRES_FLAGS_ENABLED(ACONFIG_FLAG(
-                      TEST_BT, leaudio_enable_health_based_actions))) {
+TEST_F(UnicastTestHealthStatus, ConnectOneEarbudNoAscs_withHealthStatus) {
   const RawAddress test_address0 = GetTestAddress(0);
   SetSampleDatabaseEarbudsValid(
       1, test_address0, codec_spec_conf::kLeAudioLocationStereo,
@@ -3299,10 +3290,8 @@ TEST_F(UnicastTestHealthStatus, ConnectOneEarbudNoCsis_withHealthStatus) {
       test_address0, bluetooth::groups::kGroupUnknown);
 }
 
-TEST_F_WITH_FLAGS(UnicastTestHealthStatus,
-                  ConnectOneEarbudWithInvalidCsis_withHealthStatus,
-                  REQUIRES_FLAGS_ENABLED(ACONFIG_FLAG(
-                      TEST_BT, leaudio_enable_health_based_actions))) {
+TEST_F(UnicastTestHealthStatus,
+       ConnectOneEarbudWithInvalidCsis_withHealthStatus) {
   const RawAddress test_address0 = GetTestAddress(0);
   SetSampleDatabaseEarbudsValid(
       1, test_address0, codec_spec_conf::kLeAudioLocationStereo,
@@ -3341,10 +3330,7 @@ TEST_F_WITH_FLAGS(UnicastTestHealthStatus,
       test_address0, bluetooth::groups::kGroupUnknown);
 }
 
-TEST_F_WITH_FLAGS(UnicastTestHealthStatus,
-                  ConnectOneEarbudDisable_withHealthStatus,
-                  REQUIRES_FLAGS_ENABLED(ACONFIG_FLAG(
-                      TEST_BT, leaudio_enable_health_based_actions))) {
+TEST_F(UnicastTestHealthStatus, ConnectOneEarbudDisable_withHealthStatus) {
   const RawAddress test_address0 = GetTestAddress(0);
   int conn_id = 1;
 
@@ -3399,10 +3385,8 @@ TEST_F_WITH_FLAGS(UnicastTestHealthStatus,
   Mock::VerifyAndClearExpectations(&mock_audio_hal_client_callbacks_);
 }
 
-TEST_F_WITH_FLAGS(UnicastTestHealthStatus,
-                  ConnectOneEarbudConsiderDisabling_withHealthStatus,
-                  REQUIRES_FLAGS_ENABLED(ACONFIG_FLAG(
-                      TEST_BT, leaudio_enable_health_based_actions))) {
+TEST_F(UnicastTestHealthStatus,
+       ConnectOneEarbudConsiderDisabling_withHealthStatus) {
   const RawAddress test_address0 = GetTestAddress(0);
   int conn_id = 1;
 
