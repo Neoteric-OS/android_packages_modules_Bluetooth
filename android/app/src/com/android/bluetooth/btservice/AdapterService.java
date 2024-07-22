@@ -17,6 +17,10 @@
 
 package com.android.bluetooth.btservice;
 
+import static android.Manifest.permission.BLUETOOTH_SCAN;
+import static android.bluetooth.BluetoothAdapter.SCAN_MODE_CONNECTABLE;
+import static android.bluetooth.BluetoothAdapter.SCAN_MODE_CONNECTABLE_DISCOVERABLE;
+import static android.bluetooth.BluetoothAdapter.SCAN_MODE_NONE;
 import static android.bluetooth.BluetoothDevice.BATTERY_LEVEL_UNKNOWN;
 import static android.bluetooth.BluetoothDevice.TRANSPORT_AUTO;
 import static android.bluetooth.IBluetoothLeAudio.LE_AUDIO_GROUP_ID_INVALID;
@@ -161,6 +165,7 @@ import com.android.modules.utils.BytesMatcher;
 import libcore.util.SneakyThrow;
 
 import com.google.common.base.Ascii;
+import com.google.common.collect.EvictingQueue;
 import com.google.protobuf.InvalidProtocolBufferException;
 
 import java.io.FileDescriptor;
@@ -180,6 +185,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Executor;
@@ -254,6 +260,8 @@ public class AdapterService extends Service {
             mBluetoothQualityReportReadyCallbacks = new RemoteCallbackList<>();
     private final RemoteCallbackList<IBluetoothCallback> mRemoteCallbacks =
             new RemoteCallbackList<>();
+
+    private final EvictingQueue<String> mScanModeChanges = EvictingQueue.create(10);
 
     private final DeviceConfigListener mDeviceConfigListener = new DeviceConfigListener();
 
@@ -330,6 +338,8 @@ public class AdapterService extends Service {
 
     /** Handlers for incoming service calls */
     private AdapterServiceBinder mBinder;
+
+    private volatile int mScanMode;
 
     // Report ID definition
     public enum BqrQualityReportId {
@@ -536,6 +546,7 @@ public class AdapterService extends Service {
                     } else if (mRegisteredProfiles.size() == Config.getSupportedProfiles().length
                             && mRegisteredProfiles.size() == mRunningProfiles.size()) {
                         mAdapterProperties.onBluetoothReady();
+                        setScanMode(SCAN_MODE_CONNECTABLE, "processProfileServiceStateChanged");
                         updateUuids();
                         initProfileServices();
                         mNativeInterface.getAdapterProperty(
@@ -1076,6 +1087,7 @@ public class AdapterService extends Service {
             // This will check other profile services.
             if (supportedProfileServices.length == 0) {
                 mAdapterProperties.onBluetoothReady();
+                setScanMode(SCAN_MODE_CONNECTABLE, "startProfileServices");
                 updateUuids();
                 mAdapterStateMachine.sendMessage(AdapterState.BREDR_STARTED);
             } else {
@@ -1088,6 +1100,7 @@ public class AdapterService extends Service {
             if (supportedProfileServices.length == 1
                     && supportedProfileServices[0] == BluetoothProfile.GATT) {
                 mAdapterProperties.onBluetoothReady();
+                setScanMode(SCAN_MODE_CONNECTABLE, "startProfileServices");
                 updateUuids();
                 mAdapterStateMachine.sendMessage(AdapterState.BREDR_STARTED);
             } else {
@@ -1099,7 +1112,7 @@ public class AdapterService extends Service {
     void stopProfileServices() {
         // Make sure to stop classic background tasks now
         mNativeInterface.cancelDiscovery();
-        mAdapterProperties.setScanMode(BluetoothAdapter.SCAN_MODE_NONE);
+        setScanMode(SCAN_MODE_NONE, "StopProfileServices");
 
         int[] supportedProfileServices = Config.getSupportedProfiles();
         if (Flags.scanManagerRefactor()) {
@@ -1144,7 +1157,8 @@ public class AdapterService extends Service {
     }
 
     private void stopGattProfileService() {
-        mAdapterProperties.onBleDisable();
+        setScanMode(SCAN_MODE_NONE, "stopGattProfileService");
+
         if (mRunningProfiles.size() == 0) {
             Log.d(TAG, "stopGattProfileService() - No profiles services to stop.");
             mAdapterStateMachine.sendMessage(AdapterState.BLE_STOPPED);
@@ -1163,7 +1177,7 @@ public class AdapterService extends Service {
     }
 
     private void stopScanController() {
-        mAdapterProperties.onBleDisable();
+        setScanMode(SCAN_MODE_NONE, "stopScanController");
 
         if (mScanController == null) {
             mAdapterStateMachine.sendMessage(AdapterState.BLE_STOPPED);
@@ -2492,7 +2506,7 @@ public class AdapterService extends Service {
                     || !callerIsSystemOrActiveOrManagedUser(service, TAG, "getScanMode")
                     || !Utils.checkScanPermissionForDataDelivery(
                             service, attributionSource, "AdapterService getScanMode")) {
-                return BluetoothAdapter.SCAN_MODE_NONE;
+                return SCAN_MODE_NONE;
             }
 
             return service.getScanMode();
@@ -2509,7 +2523,15 @@ public class AdapterService extends Service {
             }
             enforceBluetoothPrivilegedPermission(service);
 
-            return service.mAdapterProperties.setScanMode(mode)
+            String logCaller =
+                    Utils.getUidPidString() + " packageName=" + attributionSource.getPackageName();
+            CompletableFuture<Boolean> future = new CompletableFuture<>();
+            mService.mHandler.post(
+                    () ->
+                            future.complete(
+                                    service.getState() == BluetoothAdapter.STATE_ON
+                                            && service.setScanMode(mode, logCaller)));
+            return future.join()
                     ? BluetoothStatusCodes.SUCCESS
                     : BluetoothStatusCodes.ERROR_UNKNOWN;
         }
@@ -4224,7 +4246,6 @@ public class AdapterService extends Service {
             return BluetoothStatusCodes.SUCCESS;
         }
 
-        @RequiresPermission(android.Manifest.permission.BLUETOOTH_SCAN)
         @Override
         public int getOffloadedTransportDiscoveryDataScanSupported(
                 AttributionSource attributionSource) {
@@ -5924,7 +5945,21 @@ public class AdapterService extends Service {
 
     @VisibleForTesting
     int getScanMode() {
-        return mAdapterProperties.getScanMode();
+        return mScanMode;
+    }
+
+    private boolean setScanMode(int mode, String from) {
+        mScanModeChanges.add(Utils.getLocalTimeString() + " (" + from + ") " + dumpScanMode(mode));
+        if (!mNativeInterface.setScanMode(convertScanModeToHal(mode))) {
+            return false;
+        }
+        mScanMode = mode;
+        Intent intent =
+                new Intent(BluetoothAdapter.ACTION_SCAN_MODE_CHANGED)
+                        .putExtra(BluetoothAdapter.EXTRA_SCAN_MODE, mScanMode)
+                        .addFlags(Intent.FLAG_RECEIVER_REGISTERED_ONLY_BEFORE_BOOT);
+        sendBroadcast(intent, BLUETOOTH_SCAN, Utils.getTempBroadcastOptions().toBundle());
+        return true;
     }
 
     public Vendor getVendorIntf() {
@@ -6175,27 +6210,25 @@ public class AdapterService extends Service {
 
     static int convertScanModeToHal(int mode) {
         switch (mode) {
-            case BluetoothAdapter.SCAN_MODE_NONE:
+            case SCAN_MODE_NONE:
                 return AbstractionLayer.BT_SCAN_MODE_NONE;
-            case BluetoothAdapter.SCAN_MODE_CONNECTABLE:
+            case SCAN_MODE_CONNECTABLE:
                 return AbstractionLayer.BT_SCAN_MODE_CONNECTABLE;
-            case BluetoothAdapter.SCAN_MODE_CONNECTABLE_DISCOVERABLE:
+            case SCAN_MODE_CONNECTABLE_DISCOVERABLE:
                 return AbstractionLayer.BT_SCAN_MODE_CONNECTABLE_DISCOVERABLE;
         }
-        // Log.e(TAG, "Incorrect scan mode in convertScanModeToHal");
         return -1;
     }
 
     static int convertScanModeFromHal(int mode) {
         switch (mode) {
             case AbstractionLayer.BT_SCAN_MODE_NONE:
-                return BluetoothAdapter.SCAN_MODE_NONE;
+                return SCAN_MODE_NONE;
             case AbstractionLayer.BT_SCAN_MODE_CONNECTABLE:
-                return BluetoothAdapter.SCAN_MODE_CONNECTABLE;
+                return SCAN_MODE_CONNECTABLE;
             case AbstractionLayer.BT_SCAN_MODE_CONNECTABLE_DISCOVERABLE:
-                return BluetoothAdapter.SCAN_MODE_CONNECTABLE_DISCOVERABLE;
+                return SCAN_MODE_CONNECTABLE_DISCOVERABLE;
         }
-        // Log.e(TAG, "Incorrect scan mode in convertScanModeFromHal");
         return -1;
     }
 
@@ -6373,6 +6406,19 @@ public class AdapterService extends Service {
         return mAdapterProperties.getVendorCapVersion();
     }
 
+    private String dumpScanMode(int scanMode) {
+        switch (scanMode) {
+            case SCAN_MODE_NONE:
+                return "SCAN_MODE_NONE";
+            case SCAN_MODE_CONNECTABLE:
+                return "SCAN_MODE_CONNECTABLE";
+            case SCAN_MODE_CONNECTABLE_DISCOVERABLE:
+                return "SCAN_MODE_CONNECTABLE_DISCOVERABLE";
+            default:
+                return "Unknown Scan Mode " + scanMode;
+        }
+    }
+
     @Override
     protected void dump(FileDescriptor fd, PrintWriter writer, String[] args) {
         if (args.length == 0) {
@@ -6398,6 +6444,13 @@ public class AdapterService extends Service {
 
         writer.println();
         mAdapterProperties.dump(fd, writer, args);
+
+        writer.println("ScanMode: " + dumpScanMode(getScanMode()));
+        writer.println("Scan Mode Changes:");
+        for (String log : mScanModeChanges) {
+            writer.println("    " + log);
+        }
+        writer.println();
         writer.println("sSnoopLogSettingAtEnable = " + sSnoopLogSettingAtEnable);
         writer.println("sDefaultSnoopLogSettingAtEnable = " + sDefaultSnoopLogSettingAtEnable);
 

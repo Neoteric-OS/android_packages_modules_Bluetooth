@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-#define LOG_TAG "BluetoothA2dpServiceJni"
+#define LOG_TAG "bluetooth-a2dp"
 
-#include <string.h>
-
+#include <cstring>
 #include <shared_mutex>
 
+#include "btif/include/btif_av.h"
 #include "btif/include/btif_util.h"
 #include "com_android_bluetooth.h"
 #include "hardware/bt_av.h"
@@ -45,7 +45,6 @@ static struct {
   jmethodID getCodecSpecific4;
 } android_bluetooth_BluetoothCodecConfig;
 
-static const btav_source_interface_t* sBluetoothA2dpInterface = nullptr;
 static std::vector<btav_a2dp_codec_info_t> supported_codecs;
 static std::shared_timed_mutex interface_mutex;
 
@@ -274,11 +273,8 @@ static void initNative(JNIEnv* env, jobject object,
     return;
   }
 
-  if (sBluetoothA2dpInterface != nullptr) {
-    log::warn("Cleaning up A2DP Interface before initializing...");
-    sBluetoothA2dpInterface->cleanup();
-    sBluetoothA2dpInterface = nullptr;
-  }
+  log::warn("Cleaning up A2DP Interface before initializing...");
+  btif_av_source_cleanup();
 
   if (mCallbacksObj != nullptr) {
     log::warn("Cleaning up A2DP callback object");
@@ -298,27 +294,18 @@ static void initNative(JNIEnv* env, jobject object,
     return;
   }
 
-  sBluetoothA2dpInterface =
-      (btav_source_interface_t*)btInf->get_profile_interface(
-          BT_PROFILE_ADVANCED_AUDIO_ID);
-  if (sBluetoothA2dpInterface == nullptr) {
-    log::error("Failed to get Bluetooth A2DP Interface");
-    return;
-  }
-
   std::vector<btav_a2dp_codec_config_t> codec_priorities =
       prepareCodecPreferences(env, object, codecConfigArray);
 
   std::vector<btav_a2dp_codec_config_t> codec_offloading =
       prepareCodecPreferences(env, object, codecOffloadingArray);
 
-  bt_status_t status = sBluetoothA2dpInterface->init(
+  bt_status_t status = btif_av_source_init(
       &sBluetoothA2dpCallbacks, maxConnectedAudioDevices, codec_priorities,
       codec_offloading, &supported_codecs);
   if (status != BT_STATUS_SUCCESS) {
     log::error("Failed to initialize Bluetooth A2DP, status: {}",
                bt_status_text(status));
-    sBluetoothA2dpInterface = nullptr;
     return;
   }
 }
@@ -333,10 +320,7 @@ static void cleanupNative(JNIEnv* env, jobject /* object */) {
     return;
   }
 
-  if (sBluetoothA2dpInterface != nullptr) {
-    sBluetoothA2dpInterface->cleanup();
-    sBluetoothA2dpInterface = nullptr;
-  }
+  btif_av_source_cleanup();
 
   env->DeleteGlobalRef(android_bluetooth_BluetoothCodecConfig.clazz);
   android_bluetooth_BluetoothCodecConfig.clazz = nullptr;
@@ -348,8 +332,6 @@ static void cleanupNative(JNIEnv* env, jobject /* object */) {
 }
 
 static jobjectArray getSupportedCodecTypesNative(JNIEnv* env) {
-  log::info("{}", fmt::ptr(sBluetoothA2dpInterface));
-
   jclass android_bluetooth_BluetoothCodecType_clazz = (jclass)env->NewGlobalRef(
       env->FindClass("android/bluetooth/BluetoothCodecType"));
   if (android_bluetooth_BluetoothCodecType_clazz == nullptr) {
@@ -389,11 +371,6 @@ static jobjectArray getSupportedCodecTypesNative(JNIEnv* env) {
 static jboolean connectA2dpNative(JNIEnv* env, jobject /* object */,
                                   jbyteArray address) {
   std::shared_lock<std::shared_timed_mutex> lock(interface_mutex);
-  if (!sBluetoothA2dpInterface) {
-    log::error("Failed to get the Bluetooth A2DP Interface");
-    return JNI_FALSE;
-  }
-
   jbyte* addr = env->GetByteArrayElements(address, nullptr);
   if (!addr) {
     jniThrowIOException(env, EINVAL);
@@ -402,9 +379,9 @@ static jboolean connectA2dpNative(JNIEnv* env, jobject /* object */,
 
   RawAddress bd_addr;
   bd_addr.FromOctets(reinterpret_cast<const uint8_t*>(addr));
-  log::info("sBluetoothA2dpInterface: {}, {}",
-            fmt::ptr(sBluetoothA2dpInterface), bd_addr);
-  bt_status_t status = sBluetoothA2dpInterface->connect(bd_addr);
+
+  log::info("{}", bd_addr);
+  bt_status_t status = btif_av_source_connect(bd_addr);
   if (status != BT_STATUS_SUCCESS) {
     log::error("Failed A2DP connection, status: {}", bt_status_text(status));
   }
@@ -415,11 +392,6 @@ static jboolean connectA2dpNative(JNIEnv* env, jobject /* object */,
 static jboolean disconnectA2dpNative(JNIEnv* env, jobject /* object */,
                                      jbyteArray address) {
   std::shared_lock<std::shared_timed_mutex> lock(interface_mutex);
-  if (!sBluetoothA2dpInterface) {
-    log::error("Failed to get the Bluetooth A2DP Interface");
-    return JNI_FALSE;
-  }
-
   jbyte* addr = env->GetByteArrayElements(address, nullptr);
   if (!addr) {
     jniThrowIOException(env, EINVAL);
@@ -428,9 +400,9 @@ static jboolean disconnectA2dpNative(JNIEnv* env, jobject /* object */,
 
   RawAddress bd_addr;
   bd_addr.FromOctets(reinterpret_cast<const uint8_t*>(addr));
-  log::info("sBluetoothA2dpInterface: {}, {}",
-            fmt::ptr(sBluetoothA2dpInterface), bd_addr);
-  bt_status_t status = sBluetoothA2dpInterface->disconnect(bd_addr);
+
+  log::info("{}", bd_addr);
+  bt_status_t status = btif_av_source_disconnect(bd_addr);
   if (status != BT_STATUS_SUCCESS) {
     log::error("Failed A2DP disconnection, status: {}", bt_status_text(status));
   }
@@ -441,13 +413,8 @@ static jboolean disconnectA2dpNative(JNIEnv* env, jobject /* object */,
 static jboolean setSilenceDeviceNative(JNIEnv* env, jobject /* object */,
                                        jbyteArray address, jboolean silence) {
   std::shared_lock<std::shared_timed_mutex> lock(interface_mutex);
-  if (!sBluetoothA2dpInterface) {
-    log::error("Failed to get the Bluetooth A2DP Interface");
-    return JNI_FALSE;
-  }
 
   jbyte* addr = env->GetByteArrayElements(address, nullptr);
-
   RawAddress bd_addr = RawAddress::kEmpty;
   if (addr) {
     bd_addr.FromOctets(reinterpret_cast<const uint8_t*>(addr));
@@ -455,11 +422,9 @@ static jboolean setSilenceDeviceNative(JNIEnv* env, jobject /* object */,
   if (bd_addr == RawAddress::kEmpty) {
     return JNI_FALSE;
   }
-  log::info("sBluetoothA2dpInterface: {}, {}: silence: {}",
-            fmt::ptr(sBluetoothA2dpInterface), bd_addr,
-            static_cast<bool>(silence));
-  bt_status_t status =
-      sBluetoothA2dpInterface->set_silence_device(bd_addr, silence);
+
+  log::info("{}: silence={}", bd_addr, silence);
+  bt_status_t status = btif_av_source_set_silence_device(bd_addr, silence);
   if (status != BT_STATUS_SUCCESS) {
     log::error("Failed A2DP set_silence_device, status: {}",
                bt_status_text(status));
@@ -471,20 +436,15 @@ static jboolean setSilenceDeviceNative(JNIEnv* env, jobject /* object */,
 static jboolean setActiveDeviceNative(JNIEnv* env, jobject /* object */,
                                       jbyteArray address) {
   std::shared_lock<std::shared_timed_mutex> lock(interface_mutex);
-  if (!sBluetoothA2dpInterface) {
-    log::error("Failed to get the Bluetooth A2DP Interface");
-    return JNI_FALSE;
-  }
 
   jbyte* addr = env->GetByteArrayElements(address, nullptr);
-
   RawAddress bd_addr = RawAddress::kEmpty;
   if (addr) {
     bd_addr.FromOctets(reinterpret_cast<const uint8_t*>(addr));
   }
-  log::info("sBluetoothA2dpInterface: {}, {}",
-            fmt::ptr(sBluetoothA2dpInterface), bd_addr);
-  bt_status_t status = sBluetoothA2dpInterface->set_active_device(bd_addr);
+
+  log::info("{}", bd_addr);
+  bt_status_t status = btif_av_source_set_active_device(bd_addr);
   if (status != BT_STATUS_SUCCESS) {
     log::error("Failed A2DP set_active_device, status: {}",
                bt_status_text(status));
@@ -497,11 +457,6 @@ static jboolean setCodecConfigPreferenceNative(JNIEnv* env, jobject object,
                                                jbyteArray address,
                                                jobjectArray codecConfigArray) {
   std::shared_lock<std::shared_timed_mutex> lock(interface_mutex);
-  if (!sBluetoothA2dpInterface) {
-    log::error("Failed to get the Bluetooth A2DP Interface");
-    return JNI_FALSE;
-  }
-
   jbyte* addr = env->GetByteArrayElements(address, nullptr);
   if (!addr) {
     jniThrowIOException(env, EINVAL);
@@ -512,11 +467,10 @@ static jboolean setCodecConfigPreferenceNative(JNIEnv* env, jobject object,
   bd_addr.FromOctets(reinterpret_cast<const uint8_t*>(addr));
   std::vector<btav_a2dp_codec_config_t> codec_preferences =
       prepareCodecPreferences(env, object, codecConfigArray);
-  log::info("sBluetoothA2dpInterface: {}, {}: {}",
-            fmt::ptr(sBluetoothA2dpInterface), bd_addr,
+  log::info("{}: {}", bd_addr,
             btav_a2dp_codec_config_t::PrintCodecs(codec_preferences));
   bt_status_t status =
-      sBluetoothA2dpInterface->config_codec(bd_addr, codec_preferences);
+      btif_av_source_set_codec_config_preference(bd_addr, codec_preferences);
   if (status != BT_STATUS_SUCCESS) {
     log::error("Failed codec configuration, status: {}",
                bt_status_text(status));
@@ -529,12 +483,14 @@ static void setStreamModeNative(JNIEnv* env, jobject object,
                                       jboolean gamingModeEnabled,
                                       jboolean lowLatencyEnabled) {
     std::shared_lock<std::shared_timed_mutex> lock(interface_mutex);
+/*
   if (!sBluetoothA2dpInterface) {
     log::error("{}: Failed to get the Bluetooth A2DP Interface", __func__);
     return;
   }
 
   sBluetoothA2dpInterface->set_stream_mode(gamingModeEnabled,lowLatencyEnabled);
+*/
 }
 
 int register_com_android_bluetooth_a2dp(JNIEnv* env) {

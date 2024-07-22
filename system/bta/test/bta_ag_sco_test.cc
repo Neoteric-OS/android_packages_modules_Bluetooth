@@ -65,7 +65,7 @@ TEST_P(BtaAgScoParameterSelectionTest, create_sco_cvsd) {
       .features = feature,
       .peer_features = peer_feature,
       .sco_idx = BTM_INVALID_SCO_INDEX,
-      .inuse_codec = UUID_CODEC_CVSD,
+      .inuse_codec = tBTA_AG_UUID_CODEC::UUID_CODEC_CVSD,
   };
 
   this->codec = ESCO_CODEC_UNKNOWN;
@@ -87,7 +87,7 @@ TEST_P(BtaAgScoParameterSelectionTest, create_pending_sco_cvsd) {
       .features = feature,
       .peer_features = peer_feature,
       .sco_idx = BTM_INVALID_SCO_INDEX,
-      .inuse_codec = UUID_CODEC_CVSD,
+      .inuse_codec = tBTA_AG_UUID_CODEC::UUID_CODEC_CVSD,
   };
 
   this->codec = ESCO_CODEC_UNKNOWN;
