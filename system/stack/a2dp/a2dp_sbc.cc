@@ -1014,20 +1014,6 @@ tA2DP_STATUS A2dpCodecConfigSbcBase::setCodecConfig(const uint8_t* p_peer_codec_
     goto fail;
   }
 
-  // Try using the prefered peer codec config (if valid), instead of the peer
-  // capability.
-  if (is_capability) {
-    if (A2DP_IsCodecValidSbc(ota_codec_peer_config_)) {
-      status =
-          A2DP_ParseInfoSbc(&peer_info_cie, ota_codec_peer_config_, false);
-    }
-    if (status != A2DP_SUCCESS) {
-      // Use the peer codec capability
-      status = A2DP_ParseInfoSbc(&peer_info_cie, p_peer_codec_info, is_capability);
-      log::assert_that(status == A2DP_SUCCESS, "assert failed: status == A2DP_SUCCESS");
-    }
-  }
-
   //
   // Build the preferred configuration
   //
@@ -1169,24 +1155,12 @@ tA2DP_STATUS A2dpCodecConfigSbcBase::setCodecConfig(const uint8_t* p_peer_codec_
   // Select the channel mode
   //
 
-  // To Pass PTS TC AVDTP/SRC/INT/SIG/SMG/BV-33-C
-  /* After connection is established with the PTS,
-   * Channel mode is changed from mono to stero then
-   * DUT sends reconfigure cmd to PTS, PTS should accept
-   * the cmd. In case of incoming connection, peer ch_mode
-   *is not updated properly, setting peer ch_mode = 15
-   */
   peer_ch_mode = peer_info_cie.ch_mode;
-  is_pts_enable = osi_property_get_bool("persist.vendor.bt.a2dp.pts_enable", false);
-  log::info("is_pts_enable: {}", is_pts_enable);
 
-  if (is_pts_enable) {
-    log::info("setting peer_ch_mode = 15 for PTS TC AVDTP/SRC/INT/SIG/SMG/BV-33-C");
-    peer_ch_mode = 15;
-  }
   log::info("peer_ch_mode = {}", peer_ch_mode);
 
   ch_mode = p_a2dp_sbc_caps->ch_mode & peer_ch_mode;
+
   codec_config_.channel_mode = BTAV_A2DP_CODEC_CHANNEL_MODE_NONE;
   switch (codec_user_config_.channel_mode) {
     case BTAV_A2DP_CODEC_CHANNEL_MODE_MONO:
