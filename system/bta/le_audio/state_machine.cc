@@ -874,7 +874,7 @@ public:
         group->SetState(AseState::BTA_LE_AUDIO_ASE_STATE_STREAMING);
       }
       state_machine_callbacks_->StatusReportCb(group->group_id_, GroupStreamStatus::STREAMING);
-    };
+    }
   }
 
   void ProcessHciNotifRemoveIsoDataPath(LeAudioDeviceGroup* group, LeAudioDevice* leAudioDevice,
