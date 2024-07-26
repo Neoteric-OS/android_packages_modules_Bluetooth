@@ -1276,9 +1276,7 @@ struct ase {
         cis_state(CisState::IDLE),
         data_path_state(DataPathState::IDLE),
         configured_for_context_type(LeAudioContextType::UNINITIALIZED),
-	is_codec_in_controller(false),
-        autonomous_operation_timer_(nullptr),
-        autonomous_target_state_(AseState::BTA_LE_AUDIO_ASE_STATE_IDLE),
+        is_codec_in_controller(false),
         state(AseState::BTA_LE_AUDIO_ASE_STATE_IDLE) {}
 
   struct hdl_pair hdls;
@@ -1315,10 +1313,6 @@ struct ase {
   AseQosPreferences qos_preferences;
 
   std::vector<uint8_t> metadata;
-
-  /* Autonomous change data */
-  alarm_t* autonomous_operation_timer_;
-  types::AseState autonomous_target_state_;
 
   AseState state;
 };

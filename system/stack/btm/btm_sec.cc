@@ -430,8 +430,8 @@ bool BTM_SecAddRmtNameNotifyCallback(tBTM_RMT_NAME_CALLBACK* p_callback) {
   int i;
 
   for (i = 0; i < BTM_SEC_MAX_RMT_NAME_CALLBACKS; i++) {
-    if (btm_cb.p_rmt_name_callback[i] == NULL) {
-      btm_cb.p_rmt_name_callback[i] = p_callback;
+    if (btm_cb.rnr.p_rmt_name_callback[i] == NULL) {
+      btm_cb.rnr.p_rmt_name_callback[i] = p_callback;
       return (true);
     }
   }
@@ -453,8 +453,8 @@ bool BTM_SecDeleteRmtNameNotifyCallback(tBTM_RMT_NAME_CALLBACK* p_callback) {
   int i;
 
   for (i = 0; i < BTM_SEC_MAX_RMT_NAME_CALLBACKS; i++) {
-    if (btm_cb.p_rmt_name_callback[i] == p_callback) {
-      btm_cb.p_rmt_name_callback[i] = NULL;
+    if (btm_cb.rnr.p_rmt_name_callback[i] == p_callback) {
+      btm_cb.rnr.p_rmt_name_callback[i] = NULL;
       return (true);
     }
   }
@@ -1587,7 +1587,8 @@ tBTM_STATUS btm_sec_l2cap_access_req_by_requirement(
     return (BTM_NO_RESOURCES);
   }
 
-  p_dev_rec->hci_handle = BTM_GetHCIConnHandle(bd_addr, BT_TRANSPORT_BR_EDR);
+  p_dev_rec->hci_handle =
+          get_btm_client_interface().peer.BTM_GetHCIConnHandle(bd_addr, BT_TRANSPORT_BR_EDR);
 
   if ((!is_originator) && (security_required & BTM_SEC_MODE4_LEVEL4)) {
     bool local_supports_sc =
@@ -2282,8 +2283,8 @@ static void call_registered_rmt_name_callbacks(const RawAddress* p_bd_addr,
   /* Notify all clients waiting for name to be resolved even if not found so
    * clients can continue */
   for (i = 0; i < BTM_SEC_MAX_RMT_NAME_CALLBACKS; i++) {
-    if (btm_cb.p_rmt_name_callback[i]) {
-      (*btm_cb.p_rmt_name_callback[i])(*p_bd_addr, dev_class, p_bd_name);
+    if (btm_cb.rnr.p_rmt_name_callback[i]) {
+      (*btm_cb.rnr.p_rmt_name_callback[i])(*p_bd_addr, dev_class, p_bd_name);
     }
   }
 }
@@ -4791,7 +4792,9 @@ tBTM_STATUS btm_sec_execute_procedure(tBTM_SEC_DEV_REC* p_dev_rec) {
  *
  ******************************************************************************/
 static bool btm_sec_start_get_name(tBTM_SEC_DEV_REC* p_dev_rec) {
-  if (!BTM_IsDeviceUp()) return false;
+  if (!get_btm_client_interface().local.BTM_IsDeviceUp()) {
+    return false;
+  }
 
   p_dev_rec->sec_rec.sec_state = BTM_SEC_STATE_GETTING_NAME;
 
