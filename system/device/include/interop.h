@@ -359,6 +359,11 @@ typedef enum {
 
   INTEROP_HFP_SEND_OK_FOR_CLCC_AFTER_VOIP_CALL_END,
 
+  // Some devices response slowly after setting non zero latency.
+  // To avoid slowing down profile connection set latency to 0.
+  // Peer can request proper latency based on its power state later.
+  INTEROP_HID_PREF_CONN_ZERO_LATENCY,
+
   END_OF_INTEROP_LIST
 } interop_feature_t;
 

@@ -519,8 +519,13 @@ public class BassClientStateMachine extends StateMachine {
                 }
             }
 
-            if (broadcastId == BassConstants.INVALID_BROADCAST_ID && pbData == null) {
-                Log.w(TAG, "It is not BAP or PBP source");
+            if (broadcastId == BassConstants.INVALID_BROADCAST_ID) {
+                if (pbData == null) {
+                    Log.w(TAG, "It is not BAP or PBP source");
+                }
+                else {
+                    Log.w(TAG, "Invalid broadcast ID");
+                }
                 return false;
             }
 

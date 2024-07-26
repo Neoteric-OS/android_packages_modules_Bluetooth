@@ -935,20 +935,7 @@ static void btif_dm_cb_create_bond(const RawAddress bd_addr,
                        static_cast<tBT_DEVICE_TYPE>(device_type));
   }
 
-  if (!com::android::bluetooth::flags::connect_hid_after_service_discovery() &&
-      is_hid && (device_type & BT_DEVICE_TYPE_BLE) == 0) {
-    tAclLinkSpec link_spec;
-    link_spec.addrt.bda = bd_addr;
-    link_spec.addrt.type = addr_type;
-    link_spec.transport = transport;
-    const bt_status_t status =
-        GetInterfaceToProfiles()->profileSpecific_HACK->btif_hh_connect(
-            link_spec);
-    if (status != BT_STATUS_SUCCESS)
-      bond_state_changed(status, bd_addr, BT_BOND_STATE_NONE);
-  } else {
-    BTA_DmBond(bd_addr, addr_type, transport, device_type);
-  }
+  BTA_DmBond(bd_addr, addr_type, transport, device_type);
   /*  Track  originator of bond creation  */
   pairing_cb.is_local_initiated = true;
 }
@@ -1151,9 +1138,9 @@ static void btif_dm_ssp_cfm_req_evt(tBTA_DM_SP_CFM_REQ* p_ssp_cfm_req) {
   bool is_incoming = !(pairing_cb.state == BT_BOND_STATE_BONDING);
   int dev_type;
 
-  log::verbose("addr:{}, just_works:{}, loc_auth_req={}, rmt_auth_req={}",
-               p_ssp_cfm_req->bd_addr, p_ssp_cfm_req->just_works,
-               p_ssp_cfm_req->loc_auth_req, p_ssp_cfm_req->rmt_auth_req);
+  log::info("addr:{}, CoD: {}, just_works:{}, loc_auth_req={}, rmt_auth_req={}",
+            p_ssp_cfm_req->bd_addr, dev_class_text(p_ssp_cfm_req->dev_class),
+            p_ssp_cfm_req->just_works, p_ssp_cfm_req->loc_auth_req, p_ssp_cfm_req->rmt_auth_req);
   /* Remote properties update */
   if (get_btm_client_interface().peer.BTM_GetPeerDeviceTypeFromFeatures(
           p_ssp_cfm_req->bd_addr) == BT_DEVICE_TYPE_DUMO) {

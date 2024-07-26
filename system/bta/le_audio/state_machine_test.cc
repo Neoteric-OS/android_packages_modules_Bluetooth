@@ -205,8 +205,6 @@ class MockLeAudioGroupStateMachineCallbacks
   MOCK_METHOD((void), OnStateTransitionTimeout, (int group_id), (override));
   MOCK_METHOD((void), OnUpdatedCisConfiguration,
               (int group_id, uint8_t direction), (override));
-  MOCK_METHOD((void), OnDeviceAutonomousStateTransitionTimeout,
-              (LeAudioDevice * leAudioDevice), (override));
 };
 
 class MockAseRemoteStateMachine {
@@ -763,7 +761,17 @@ class StateMachineTestBase : public Test {
     }
   }
 
-  void InjectCachedConfiguratuibForActiveAses(LeAudioDeviceGroup* group,
+  void InjectReleaseAndIdleStateForAGroup(LeAudioDeviceGroup* group) {
+    auto leAudioDevice = group->GetFirstActiveDevice();
+    while (leAudioDevice) {
+      log::info("Group : {},  dev: {}", group->group_id_,
+                leAudioDevice->address_);
+      InjectReleasingAndIdleState(group, leAudioDevice);
+      leAudioDevice = group->GetNextActiveDevice(leAudioDevice);
+    }
+  }
+
+  void InjectCachedConfigurationForActiveAses(LeAudioDeviceGroup* group,
                                               LeAudioDevice* device) {
     for (auto& ase : device->ases_) {
       if (!ase.active) {
@@ -775,6 +783,69 @@ class StateMachineTestBase : public Test {
       InjectAseStateNotification(&ase, device, group,
                                  ascs::kAseStateCodecConfigured,
                                  &cached_codec_configuration_map_[ase.id]);
+    }
+  }
+
+  void InjectStreamingStateFroActiveAses(LeAudioDeviceGroup* group,
+                                         LeAudioDevice* device) {
+    for (auto& ase : device->ases_) {
+      if (!ase.active) {
+        continue;
+      }
+      log::info("ID : {},  status {}", ase.id,
+                bluetooth::common::ToString(ase.state));
+      client_parser::ascs::ase_transient_state_params params;
+
+      InjectAseStateNotification(&ase, device, group, ascs::kAseStateStreaming,
+                                 &params);
+    }
+  }
+
+  void InjectEnablingStateFroActiveAses(LeAudioDeviceGroup* group,
+                                        LeAudioDevice* device) {
+    for (auto& ase : device->ases_) {
+      if (!ase.active) {
+        continue;
+      }
+      log::info("ID : {},  status {}", ase.id,
+                bluetooth::common::ToString(ase.state));
+      client_parser::ascs::ase_transient_state_params enable_params;
+
+      InjectAseStateNotification(&ase, device, group, ascs::kAseStateEnabling,
+                                 &enable_params);
+    }
+  }
+
+  void InjectQoSConfigurationForActiveAses(LeAudioDeviceGroup* group,
+                                           LeAudioDevice* device) {
+    for (auto& ase : device->ases_) {
+      if (!ase.active) {
+        continue;
+      }
+      log::info("ID : {},  status {}", ase.id,
+                bluetooth::common::ToString(ase.state));
+
+      if (ase.direction ==
+          ::bluetooth::le_audio::types::kLeAudioDirectionSource) {
+        client_parser::ascs::ase_transient_state_params disabling_params = {
+            .metadata = {}};
+        InjectAseStateNotification(&ase, device, group,
+                                   ascs::kAseStateDisabling, &disabling_params);
+      }
+
+      InjectAseStateNotification(&ase, device, group,
+                                 ascs::kAseStateQoSConfigured,
+                                 &cached_qos_configuration_map_[ase.id]);
+    }
+  }
+
+  void InjectQoSConfigurationForGroupActiveAses(LeAudioDeviceGroup* group) {
+    auto leAudioDevice = group->GetFirstActiveDevice();
+    while (leAudioDevice) {
+      log::info("Group : {},  dev: {}", group->group_id_,
+                leAudioDevice->address_);
+      InjectQoSConfigurationForActiveAses(group, leAudioDevice);
+      leAudioDevice = group->GetNextActiveDevice(leAudioDevice);
     }
   }
 
@@ -1221,12 +1292,14 @@ class StateMachineTestBase : public Test {
 
   void PrepareConfigureQosHandler(LeAudioDeviceGroup* group,
                                   int verify_ase_count = 0,
-                                  bool caching = false) {
+                                  bool caching = false,
+                                  bool inject_qos_configured = true) {
     ON_CALL(ase_ctp_handler, AseCtpConfigureQosHandler)
-        .WillByDefault(Invoke([group, verify_ase_count, caching, this](
-                                  LeAudioDevice* device,
-                                  std::vector<uint8_t> value,
-                                  GATT_WRITE_OP_CB cb, void* cb_data) {
+        .WillByDefault(Invoke([group, verify_ase_count, caching,
+                               inject_qos_configured,
+                               this](LeAudioDevice* device,
+                                     std::vector<uint8_t> value,
+                                     GATT_WRITE_OP_CB cb, void* cb_data) {
           auto num_ase = value[1];
 
           // Verify ase count if needed
@@ -1288,9 +1361,11 @@ class StateMachineTestBase : public Test {
                   qos_configured_state_params;
             }
 
-            InjectAseStateNotification(ase, device, group,
-                                       ascs::kAseStateQoSConfigured,
-                                       &qos_configured_state_params);
+            if (inject_qos_configured) {
+              InjectAseStateNotification(ase, device, group,
+                                         ascs::kAseStateQoSConfigured,
+                                         &qos_configured_state_params);
+            }
           }
         }));
   }
@@ -1422,8 +1497,10 @@ class StateMachineTestBase : public Test {
                                            &enable_params);
               }
             } else {
-              InjectAseStateNotification(
-                  ase, device, group, ascs::kAseStateEnabling, &enable_params);
+              if (inject_enabling)
+                InjectAseStateNotification(ase, device, group,
+                                           ascs::kAseStateEnabling,
+                                           &enable_params);
             }
           }
         }));
@@ -5265,6 +5342,770 @@ TEST_F(StateMachineTest, testAttachDeviceToTheStreamDeviceNoAvailableContext) {
             types::AseState::BTA_LE_AUDIO_ASE_STATE_STREAMING);
 }
 
+TEST_F(StateMachineTest, testQoSConfigureWhileStreaming) {
+  /* Device is banded headphones with 1x snk  0x src ase
+   * (1xunidirectional CIS) with channel count 2 (for stereo
+   */
+  const auto context_type = kContextTypeRingtone;
+  const int leaudio_group_id = 4;
+  channel_count_ = kLeAudioCodecChannelCountSingleChannel |
+                   kLeAudioCodecChannelCountTwoChannel;
+
+  // Prepare fake connected device group
+  auto* group = PrepareSingleTestDeviceGroup(leaudio_group_id, context_type);
+
+  /* Ringtone with channel count 1 for single device and 1 ASE sink will
+   * end up with 1 Sink ASE being configured.
+   */
+  PrepareConfigureCodecHandler(group, 1);
+  PrepareConfigureQosHandler(group, 1);
+  PrepareEnableHandler(group, 1);
+  PrepareReleaseHandler(group, 1);
+
+  /*
+   * Device got to streaming state and sends QoSConfigured state.
+   * Num of GATT operations
+   * 1. Config
+   * 2. QoS Config
+   * 3. Enable
+   * 4. Release
+   */
+  auto* leAudioDevice = group->GetFirstDevice();
+  EXPECT_CALL(gatt_queue,
+              WriteCharacteristic(1, leAudioDevice->ctp_hdls_.val_hdl, _,
+                                  GATT_WRITE_NO_RSP, _, _))
+      .Times(4);
+
+  EXPECT_CALL(*mock_iso_manager_, CreateCig(_, _)).Times(1);
+  EXPECT_CALL(*mock_iso_manager_, EstablishCis(_)).Times(1);
+  EXPECT_CALL(*mock_iso_manager_, SetupIsoDataPath(_, _)).Times(1);
+  EXPECT_CALL(*mock_iso_manager_, RemoveIsoDataPath(_, _)).Times(1);
+  EXPECT_CALL(*mock_iso_manager_, DisconnectCis(_, _)).Times(1);
+  EXPECT_CALL(*mock_iso_manager_, RemoveCig(_, _)).Times(1);
+
+  InjectInitialIdleNotification(group);
+
+  // Validate GroupStreamStatus
+  EXPECT_CALL(
+      mock_callbacks_,
+      StatusReportCb(leaudio_group_id,
+                     bluetooth::le_audio::GroupStreamStatus::STREAMING));
+
+  // Start the configuration and stream Media content
+  ASSERT_TRUE(LeAudioGroupStateMachine::Get()->StartStream(
+      group, context_type,
+      {.sink = types::AudioContexts(context_type),
+       .source = types::AudioContexts(context_type)}));
+
+  // Check if group has transitioned to a proper state
+  ASSERT_EQ(group->GetState(),
+            types::AseState::BTA_LE_AUDIO_ASE_STATE_STREAMING);
+  ASSERT_EQ(1, get_func_call_count("alarm_cancel"));
+
+  testing::Mock::VerifyAndClearExpectations(&mock_callbacks_);
+
+  log::info(" Moving to QoS state");
+
+  // Validate GroupStreamStatus
+  EXPECT_CALL(
+      mock_callbacks_,
+      StatusReportCb(leaudio_group_id,
+                     bluetooth::le_audio::GroupStreamStatus::RELEASING));
+  EXPECT_CALL(mock_callbacks_,
+              StatusReportCb(leaudio_group_id,
+                             bluetooth::le_audio::GroupStreamStatus::IDLE));
+
+  InjectQoSConfigurationForGroupActiveAses(group);
+  testing::Mock::VerifyAndClearExpectations(&mock_callbacks_);
+  testing::Mock::VerifyAndClearExpectations(&mock_iso_manager_);
+  testing::Mock::VerifyAndClearExpectations(&gatt_queue);
+}
+
+TEST_F(StateMachineTest,
+       testReleaseStreamWithLateAttachToStream_CodecConfigState) {
+  const auto context_type = kContextTypeMedia;
+  const auto leaudio_group_id = 6;
+  const auto num_devices = 2;
+
+  /* Scenario
+   * 1. Start streaming
+   * 2. Stop stream on one device
+   * 3. Reconnect
+   * 4. Trigger attach the stream
+   * 6. StopStream while getting to Codec Configured State on attaching device
+   * 7. Check that Attaching device will also go to IDLE
+   */
+
+  ContentControlIdKeeper::GetInstance()->SetCcid(media_context, media_ccid);
+
+  // Prepare multiple fake connected devices in a group
+  auto* group =
+      PrepareSingleTestDeviceGroup(leaudio_group_id, context_type, num_devices);
+  ASSERT_EQ(group->Size(), num_devices);
+
+  PrepareConfigureCodecHandler(group, 0, true);
+  PrepareConfigureQosHandler(group);
+  PrepareEnableHandler(group);
+  PrepareDisableHandler(group);
+
+  auto* leAudioDevice = group->GetFirstDevice();
+  LeAudioDevice* firstDevice = leAudioDevice;
+  LeAudioDevice* lastDevice;
+
+  auto expected_devices_written = 0;
+  while (leAudioDevice) {
+    /* Three Writes:
+     * 1: Codec Config
+     * 2: Codec QoS
+     * 3: Enabling
+     */
+    lastDevice = leAudioDevice;
+    EXPECT_CALL(gatt_queue,
+                WriteCharacteristic(leAudioDevice->conn_id_,
+                                    leAudioDevice->ctp_hdls_.val_hdl, _,
+                                    GATT_WRITE_NO_RSP, _, _))
+        .Times(3);
+    expected_devices_written++;
+    leAudioDevice = group->GetNextDevice(leAudioDevice);
+  }
+  ASSERT_EQ(expected_devices_written, num_devices);
+
+  EXPECT_CALL(*mock_iso_manager_, CreateCig(_, _)).Times(1);
+  EXPECT_CALL(*mock_iso_manager_, EstablishCis(_)).Times(1);
+  EXPECT_CALL(*mock_iso_manager_, SetupIsoDataPath(_, _)).Times(2);
+
+  InjectInitialIdleNotification(group);
+
+  // Start the configuration and stream Media content
+  LeAudioGroupStateMachine::Get()->StartStream(
+      group, context_type,
+      {.sink = types::AudioContexts(context_type),
+       .source = types::AudioContexts(context_type)});
+
+  // Check if group has transitioned to a proper state
+  ASSERT_EQ(group->GetState(),
+            types::AseState::BTA_LE_AUDIO_ASE_STATE_STREAMING);
+  testing::Mock::VerifyAndClearExpectations(mock_iso_manager_);
+  testing::Mock::VerifyAndClearExpectations(&gatt_queue);
+
+  log::info("Stream is started for group {}, disconnect {}", group->group_id_,
+            lastDevice->address_);
+
+  // Inject CIS and ACL disconnection of first device
+  InjectCisDisconnected(group, lastDevice, HCI_ERR_CONNECTION_TOUT);
+  InjectAclDisconnected(group, lastDevice);
+
+  // Check if group keeps streaming
+  ASSERT_EQ(group->GetState(),
+            types::AseState::BTA_LE_AUDIO_ASE_STATE_STREAMING);
+
+  /* Set device is getting ready for the connection */
+  lastDevice->conn_id_ = 3;
+  lastDevice->SetConnectionState(
+      DeviceConnectState::CONNECTED_AUTOCONNECT_GETTING_READY);
+
+  // Make sure ASE with disconnected CIS are not left in STREAMING
+  ASSERT_EQ(lastDevice->GetFirstAseWithState(
+                ::bluetooth::le_audio::types::kLeAudioDirectionSink,
+                types::AseState::BTA_LE_AUDIO_ASE_STATE_STREAMING),
+            nullptr);
+  ASSERT_EQ(lastDevice->GetFirstAseWithState(
+                ::bluetooth::le_audio::types::kLeAudioDirectionSource,
+                types::AseState::BTA_LE_AUDIO_ASE_STATE_STREAMING),
+            nullptr);
+
+  log::info("Set device {} to CONNECTED state", lastDevice->address_);
+  lastDevice->SetConnectionState(DeviceConnectState::CONNECTED);
+
+  /*
+   * 1. Codec Configure for attaching device
+   * 2. Release for both devices
+   */
+  EXPECT_CALL(gatt_queue, WriteCharacteristic(lastDevice->conn_id_,
+                                              lastDevice->ctp_hdls_.val_hdl, _,
+                                              GATT_WRITE_NO_RSP, _, _))
+      .Times(2);
+
+  EXPECT_CALL(gatt_queue, WriteCharacteristic(firstDevice->conn_id_,
+                                              firstDevice->ctp_hdls_.val_hdl, _,
+                                              GATT_WRITE_NO_RSP, _, _))
+      .Times(1);
+
+  log::info("Block Codec Configured Notification");
+  PrepareConfigureCodecHandler(group, 0, true, false);
+
+  EXPECT_CALL(*mock_iso_manager_, EstablishCis(_)).Times(0);
+  EXPECT_CALL(*mock_iso_manager_, SetupIsoDataPath(_, _)).Times(0);
+
+  LeAudioGroupStateMachine::Get()->AttachToStream(
+      group, lastDevice, {.sink = {media_ccid}, .source = {}});
+
+  log::info("Stop the stream");
+
+  EXPECT_CALL(
+      mock_callbacks_,
+      StatusReportCb(leaudio_group_id,
+                     bluetooth::le_audio::GroupStreamStatus::RELEASING));
+  // Stop the stream
+  LeAudioGroupStateMachine::Get()->StopStream(group);
+
+  testing::Mock::VerifyAndClearExpectations(mock_iso_manager_);
+  testing::Mock::VerifyAndClearExpectations(&mock_callbacks_);
+  testing::Mock::VerifyAndClearExpectations(&gatt_queue);
+
+  EXPECT_CALL(gatt_queue, WriteCharacteristic(lastDevice->conn_id_,
+                                              lastDevice->ctp_hdls_.val_hdl, _,
+                                              GATT_WRITE_NO_RSP, _, _))
+      .Times(0);
+
+  log::info(
+      "Inject Codec Configured Notification and make sure there is no QoS "
+      "Config sent");
+
+  InjectCachedConfigurationForActiveAses(group, lastDevice);
+  testing::Mock::VerifyAndClearExpectations(&gatt_queue);
+
+  // Check if group is still in Streaming state - it will change when Release
+  // notification will arrive.
+  ASSERT_EQ(group->GetState(),
+            types::AseState::BTA_LE_AUDIO_ASE_STATE_STREAMING);
+  ASSERT_EQ(group->GetTargetState(),
+            types::AseState::BTA_LE_AUDIO_ASE_STATE_IDLE);
+
+  log::info("Inject Release for a group");
+
+  EXPECT_CALL(mock_callbacks_,
+              StatusReportCb(leaudio_group_id,
+                             bluetooth::le_audio::GroupStreamStatus::IDLE));
+
+  EXPECT_CALL(*mock_iso_manager_, RemoveIsoDataPath(_, _)).Times(1);
+  EXPECT_CALL(*mock_iso_manager_, DisconnectCis(_, _)).Times(1);
+  EXPECT_CALL(*mock_iso_manager_, RemoveCig(_, _)).Times(1);
+
+  InjectReleaseAndIdleStateForAGroup(group);
+  testing::Mock::VerifyAndClearExpectations(&mock_callbacks_);
+  testing::Mock::VerifyAndClearExpectations(mock_iso_manager_);
+
+  ASSERT_EQ(group->GetTargetState(),
+            types::AseState::BTA_LE_AUDIO_ASE_STATE_IDLE);
+  ASSERT_EQ(group->GetState(), types::AseState::BTA_LE_AUDIO_ASE_STATE_IDLE);
+}
+
+TEST_F(StateMachineTest,
+       testReleaseStreamWithLateAttachToStream_QoSConfigState) {
+  const auto context_type = kContextTypeMedia;
+  const auto leaudio_group_id = 6;
+  const auto num_devices = 2;
+
+  /* Scenario
+   * 1. Start streaming
+   * 2. Stop stream on one device
+   * 3. Reconnect
+   * 4. Trigger attach the stream
+   * 6. StopStream while getting to QoS Configured state on attaching device
+   * 7. Check that Attaching device will also go to IDLE
+   */
+
+  ContentControlIdKeeper::GetInstance()->SetCcid(media_context, media_ccid);
+
+  // Prepare multiple fake connected devices in a group
+  auto* group =
+      PrepareSingleTestDeviceGroup(leaudio_group_id, context_type, num_devices);
+  ASSERT_EQ(group->Size(), num_devices);
+
+  PrepareConfigureCodecHandler(group, 0, true);
+  PrepareConfigureQosHandler(group);
+  PrepareEnableHandler(group);
+  PrepareDisableHandler(group);
+
+  auto* leAudioDevice = group->GetFirstDevice();
+  LeAudioDevice* firstDevice = leAudioDevice;
+  LeAudioDevice* lastDevice;
+
+  auto expected_devices_written = 0;
+  while (leAudioDevice) {
+    /* Three Writes:
+     * 1: Codec Config
+     * 2: Codec QoS
+     * 3: Enabling
+     */
+    lastDevice = leAudioDevice;
+    EXPECT_CALL(gatt_queue,
+                WriteCharacteristic(leAudioDevice->conn_id_,
+                                    leAudioDevice->ctp_hdls_.val_hdl, _,
+                                    GATT_WRITE_NO_RSP, _, _))
+        .Times(3);
+    expected_devices_written++;
+    leAudioDevice = group->GetNextDevice(leAudioDevice);
+  }
+  ASSERT_EQ(expected_devices_written, num_devices);
+
+  EXPECT_CALL(*mock_iso_manager_, CreateCig(_, _)).Times(1);
+  EXPECT_CALL(*mock_iso_manager_, EstablishCis(_)).Times(1);
+  EXPECT_CALL(*mock_iso_manager_, SetupIsoDataPath(_, _)).Times(2);
+
+  InjectInitialIdleNotification(group);
+
+  // Start the configuration and stream Media content
+  LeAudioGroupStateMachine::Get()->StartStream(
+      group, context_type,
+      {.sink = types::AudioContexts(context_type),
+       .source = types::AudioContexts(context_type)});
+
+  // Check if group has transitioned to a proper state
+  ASSERT_EQ(group->GetState(),
+            types::AseState::BTA_LE_AUDIO_ASE_STATE_STREAMING);
+  testing::Mock::VerifyAndClearExpectations(mock_iso_manager_);
+
+  log::info("Stream is started for group {}, disconnect {}", group->group_id_,
+            lastDevice->address_);
+
+  // Inject CIS and ACL disconnection of first device
+  InjectCisDisconnected(group, lastDevice, HCI_ERR_CONNECTION_TOUT);
+  InjectAclDisconnected(group, lastDevice);
+
+  // Check if group keeps streaming
+  ASSERT_EQ(group->GetState(),
+            types::AseState::BTA_LE_AUDIO_ASE_STATE_STREAMING);
+
+  /* Set device is getting ready for the connection */
+  lastDevice->conn_id_ = 3;
+  lastDevice->SetConnectionState(
+      DeviceConnectState::CONNECTED_AUTOCONNECT_GETTING_READY);
+
+  // Make sure ASE with disconnected CIS are not left in STREAMING
+  ASSERT_EQ(lastDevice->GetFirstAseWithState(
+                ::bluetooth::le_audio::types::kLeAudioDirectionSink,
+                types::AseState::BTA_LE_AUDIO_ASE_STATE_STREAMING),
+            nullptr);
+  ASSERT_EQ(lastDevice->GetFirstAseWithState(
+                ::bluetooth::le_audio::types::kLeAudioDirectionSource,
+                types::AseState::BTA_LE_AUDIO_ASE_STATE_STREAMING),
+            nullptr);
+
+  log::info("Set device {} to CONNECTED state", lastDevice->address_);
+  lastDevice->SetConnectionState(DeviceConnectState::CONNECTED);
+
+  /*
+   * 1. Codec Configured for attaching device
+   * 2. QoS Configured State for attaching device
+   * 3. Release for both
+   */
+  EXPECT_CALL(gatt_queue, WriteCharacteristic(lastDevice->conn_id_,
+                                              lastDevice->ctp_hdls_.val_hdl, _,
+                                              GATT_WRITE_NO_RSP, _, _))
+      .Times(3);
+  EXPECT_CALL(gatt_queue, WriteCharacteristic(firstDevice->conn_id_,
+                                              firstDevice->ctp_hdls_.val_hdl, _,
+                                              GATT_WRITE_NO_RSP, _, _))
+      .Times(1);
+
+  log::info("Block QoS Configured Notification");
+  PrepareConfigureQosHandler(group, 0, true, false);
+
+  EXPECT_CALL(*mock_iso_manager_, EstablishCis(_)).Times(0);
+  EXPECT_CALL(*mock_iso_manager_, SetupIsoDataPath(_, _)).Times(0);
+
+  LeAudioGroupStateMachine::Get()->AttachToStream(
+      group, lastDevice, {.sink = {media_ccid}, .source = {}});
+
+  log::info("Stop the stream");
+
+  EXPECT_CALL(
+      mock_callbacks_,
+      StatusReportCb(leaudio_group_id,
+                     bluetooth::le_audio::GroupStreamStatus::RELEASING));
+
+  // Stop the stream
+  LeAudioGroupStateMachine::Get()->StopStream(group);
+
+  testing::Mock::VerifyAndClearExpectations(&gatt_queue);
+  testing::Mock::VerifyAndClearExpectations(mock_iso_manager_);
+  testing::Mock::VerifyAndClearExpectations(&mock_callbacks_);
+
+  EXPECT_CALL(gatt_queue, WriteCharacteristic(lastDevice->conn_id_,
+                                              lastDevice->ctp_hdls_.val_hdl, _,
+                                              GATT_WRITE_NO_RSP, _, _))
+      .Times(0);
+
+  log::info(
+      "Inject QoS Config Notification and make sure that Enable Command is not "
+      "sent");
+
+  InjectQoSConfigurationForActiveAses(group, lastDevice);
+  testing::Mock::VerifyAndClearExpectations(&gatt_queue);
+
+  // Check if group is still in Streaming state - it will change when Release
+  // notification will arrive.
+  ASSERT_EQ(group->GetState(),
+            types::AseState::BTA_LE_AUDIO_ASE_STATE_STREAMING);
+  ASSERT_EQ(group->GetTargetState(),
+            types::AseState::BTA_LE_AUDIO_ASE_STATE_IDLE);
+
+  log::info("Inject Release for a group");
+
+  EXPECT_CALL(mock_callbacks_,
+              StatusReportCb(leaudio_group_id,
+                             bluetooth::le_audio::GroupStreamStatus::IDLE));
+
+  EXPECT_CALL(*mock_iso_manager_, RemoveIsoDataPath(_, _)).Times(1);
+  EXPECT_CALL(*mock_iso_manager_, DisconnectCis(_, _)).Times(1);
+  EXPECT_CALL(*mock_iso_manager_, RemoveCig(_, _)).Times(1);
+
+  InjectReleaseAndIdleStateForAGroup(group);
+  testing::Mock::VerifyAndClearExpectations(&mock_callbacks_);
+  testing::Mock::VerifyAndClearExpectations(mock_iso_manager_);
+
+  ASSERT_EQ(group->GetTargetState(),
+            types::AseState::BTA_LE_AUDIO_ASE_STATE_IDLE);
+  ASSERT_EQ(group->GetState(), types::AseState::BTA_LE_AUDIO_ASE_STATE_IDLE);
+}
+
+TEST_F(StateMachineTest,
+       testReleaseStreamWithLateAttachToStream_EnablingState) {
+  const auto context_type = kContextTypeMedia;
+  const auto leaudio_group_id = 6;
+  const auto num_devices = 2;
+
+  /* Scenario
+   * 1. Start streaming
+   * 2. Stop stream on one device
+   * 3. Reconnect
+   * 4. Trigger attach the stream
+   * 6. StopStream while getting to Enable state on attaching device
+   * 7. Check that Attaching device will also go to IDLE
+   */
+
+  ContentControlIdKeeper::GetInstance()->SetCcid(media_context, media_ccid);
+
+  // Prepare multiple fake connected devices in a group
+  auto* group =
+      PrepareSingleTestDeviceGroup(leaudio_group_id, context_type, num_devices);
+  ASSERT_EQ(group->Size(), num_devices);
+
+  PrepareConfigureCodecHandler(group, 0, true);
+  PrepareConfigureQosHandler(group);
+  PrepareEnableHandler(group);
+  PrepareDisableHandler(group);
+
+  auto* leAudioDevice = group->GetFirstDevice();
+  LeAudioDevice* firstDevice = leAudioDevice;
+  LeAudioDevice* lastDevice;
+
+  auto expected_devices_written = 0;
+  while (leAudioDevice) {
+    /* Three Writes:
+     * 1: Codec Config
+     * 2: Codec QoS
+     * 3: Enabling
+     */
+    lastDevice = leAudioDevice;
+    EXPECT_CALL(gatt_queue,
+                WriteCharacteristic(leAudioDevice->conn_id_,
+                                    leAudioDevice->ctp_hdls_.val_hdl, _,
+                                    GATT_WRITE_NO_RSP, _, _))
+        .Times(3);
+    expected_devices_written++;
+    leAudioDevice = group->GetNextDevice(leAudioDevice);
+  }
+  ASSERT_EQ(expected_devices_written, num_devices);
+
+  EXPECT_CALL(*mock_iso_manager_, CreateCig(_, _)).Times(1);
+  EXPECT_CALL(*mock_iso_manager_, EstablishCis(_)).Times(1);
+  EXPECT_CALL(*mock_iso_manager_, SetupIsoDataPath(_, _)).Times(2);
+
+  InjectInitialIdleNotification(group);
+
+  // Start the configuration and stream Media content
+  LeAudioGroupStateMachine::Get()->StartStream(
+      group, context_type,
+      {.sink = types::AudioContexts(context_type),
+       .source = types::AudioContexts(context_type)});
+
+  // Check if group has transitioned to a proper state
+  ASSERT_EQ(group->GetState(),
+            types::AseState::BTA_LE_AUDIO_ASE_STATE_STREAMING);
+  testing::Mock::VerifyAndClearExpectations(mock_iso_manager_);
+
+  log::info("Stream is started for group {}, disconnect {}", group->group_id_,
+            lastDevice->address_);
+
+  // Inject CIS and ACL disconnection of first device
+  InjectCisDisconnected(group, lastDevice, HCI_ERR_CONNECTION_TOUT);
+  InjectAclDisconnected(group, lastDevice);
+
+  // Check if group keeps streaming
+  ASSERT_EQ(group->GetState(),
+            types::AseState::BTA_LE_AUDIO_ASE_STATE_STREAMING);
+
+  /* Set device is getting ready for the connection */
+  lastDevice->conn_id_ = 3;
+  lastDevice->SetConnectionState(
+      DeviceConnectState::CONNECTED_AUTOCONNECT_GETTING_READY);
+
+  // Make sure ASE with disconnected CIS are not left in STREAMING
+  ASSERT_EQ(lastDevice->GetFirstAseWithState(
+                ::bluetooth::le_audio::types::kLeAudioDirectionSink,
+                types::AseState::BTA_LE_AUDIO_ASE_STATE_STREAMING),
+            nullptr);
+  ASSERT_EQ(lastDevice->GetFirstAseWithState(
+                ::bluetooth::le_audio::types::kLeAudioDirectionSource,
+                types::AseState::BTA_LE_AUDIO_ASE_STATE_STREAMING),
+            nullptr);
+
+  log::info("Set device {} to CONNECTED state", lastDevice->address_);
+  lastDevice->SetConnectionState(DeviceConnectState::CONNECTED);
+
+  /*
+   * 1. Codec Configured for attaching device
+   * 2. QoS Configured State for attaching device
+   * 3. Enable for attaching device
+   * 3. Release for both
+   */
+  EXPECT_CALL(gatt_queue, WriteCharacteristic(lastDevice->conn_id_,
+                                              lastDevice->ctp_hdls_.val_hdl, _,
+                                              GATT_WRITE_NO_RSP, _, _))
+      .Times(4);
+  EXPECT_CALL(gatt_queue, WriteCharacteristic(firstDevice->conn_id_,
+                                              firstDevice->ctp_hdls_.val_hdl, _,
+                                              GATT_WRITE_NO_RSP, _, _))
+      .Times(1);
+
+  log::info("Block Enable Notification");
+  PrepareEnableHandler(group, 0, false, false);
+
+  EXPECT_CALL(*mock_iso_manager_, EstablishCis(_)).Times(0);
+  EXPECT_CALL(*mock_iso_manager_, SetupIsoDataPath(_, _)).Times(0);
+
+  LeAudioGroupStateMachine::Get()->AttachToStream(
+      group, lastDevice, {.sink = {media_ccid}, .source = {}});
+
+  log::info("Stop the stream");
+
+  EXPECT_CALL(
+      mock_callbacks_,
+      StatusReportCb(leaudio_group_id,
+                     bluetooth::le_audio::GroupStreamStatus::RELEASING));
+
+  // Stop the stream
+  LeAudioGroupStateMachine::Get()->StopStream(group);
+
+  testing::Mock::VerifyAndClearExpectations(&gatt_queue);
+  testing::Mock::VerifyAndClearExpectations(mock_iso_manager_);
+  testing::Mock::VerifyAndClearExpectations(&mock_callbacks_);
+
+  EXPECT_CALL(gatt_queue, WriteCharacteristic(lastDevice->conn_id_,
+                                              lastDevice->ctp_hdls_.val_hdl, _,
+                                              GATT_WRITE_NO_RSP, _, _))
+      .Times(0);
+
+  log::info("Inject Enabling Notification, don't create CIS");
+
+  EXPECT_CALL(*mock_iso_manager_, EstablishCis(_)).Times(0);
+  ON_CALL(*mock_iso_manager_, EstablishCis).WillByDefault(Return());
+
+  InjectEnablingStateFroActiveAses(group, lastDevice);
+  testing::Mock::VerifyAndClearExpectations(&gatt_queue);
+
+  // Check if group is still in Streaming state - it will change when Release
+  // notification will arrive.
+  ASSERT_EQ(group->GetState(),
+            types::AseState::BTA_LE_AUDIO_ASE_STATE_STREAMING);
+  ASSERT_EQ(group->GetTargetState(),
+            types::AseState::BTA_LE_AUDIO_ASE_STATE_IDLE);
+
+  testing::Mock::VerifyAndClearExpectations(mock_iso_manager_);
+
+  log::info("Inject Release for a group");
+
+  EXPECT_CALL(mock_callbacks_,
+              StatusReportCb(leaudio_group_id,
+                             bluetooth::le_audio::GroupStreamStatus::IDLE));
+
+  EXPECT_CALL(*mock_iso_manager_, RemoveIsoDataPath(_, _)).Times(1);
+  EXPECT_CALL(*mock_iso_manager_, DisconnectCis(_, _)).Times(1);
+  EXPECT_CALL(*mock_iso_manager_, RemoveCig(_, _)).Times(1);
+
+  InjectReleaseAndIdleStateForAGroup(group);
+  testing::Mock::VerifyAndClearExpectations(&mock_callbacks_);
+  testing::Mock::VerifyAndClearExpectations(mock_iso_manager_);
+
+  ASSERT_EQ(group->GetTargetState(),
+            types::AseState::BTA_LE_AUDIO_ASE_STATE_IDLE);
+  ASSERT_EQ(group->GetState(), types::AseState::BTA_LE_AUDIO_ASE_STATE_IDLE);
+}
+
+TEST_F(StateMachineTest,
+       testReleaseStreamWithLateAttachToStream_BeforeStreamingState) {
+  const auto context_type = kContextTypeMedia;
+  const auto leaudio_group_id = 6;
+  const auto num_devices = 2;
+
+  /* Scenario
+   * 1. Start streaming
+   * 2. Stop stream on one device
+   * 3. Reconnect
+   * 4. Trigger attach the stream
+   * 6. StopStream while getting to Streaming state on attaching device
+   * 7. Check that Attaching device will also go to IDLE
+   */
+
+  ContentControlIdKeeper::GetInstance()->SetCcid(media_context, media_ccid);
+
+  // Prepare multiple fake connected devices in a group
+  auto* group =
+      PrepareSingleTestDeviceGroup(leaudio_group_id, context_type, num_devices);
+  ASSERT_EQ(group->Size(), num_devices);
+
+  PrepareConfigureCodecHandler(group, 0, true);
+  PrepareConfigureQosHandler(group);
+  PrepareEnableHandler(group);
+  PrepareDisableHandler(group);
+
+  auto* leAudioDevice = group->GetFirstDevice();
+  LeAudioDevice* firstDevice = leAudioDevice;
+  LeAudioDevice* lastDevice;
+
+  auto expected_devices_written = 0;
+  while (leAudioDevice) {
+    /* Three Writes:
+     * 1: Codec Config
+     * 2: Codec QoS
+     * 3: Enabling
+     */
+    lastDevice = leAudioDevice;
+    EXPECT_CALL(gatt_queue,
+                WriteCharacteristic(leAudioDevice->conn_id_,
+                                    leAudioDevice->ctp_hdls_.val_hdl, _,
+                                    GATT_WRITE_NO_RSP, _, _))
+        .Times(3);
+    expected_devices_written++;
+    leAudioDevice = group->GetNextDevice(leAudioDevice);
+  }
+  ASSERT_EQ(expected_devices_written, num_devices);
+
+  EXPECT_CALL(*mock_iso_manager_, CreateCig(_, _)).Times(1);
+  EXPECT_CALL(*mock_iso_manager_, EstablishCis(_)).Times(1);
+  EXPECT_CALL(*mock_iso_manager_, SetupIsoDataPath(_, _)).Times(2);
+
+  InjectInitialIdleNotification(group);
+
+  // Start the configuration and stream Media content
+  LeAudioGroupStateMachine::Get()->StartStream(
+      group, context_type,
+      {.sink = types::AudioContexts(context_type),
+       .source = types::AudioContexts(context_type)});
+
+  // Check if group has transitioned to a proper state
+  ASSERT_EQ(group->GetState(),
+            types::AseState::BTA_LE_AUDIO_ASE_STATE_STREAMING);
+  testing::Mock::VerifyAndClearExpectations(mock_iso_manager_);
+
+  log::info("Stream is started for group {}, disconnect {}", group->group_id_,
+            lastDevice->address_);
+
+  // Inject CIS and ACL disconnection of first device
+  InjectCisDisconnected(group, lastDevice, HCI_ERR_CONNECTION_TOUT);
+  InjectAclDisconnected(group, lastDevice);
+
+  // Check if group keeps streaming
+  ASSERT_EQ(group->GetState(),
+            types::AseState::BTA_LE_AUDIO_ASE_STATE_STREAMING);
+
+  /* Set device is getting ready for the connection */
+  lastDevice->conn_id_ = 3;
+  lastDevice->SetConnectionState(
+      DeviceConnectState::CONNECTED_AUTOCONNECT_GETTING_READY);
+
+  // Make sure ASE with disconnected CIS are not left in STREAMING
+  ASSERT_EQ(lastDevice->GetFirstAseWithState(
+                ::bluetooth::le_audio::types::kLeAudioDirectionSink,
+                types::AseState::BTA_LE_AUDIO_ASE_STATE_STREAMING),
+            nullptr);
+  ASSERT_EQ(lastDevice->GetFirstAseWithState(
+                ::bluetooth::le_audio::types::kLeAudioDirectionSource,
+                types::AseState::BTA_LE_AUDIO_ASE_STATE_STREAMING),
+            nullptr);
+
+  log::info("Set device {} to CONNECTED state", lastDevice->address_);
+  lastDevice->SetConnectionState(DeviceConnectState::CONNECTED);
+
+  /*
+   * 1. Codec Configured for attaching device
+   * 2. QoS Configured State for attaching device
+   * 3. Enable for attaching device
+   * 3. Release for both
+   */
+  EXPECT_CALL(gatt_queue, WriteCharacteristic(lastDevice->conn_id_,
+                                              lastDevice->ctp_hdls_.val_hdl, _,
+                                              GATT_WRITE_NO_RSP, _, _))
+      .Times(4);
+  EXPECT_CALL(gatt_queue, WriteCharacteristic(firstDevice->conn_id_,
+                                              firstDevice->ctp_hdls_.val_hdl, _,
+                                              GATT_WRITE_NO_RSP, _, _))
+      .Times(1);
+
+  log::info("Block Streaming Notification");
+
+  PrepareEnableHandler(group, 0, true, false);
+
+  EXPECT_CALL(*mock_iso_manager_, EstablishCis(_)).Times(1);
+  EXPECT_CALL(*mock_iso_manager_, SetupIsoDataPath(_, _)).Times(1);
+
+  LeAudioGroupStateMachine::Get()->AttachToStream(
+      group, lastDevice, {.sink = {media_ccid}, .source = {}});
+
+  log::info("Stop the stream");
+
+  EXPECT_CALL(
+      mock_callbacks_,
+      StatusReportCb(leaudio_group_id,
+                     bluetooth::le_audio::GroupStreamStatus::RELEASING));
+
+  // Stop the stream
+  LeAudioGroupStateMachine::Get()->StopStream(group);
+
+  testing::Mock::VerifyAndClearExpectations(&gatt_queue);
+  testing::Mock::VerifyAndClearExpectations(mock_iso_manager_);
+  testing::Mock::VerifyAndClearExpectations(&mock_callbacks_);
+
+  EXPECT_CALL(gatt_queue, WriteCharacteristic(lastDevice->conn_id_,
+                                              lastDevice->ctp_hdls_.val_hdl, _,
+                                              GATT_WRITE_NO_RSP, _, _))
+      .Times(0);
+
+  log::info("Inject Streaming Notification");
+
+  InjectStreamingStateFroActiveAses(group, lastDevice);
+  testing::Mock::VerifyAndClearExpectations(&gatt_queue);
+  testing::Mock::VerifyAndClearExpectations(mock_iso_manager_);
+
+  // Check if group is still in Streaming state - it will change when Release
+  // notification will arrive.
+  ASSERT_EQ(group->GetState(),
+            types::AseState::BTA_LE_AUDIO_ASE_STATE_STREAMING);
+  ASSERT_EQ(group->GetTargetState(),
+            types::AseState::BTA_LE_AUDIO_ASE_STATE_IDLE);
+
+  log::info("Inject Release for a group");
+
+  EXPECT_CALL(mock_callbacks_,
+              StatusReportCb(leaudio_group_id,
+                             bluetooth::le_audio::GroupStreamStatus::IDLE));
+
+  EXPECT_CALL(*mock_iso_manager_, RemoveIsoDataPath(_, _)).Times(2);
+  EXPECT_CALL(*mock_iso_manager_, DisconnectCis(_, _)).Times(2);
+  EXPECT_CALL(*mock_iso_manager_, RemoveCig(_, _)).Times(1);
+
+  InjectReleaseAndIdleStateForAGroup(group);
+  testing::Mock::VerifyAndClearExpectations(&mock_callbacks_);
+  testing::Mock::VerifyAndClearExpectations(mock_iso_manager_);
+
+  ASSERT_EQ(group->GetTargetState(),
+            types::AseState::BTA_LE_AUDIO_ASE_STATE_IDLE);
+  ASSERT_EQ(group->GetState(), types::AseState::BTA_LE_AUDIO_ASE_STATE_IDLE);
+}
+
 TEST_F(StateMachineTest, testAutonomousConfiguredAndAttachToStream) {
   const auto context_type = kContextTypeMedia;
   const auto leaudio_group_id = 6;
@@ -7766,7 +8607,7 @@ TEST_F(StateMachineTest, testAttachDeviceWhileSecondDeviceDisconnects) {
   EXPECT_CALL(*mock_iso_manager_, EstablishCis(_)).Times(1);
   EXPECT_CALL(*mock_iso_manager_, SetupIsoDataPath(_, _)).Times(1);
 
-  InjectCachedConfiguratuibForActiveAses(group, lastDevice);
+  InjectCachedConfigurationForActiveAses(group, lastDevice);
 
   // Check if group keeps streaming
   ASSERT_EQ(group->GetState(),
@@ -7847,7 +8688,9 @@ TEST_F(StateMachineTest, testAclDropWithoutApriorCisDisconnection) {
   ASSERT_EQ(group->stream_conf.stream_params.sink.num_of_channels, 0);
 }
 
-TEST_F(StateMachineTest, testAutonomousDisableTimeout) {
+TEST_F(
+    StateMachineTest,
+    testAutonomousDisableOneDeviceAndGoBackToStream_CisDisconnectedOnDisable) {
   const auto context_type = kContextTypeConversational;
   const auto leaudio_group_id = 6;
   const auto num_devices = 2;
@@ -7867,8 +8710,9 @@ TEST_F(StateMachineTest, testAutonomousDisableTimeout) {
   PrepareReceiverStartReadyHandler(group);
 
   auto* leAudioDevice = group->GetFirstDevice();
+
+  LeAudioDevice* firstDevice = leAudioDevice;
   LeAudioDevice* lastDevice;
-  // LeAudioDevice* fistDevice = leAudioDevice;
 
   auto expected_devices_written = 0;
   while (leAudioDevice) {
@@ -7908,6 +8752,8 @@ TEST_F(StateMachineTest, testAutonomousDisableTimeout) {
             types::AseState::BTA_LE_AUDIO_ASE_STATE_STREAMING);
 
   testing::Mock::VerifyAndClearExpectations(mock_iso_manager_);
+
+  log::info(" Phone call stream created");
 
   EXPECT_CALL(*mock_iso_manager_, RemoveIsoDataPath(_, _)).Times(1);
 
@@ -7918,25 +8764,50 @@ TEST_F(StateMachineTest, testAutonomousDisableTimeout) {
   auto ase = lastDevice->GetFirstActiveAseByDirection(
       ::bluetooth::le_audio::types::kLeAudioDirectionSink);
 
+  log::info(" Inject ASE state changed to QoS for  {} ", lastDevice->address_);
   InjectAseStateNotification(ase, lastDevice, group,
                              ascs::kAseStateQoSConfigured,
                              &cached_qos_configuration_map_[ase->id]);
 
-  /* Second timer started for autonomous transition to disabled state */
-  ASSERT_EQ(2, get_func_call_count("alarm_set_on_mloop"));
+  /* No action on timer in this moment. */
+  ASSERT_EQ(1, get_func_call_count("alarm_set_on_mloop"));
 
-  // Inject CIS disconnection of first device
-  InjectCisDisconnected(group, lastDevice, HCI_ERR_CONNECTION_TOUT);
+  log::info(" Disconnect CIS for   {} ", lastDevice->address_);
+  // Inject CIS disconnection of first device, check that group keeps streaming
+  InjectCisDisconnected(group, lastDevice, HCI_ERR_PEER_USER);
 
-  // Check if timeout is fired
-  EXPECT_CALL(mock_callbacks_,
-              OnDeviceAutonomousStateTransitionTimeout(lastDevice));
-
-  fake_osi_alarm_set_on_mloop_.cb(fake_osi_alarm_set_on_mloop_.data);
+  /* First device keeps streaming */
+  ASSERT_EQ(group->GetState(),
+            types::AseState::BTA_LE_AUDIO_ASE_STATE_STREAMING);
   testing::Mock::VerifyAndClearExpectations(mock_iso_manager_);
+  testing::Mock::VerifyAndClearExpectations(&gatt_queue);
+
+  log::info(" {} should have all ASEs in QoS State ", lastDevice->address_);
+  /* Now lets try to attach the device back to the stream (Enabling and Receiver
+   * Start ready to be called)*/
+
+  EXPECT_CALL(gatt_queue, WriteCharacteristic(lastDevice->conn_id_,
+                                              firstDevice->ctp_hdls_.val_hdl, _,
+                                              GATT_WRITE_NO_RSP, _, _))
+      .Times(2);
+
+  EXPECT_CALL(*mock_iso_manager_, EstablishCis(_)).Times(1);
+  EXPECT_CALL(*mock_iso_manager_, SetupIsoDataPath(_, _)).Times(2);
+
+  log::info(" Attach {} to the stream, need to establish CIS",
+            lastDevice->address_);
+  LeAudioGroupStateMachine::Get()->AttachToStream(
+      group, lastDevice, {.sink = {media_ccid}, .source = {}});
+
+  testing::Mock::VerifyAndClearExpectations(mock_iso_manager_);
+  testing::Mock::VerifyAndClearExpectations(&gatt_queue);
+
+  ase = lastDevice->GetFirstActiveAse();
+  ASSERT_EQ(ase->state, types::AseState::BTA_LE_AUDIO_ASE_STATE_STREAMING);
 }
 
-TEST_F(StateMachineTest, testAutonomousDisableSuccess) {
+TEST_F(StateMachineTest,
+       testAutonomousDisableOneDeviceAndGoBackToStream_CisConnectedOnDisable) {
   const auto context_type = kContextTypeConversational;
   const auto leaudio_group_id = 6;
   const auto num_devices = 2;
@@ -7956,6 +8827,8 @@ TEST_F(StateMachineTest, testAutonomousDisableSuccess) {
   PrepareReceiverStartReadyHandler(group);
 
   auto* leAudioDevice = group->GetFirstDevice();
+
+  LeAudioDevice* firstDevice = leAudioDevice;
   LeAudioDevice* lastDevice;
 
   auto expected_devices_written = 0;
@@ -7997,122 +8870,178 @@ TEST_F(StateMachineTest, testAutonomousDisableSuccess) {
 
   testing::Mock::VerifyAndClearExpectations(mock_iso_manager_);
 
-  EXPECT_CALL(*mock_iso_manager_, RemoveIsoDataPath(_, _)).Times(1);
+  log::info(" Phone call stream created");
+
+  EXPECT_CALL(*mock_iso_manager_, RemoveIsoDataPath(_, _)).Times(0);
+
+  /* First timer finished when group achieves streaming state */
+  ASSERT_EQ(1, get_func_call_count("alarm_cancel"));
 
   /* Remote initiates autonomous Disable operation */
-  auto ase_sink = lastDevice->GetFirstActiveAseByDirection(
+  auto ase = lastDevice->GetFirstActiveAseByDirection(
       ::bluetooth::le_audio::types::kLeAudioDirectionSink);
 
-  InjectAseStateNotification(ase_sink, lastDevice, group,
-                             ascs::kAseStateQoSConfigured,
-                             &cached_qos_configuration_map_[ase_sink->id]);
+  log::info(" Inject ASE state changed to QoS for  {} ", lastDevice->address_);
+  InjectQoSConfigurationForActiveAses(group, lastDevice);
 
-  /* Check if autonomous operation timer is not canceled */
-  ASSERT_EQ(1, get_func_call_count("alarm_cancel"));
-  /* Second timer started for autonomous transition to disabled state */
-  ASSERT_EQ(2, get_func_call_count("alarm_set_on_mloop"));
+  /* No action on timer in this moment. */
+  ASSERT_EQ(1, get_func_call_count("alarm_set_on_mloop"));
 
-  auto ase_source = lastDevice->GetFirstActiveAseByDirection(
-      ::bluetooth::le_audio::types::kLeAudioDirectionSource);
+  /* First device keeps streaming */
+  ASSERT_EQ(group->GetState(),
+            types::AseState::BTA_LE_AUDIO_ASE_STATE_STREAMING);
+  testing::Mock::VerifyAndClearExpectations(mock_iso_manager_);
+  testing::Mock::VerifyAndClearExpectations(&gatt_queue);
 
-  client_parser::ascs::ase_transient_state_params disabling_params = {
-      .metadata = {}};
-  InjectAseStateNotification(ase_source, lastDevice, group,
-                             ascs::kAseStateDisabling, &disabling_params);
-  InjectAseStateNotification(ase_source, lastDevice, group,
-                             ascs::kAseStateQoSConfigured,
-                             &cached_qos_configuration_map_[ase_source->id]);
+  log::info(" {} should have all ASEs in QoS State ", lastDevice->address_);
+
+  ase = lastDevice->GetFirstActiveAse();
+  ASSERT_TRUE(ase != nullptr);
+
+  group->PrintDebugState();
+
+  /* Now lets try to attach the device back to the stream (Enabling and Receiver
+   * Start ready to be called)*/
+
+  EXPECT_CALL(gatt_queue, WriteCharacteristic(lastDevice->conn_id_,
+                                              firstDevice->ctp_hdls_.val_hdl, _,
+                                              GATT_WRITE_NO_RSP, _, _))
+      .Times(2);
+
+  EXPECT_CALL(*mock_iso_manager_, EstablishCis(_)).Times(0);
+  EXPECT_CALL(*mock_iso_manager_, SetupIsoDataPath(_, _)).Times(0);
+
+  log::info(" Attach {} to the stream, need to establish CIS",
+            lastDevice->address_);
+  LeAudioGroupStateMachine::Get()->AttachToStream(
+      group, lastDevice, {.sink = {media_ccid}, .source = {}});
+
+  testing::Mock::VerifyAndClearExpectations(mock_iso_manager_);
+  testing::Mock::VerifyAndClearExpectations(&gatt_queue);
+
+  ase = lastDevice->GetFirstActiveAse();
+  ASSERT_TRUE(ase != nullptr);
+  ASSERT_EQ(ase->state, types::AseState::BTA_LE_AUDIO_ASE_STATE_STREAMING);
+}
+
+TEST_F(StateMachineTest, testAutonomousDisable_GoToIdle) {
+  const auto context_type = kContextTypeConversational;
+  const auto leaudio_group_id = 6;
+  const auto num_devices = 2;
+
+  ContentControlIdKeeper::GetInstance()->SetCcid(media_context, media_ccid);
+
+  // Prepare multiple fake connected devices in a group
+  auto* group =
+      PrepareSingleTestDeviceGroup(leaudio_group_id, context_type, num_devices);
+  ASSERT_EQ(group->Size(), num_devices);
+
+  PrepareConfigureCodecHandler(group);
+  PrepareConfigureQosHandler(group);
+  PrepareEnableHandler(group);
+  PrepareDisableHandler(group);
+  PrepareReleaseHandler(group);
+  PrepareReceiverStartReadyHandler(group);
+
+  auto* leAudioDevice = group->GetFirstDevice();
+  LeAudioDevice* firstDevice = leAudioDevice;
+  LeAudioDevice* lastDevice;
+
+  auto expected_devices_written = 0;
+  while (leAudioDevice) {
+    /* Three Writes:
+     * 1: Codec Config
+     * 2: Codec QoS
+     * 3: Enabling
+     */
+    lastDevice = leAudioDevice;
+    EXPECT_CALL(gatt_queue,
+                WriteCharacteristic(leAudioDevice->conn_id_,
+                                    leAudioDevice->ctp_hdls_.val_hdl, _,
+                                    GATT_WRITE_NO_RSP, _, _))
+        .Times(AtLeast(3));
+    expected_devices_written++;
+    leAudioDevice = group->GetNextDevice(leAudioDevice);
+  }
+  ASSERT_EQ(expected_devices_written, num_devices);
+
+  EXPECT_CALL(*mock_iso_manager_, CreateCig(_, _)).Times(1);
+  EXPECT_CALL(*mock_iso_manager_, EstablishCis(_)).Times(1);
+  EXPECT_CALL(*mock_iso_manager_, SetupIsoDataPath(_, _)).Times(4);
+
+  InjectInitialIdleNotification(group);
+
+  EXPECT_CALL(
+      mock_callbacks_,
+      StatusReportCb(leaudio_group_id,
+                     bluetooth::le_audio::GroupStreamStatus::STREAMING));
+
+  // Start the configuration and stream Conversational content
+  LeAudioGroupStateMachine::Get()->StartStream(
+      group, context_type,
+      {.sink = types::AudioContexts(context_type),
+       .source = types::AudioContexts(context_type)});
+
+  testing::Mock::VerifyAndClearExpectations(&mock_callbacks_);
+
+  log::info(" group {} is streaming ", group->group_id_);
+
+  /* First timer started for transition to streaming state */
+  ASSERT_EQ(1, get_func_call_count("alarm_set_on_mloop"));
+
+  // Check if group has transitioned to a proper state
+  ASSERT_EQ(group->GetState(),
+            types::AseState::BTA_LE_AUDIO_ASE_STATE_STREAMING);
+
+  testing::Mock::VerifyAndClearExpectations(mock_iso_manager_);
+
+  EXPECT_CALL(*mock_iso_manager_, RemoveIsoDataPath(_, _)).Times(1);
+
+  log::info(" Incjecting QoS configured for  {} ", lastDevice->address_);
+
+  /* Remote initiates autonomous Disable operation */
+  InjectQoSConfigurationForActiveAses(group, lastDevice);
+
+  // Check if group still streaming
+  ASSERT_EQ(group->GetState(),
+            types::AseState::BTA_LE_AUDIO_ASE_STATE_STREAMING);
+
+  log::info("{} in QoS configured state, disconnect CIS ",
+            lastDevice->address_);
+
+  // Validate GroupStreamStatus or maybe update CIS should be called
 
   /* Inject CIS disconnection of first device, disconenct only first CIS because
    * while processing first disconnection test will try to bring up this ASEs
    * to STREAMING state and connect CISes again.
    */
   InjectCisDisconnected(group, lastDevice, HCI_ERR_CONNECTION_TOUT, true);
-  testing::Mock::VerifyAndClearExpectations(mock_iso_manager_);
 
-  /* Check if autonomous operation timer is freed */
-  ASSERT_EQ(1, get_func_call_count("alarm_free"));
-}
-
-TEST_F(StateMachineTest, testAutonomousDisableCancelOnDisconnect) {
-  const auto context_type = kContextTypeConversational;
-  const auto leaudio_group_id = 6;
-  const auto num_devices = 2;
-
-  ContentControlIdKeeper::GetInstance()->SetCcid(media_context, media_ccid);
-
-  // Prepare multiple fake connected devices in a group
-  auto* group =
-      PrepareSingleTestDeviceGroup(leaudio_group_id, context_type, num_devices);
-  ASSERT_EQ(group->Size(), num_devices);
-
-  PrepareConfigureCodecHandler(group);
-  PrepareConfigureQosHandler(group);
-  PrepareEnableHandler(group);
-  PrepareDisableHandler(group);
-  PrepareReleaseHandler(group);
-  PrepareReceiverStartReadyHandler(group);
-
-  auto* leAudioDevice = group->GetFirstDevice();
-  LeAudioDevice* lastDevice;
-
-  auto expected_devices_written = 0;
-  while (leAudioDevice) {
-    /* Three Writes:
-     * 1: Codec Config
-     * 2: Codec QoS
-     * 3: Enabling
-     */
-    lastDevice = leAudioDevice;
-    EXPECT_CALL(gatt_queue,
-                WriteCharacteristic(leAudioDevice->conn_id_,
-                                    leAudioDevice->ctp_hdls_.val_hdl, _,
-                                    GATT_WRITE_NO_RSP, _, _))
-        .Times(AtLeast(3));
-    expected_devices_written++;
-    leAudioDevice = group->GetNextDevice(leAudioDevice);
-  }
-  ASSERT_EQ(expected_devices_written, num_devices);
-
-  EXPECT_CALL(*mock_iso_manager_, CreateCig(_, _)).Times(1);
-  EXPECT_CALL(*mock_iso_manager_, EstablishCis(_)).Times(1);
-  EXPECT_CALL(*mock_iso_manager_, SetupIsoDataPath(_, _)).Times(4);
-
-  InjectInitialIdleNotification(group);
-
-  // Start the configuration and stream Conversational content
-  LeAudioGroupStateMachine::Get()->StartStream(
-      group, context_type,
-      {.sink = types::AudioContexts(context_type),
-       .source = types::AudioContexts(context_type)});
-
-  /* First timer started for transition to streaming state */
-  ASSERT_EQ(1, get_func_call_count("alarm_set_on_mloop"));
-
-  // Check if group has transitioned to a proper state
+  // Check if group still streaming
   ASSERT_EQ(group->GetState(),
             types::AseState::BTA_LE_AUDIO_ASE_STATE_STREAMING);
+
+  log::info("{} in QoS configured state ", lastDevice->address_);
   testing::Mock::VerifyAndClearExpectations(mock_iso_manager_);
 
-  /* First timer finished when group achieves streaming state */
-  ASSERT_EQ(1, get_func_call_count("alarm_cancel"));
+  log::info(" device {} also goes to QoS state ", firstDevice->address_);
 
-  /* Remote initiates autonomous Disable operation */
-  auto ase = lastDevice->GetFirstActiveAseByDirection(
-      ::bluetooth::le_audio::types::kLeAudioDirectionSink);
+  EXPECT_CALL(
+      mock_callbacks_,
+      StatusReportCb(leaudio_group_id,
+                     bluetooth::le_audio::GroupStreamStatus::RELEASING));
 
-  InjectAseStateNotification(ase, lastDevice, group,
-                             ascs::kAseStateQoSConfigured,
-                             &cached_qos_configuration_map_[ase->id]);
+  EXPECT_CALL(mock_callbacks_,
+              StatusReportCb(leaudio_group_id,
+                             bluetooth::le_audio::GroupStreamStatus::IDLE));
 
-  /* Second timer started for autonomous transition to disabled state */
-  ASSERT_EQ(2, get_func_call_count("alarm_set_on_mloop"));
+  EXPECT_CALL(*mock_iso_manager_, DisconnectCis(_, _)).Times(1);
+  EXPECT_CALL(*mock_iso_manager_, RemoveIsoDataPath(_, _)).Times(1);
 
-  // Inject ACL disconnection of first device
-  InjectAclDisconnected(group, lastDevice);
+  InjectQoSConfigurationForActiveAses(group, firstDevice);
 
-  /* Check if autonomous operation timer is freed on ASEs deactivation */
-  ASSERT_EQ(2, get_func_call_count("alarm_free"));
+  testing::Mock::VerifyAndClearExpectations(mock_iso_manager_);
+  testing::Mock::VerifyAndClearExpectations(&mock_callbacks_);
 }
 
 }  // namespace internal
