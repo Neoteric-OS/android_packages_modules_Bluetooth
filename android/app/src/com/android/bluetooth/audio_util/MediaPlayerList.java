@@ -923,23 +923,31 @@ public class MediaPlayerList {
         }
 
         if (playerId == mActivePlayerId) {
-            Log.w(TAG, getActivePlayer().getPackageName() + " is already the active player");
+            if (getActivePlayer() != null) {
+                Log.w(TAG, getActivePlayer().getPackageName() + " is already the active player");
+            }
             return;
         }
 
-        if (mActivePlayerId != NO_ACTIVE_PLAYER) getActivePlayer().unregisterCallback();
+        if (mActivePlayerId != NO_ACTIVE_PLAYER && getActivePlayer() != null) {
+            getActivePlayer().unregisterCallback();
+        }
 
         mActivePlayerId = playerId;
-        getActivePlayer().registerCallback(mMediaPlayerCallback);
+
+        MediaPlayerWrapper player = getActivePlayer();
+        if (player == null) return;
+
+        player.registerCallback(mMediaPlayerCallback);
         mActivePlayerLogger.logd(
-                TAG, "setActivePlayer(): setting player to " + getActivePlayer().getPackageName());
+                TAG, "setActivePlayer(): setting player to " + player.getPackageName());
 
         if (mPlayerSettingsListener != null) {
-            mPlayerSettingsListener.onActivePlayerChanged(getActivePlayer());
+            mPlayerSettingsListener.onActivePlayerChanged(player);
         }
 
         // Ensure that metadata is synced on the new player
-        if (!getActivePlayer().isMetadataSynced()) {
+        if (!player.isMetadataSynced()) {
             Log.w(TAG, "setActivePlayer(): Metadata not synced on new player");
             return;
         }
@@ -948,7 +956,7 @@ public class MediaPlayerList {
             sendFolderUpdate(true, true, false);
         }
 
-        MediaData data = getActivePlayer().getCurrentMediaData();
+        MediaData data = player.getCurrentMediaData();
         if (mAudioPlaybackIsActive) {
             data.state = mCurrMediaData.state;
             Log.d(TAG, "setActivePlayer mAudioPlaybackIsActive=true, state=" + data.state);
