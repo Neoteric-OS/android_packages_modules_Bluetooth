@@ -32,4 +32,4 @@ void hfp_msbc_encoder_cleanup(void);
 // Get the HFP MSBC encoded maximum frame size
 uint32_t hfp_msbc_encode_frames(int16_t* input, uint8_t* output);
 
-#endif  // HFP_MSBC_ENCODER_H
+#endif // HFP_MSBC_ENCODER_H

@@ -22,7 +22,7 @@
 #else
 #include <stddef.h>
 #include <stdint.h>
-#endif  // _cplusplus
+#endif // _cplusplus
 
 /* Define the header of each buffer used in the Bluetooth stack.
  */
@@ -53,6 +53,6 @@ template <typename T>
 const T* ToPacketData(const BT_HDR* bt_hdr, size_t offset = 0) {
   return reinterpret_cast<const T*>(bt_hdr->data + bt_hdr->offset + offset);
 }
-#endif  // __cplusplus
+#endif // __cplusplus
 
 #define BT_HDR_SIZE (sizeof(BT_HDR))

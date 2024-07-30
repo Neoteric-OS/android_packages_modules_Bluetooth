@@ -33,7 +33,7 @@ static const bool kLittleEndian = true;
 // The template parameter little_endian controls the generation of extract().
 template <bool little_endian>
 class PacketView {
- public:
+public:
   explicit PacketView(std::forward_list<View> fragments);
   explicit PacketView(std::shared_ptr<const std::vector<uint8_t>> packet);
   PacketView(const PacketView& PacketView) = default;
@@ -51,15 +51,15 @@ class PacketView {
   PacketView<true> GetLittleEndianSubview(size_t begin, size_t end) const;
   PacketView<false> GetBigEndianSubview(size_t begin, size_t end) const;
 
- protected:
+protected:
   void Append(PacketView to_add);
 
- private:
+private:
   std::forward_list<View> fragments_;
   size_t length_;
 
   std::forward_list<View> GetSubviewList(size_t begin, size_t end) const;
 };
 
-}  // namespace packet
-}  // namespace bluetooth
+} // namespace packet
+} // namespace bluetooth

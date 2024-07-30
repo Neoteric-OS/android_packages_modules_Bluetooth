@@ -44,5 +44,5 @@ void headless::Handler::Post(common::OnceClosure closure) {
   handler_->Post(std::move(closure));
 }
 
-}  // namespace test
-}  // namespace bluetooth
+} // namespace test
+} // namespace bluetooth

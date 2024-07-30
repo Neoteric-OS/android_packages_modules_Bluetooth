@@ -121,5 +121,5 @@ void PacketView<little_endian>::Append(PacketView to_add) {
 // Explicit instantiations for both types of PacketViews.
 template class PacketView<true>;
 template class PacketView<false>;
-}  // namespace packet
-}  // namespace bluetooth
+} // namespace packet
+} // namespace bluetooth

@@ -14,22 +14,22 @@
  * limitations under the License.
  */
 
-#include <limits>
+#include "common/lru_cache.h"
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
-#include "common/lru_cache.h"
+#include <limits>
 
 namespace testing {
 
 using bluetooth::common::LruCache;
 
 TEST(LruCacheTest, empty_test) {
-  LruCache<int, int> cache(3);  // capacity = 3;
+  LruCache<int, int> cache(3); // capacity = 3;
   EXPECT_EQ(cache.size(), 0ul);
   EXPECT_EQ(cache.find(42), cache.end());
-  cache.clear();  // should not crash
+  cache.clear(); // should not crash
   EXPECT_EQ(cache.find(42), cache.end());
   EXPECT_FALSE(cache.contains(42));
   EXPECT_FALSE(cache.extract(42));
@@ -165,7 +165,7 @@ TEST(LruCacheTest, erase_in_for_loop_test) {
 }
 
 TEST(LruCacheTest, get_and_contains_key_test) {
-  LruCache<int, int> cache(3);  // capacity = 3;
+  LruCache<int, int> cache(3); // capacity = 3;
   EXPECT_EQ(cache.size(), 0ul);
   EXPECT_EQ(cache.find(42), cache.end());
   EXPECT_FALSE(cache.contains(42));
@@ -183,7 +183,7 @@ TEST(LruCacheTest, get_and_contains_key_test) {
 
 TEST(LruCacheTest, put_and_get_sequence_1) {
   // Section 1: Ordered put and ordered get
-  LruCache<int, int> cache(3);  // capacity = 3;
+  LruCache<int, int> cache(3); // capacity = 3;
   EXPECT_FALSE(cache.insert_or_assign(1, 10));
   EXPECT_EQ(cache.size(), 1ul);
   EXPECT_FALSE(cache.insert_or_assign(2, 20));
@@ -238,7 +238,7 @@ TEST(LruCacheTest, put_and_get_sequence_1) {
 
 TEST(LruCacheTest, put_and_get_sequence_2) {
   // Section 1: Replace item in cache
-  LruCache<int, int> cache(2);  // size = 2;
+  LruCache<int, int> cache(2); // size = 2;
   EXPECT_FALSE(cache.insert_or_assign(1, 10));
   EXPECT_FALSE(cache.insert_or_assign(2, 20));
   // 2, 1 in cache
@@ -418,7 +418,7 @@ TEST(LruCacheTest, for_loop_test) {
 }
 
 TEST(LruCacheTest, pressure_test) {
-  int capacity = 0xFFFF;  // 2^16 = 65535
+  int capacity = 0xFFFF; // 2^16 = 65535
   LruCache<int, int> cache(static_cast<size_t>(capacity));
 
   // fill the cache
@@ -449,4 +449,4 @@ TEST(LruCacheTest, pressure_test) {
   EXPECT_EQ(cache.size(), 0ul);
 }
 
-}  // namespace testing
+} // namespace testing

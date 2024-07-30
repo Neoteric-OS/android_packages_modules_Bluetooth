@@ -24,23 +24,19 @@ namespace fuzz {
 
 template <typename T>
 class FuzzInjectQueue {
- public:
+public:
   FuzzInjectQueue(IQueueEnqueue<T>* queue, Handler* handler) : handler_(handler) {
     buffer_ = new EnqueueBuffer<T>(queue);
   }
-  ~FuzzInjectQueue() {
-    delete buffer_;
-  }
+  ~FuzzInjectQueue() { delete buffer_; }
 
-  void Inject(std::unique_ptr<T> data) {
-    buffer_->Enqueue(std::move(data), handler_);
-  }
+  void Inject(std::unique_ptr<T> data) { buffer_->Enqueue(std::move(data), handler_); }
 
- private:
+private:
   EnqueueBuffer<T>* buffer_;
   Handler* handler_;
 };
 
-}  // namespace fuzz
-}  // namespace os
-}  // namespace bluetooth
+} // namespace fuzz
+} // namespace os
+} // namespace bluetooth

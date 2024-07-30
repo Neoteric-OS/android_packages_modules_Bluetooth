@@ -41,6 +41,6 @@ enum class SecurityPolicy {
   _NOT_FOR_YOU__AUTHORIZATION,
 };
 
-}  // namespace le
-}  // namespace l2cap
-}  // namespace bluetooth
+} // namespace le
+} // namespace l2cap
+} // namespace bluetooth

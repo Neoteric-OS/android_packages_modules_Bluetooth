@@ -38,8 +38,7 @@ enum class BluetoothAudioCtrlAck : uint8_t {
 
 std::ostream& operator<<(std::ostream& os, const BluetoothAudioCtrlAck& ack);
 
-inline BluetoothAudioStatus BluetoothAudioCtrlAckToHalStatus(
-    const BluetoothAudioCtrlAck& ack) {
+inline BluetoothAudioStatus BluetoothAudioCtrlAckToHalStatus(const BluetoothAudioCtrlAck& ack) {
   switch (ack) {
     case BluetoothAudioCtrlAck::SUCCESS_FINISHED:
       return BluetoothAudioStatus::SUCCESS;
@@ -58,12 +57,11 @@ inline BluetoothAudioStatus BluetoothAudioCtrlAckToHalStatus(
   }
 }
 
-}  // namespace aidl
-}  // namespace audio
-}  // namespace bluetooth
+} // namespace aidl
+} // namespace audio
+} // namespace bluetooth
 
 namespace fmt {
 template <>
-struct formatter<bluetooth::audio::aidl::BluetoothAudioCtrlAck>
-    : ostream_formatter {};
-}  // namespace fmt
+struct formatter<bluetooth::audio::aidl::BluetoothAudioCtrlAck> : ostream_formatter {};
+} // namespace fmt

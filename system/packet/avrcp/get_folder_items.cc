@@ -21,48 +21,42 @@
 namespace bluetooth {
 namespace avrcp {
 
-std::unique_ptr<GetFolderItemsResponseBuilder>
-GetFolderItemsResponseBuilder::MakePlayerListBuilder(Status status,
-                                                     uint16_t uid_counter,
-                                                     size_t mtu) {
+std::unique_ptr<GetFolderItemsResponseBuilder> GetFolderItemsResponseBuilder::MakePlayerListBuilder(
+        Status status, uint16_t uid_counter, size_t mtu) {
   std::unique_ptr<GetFolderItemsResponseBuilder> builder(
-      new GetFolderItemsResponseBuilder(Scope::MEDIA_PLAYER_LIST, status,
-                                        uid_counter, mtu));
+          new GetFolderItemsResponseBuilder(Scope::MEDIA_PLAYER_LIST, status, uid_counter, mtu));
 
   return builder;
 }
 
-std::unique_ptr<GetFolderItemsResponseBuilder>
-GetFolderItemsResponseBuilder::MakeVFSBuilder(Status status,
-                                              uint16_t uid_counter,
-                                              size_t mtu) {
+std::unique_ptr<GetFolderItemsResponseBuilder> GetFolderItemsResponseBuilder::MakeVFSBuilder(
+        Status status, uint16_t uid_counter, size_t mtu) {
   std::unique_ptr<GetFolderItemsResponseBuilder> builder(
-      new GetFolderItemsResponseBuilder(Scope::VFS, status, uid_counter, mtu));
+          new GetFolderItemsResponseBuilder(Scope::VFS, status, uid_counter, mtu));
 
   return builder;
 }
 
-std::unique_ptr<GetFolderItemsResponseBuilder>
-GetFolderItemsResponseBuilder::MakeNowPlayingBuilder(Status status,
-                                                     uint16_t uid_counter,
-                                                     size_t mtu) {
+std::unique_ptr<GetFolderItemsResponseBuilder> GetFolderItemsResponseBuilder::MakeNowPlayingBuilder(
+        Status status, uint16_t uid_counter, size_t mtu) {
   std::unique_ptr<GetFolderItemsResponseBuilder> builder(
-      new GetFolderItemsResponseBuilder(Scope::NOW_PLAYING, status, uid_counter,
-                                        mtu));
+          new GetFolderItemsResponseBuilder(Scope::NOW_PLAYING, status, uid_counter, mtu));
 
   return builder;
 }
 
 size_t GetFolderItemsResponseBuilder::size() const {
   size_t len = BrowsePacket::kMinSize();
-  len += 1;  // Status
+  len += 1; // Status
 
   // There is nothing other than the status in the packet if the status isn't
   // NO_ERROR
-  if (status_ != Status::NO_ERROR || items_.size() == 0) return len;
+  if (status_ != Status::NO_ERROR || items_.size() == 0) {
+    return len;
+  }
 
-  len += 2;  // UID Counter
-  len += 2;  // Number of Items;
+  len += 2; // UID Counter
+  len += 2; // Number of Items;
   for (const auto& item : items_) {
     len += item.size();
   }
@@ -70,8 +64,7 @@ size_t GetFolderItemsResponseBuilder::size() const {
   return len;
 }
 
-bool GetFolderItemsResponseBuilder::Serialize(
-    const std::shared_ptr<::bluetooth::Packet>& pkt) {
+bool GetFolderItemsResponseBuilder::Serialize(const std::shared_ptr<::bluetooth::Packet>& pkt) {
   ReserveSpace(pkt, size());
 
   BrowsePacketBuilder::PushHeader(pkt, size() - BrowsePacket::kMinSize());
@@ -81,8 +74,10 @@ bool GetFolderItemsResponseBuilder::Serialize(
     status_ = Status::RANGE_OUT_OF_BOUNDS;
   }
 
-  AddPayloadOctets1(pkt, (uint8_t)status_);  // Status
-  if (status_ != Status::NO_ERROR) return true;
+  AddPayloadOctets1(pkt, (uint8_t)status_); // Status
+  if (status_ != Status::NO_ERROR) {
+    return true;
+  }
 
   AddPayloadOctets2(pkt, base::ByteSwap(uid_counter_));
   uint16_t num_items = items_.size();
@@ -99,18 +94,21 @@ bool GetFolderItemsResponseBuilder::AddMediaPlayer(MediaPlayerItem item) {
   log::assert_that(scope_ == Scope::MEDIA_PLAYER_LIST,
                    "assert failed: scope_ == Scope::MEDIA_PLAYER_LIST");
 
-  if (size() + item.size() > mtu_) return false;
+  if (size() + item.size() > mtu_) {
+    return false;
+  }
 
   items_.push_back(MediaListItem(item));
   return true;
 }
 
 bool GetFolderItemsResponseBuilder::AddSong(MediaElementItem item) {
-  log::assert_that(
-      scope_ == Scope::VFS || scope_ == Scope::NOW_PLAYING,
-      "assert failed: scope_ == Scope::VFS || scope_ == Scope::NOW_PLAYING");
+  log::assert_that(scope_ == Scope::VFS || scope_ == Scope::NOW_PLAYING,
+                   "assert failed: scope_ == Scope::VFS || scope_ == Scope::NOW_PLAYING");
 
-  if (size() + item.size() > mtu_) return false;
+  if (size() + item.size() > mtu_) {
+    return false;
+  }
 
   items_.push_back(MediaListItem(item));
   return true;
@@ -119,15 +117,16 @@ bool GetFolderItemsResponseBuilder::AddSong(MediaElementItem item) {
 bool GetFolderItemsResponseBuilder::AddFolder(FolderItem item) {
   log::assert_that(scope_ == Scope::VFS, "assert failed: scope_ == Scope::VFS");
 
-  if (size() + item.size() > mtu_) return false;
+  if (size() + item.size() > mtu_) {
+    return false;
+  }
 
   items_.push_back(MediaListItem(item));
   return true;
 }
 
 void GetFolderItemsResponseBuilder::PushMediaListItem(
-    const std::shared_ptr<::bluetooth::Packet>& pkt,
-    const MediaListItem& item) {
+        const std::shared_ptr<::bluetooth::Packet>& pkt, const MediaListItem& item) {
   switch (item.type_) {
     case MediaListItem::PLAYER:
       PushMediaPlayerItem(pkt, item.player_);
@@ -142,16 +141,14 @@ void GetFolderItemsResponseBuilder::PushMediaListItem(
 }
 
 void GetFolderItemsResponseBuilder::PushMediaPlayerItem(
-    const std::shared_ptr<::bluetooth::Packet>& pkt,
-    const MediaPlayerItem& item) {
-  AddPayloadOctets1(pkt, 0x01);  // Media Player Item
+        const std::shared_ptr<::bluetooth::Packet>& pkt, const MediaPlayerItem& item) {
+  AddPayloadOctets1(pkt, 0x01); // Media Player Item
   uint16_t item_len = item.size() - 3;
-  AddPayloadOctets2(pkt, base::ByteSwap(item_len));  // Item length
-  AddPayloadOctets2(pkt, base::ByteSwap(item.id_));  // Player ID
-  AddPayloadOctets1(pkt, 0x01);                      // Player Type
-  AddPayloadOctets4(pkt, 0x00000000);                // Player Subtype
-  AddPayloadOctets1(
-      pkt, 0x02);  // Player Play Status // TODO: Add this as a passed field
+  AddPayloadOctets2(pkt, base::ByteSwap(item_len)); // Item length
+  AddPayloadOctets2(pkt, base::ByteSwap(item.id_)); // Player ID
+  AddPayloadOctets1(pkt, 0x01);                     // Player Type
+  AddPayloadOctets4(pkt, 0x00000000);               // Player Subtype
+  AddPayloadOctets1(pkt, 0x02); // Player Play Status // TODO: Add this as a passed field
 
   // Features
   AddPayloadOctets1(pkt, 0x00);
@@ -185,16 +182,16 @@ void GetFolderItemsResponseBuilder::PushMediaPlayerItem(
   }
 }
 
-void GetFolderItemsResponseBuilder::PushFolderItem(
-    const std::shared_ptr<::bluetooth::Packet>& pkt, const FolderItem& item) {
-  AddPayloadOctets1(pkt, 0x02);  // Folder Item
+void GetFolderItemsResponseBuilder::PushFolderItem(const std::shared_ptr<::bluetooth::Packet>& pkt,
+                                                   const FolderItem& item) {
+  AddPayloadOctets1(pkt, 0x02); // Folder Item
   uint16_t item_len = item.size() - 3;
   AddPayloadOctets2(pkt, base::ByteSwap(item_len));
   AddPayloadOctets8(pkt, base::ByteSwap(item.uid_));
   AddPayloadOctets1(pkt, item.folder_type_);
   AddPayloadOctets1(pkt, item.is_playable_ ? 0x01 : 0x00);
   AddPayloadOctets2(pkt,
-                    base::ByteSwap((uint16_t)0x006a));  // UTF-8 Character Set
+                    base::ByteSwap((uint16_t)0x006a)); // UTF-8 Character Set
   uint16_t name_len = item.name_.size();
   AddPayloadOctets2(pkt, base::ByteSwap(name_len));
   for (const uint8_t& byte : item.name_) {
@@ -203,15 +200,14 @@ void GetFolderItemsResponseBuilder::PushFolderItem(
 }
 
 void GetFolderItemsResponseBuilder::PushMediaElementItem(
-    const std::shared_ptr<::bluetooth::Packet>& pkt,
-    const MediaElementItem& item) {
-  AddPayloadOctets1(pkt, 0x03);  // Media Element Item
+        const std::shared_ptr<::bluetooth::Packet>& pkt, const MediaElementItem& item) {
+  AddPayloadOctets1(pkt, 0x03); // Media Element Item
   uint16_t item_len = item.size() - 3;
   AddPayloadOctets2(pkt, base::ByteSwap(item_len));
   AddPayloadOctets8(pkt, base::ByteSwap(item.uid_));
-  AddPayloadOctets1(pkt, 0x00);  // Media Type Audio
+  AddPayloadOctets1(pkt, 0x00); // Media Type Audio
   AddPayloadOctets2(pkt,
-                    base::ByteSwap((uint16_t)0x006a));  // UTF-8 Character Set
+                    base::ByteSwap((uint16_t)0x006a)); // UTF-8 Character Set
   uint16_t name_len = item.name_.size();
   AddPayloadOctets2(pkt, base::ByteSwap(name_len));
   for (const uint8_t& byte : item.name_) {
@@ -222,7 +218,7 @@ void GetFolderItemsResponseBuilder::PushMediaElementItem(
   for (const auto& entry : item.attributes_) {
     AddPayloadOctets4(pkt, base::ByteSwap((uint32_t)entry.attribute()));
     AddPayloadOctets2(pkt,
-                      base::ByteSwap((uint16_t)0x006a));  // UTF-8 Character Set
+                      base::ByteSwap((uint16_t)0x006a)); // UTF-8 Character Set
 
     std::string attr_val = entry.value();
     uint16_t attr_len = attr_val.size();
@@ -261,7 +257,9 @@ std::vector<Attribute> GetFolderItemsRequest::GetAttributesRequested() const {
   std::vector<Attribute> attribute_list;
 
   // No attributes requested
-  if (number_of_attributes == 0xFF) return attribute_list;
+  if (number_of_attributes == 0xFF) {
+    return attribute_list;
+  }
 
   // TODO: If the number of attributes equals 0, then all attributes are
   // requested right now thats handled in the service itself, but it'd be nice
@@ -275,14 +273,20 @@ std::vector<Attribute> GetFolderItemsRequest::GetAttributesRequested() const {
 }
 
 bool GetFolderItemsRequest::IsValid() const {
-  if (!BrowsePacket::IsValid()) return false;
+  if (!BrowsePacket::IsValid()) {
+    return false;
+  }
   // The minimum size required to be valid
-  if (size() < kMinSize()) return false;
+  if (size() < kMinSize()) {
+    return false;
+  }
 
   auto attr_count = GetNumAttributes();
 
   // No items requested
-  if (attr_count == 0xFF) return true;
+  if (attr_count == 0xFF) {
+    return true;
+  }
 
   auto attr_start = begin() + kMinSize();
 
@@ -306,13 +310,11 @@ std::string GetFolderItemsRequest::ToString() const {
   return ss.str();
 }
 
-std::unique_ptr<GetFolderItemsRequestBuilder>
-GetFolderItemsRequestBuilder::MakeBuilder(
-    Scope scope, uint32_t start_item, uint32_t end_item,
-    const std::set<Attribute>& requested_attrs) {
+std::unique_ptr<GetFolderItemsRequestBuilder> GetFolderItemsRequestBuilder::MakeBuilder(
+        Scope scope, uint32_t start_item, uint32_t end_item,
+        const std::set<Attribute>& requested_attrs) {
   std::unique_ptr<GetFolderItemsRequestBuilder> builder(
-      new GetFolderItemsRequestBuilder(scope, start_item, end_item,
-                                       requested_attrs));
+          new GetFolderItemsRequestBuilder(scope, start_item, end_item, requested_attrs));
 
   return builder;
 }
@@ -323,8 +325,7 @@ size_t GetFolderItemsRequestBuilder::size() const {
   return len;
 }
 
-bool GetFolderItemsRequestBuilder::Serialize(
-    const std::shared_ptr<::bluetooth::Packet>& pkt) {
+bool GetFolderItemsRequestBuilder::Serialize(const std::shared_ptr<::bluetooth::Packet>& pkt) {
   ReserveSpace(pkt, size());
 
   BrowsePacketBuilder::PushHeader(pkt, size() - BrowsePacket::kMinSize());
@@ -346,5 +347,5 @@ bool GetFolderItemsRequestBuilder::Serialize(
   return true;
 }
 
-}  // namespace avrcp
-}  // namespace bluetooth
+} // namespace avrcp
+} // namespace bluetooth

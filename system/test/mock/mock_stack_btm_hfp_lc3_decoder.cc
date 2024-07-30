@@ -41,9 +41,9 @@ struct hfp_lc3_decoder_cleanup hfp_lc3_decoder_cleanup;
 struct hfp_lc3_decoder_decode_packet hfp_lc3_decoder_decode_packet;
 struct hfp_lc3_decoder_init hfp_lc3_decoder_init;
 
-}  // namespace stack_btm_hfp_lc3_decoder
-}  // namespace mock
-}  // namespace test
+} // namespace stack_btm_hfp_lc3_decoder
+} // namespace mock
+} // namespace test
 
 // Mocked function return values, if any
 namespace test {
@@ -53,20 +53,19 @@ namespace stack_btm_hfp_lc3_decoder {
 bool hfp_lc3_decoder_decode_packet::return_value = false;
 bool hfp_lc3_decoder_init::return_value = false;
 
-}  // namespace stack_btm_hfp_lc3_decoder
-}  // namespace mock
-}  // namespace test
+} // namespace stack_btm_hfp_lc3_decoder
+} // namespace mock
+} // namespace test
 
 // Mocked functions, if any
 void hfp_lc3_decoder_cleanup(void) {
   inc_func_call_count(__func__);
   test::mock::stack_btm_hfp_lc3_decoder::hfp_lc3_decoder_cleanup();
 }
-bool hfp_lc3_decoder_decode_packet(const uint8_t* i_buf, int16_t* o_buf,
-                                   size_t out_len) {
+bool hfp_lc3_decoder_decode_packet(const uint8_t* i_buf, int16_t* o_buf, size_t out_len) {
   inc_func_call_count(__func__);
-  return test::mock::stack_btm_hfp_lc3_decoder::hfp_lc3_decoder_decode_packet(
-      i_buf, o_buf, out_len);
+  return test::mock::stack_btm_hfp_lc3_decoder::hfp_lc3_decoder_decode_packet(i_buf, o_buf,
+                                                                              out_len);
 }
 bool hfp_lc3_decoder_init() {
   inc_func_call_count(__func__);

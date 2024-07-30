@@ -53,9 +53,9 @@ struct dump_rc_pdu dump_rc_pdu;
 struct dump_thread_evt dump_thread_evt;
 struct uint2devclass uint2devclass;
 
-}  // namespace btif_util
-}  // namespace mock
-}  // namespace test
+} // namespace btif_util
+} // namespace mock
+} // namespace test
 
 // Mocked function return values, if any
 namespace test {
@@ -79,9 +79,9 @@ const char* dump_rc_notification_event_id::return_value = nullptr;
 const char* dump_rc_pdu::return_value = nullptr;
 const char* dump_thread_evt::return_value = nullptr;
 
-}  // namespace btif_util
-}  // namespace mock
-}  // namespace test
+} // namespace btif_util
+} // namespace mock
+} // namespace test
 
 // Mocked functions, if any
 int ascii_2_hex(const char* p_ascii, int len, uint8_t* p_hex) {

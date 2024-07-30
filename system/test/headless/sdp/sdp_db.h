@@ -26,7 +26,7 @@ namespace test {
 namespace headless {
 
 class SdpDb {
- public:
+public:
   SdpDb(unsigned int max_records);
   ~SdpDb();
 
@@ -36,11 +36,11 @@ class SdpDb {
 
   void Print(FILE* filep) const;
 
- private:
+private:
   unsigned int max_records_;
   tSDP_DISCOVERY_DB* db_;
 };
 
-}  // namespace headless
-}  // namespace test
-}  // namespace bluetooth
+} // namespace headless
+} // namespace test
+} // namespace bluetooth

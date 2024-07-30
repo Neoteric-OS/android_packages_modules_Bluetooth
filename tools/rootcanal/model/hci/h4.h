@@ -16,7 +16,7 @@
 
 #pragma once
 
-#include <cstdint>  // for uint8_t
+#include <cstdint> // for uint8_t
 
 namespace rootcanal {
 
@@ -29,4 +29,4 @@ enum class PacketType : uint8_t {
   ISO = 5,
 };
 
-}  // namespace rootcanal
+} // namespace rootcanal

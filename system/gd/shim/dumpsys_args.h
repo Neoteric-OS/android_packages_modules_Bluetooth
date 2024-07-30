@@ -20,14 +20,14 @@ namespace bluetooth {
 namespace shim {
 
 class ParsedDumpsysArgs {
- public:
+public:
   ParsedDumpsysArgs(const char** args);
   bool IsDeveloper() const;
 
- private:
+private:
   unsigned num_args_{0};
   bool dev_arg_{false};
 };
 
-}  // namespace shim
-}  // namespace bluetooth
+} // namespace shim
+} // namespace bluetooth

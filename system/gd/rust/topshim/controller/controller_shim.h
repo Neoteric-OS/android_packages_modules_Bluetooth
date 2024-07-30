@@ -28,7 +28,7 @@ namespace topshim {
 namespace rust {
 
 class ControllerIntf {
- public:
+public:
   ControllerIntf() : controller_(shim::GetController()) {}
   ~ControllerIntf();
 
@@ -36,14 +36,14 @@ class ControllerIntf {
   uint64_t get_ble_supported_states() const;
   uint64_t get_ble_local_supported_features() const;
 
- private:
+private:
   const hci::ControllerInterface* controller_;
 };
 
 std::unique_ptr<ControllerIntf> GetControllerInterface();
 
-}  // namespace rust
-}  // namespace topshim
-}  // namespace bluetooth
+} // namespace rust
+} // namespace topshim
+} // namespace bluetooth
 
-#endif  // GD_RUST_TOPSHIM_CONTROLLER_SHIM
+#endif // GD_RUST_TOPSHIM_CONTROLLER_SHIM

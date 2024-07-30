@@ -42,4 +42,4 @@ void a2dp_vendor_opus_decoder_suspend(void);
 // A2DP Opus decoder configuration.
 void a2dp_vendor_opus_decoder_configure(const uint8_t* p_codec_info);
 
-#endif  // A2DP_VENDOR_OPUS_DECODER_H
+#endif // A2DP_VENDOR_OPUS_DECODER_H

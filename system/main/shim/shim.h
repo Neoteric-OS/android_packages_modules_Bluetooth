@@ -54,5 +54,5 @@ bool is_gd_dumpsys_module_started();
  */
 bool is_classic_discovery_only_enabled();
 
-}  // namespace shim
-}  // namespace bluetooth
+} // namespace shim
+} // namespace bluetooth

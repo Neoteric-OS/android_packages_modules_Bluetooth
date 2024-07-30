@@ -37,4 +37,4 @@ typedef struct circularBuffer_t {
 #ifdef _GCC
 #pragma GCC visibility pop
 #endif
-#endif  // CBSTRUCT_H
+#endif // CBSTRUCT_H

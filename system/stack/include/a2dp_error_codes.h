@@ -133,4 +133,4 @@ enum tA2DP_STATUS : uint8_t {
 namespace fmt {
 template <>
 struct formatter<tA2DP_STATUS> : enum_formatter<tA2DP_STATUS> {};
-}  // namespace fmt
+} // namespace fmt

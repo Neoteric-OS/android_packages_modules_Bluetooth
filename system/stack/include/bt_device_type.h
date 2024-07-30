@@ -46,4 +46,4 @@ inline std::string DeviceTypeText(tBT_DEVICE_TYPE type) {
       return std::string("Unknown");
   }
 }
-#endif  // __cplusplus
+#endif // __cplusplus

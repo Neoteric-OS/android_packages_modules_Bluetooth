@@ -50,5 +50,5 @@ extern "C" int LLVMFuzzerTestOneInput(const char* data, size_t size) {
   return 0;
 }
 
-}  // namespace avrcp
-}  // namespace bluetooth
+} // namespace avrcp
+} // namespace bluetooth

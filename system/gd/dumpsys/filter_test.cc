@@ -34,7 +34,7 @@ using namespace bluetooth;
 namespace testing {
 
 class DumpsysFilterTest : public Test {
- protected:
+protected:
   void SetUp() override {
     test_data_classes_.push_back(std::make_unique<BarTestDataClass>());
     test_data_classes_.push_back(std::make_unique<BazTestDataClass>());
@@ -80,7 +80,8 @@ std::string DumpsysFilterTest::PopulateTestSchema() {
   }
   fb_builder.Finish(builder.Finish());
 
-  return std::string(fb_builder.GetBufferPointer(), fb_builder.GetBufferPointer() + fb_builder.GetSize());
+  return std::string(fb_builder.GetBufferPointer(),
+                     fb_builder.GetBufferPointer() + fb_builder.GetSize());
 }
 
 TEST_F(DumpsysFilterTest, filter_as_developer) {
@@ -118,4 +119,4 @@ TEST_F(DumpsysFilterTest, filter_as_developer) {
   ASSERT_STREQ("123.456", foo->foo_float_string()->c_str());
 }
 
-}  // namespace testing
+} // namespace testing

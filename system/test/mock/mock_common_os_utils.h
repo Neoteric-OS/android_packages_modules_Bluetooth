@@ -42,12 +42,12 @@ namespace common_os_utils {
 struct is_bluetooth_uid {
   static bool return_value;
   std::function<bool()> body{[]() { return return_value; }};
-  bool operator()() { return body(); };
+  bool operator()() { return body(); }
 };
 extern struct is_bluetooth_uid is_bluetooth_uid;
 
-}  // namespace common_os_utils
-}  // namespace mock
-}  // namespace test
+} // namespace common_os_utils
+} // namespace mock
+} // namespace test
 
 // END mockcify generation

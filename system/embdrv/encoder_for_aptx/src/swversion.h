@@ -18,4 +18,4 @@
 
 static const char* const swversion = "1.0.0";
 
-#endif  // SWVERSION_H
+#endif // SWVERSION_H

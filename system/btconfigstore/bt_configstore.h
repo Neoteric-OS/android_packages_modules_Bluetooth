@@ -41,6 +41,7 @@
 #define __BT_CONFIG_STORE__
 
 #include <cutils/properties.h>
+
 #include <vector>
 
 #define BT_CONFIG_STORE_INTERFACE_STRING "btConfigStoreInterface"
@@ -109,15 +110,13 @@ typedef struct {
    *
    *To get vendor property
    */
-  bool (*get_vendor_properties)(uint32_t propType,
-                                std::vector<vendor_property_t>& vPropList);
+  bool (*get_vendor_properties)(uint32_t propType, std::vector<vendor_property_t>& vPropList);
 
   /**
    *
    * To get BT controller add On features
    */
-  bool (*get_controller_add_on_features)(
-      controller_add_on_features_list_t* features_list);
+  bool (*get_controller_add_on_features)(controller_add_on_features_list_t* features_list);
 
   /**
    *

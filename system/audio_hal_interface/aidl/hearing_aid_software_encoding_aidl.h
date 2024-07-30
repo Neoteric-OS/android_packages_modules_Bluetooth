@@ -31,8 +31,7 @@ using ::bluetooth::audio::hearing_aid::StreamCallbacks;
 bool is_hal_enabled();
 
 // Initialize BluetoothAudio HAL: openProvider
-bool init(StreamCallbacks stream_cb,
-          bluetooth::common::MessageLoopThread* message_loop);
+bool init(StreamCallbacks stream_cb, bluetooth::common::MessageLoopThread* message_loop);
 
 // Clean up BluetoothAudio HAL
 void cleanup();
@@ -48,7 +47,7 @@ size_t read(uint8_t* p_buf, uint32_t len);
 
 void stop_request();
 
-}  // namespace hearing_aid
-}  // namespace aidl
-}  // namespace audio
-}  // namespace bluetooth
+} // namespace hearing_aid
+} // namespace aidl
+} // namespace audio
+} // namespace bluetooth

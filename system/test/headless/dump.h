@@ -18,6 +18,6 @@ void dump(const T* data, std::string comment = std::string("dump")) {
   }
 }
 
-}  // namespace headless
-}  // namespace test
-}  // namespace bluetooth
+} // namespace headless
+} // namespace test
+} // namespace bluetooth

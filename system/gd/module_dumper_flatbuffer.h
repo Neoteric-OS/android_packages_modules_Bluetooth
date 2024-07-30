@@ -25,4 +25,4 @@ using DumpsysDataFinisher = std::function<void(DumpsysDataBuilder* dumpsys_data_
 
 extern DumpsysDataFinisher EmptyDumpsysDataFinisher;
 
-}  // namespace bluetooth
+} // namespace bluetooth

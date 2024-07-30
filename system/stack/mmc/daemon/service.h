@@ -35,7 +35,7 @@
 namespace mmc {
 
 class Service final {
- public:
+public:
   explicit Service(base::OnceClosure shutdown_callback);
 
   // Service is neither copyable nor movable.
@@ -45,7 +45,7 @@ class Service final {
   // Connects to DBus and exports methods for client to call.
   bool Init();
 
- private:
+private:
   /* DBus Methods */
   // Main thread creates a codec server instance and a socket,
   // and calls |StartWorkerThread| to let one thread start listening on the
@@ -56,16 +56,14 @@ class Service final {
   // Response:
   //   |CodecInitResponse|, if |CodecInit| succeeded.
   //   ErrorResponse, otherwise.
-  void CodecInit(dbus::MethodCall* method_call,
-                 dbus::ExportedObject::ResponseSender sender);
+  void CodecInit(dbus::MethodCall* method_call, dbus::ExportedObject::ResponseSender sender);
 
   // Main thread removes idle threads from the thread poll.
   //
   // No input message needed.
   // Response:
   //   dbus::Response, implying |CodecCleanUp| finished.
-  void CodecCleanUp(dbus::MethodCall* method_call,
-                    dbus::ExportedObject::ResponseSender sender);
+  void CodecCleanUp(dbus::MethodCall* method_call, dbus::ExportedObject::ResponseSender sender);
 
   /* Thread Management*/
   // Adds a thread to the thread pool and makes it listen on the socket fd.
@@ -78,15 +76,15 @@ class Service final {
   base::OnceClosure shutdown_callback_;
 
   scoped_refptr<dbus::Bus> bus_;
-  dbus::ExportedObject* exported_object_;  // Owned by the Bus object.
+  dbus::ExportedObject* exported_object_; // Owned by the Bus object.
 
   std::vector<std::pair<std::unique_ptr<bluetooth::common::MessageLoopThread>,
                         std::unique_ptr<std::future<void>>>>
-      thread_pool_;
+          thread_pool_;
 
   base::WeakPtrFactory<Service> weak_ptr_factory_;
 };
 
-}  // namespace mmc
+} // namespace mmc
 
-#endif  // MMC_DAEMON_SERVICE_H_
+#endif // MMC_DAEMON_SERVICE_H_

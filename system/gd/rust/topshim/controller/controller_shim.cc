@@ -28,32 +28,40 @@ namespace topshim {
 namespace rust {
 namespace internal {
 static ControllerIntf* g_controller_intf;
-}  // namespace internal
+} // namespace internal
 
 ControllerIntf::~ControllerIntf() {}
 
 std::unique_ptr<ControllerIntf> GetControllerInterface() {
-  if (internal::g_controller_intf) std::abort();
+  if (internal::g_controller_intf) {
+    std::abort();
+  }
   auto controller_intf = std::make_unique<ControllerIntf>();
   internal::g_controller_intf = controller_intf.get();
   return controller_intf;
 }
 
 RawAddress ControllerIntf::read_local_addr() const {
-  if (!controller_) std::abort();
+  if (!controller_) {
+    std::abort();
+  }
   return ToRawAddress(controller_->GetMacAddress());
 }
 
 uint64_t ControllerIntf::get_ble_supported_states() const {
-  if (!controller_) std::abort();
+  if (!controller_) {
+    std::abort();
+  }
   return controller_->GetLeSupportedStates();
 }
 
 uint64_t ControllerIntf::get_ble_local_supported_features() const {
-  if (!controller_) std::abort();
+  if (!controller_) {
+    std::abort();
+  }
   return controller_->GetControllerLeLocalSupportedFeatures();
 }
 
-}  // namespace rust
-}  // namespace topshim
-}  // namespace bluetooth
+} // namespace rust
+} // namespace topshim
+} // namespace bluetooth

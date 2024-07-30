@@ -23,12 +23,12 @@ namespace bluetooth {
 namespace hci {
 
 constexpr hci::SubeventCode LeSecurityEvents[] = {
-    hci::SubeventCode::LONG_TERM_KEY_REQUEST,
-    hci::SubeventCode::READ_LOCAL_P256_PUBLIC_KEY_COMPLETE,
-    hci::SubeventCode::GENERATE_DHKEY_COMPLETE,
+        hci::SubeventCode::LONG_TERM_KEY_REQUEST,
+        hci::SubeventCode::READ_LOCAL_P256_PUBLIC_KEY_COMPLETE,
+        hci::SubeventCode::GENERATE_DHKEY_COMPLETE,
 };
 
 typedef CommandInterface<LeSecurityCommandBuilder> LeSecurityInterface;
 
-}  // namespace hci
-}  // namespace bluetooth
+} // namespace hci
+} // namespace bluetooth

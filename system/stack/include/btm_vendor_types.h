@@ -41,12 +41,11 @@
 #define MSG_QBCE_VS_PARAM_REPORT_EVENT 0x12
 #define HCI_VS_LINK_POWER_CTRL_EVENT 0xb4
 
-#define BTM_QLL_FEATURES_STATE_IDLE 0 /* initial state */
-#define BTM_QLL_FEATURES_STATE_CONN_COMPLETE \
-  1 /* QLL connection complete event received */
-#define BTM_QLL_FEATURES_STATE_FEATURE_COMPLETE \
-  2 /* remote QLL features complete event received */
-#define BTM_QLL_FEATURES_STATE_ERROR 3 /* error status */
+#define BTM_QLL_FEATURES_STATE_IDLE 0             /* initial state */
+#define BTM_QLL_FEATURES_STATE_CONN_COMPLETE 1    /* QLL connection complete event received */
+#define BTM_QLL_FEATURES_STATE_FEATURE_COMPLETE 2 /* remote QLL features complete event received \
+                                                   */
+#define BTM_QLL_FEATURES_STATE_ERROR 3            /* error status */
 
 #define BTM_QBCE_READ_REMOTE_QLL_SUPPORTED_FEATURE_LEN 3
 
@@ -84,13 +83,11 @@
 #define BTM_QBCE_QLL_FT_CHNAGE(x) ((x)[3] & 0x04)
 #define BTM_QBCE_QLL_BN_VARIATION_BY_QHS_RATE(x) ((x)[3] & 0x08)
 #define BTM_QBCE_QLL_CIS_PARAMETER_UPDATE_CONTROLLER(x) ((x)[4] & 0x08)
-#define BTM_QBCE_QLL_MULTI_CONFIG_CIS_PARAMETER_UPDATE_CONTROLLER(x) \
-  ((x)[4] & 0x80)
+#define BTM_QBCE_QLL_MULTI_CONFIG_CIS_PARAMETER_UPDATE_CONTROLLER(x) ((x)[4] & 0x80)
 #define BTM_QBCE_QLL_QSS_HOST_SUPPORT_BIT_0(x) ((x)[7] & 0x40]
 #define BTM_QBCE_QLL_QSS_HOST_SUPPORT_BIT_1(x) ((x)[7] & 0x80]
 #define BTM_SPLIT_A2DP_SOURCE_AAC_ABR_SUPPORTED(x) ((x)[3] & 0x40)
-#define BTM_SPLIT_A2DP_SOURCE_Tx_Split_APTX_ADAPTIVE_SUPPORTED(x) \
-  ((x)[3] & 0x80)
+#define BTM_SPLIT_A2DP_SOURCE_Tx_Split_APTX_ADAPTIVE_SUPPORTED(x) ((x)[3] & 0x80)
 
 #define BTM_BROADCAST_AUDIO_TX_WITH_EC_2_5(x) ((x)[4] & 0x01)
 #define BTM_BROADCAST_AUDIO_TX_WITH_EC_3_9(x) ((x)[4] & 0x02)

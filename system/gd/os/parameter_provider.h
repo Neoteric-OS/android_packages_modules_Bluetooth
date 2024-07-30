@@ -24,7 +24,7 @@ namespace bluetooth {
 namespace os {
 
 class ParameterProvider {
- public:
+public:
   // Return the path to config file for storage module
   static std::string ConfigFilePath();
 
@@ -58,5 +58,5 @@ class ParameterProvider {
   static void SetCommonCriteriaConfigCompareResult(int result);
 };
 
-}  // namespace os
-}  // namespace bluetooth
+} // namespace os
+} // namespace bluetooth

@@ -36,8 +36,7 @@ extern "C" int LLVMFuzzerTestOneInput(const char* data, size_t size) {
       set_browsed_player_response.push_back(data[x]);
     }
 
-    auto test_packet =
-        TestSetBrowsedPlayerPacket::Make(set_browsed_player_response);
+    auto test_packet = TestSetBrowsedPlayerPacket::Make(set_browsed_player_response);
 
     test_packet->GetPlayerId();
     test_packet->GetData();
@@ -48,5 +47,5 @@ extern "C" int LLVMFuzzerTestOneInput(const char* data, size_t size) {
   return 0;
 }
 
-}  // namespace avrcp
-}  // namespace bluetooth
+} // namespace avrcp
+} // namespace bluetooth

@@ -54,5 +54,5 @@ uint8_t* WavReader::GetSamples() { return &samples_[0]; }
 
 size_t WavReader::GetSampleCount() { return samples_.size(); }
 
-}  // namespace testing
-}  // namespace bluetooth
+} // namespace testing
+} // namespace bluetooth

@@ -35,16 +35,16 @@ namespace osi_mutex {
 struct mutex_global_lock mutex_global_lock;
 struct mutex_global_unlock mutex_global_unlock;
 
-}  // namespace osi_mutex
-}  // namespace mock
-}  // namespace test
+} // namespace osi_mutex
+} // namespace mock
+} // namespace test
 
 // Mocked function return values, if any
 namespace test {
 namespace mock {
-namespace osi_mutex {}  // namespace osi_mutex
-}  // namespace mock
-}  // namespace test
+namespace osi_mutex {} // namespace osi_mutex
+} // namespace mock
+} // namespace test
 
 // Mocked functions, if any
 void mutex_global_lock(void) {

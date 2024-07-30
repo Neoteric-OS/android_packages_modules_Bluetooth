@@ -45,12 +45,12 @@ namespace bta_dm_main {
 // Return: void
 struct DumpsysBtaDm {
   std::function<void(int fd)> body{[](int /* fd */) {}};
-  void operator()(int fd) { body(fd); };
+  void operator()(int fd) { body(fd); }
 };
 extern struct DumpsysBtaDm DumpsysBtaDm;
 
-}  // namespace bta_dm_main
-}  // namespace mock
-}  // namespace test
+} // namespace bta_dm_main
+} // namespace mock
+} // namespace test
 
 // END mockcify generation

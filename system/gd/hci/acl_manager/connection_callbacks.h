@@ -28,7 +28,7 @@ namespace hci {
 namespace acl_manager {
 
 class ConnectionCallbacks {
- public:
+public:
   virtual ~ConnectionCallbacks() = default;
   // Invoked when controller sends Connection Complete event with Success error code
   virtual void OnConnectSuccess(std::unique_ptr<ClassicAclConnection>) = 0;
@@ -38,6 +38,6 @@ class ConnectionCallbacks {
   virtual void OnConnectFail(Address, ErrorCode reason, bool locally_initiated) = 0;
 };
 
-}  // namespace acl_manager
-}  // namespace hci
-}  // namespace bluetooth
+} // namespace acl_manager
+} // namespace hci
+} // namespace bluetooth

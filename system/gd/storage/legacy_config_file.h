@@ -25,18 +25,16 @@ namespace storage {
 
 // similar to INI
 class LegacyConfigFile {
- public:
-  static LegacyConfigFile FromPath(std::string path) {
-    return LegacyConfigFile(std::move(path));
-  }
+public:
+  static LegacyConfigFile FromPath(std::string path) { return LegacyConfigFile(std::move(path)); }
   explicit LegacyConfigFile(std::string path);
   std::optional<ConfigCache> Read(size_t temp_devices_capacity);
   bool Write(const ConfigCache& cache);
   bool Delete();
 
- private:
+private:
   std::string path_;
 };
 
-}  // namespace storage
-}  // namespace bluetooth
+} // namespace storage
+} // namespace bluetooth

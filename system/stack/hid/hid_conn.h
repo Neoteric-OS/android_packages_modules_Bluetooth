@@ -42,7 +42,7 @@ typedef enum : uint8_t {
 } tHID_CONN_STATE;
 
 /* Define the HID Connection Block
-*/
+ */
 typedef struct hid_conn {
   tHID_CONN_STATE conn_state;
 
@@ -81,6 +81,6 @@ typedef struct hid_conn {
 namespace fmt {
 template <>
 struct formatter<tHID_CONN_STATE> : enum_formatter<tHID_CONN_STATE> {};
-}  // namespace fmt
+} // namespace fmt
 
 #endif

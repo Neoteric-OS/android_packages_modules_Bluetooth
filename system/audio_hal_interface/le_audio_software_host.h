@@ -82,6 +82,6 @@ btle_pcm_parameters GetPeerPcmConfig();
 // Invoked by audio server when metadata for capture path has changed.
 void SinkMetadataChanged(const sink_metadata_v7_t& metadata);
 
-}  // namespace le_audio
-}  // namespace audio
-}  // namespace bluetooth
+} // namespace le_audio
+} // namespace audio
+} // namespace bluetooth

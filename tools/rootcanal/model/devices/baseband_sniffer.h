@@ -30,12 +30,12 @@ namespace rootcanal {
 
 namespace bredr_bb {
 class BaseBandPacketBuilder;
-}  // namespace bredr_bb
+} // namespace bredr_bb
 
 using ::bluetooth::hci::Address;
 
 class BaseBandSniffer : public Device {
- public:
+public:
   BaseBandSniffer(const std::string& filename);
   ~BaseBandSniffer() = default;
 
@@ -44,17 +44,14 @@ class BaseBandSniffer : public Device {
   }
 
   // Return a string representation of the type of device.
-  virtual std::string GetTypeString() const override {
-    return "baseband_sniffer";
-  }
+  virtual std::string GetTypeString() const override { return "baseband_sniffer"; }
 
-  virtual void ReceiveLinkLayerPacket(
-      model::packets::LinkLayerPacketView packet, Phy::Type type,
-      int8_t rssi) override;
+  virtual void ReceiveLinkLayerPacket(model::packets::LinkLayerPacketView packet, Phy::Type type,
+                                      int8_t rssi) override;
 
- private:
+private:
   void AppendRecord(std::unique_ptr<bredr_bb::BaseBandPacketBuilder> packet);
   std::ofstream output_;
 };
 
-}  // namespace rootcanal
+} // namespace rootcanal

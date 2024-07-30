@@ -33,7 +33,7 @@ std::string config_file_path;
 std::string snoop_log_file_path;
 std::string snooz_log_file_path;
 std::string sysprops_file_path;
-}  // namespace
+} // namespace
 
 // Write to $PWD/bt_stack.conf if $PWD can be found, otherwise, write to $HOME/bt_stack.conf
 std::string ParameterProvider::ConfigFilePath() {
@@ -96,19 +96,16 @@ bluetooth_keystore::BluetoothKeystoreInterface* ParameterProvider::GetBtKeystore
   return nullptr;
 }
 
-void ParameterProvider::SetBtKeystoreInterface(bluetooth_keystore::BluetoothKeystoreInterface* bt_keystore) {}
+void ParameterProvider::SetBtKeystoreInterface(
+        bluetooth_keystore::BluetoothKeystoreInterface* bt_keystore) {}
 
-bool ParameterProvider::IsCommonCriteriaMode() {
-  return false;
-}
+bool ParameterProvider::IsCommonCriteriaMode() { return false; }
 
 void ParameterProvider::SetCommonCriteriaMode(bool enable) {}
 
-int ParameterProvider::GetCommonCriteriaConfigCompareResult() {
-  return 0b11;
-}
+int ParameterProvider::GetCommonCriteriaConfigCompareResult() { return 0b11; }
 
 void ParameterProvider::SetCommonCriteriaConfigCompareResult(int result) {}
 
-}  // namespace os
-}  // namespace bluetooth
+} // namespace os
+} // namespace bluetooth

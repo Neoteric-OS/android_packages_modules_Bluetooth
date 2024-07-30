@@ -16,9 +16,9 @@
 
 #include "common/numbers.h"
 
-#include <cstdint>
-
 #include <gtest/gtest.h>
+
+#include <cstdint>
 
 namespace testing {
 
@@ -34,4 +34,4 @@ TEST(NumbersTest, test_is_number_in_numeric_limits) {
   ASSERT_FALSE(IsNumberInNumericLimits<int8_t>(int32_t(-129)));
 }
 
-}  // namespace testing
+} // namespace testing

@@ -40,13 +40,13 @@
 #include <inttypes.h>
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
+
 #include <cmath>
 
 #include "a2dp_vendor.h"
 #include "a2dp_vendor_aptx_adaptive.h"
 #include "os/log.h"
-
-#include <time.h>
 
 typedef struct {
   uint64_t session_start_us;
@@ -60,17 +60,15 @@ typedef struct {
   size_t media_read_total_actual_read_bytes;
 } a2dp_aptx_adaptive_encoder_stats_t;
 
-
-
 typedef struct {
   a2dp_source_read_callback_t read_callback;
   a2dp_source_enqueue_callback_t enqueue_callback;
 
   bool use_SCMS_T;
-  bool is_peer_edr;          // True if the peer device supports EDR
-  bool peer_supports_3mbps;  // True if the peer device supports 3Mbps EDR
-  uint16_t peer_mtu;         // // MTU of the A2DP peer
-  uint32_t timestamp;        // Timestamp for the A2DP frames
+  bool is_peer_edr;         // True if the peer device supports EDR
+  bool peer_supports_3mbps; // True if the peer device supports 3Mbps EDR
+  uint16_t peer_mtu;        // // MTU of the A2DP peer
+  uint32_t timestamp;       // Timestamp for the A2DP frames
 
   a2dp_aptx_adaptive_encoder_stats_t stats;
 
@@ -78,9 +76,8 @@ typedef struct {
 
 static tA2DP_APTX_ADAPTIVE_ENCODER_CB a2dp_aptx_adaptive_encoder_cb;
 
-
 bool A2DP_VendorLoadEncoderAptxAdaptive(void) {
-  if (true/*A2DP_IsCodecEnabledInOffload(BTAV_A2DP_CODEC_INDEX_SOURCE_APTX_ADAPTIVE)*/) {
+  if (true /*A2DP_IsCodecEnabledInOffload(BTAV_A2DP_CODEC_INDEX_SOURCE_APTX_ADAPTIVE)*/) {
     return true;
   }
 
@@ -88,22 +85,19 @@ bool A2DP_VendorLoadEncoderAptxAdaptive(void) {
 }
 
 void A2DP_VendorUnloadEncoderAptxAdaptive(void) {
-  if (true/*A2DP_IsCodecEnabledInOffload(BTAV_A2DP_CODEC_INDEX_SOURCE_APTX_ADAPTIVE)*/) {
+  if (true /*A2DP_IsCodecEnabledInOffload(BTAV_A2DP_CODEC_INDEX_SOURCE_APTX_ADAPTIVE)*/) {
     return;
   }
 }
 
-void a2dp_vendor_aptx_adaptive_encoder_init(
-    const tA2DP_ENCODER_INIT_PEER_PARAMS* p_peer_params,
-    A2dpCodecConfig* a2dp_codec_config,
-    a2dp_source_read_callback_t read_callback,
-    a2dp_source_enqueue_callback_t enqueue_callback) {
-  if (true/*A2DP_IsCodecEnabledInOffload(BTAV_A2DP_CODEC_INDEX_SOURCE_APTX_ADAPTIVE)*/) {
+void a2dp_vendor_aptx_adaptive_encoder_init(const tA2DP_ENCODER_INIT_PEER_PARAMS* p_peer_params,
+                                            A2dpCodecConfig* a2dp_codec_config,
+                                            a2dp_source_read_callback_t read_callback,
+                                            a2dp_source_enqueue_callback_t enqueue_callback) {
+  if (true /*A2DP_IsCodecEnabledInOffload(BTAV_A2DP_CODEC_INDEX_SOURCE_APTX_ADAPTIVE)*/) {
     return;
   }
 }
-
-
 
 /*bool A2dpCodecConfigAptxAdaptive::updateEncoderUserConfig(
     const tA2DP_ENCODER_INIT_PEER_PARAMS* p_peer_params, bool* p_restart_input,
@@ -144,43 +138,36 @@ void a2dp_vendor_aptx_adaptive_encoder_init(
   return true;
 }*/
 
-
 void a2dp_vendor_aptx_adaptive_feeding_reset(void) {
-  if (true/*A2DP_IsCodecEnabledInOffload(BTAV_A2DP_CODEC_INDEX_SOURCE_APTX_ADAPTIVE)*/) {
+  if (true /*A2DP_IsCodecEnabledInOffload(BTAV_A2DP_CODEC_INDEX_SOURCE_APTX_ADAPTIVE)*/) {
     return;
   }
 }
-
 
 void a2dp_vendor_aptx_adaptive_feeding_flush(void) {
-  if (true/*A2DP_IsCodecEnabledInOffload(BTAV_A2DP_CODEC_INDEX_SOURCE_APTX_ADAPTIVE)*/) {
+  if (true /*A2DP_IsCodecEnabledInOffload(BTAV_A2DP_CODEC_INDEX_SOURCE_APTX_ADAPTIVE)*/) {
     return;
   }
 }
 
-uint64_t a2dp_vendor_aptx_adaptive_get_encoder_interval_ms(void) {
-  return 0;
-}
+uint64_t a2dp_vendor_aptx_adaptive_get_encoder_interval_ms(void) { return 0; }
 
-int a2dp_vendor_aptx_adaptive_get_effective_frame_size() {
-  return 0;
-}
+int a2dp_vendor_aptx_adaptive_get_effective_frame_size() { return 0; }
 
 void a2dp_vendor_aptx_adaptive_send_frames(uint64_t timestamp_us) {
-  if (true/*A2DP_IsCodecEnabledInOffload(BTAV_A2DP_CODEC_INDEX_SOURCE_APTX_ADAPTIVE)*/) {
+  if (true /*A2DP_IsCodecEnabledInOffload(BTAV_A2DP_CODEC_INDEX_SOURCE_APTX_ADAPTIVE)*/) {
     return;
   }
 }
 
 void a2dp_vendor_aptx_adaptive_encoder_cleanup(void) {
-  //osi_free(a2dp_aptx_adaptive_encoder_cb.aptx_adaptive_encoder_state);
+  // osi_free(a2dp_aptx_adaptive_encoder_cb.aptx_adaptive_encoder_state);
   memset(&a2dp_aptx_adaptive_encoder_cb, 0, sizeof(a2dp_aptx_adaptive_encoder_cb));
 }
 
 /*uint64_t A2dpCodecConfigAptxAdaptive::encoderIntervalMs() const {
   return 0;
 }*/
-
 
 void A2dpCodecConfigAptxAdaptive::debug_codec_dump(int fd) {
   a2dp_aptx_adaptive_encoder_stats_t* stats = &a2dp_aptx_adaptive_encoder_cb.stats;
@@ -190,22 +177,19 @@ void A2dpCodecConfigAptxAdaptive::debug_codec_dump(int fd) {
   dprintf(fd,
           "  Packet counts (expected/dropped)                        : %zu / "
           "%zu\n",
-          stats->media_read_total_expected_packets,
-          stats->media_read_total_dropped_packets);
+          stats->media_read_total_expected_packets, stats->media_read_total_dropped_packets);
 
   dprintf(fd,
           "  PCM read counts (expected/actual)                       : %zu / "
           "%zu\n",
-          stats->media_read_total_expected_reads_count,
-          stats->media_read_total_actual_reads_count);
+          stats->media_read_total_expected_reads_count, stats->media_read_total_actual_reads_count);
 
   dprintf(fd,
           "  PCM read bytes (expected/actual)                        : %zu / "
           "%zu\n",
-          stats->media_read_total_expected_read_bytes,
-          stats->media_read_total_actual_read_bytes);
+          stats->media_read_total_expected_read_bytes, stats->media_read_total_actual_read_bytes);
 
   /*dprintf(fd,
           "  Connection count                                        : %u\n",
-		  a2dp_aptx_adaptive_encoder_cb.enc_params.connection_count);*/
+                  a2dp_aptx_adaptive_encoder_cb.enc_params.connection_count);*/
 }

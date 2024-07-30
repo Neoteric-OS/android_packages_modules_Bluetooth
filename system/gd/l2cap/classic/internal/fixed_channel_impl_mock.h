@@ -15,9 +15,9 @@
  */
 #pragma once
 
-#include "l2cap/classic/internal/fixed_channel_impl.h"
-
 #include <gmock/gmock.h>
+
+#include "l2cap/classic/internal/fixed_channel_impl.h"
 
 // Unit test interfaces
 namespace bluetooth {
@@ -27,18 +27,20 @@ namespace internal {
 namespace testing {
 
 class MockFixedChannelImpl : public FixedChannelImpl {
- public:
-  MockFixedChannelImpl(Cid cid, Link* link, os::Handler* l2cap_handler) : FixedChannelImpl(cid, link, l2cap_handler) {}
+public:
+  MockFixedChannelImpl(Cid cid, Link* link, os::Handler* l2cap_handler)
+      : FixedChannelImpl(cid, link, l2cap_handler) {}
   MOCK_METHOD(void, RegisterOnCloseCallback,
-              (os::Handler * user_handler, FixedChannel::OnCloseCallback on_close_callback), (override));
+              (os::Handler * user_handler, FixedChannel::OnCloseCallback on_close_callback),
+              (override));
   MOCK_METHOD(void, Acquire, (), (override));
   MOCK_METHOD(void, Release, (), (override));
   MOCK_METHOD(bool, IsAcquired, (), (override, const));
   MOCK_METHOD(void, OnClosed, (hci::ErrorCode status), (override));
 };
 
-}  // namespace testing
-}  // namespace internal
-}  // namespace classic
-}  // namespace l2cap
-}  // namespace bluetooth
+} // namespace testing
+} // namespace internal
+} // namespace classic
+} // namespace l2cap
+} // namespace bluetooth

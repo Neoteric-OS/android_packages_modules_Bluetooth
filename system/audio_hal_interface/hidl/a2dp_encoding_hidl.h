@@ -27,7 +27,7 @@ namespace hidl {
 namespace a2dp {
 
 bool update_codec_offloading_capabilities(
-    const std::vector<btav_a2dp_codec_config_t>& framework_preference);
+        const std::vector<btav_a2dp_codec_config_t>& framework_preference);
 
 // Check if new bluetooth_audio is enabled
 bool is_hal_2_0_enabled();
@@ -57,7 +57,7 @@ size_t read(uint8_t* p_buf, uint32_t len);
 // Update A2DP delay report to BluetoothAudio HAL
 void set_remote_delay(uint16_t delay_report);
 
-}  // namespace a2dp
-}  // namespace hidl
-}  // namespace audio
-}  // namespace bluetooth
+} // namespace a2dp
+} // namespace hidl
+} // namespace audio
+} // namespace bluetooth

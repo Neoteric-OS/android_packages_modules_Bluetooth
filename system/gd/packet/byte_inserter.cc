@@ -22,11 +22,10 @@
 namespace bluetooth {
 namespace packet {
 
-ByteInserter::ByteInserter(std::vector<uint8_t>& vector) : std::back_insert_iterator<std::vector<uint8_t>>(vector) {}
+ByteInserter::ByteInserter(std::vector<uint8_t>& vector)
+    : std::back_insert_iterator<std::vector<uint8_t>>(vector) {}
 
-ByteInserter::~ByteInserter() {
-  assert(registered_observers_.empty());
-}
+ByteInserter::~ByteInserter() { assert(registered_observers_.empty()); }
 
 void ByteInserter::RegisterObserver(const ByteObserver& observer) {
   registered_observers_.push_back(observer);
@@ -49,5 +48,5 @@ void ByteInserter::insert_byte(uint8_t byte) {
   std::back_insert_iterator<std::vector<uint8_t>>::operator=(byte);
 }
 
-}  // namespace packet
-}  // namespace bluetooth
+} // namespace packet
+} // namespace bluetooth

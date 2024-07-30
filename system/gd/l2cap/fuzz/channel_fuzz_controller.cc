@@ -23,12 +23,14 @@ using l2cap::classic::internal::FixedChannelImpl;
 using l2cap::internal::DynamicChannelImpl;
 using os::Handler;
 
-ChannelFuzzController::ChannelFuzzController(Handler* l2cap_handler, std::shared_ptr<DynamicChannelImpl> chan) {
+ChannelFuzzController::ChannelFuzzController(Handler* l2cap_handler,
+                                             std::shared_ptr<DynamicChannelImpl> chan) {
   EnqueueType* queue = reinterpret_cast<EnqueueType*>(chan->GetQueueUpEnd());
   channelInject_ = std::make_shared<ChannelFuzzQueueType>(queue, l2cap_handler);
 }
 
-ChannelFuzzController::ChannelFuzzController(Handler* l2cap_handler, std::shared_ptr<FixedChannelImpl> chan) {
+ChannelFuzzController::ChannelFuzzController(Handler* l2cap_handler,
+                                             std::shared_ptr<FixedChannelImpl> chan) {
   EnqueueType* queue = reinterpret_cast<EnqueueType*>(chan->GetQueueUpEnd());
   channelInject_ = std::make_shared<ChannelFuzzQueueType>(queue, l2cap_handler);
 }
@@ -37,4 +39,4 @@ void ChannelFuzzController::injectFrame(std::vector<uint8_t> data) {
   CONSTRUCT_VALID_UNIQUE_OTHERWISE_BAIL(l2cap::BasicFrameView, packet, data);
   channelInject_->Inject(std::move(packet));
 }
-}  // namespace bluetooth
+} // namespace bluetooth

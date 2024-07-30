@@ -86,9 +86,8 @@ struct ApcfScanner {
   // Apply the requested modification to the selected
   // filter list.
   template <typename T>
-  ErrorCode UpdateFilterList(std::vector<T>& filter_list,
-                             size_t max_filter_list_size,
+  ErrorCode UpdateFilterList(std::vector<T>& filter_list, size_t max_filter_list_size,
                              bluetooth::hci::ApcfAction action, T filter);
 };
 
-}  // namespace rootcanal::apcf
+} // namespace rootcanal::apcf

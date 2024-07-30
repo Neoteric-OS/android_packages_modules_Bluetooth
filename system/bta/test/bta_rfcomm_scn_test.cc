@@ -20,14 +20,14 @@
 
 #include <gtest/gtest.h>
 
-#include "bta/jv/bta_jv_int.h"      // tBTA_JV_CB
-#include "stack/include/rfcdefs.h"  // RFCOMM_MAX_SCN
+#include "bta/jv/bta_jv_int.h"     // tBTA_JV_CB
+#include "stack/include/rfcdefs.h" // RFCOMM_MAX_SCN
 
 using testing::Test;
 
 class BtaRfcommScnTest : public Test {
- public:
- protected:
+public:
+protected:
   void SetUp() override {
     tBTA_JV_DM_CBACK* p_cback = [](tBTA_JV_EVT, tBTA_JV*, uint32_t) {};
     bta_jv_enable(p_cback);

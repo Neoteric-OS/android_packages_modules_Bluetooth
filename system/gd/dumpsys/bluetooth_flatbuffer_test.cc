@@ -26,7 +26,7 @@ namespace bluetooth {
 namespace dumpsys {
 
 class BluetoothFlatbufferTest : public ::testing::Test {
- protected:
+protected:
   void SetUp() override {}
 
   void TearDown() override {}
@@ -67,5 +67,5 @@ TEST_F(BluetoothFlatbufferTest, BuilderTest) {
   ASSERT_EQ(0xabc, test_table->int_any());
 }
 
-}  // namespace dumpsys
-}  // namespace bluetooth
+} // namespace dumpsys
+} // namespace bluetooth

@@ -40,8 +40,7 @@
 #endif
 
 #ifndef BTA_RFC_MTU_SIZE
-#define BTA_RFC_MTU_SIZE \
-  (L2CAP_MTU_SIZE - L2CAP_MIN_OFFSET - RFCOMM_DATA_OVERHEAD)
+#define BTA_RFC_MTU_SIZE (L2CAP_MTU_SIZE - L2CAP_MIN_OFFSET - RFCOMM_DATA_OVERHEAD)
 #endif
 
 #ifndef BTA_PAN_INCLUDED
@@ -107,7 +106,6 @@
 #ifndef OBX_LRG_DATA_BUF_SIZE
 #define OBX_LRG_DATA_BUF_SIZE (8080 + 26)
 #endif
-
 
 #ifndef BT_SMALL_BUFFER_SIZE
 #define BT_SMALL_BUFFER_SIZE 660
@@ -328,8 +326,7 @@
 #endif
 
 #ifndef L2CAP_LAST_FIXED_CHNL
-#define L2CAP_LAST_FIXED_CHNL \
-  (L2CAP_FIRST_FIXED_CHNL + L2CAP_NUM_FIXED_CHNLS - 1)
+#define L2CAP_LAST_FIXED_CHNL (L2CAP_FIRST_FIXED_CHNL + L2CAP_NUM_FIXED_CHNLS - 1)
 #endif
 
 /* Used for conformance testing ONLY:  When TRUE lets scriptwrapper overwrite
@@ -712,7 +709,7 @@
 
 /*************************************************************************
  * Definitions for Both HID-Host & Device
-*/
+ */
 #ifndef HID_MAX_SVC_NAME_LEN
 #define HID_MAX_SVC_NAME_LEN 32
 #endif
@@ -727,7 +724,7 @@
 
 /*************************************************************************
  * Definitions for HID-Host
-*/
+ */
 #ifndef HID_HOST_INCLUDED
 #define HID_HOST_INCLUDED TRUE
 #endif
@@ -761,7 +758,7 @@
 
 /* Number of simultaneous AVCTP connections. */
 #ifndef AVCT_NUM_CONN
-#define AVCT_NUM_CONN 14  // 2 * MaxDevices + 2
+#define AVCT_NUM_CONN 14 // 2 * MaxDevices + 2
 #endif
 
 /******************************************************************************

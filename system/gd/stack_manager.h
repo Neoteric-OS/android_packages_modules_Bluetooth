@@ -17,14 +17,14 @@
 #pragma once
 
 #include "module.h"
-#include "os/thread.h"
 #include "os/handler.h"
+#include "os/thread.h"
 
 namespace bluetooth {
 
 class StackManager {
- public:
-  void StartUp(ModuleList *modules, os::Thread* stack_thread);
+public:
+  void StartUp(ModuleList* modules, os::Thread* stack_thread);
   void ShutDown();
 
   template <class T>
@@ -37,7 +37,7 @@ class StackManager {
     return registry_.IsStarted(&T::Factory);
   }
 
- private:
+private:
   os::Thread* management_thread_ = nullptr;
   os::Handler* handler_ = nullptr;
   ModuleRegistry registry_;
@@ -47,4 +47,4 @@ class StackManager {
   static std::chrono::milliseconds get_gd_stack_timeout_ms(bool is_start);
 };
 
-}  // namespace bluetooth
+} // namespace bluetooth

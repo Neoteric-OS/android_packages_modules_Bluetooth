@@ -26,5 +26,5 @@ using LinkKey = common::ByteArray<16>;
 // example link key from Bluetooth spec, do not use in real device
 extern const LinkKey kExampleLinkKey;
 
-}  // namespace hci
-}  // namespace bluetooth
+} // namespace hci
+} // namespace bluetooth

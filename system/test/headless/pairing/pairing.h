@@ -9,12 +9,11 @@ namespace test {
 namespace headless {
 
 class Pairing : public HeadlessTest<int> {
- public:
-  Pairing(const bluetooth::test::headless::GetOpt& options)
-      : HeadlessTest<int>(options) {}
+public:
+  Pairing(const bluetooth::test::headless::GetOpt& options) : HeadlessTest<int>(options) {}
   int Run() override;
 };
 
-}  // namespace headless
-}  // namespace test
-}  // namespace bluetooth
+} // namespace headless
+} // namespace test
+} // namespace bluetooth

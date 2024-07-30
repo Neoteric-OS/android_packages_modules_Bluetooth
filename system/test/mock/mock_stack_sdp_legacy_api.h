@@ -24,6 +24,6 @@ namespace stack_sdp_legacy {
 
 extern bluetooth::legacy::stack::sdp::tSdpApi api_;
 
-}  // namespace stack_sdp_legacy
-}  // namespace mock
-}  // namespace test
+} // namespace stack_sdp_legacy
+} // namespace mock
+} // namespace test

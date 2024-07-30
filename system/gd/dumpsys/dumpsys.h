@@ -20,5 +20,5 @@
 namespace bluetooth {
 namespace dumpsys {
 const std::string& GetBundledSchemaData();
-}  // namespace dumpsys
-}  // namespace bluetooth
+} // namespace dumpsys
+} // namespace bluetooth

@@ -146,4 +146,4 @@ template <>
 struct formatter<tRFC_MX_EVENT> : enum_formatter<tRFC_MX_EVENT> {};
 template <>
 struct formatter<tRFC_PORT_EVENT> : enum_formatter<tRFC_PORT_EVENT> {};
-}  // namespace fmt
+} // namespace fmt

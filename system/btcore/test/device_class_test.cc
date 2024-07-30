@@ -21,9 +21,10 @@
 #include <arpa/inet.h>
 #include <gtest/gtest.h>
 
-::testing::AssertionResult check_bitfield(const char* m_expr,
-                                          const char* n_expr, int m, int n) {
-  if (m == n) return ::testing::AssertionSuccess();
+::testing::AssertionResult check_bitfield(const char* m_expr, const char* n_expr, int m, int n) {
+  if (m == n) {
+    return ::testing::AssertionSuccess();
+  }
 
   std::stringstream ss;
 
@@ -35,9 +36,8 @@
   ss << std::showbase << std::hex << std::setw(8) << std::setfill('0') << n;
   std::string actual_str = ss.str();
 
-  return ::testing::AssertionFailure() << m_expr << " and " << n_expr << " ( "
-                                       << expected_str << " vs " << actual_str
-                                       << " )";
+  return ::testing::AssertionFailure()
+         << m_expr << " and " << n_expr << " ( " << expected_str << " vs " << actual_str << " )";
 }
 
 class DeviceClassTest : public ::testing::Test {};
@@ -51,8 +51,8 @@ TEST_F(DeviceClassTest, cod_sizeof) {
 
 TEST_F(DeviceClassTest, simple) {
   uint8_t dc_stream[][sizeof(bt_device_class_t)] = {
-      {0x00, 0x00, 0x00}, {0xff, 0xff, 0xff}, {0xaa, 0x55, 0xaa},
-      {0x01, 0x23, 0x45}, {0x20, 0x07, 0x14},
+          {0x00, 0x00, 0x00}, {0xff, 0xff, 0xff}, {0xaa, 0x55, 0xaa},
+          {0x01, 0x23, 0x45}, {0x20, 0x07, 0x14},
   };
 
   for (size_t i = 0; i < sizeof(dc_stream) / sizeof(bt_device_class_t); i++) {
@@ -60,12 +60,9 @@ TEST_F(DeviceClassTest, simple) {
     device_class_from_stream(&dc, (uint8_t*)&dc_stream[i]);
 
     uint8_t* to_stream = (uint8_t*)&dc;
-    EXPECT_PRED_FORMAT2(check_bitfield, (unsigned)dc_stream[i][0],
-                        to_stream[0]);
-    EXPECT_PRED_FORMAT2(check_bitfield, (unsigned)dc_stream[i][1],
-                        to_stream[1]);
-    EXPECT_PRED_FORMAT2(check_bitfield, (unsigned)dc_stream[i][2],
-                        to_stream[2]);
+    EXPECT_PRED_FORMAT2(check_bitfield, (unsigned)dc_stream[i][0], to_stream[0]);
+    EXPECT_PRED_FORMAT2(check_bitfield, (unsigned)dc_stream[i][1], to_stream[1]);
+    EXPECT_PRED_FORMAT2(check_bitfield, (unsigned)dc_stream[i][2], to_stream[2]);
   }
 }
 
@@ -181,7 +178,7 @@ TEST_F(DeviceClassTest, copy) {
 
 TEST_F(DeviceClassTest, from_int) {
   bt_device_class_t dc1;
-  int cod1 = 0x5a020c;  // 5898764
+  int cod1 = 0x5a020c; // 5898764
   device_class_from_int(&dc1, cod1);
 
   uint8_t dc_stream[] = {0x0c, 0x02, 0x5a};
@@ -208,12 +205,12 @@ TEST_F(DeviceClassTest, to_int) {
 
   int cod2 = device_class_to_int(&dc2);
   EXPECT_EQ(cod1, cod2);
-  EXPECT_EQ(cod1, 0x5a020c);  // 5898764
+  EXPECT_EQ(cod1, 0x5a020c); // 5898764
 }
 
 TEST_F(DeviceClassTest, endian) {
   bt_device_class_t dc;
-  int cod1 = 0x200714;  // 2098964
+  int cod1 = 0x200714; // 2098964
   device_class_from_int(&dc, cod1);
 
   EXPECT_EQ(dc._[0], 0x14);
@@ -222,5 +219,5 @@ TEST_F(DeviceClassTest, endian) {
 
   int cod2 = device_class_to_int(&dc);
   EXPECT_EQ(cod1, cod2);
-  EXPECT_EQ(cod2, 0x200714);  // 2098964
+  EXPECT_EQ(cod2, 0x200714); // 2098964
 }

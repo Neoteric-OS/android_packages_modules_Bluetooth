@@ -35,11 +35,11 @@ namespace bluetooth {
 namespace shim {
 namespace legacy {
 #define GATT_UUID_GAP_ENC_KEY_MATERIAL 0x2B88
-}  // namespace legacy
-}  // namespace shim
+} // namespace legacy
+} // namespace shim
 namespace hci {
 class EncKeyMaterialCallback {
- public:
+public:
   virtual ~EncKeyMaterialCallback() = default;
   virtual void OnGetEncKeyMaterial(std::vector<uint8_t> temp, uint16_t attr_uuid) = 0;
 };
@@ -50,7 +50,7 @@ struct EncrDataKey {
 };
 
 class PeriodicAdvertisingParameters {
- public:
+public:
   bool enable;
   bool include_adi;
   uint16_t min_interval;
@@ -66,7 +66,7 @@ enum class AdvertiserAddressType {
 };
 
 class AdvertisingConfig {
- public:
+public:
   std::vector<GapData> advertisement;
   std::vector<GapData> scan_response;
   std::vector<uint8_t> randomizer;
@@ -82,7 +82,7 @@ class AdvertisingConfig {
   Address peer_address;
   uint8_t channel_map;
   AdvertisingFilterPolicy filter_policy;
-  uint8_t tx_power;  // -127 to +20 (0x7f is no preference)
+  uint8_t tx_power; // -127 to +20 (0x7f is no preference)
   bool connectable = false;
   bool discoverable = false;
   bool scannable = false;
@@ -91,8 +91,9 @@ class AdvertisingConfig {
   bool legacy_pdus = false;
   bool anonymous = false;
   bool include_tx_power = false;
-  bool use_le_coded_phy;       // Primary advertisement PHY is LE Coded
-  uint8_t secondary_max_skip;  // maximum advertising events to be skipped, 0x0 send AUX_ADV_IND prior ot the next event
+  bool use_le_coded_phy;      // Primary advertisement PHY is LE Coded
+  uint8_t secondary_max_skip; // maximum advertising events to be skipped, 0x0 send AUX_ADV_IND
+                              // prior ot the next event
   SecondaryPhyType secondary_advertising_phy;
   uint8_t sid = 0x00;
   Enable enable_scan_request_notifications = Enable::DISABLED;
@@ -104,7 +105,7 @@ class AdvertisingConfig {
 using AdvertiserId = uint8_t;
 
 class AdvertisingCallback {
- public:
+public:
   enum AdvertisingStatus {
     SUCCESS,
     DATA_TOO_LARGE,
@@ -115,12 +116,13 @@ class AdvertisingCallback {
   };
 
   virtual ~AdvertisingCallback() = default;
-  virtual void OnAdvertisingSetStarted(
-      int reg_id, uint8_t advertiser_id, int8_t tx_power, AdvertisingStatus status) = 0;
+  virtual void OnAdvertisingSetStarted(int reg_id, uint8_t advertiser_id, int8_t tx_power,
+                                       AdvertisingStatus status) = 0;
   virtual void OnAdvertisingEnabled(uint8_t advertiser_id, bool enable, uint8_t status) = 0;
   virtual void OnAdvertisingDataSet(uint8_t advertiser_id, uint8_t status) = 0;
   virtual void OnScanResponseDataSet(uint8_t advertiser_id, uint8_t status) = 0;
-  virtual void OnAdvertisingParametersUpdated(uint8_t advertiser_id, int8_t tx_power, uint8_t status) = 0;
+  virtual void OnAdvertisingParametersUpdated(uint8_t advertiser_id, int8_t tx_power,
+                                              uint8_t status) = 0;
   virtual void OnPeriodicAdvertisingParametersUpdated(uint8_t advertiser_id, uint8_t status) = 0;
   virtual void OnPeriodicAdvertisingDataSet(uint8_t advertiser_id, uint8_t status) = 0;
   virtual void OnPeriodicAdvertisingEnabled(uint8_t advertiser_id, bool enable, uint8_t status) = 0;
@@ -128,7 +130,7 @@ class AdvertisingCallback {
 };
 
 class LeAdvertisingManager : public bluetooth::Module {
- public:
+public:
   static constexpr AdvertiserId kInvalidId = 0xFF;
   static constexpr uint8_t kInvalidHandle = 0xFF;
   static constexpr uint8_t kAdvertisingSetIdMask = 0x0F;
@@ -136,7 +138,8 @@ class LeAdvertisingManager : public bluetooth::Module {
   static constexpr uint16_t kLeMaximumFragmentLength = 251;
   static constexpr uint16_t kLeMaximumPeriodicDataFragmentLength = 252;
   static constexpr uint16_t kLeMaximumGapDataLength = 255;
-  static constexpr FragmentPreference kFragment_preference = FragmentPreference::CONTROLLER_SHOULD_NOT;
+  static constexpr FragmentPreference kFragment_preference =
+          FragmentPreference::CONTROLLER_SHOULD_NOT;
   LeAdvertisingManager();
   LeAdvertisingManager(const LeAdvertisingManager&) = delete;
   LeAdvertisingManager& operator=(const LeAdvertisingManager&) = delete;
@@ -148,49 +151,42 @@ class LeAdvertisingManager : public bluetooth::Module {
   int GetAdvertiserRegId(AdvertiserId advertiser_id);
 
   void ExtendedCreateAdvertiser(
-      uint8_t client_id,
-      int reg_id,
-      const AdvertisingConfig config,
-      common::Callback<void(Address, AddressType)> scan_callback,
-      common::Callback<void(ErrorCode, uint8_t, uint8_t)> set_terminated_callback,
-      uint16_t duration,
-      uint8_t max_extended_advertising_events,
-      os::Handler* handler);
+          uint8_t client_id, int reg_id, const AdvertisingConfig config,
+          common::Callback<void(Address, AddressType)> scan_callback,
+          common::Callback<void(ErrorCode, uint8_t, uint8_t)> set_terminated_callback,
+          uint16_t duration, uint8_t max_extended_advertising_events, os::Handler* handler);
 
-  void StartAdvertising(
-      AdvertiserId advertiser_id,
-      const AdvertisingConfig config,
-      uint16_t duration,
-      base::OnceCallback<void(uint8_t /* status */)> status_callback,
-      base::OnceCallback<void(uint8_t /* status */)> timeout_callback,
-      common::Callback<void(Address, AddressType)> scan_callback,
-      common::Callback<void(ErrorCode, uint8_t, uint8_t)> set_terminated_callback,
-      os::Handler* handler);
+  void StartAdvertising(AdvertiserId advertiser_id, const AdvertisingConfig config,
+                        uint16_t duration,
+                        base::OnceCallback<void(uint8_t /* status */)> status_callback,
+                        base::OnceCallback<void(uint8_t /* status */)> timeout_callback,
+                        common::Callback<void(Address, AddressType)> scan_callback,
+                        common::Callback<void(ErrorCode, uint8_t, uint8_t)> set_terminated_callback,
+                        os::Handler* handler);
 
   void GetOwnAddress(uint8_t advertiser_id);
 
   void RegisterAdvertiser(
-      common::ContextualOnceCallback<void(uint8_t /* inst_id */, uint8_t /* status */)> callback);
+          common::ContextualOnceCallback<void(uint8_t /* inst_id */, uint8_t /* status */)>
+                  callback);
 
   void SetParameters(AdvertiserId advertiser_id, AdvertisingConfig config);
 
   void SetData(AdvertiserId advertiser_id, bool set_scan_rsp, std::vector<GapData> data);
 
-  void SetData(
-      AdvertiserId advertiser_id,
-      bool set_scan_rsp,
-      std::vector<GapData> data,
-      std::vector<GapData> data_encrypt);
+  void SetData(AdvertiserId advertiser_id, bool set_scan_rsp, std::vector<GapData> data,
+               std::vector<GapData> data_encrypt);
 
-  void EnableAdvertiser(
-      AdvertiserId advertiser_id, bool enable, uint16_t duration, uint8_t max_extended_advertising_events);
+  void EnableAdvertiser(AdvertiserId advertiser_id, bool enable, uint16_t duration,
+                        uint8_t max_extended_advertising_events);
 
-  void SetPeriodicParameters(AdvertiserId advertiser_id, PeriodicAdvertisingParameters periodic_advertising_parameters);
+  void SetPeriodicParameters(AdvertiserId advertiser_id,
+                             PeriodicAdvertisingParameters periodic_advertising_parameters);
 
   void SetPeriodicData(AdvertiserId advertiser_id, std::vector<GapData> data);
 
-  void SetPeriodicData(
-      AdvertiserId advertiser_id, std::vector<GapData> data, std::vector<GapData> data_encrypt);
+  void SetPeriodicData(AdvertiserId advertiser_id, std::vector<GapData> data,
+                       std::vector<GapData> data_encrypt);
 
   void EnablePeriodicAdvertising(AdvertiserId advertiser_id, bool enable, bool include_adi);
 
@@ -206,7 +202,7 @@ class LeAdvertisingManager : public bluetooth::Module {
 
   static const ModuleFactory Factory;
 
- protected:
+protected:
   void ListDependencies(ModuleList* list) const override;
 
   void Start() override;
@@ -215,16 +211,16 @@ class LeAdvertisingManager : public bluetooth::Module {
 
   std::string ToString() const override;
 
- private:
+private:
   struct impl;
   std::unique_ptr<impl> pimpl_;
 };
 
-}  // namespace hci
-}  // namespace bluetooth
+} // namespace hci
+} // namespace bluetooth
 
 namespace fmt {
 template <>
 struct formatter<bluetooth::hci::AdvertiserAddressType>
     : enum_formatter<bluetooth::hci::AdvertiserAddressType> {};
-}  // namespace fmt
+} // namespace fmt

@@ -15,9 +15,9 @@
  */
 #pragma once
 
-#include "l2cap/classic/internal/dynamic_channel_service_impl.h"
-
 #include <gmock/gmock.h>
+
+#include "l2cap/classic/internal/dynamic_channel_service_impl.h"
 
 // Unit test interfaces
 namespace bluetooth {
@@ -27,13 +27,13 @@ namespace internal {
 namespace testing {
 
 class MockDynamicChannelServiceImpl : public DynamicChannelServiceImpl {
- public:
+public:
   MockDynamicChannelServiceImpl() : DynamicChannelServiceImpl({}, {}, {}) {}
   MOCK_METHOD(SecurityPolicy, GetSecurityPolicy, (), (const, override));
 };
 
-}  // namespace testing
-}  // namespace internal
-}  // namespace classic
-}  // namespace l2cap
-}  // namespace bluetooth
+} // namespace testing
+} // namespace internal
+} // namespace classic
+} // namespace l2cap
+} // namespace bluetooth

@@ -19,6 +19,7 @@
 #pragma once
 
 #include <cstdint>
+
 #include "stack/include/bt_octets.h"
 #include "stack/include/btm_sec_api_types.h"
 
@@ -99,7 +100,7 @@ typedef uint8_t(tBTM_LE_CALLBACK)(tBTM_LE_EVT event, const RawAddress& bda,
 
 #define BTM_BLE_KEY_TYPE_ID 1
 #define BTM_BLE_KEY_TYPE_ER 2
-#define BTM_BLE_KEY_TYPE_COUNTER 3  // tobe obsolete
+#define BTM_BLE_KEY_TYPE_COUNTER 3 // tobe obsolete
 
 typedef struct {
   Octet16 ir;
@@ -115,6 +116,4 @@ typedef union {
 
 /* New LE identity key for local device.
  */
-typedef void(tBTM_LE_KEY_CALLBACK)(uint8_t key_type,
-                                   tBTM_BLE_LOCAL_KEYS* p_key);
-
+typedef void(tBTM_LE_KEY_CALLBACK)(uint8_t key_type, tBTM_BLE_LOCAL_KEYS* p_key);

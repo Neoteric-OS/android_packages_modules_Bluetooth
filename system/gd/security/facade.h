@@ -25,7 +25,7 @@ namespace security {
 class SecurityModuleFacadeService;
 
 class SecurityModuleFacadeModule : public ::bluetooth::grpc::GrpcFacadeModule {
- public:
+public:
   static const ModuleFactory Factory;
 
   void ListDependencies(ModuleList* list) const override;
@@ -33,9 +33,9 @@ class SecurityModuleFacadeModule : public ::bluetooth::grpc::GrpcFacadeModule {
   void Stop() override;
   ::grpc::Service* GetService() const override;
 
- private:
+private:
   SecurityModuleFacadeService* service_;
 };
 
-}  // namespace security
-}  // namespace bluetooth
+} // namespace security
+} // namespace bluetooth

@@ -28,8 +28,8 @@ namespace topshim {
 namespace rust {
 
 class A2dpSinkIntf {
- public:
-  A2dpSinkIntf(){};
+public:
+  A2dpSinkIntf() {}
   ~A2dpSinkIntf();
 
   // interface for Settings
@@ -42,6 +42,6 @@ class A2dpSinkIntf {
 
 std::unique_ptr<A2dpSinkIntf> GetA2dpSinkProfile(const unsigned char* btif);
 
-}  // namespace rust
-}  // namespace topshim
-}  // namespace bluetooth
+} // namespace rust
+} // namespace topshim
+} // namespace bluetooth

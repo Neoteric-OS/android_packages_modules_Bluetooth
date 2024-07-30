@@ -25,15 +25,15 @@ namespace dumpsys {
 extern const unsigned char* data;
 extern const size_t data_size;
 const std::string& GetBundledSchemaData();
-}  // namespace dumpsys
-}  // namespace bluetooth
+} // namespace dumpsys
+} // namespace bluetooth
 
 namespace testing {
 
 using namespace bluetooth;
 
 class ReflectionSchemaTest : public Test {
- protected:
+protected:
   void SetUp() override {}
 
   void TearDown() override {}
@@ -60,4 +60,4 @@ TEST_F(ReflectionSchemaTest, verify_production_schema) {
   ASSERT_TRUE(reflection_schema.VerifyReflectionSchema());
 }
 
-}  // namespace testing
+} // namespace testing

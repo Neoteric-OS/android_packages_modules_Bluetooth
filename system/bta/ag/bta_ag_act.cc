@@ -39,8 +39,8 @@
 #endif
 
 #include "btif/include/btif_config.h"
-#include "device/include/interop_config.h"
 #include "device/include/device_iot_config.h"
+#include "device/include/interop_config.h"
 #include "stack/include/bt_uuid16.h"
 #include "stack/include/btm_sec_api_types.h"
 #include "stack/include/l2c_api.h"
@@ -65,24 +65,22 @@ using namespace bluetooth::legacy::stack::sdp;
 /* SLC TIMER exception for IOT devices */
 #define SLC_EXCEPTION_TIMEOUT_MS 10000
 
-const uint16_t bta_ag_uuid[BTA_AG_NUM_IDX] = {
-    UUID_SERVCLASS_HEADSET_AUDIO_GATEWAY, UUID_SERVCLASS_AG_HANDSFREE};
+const uint16_t bta_ag_uuid[BTA_AG_NUM_IDX] = {UUID_SERVCLASS_HEADSET_AUDIO_GATEWAY,
+                                              UUID_SERVCLASS_AG_HANDSFREE};
 
 const uint8_t bta_ag_sec_id[BTA_AG_NUM_IDX] = {BTM_SEC_SERVICE_HEADSET_AG,
                                                BTM_SEC_SERVICE_AG_HANDSFREE};
 
-const tBTA_SERVICE_ID bta_ag_svc_id[BTA_AG_NUM_IDX] = {BTA_HSP_SERVICE_ID,
-                                                       BTA_HFP_SERVICE_ID};
+const tBTA_SERVICE_ID bta_ag_svc_id[BTA_AG_NUM_IDX] = {BTA_HSP_SERVICE_ID, BTA_HFP_SERVICE_ID};
 
-const tBTA_SERVICE_MASK bta_ag_svc_mask[BTA_AG_NUM_IDX] = {
-    BTA_HSP_SERVICE_MASK, BTA_HFP_SERVICE_MASK};
+const tBTA_SERVICE_MASK bta_ag_svc_mask[BTA_AG_NUM_IDX] = {BTA_HSP_SERVICE_MASK,
+                                                           BTA_HFP_SERVICE_MASK};
 
-typedef void (*tBTA_AG_ATCMD_CBACK)(tBTA_AG_SCB* p_scb, uint16_t cmd,
-                                    uint8_t arg_type, char* p_arg, char* p_end,
-                                    int16_t int_arg);
+typedef void (*tBTA_AG_ATCMD_CBACK)(tBTA_AG_SCB* p_scb, uint16_t cmd, uint8_t arg_type, char* p_arg,
+                                    char* p_end, int16_t int_arg);
 
-const tBTA_AG_ATCMD_CBACK bta_ag_at_cback_tbl[BTA_AG_NUM_IDX] = {
-    bta_ag_at_hsp_cback, bta_ag_at_hfp_cback};
+const tBTA_AG_ATCMD_CBACK bta_ag_at_cback_tbl[BTA_AG_NUM_IDX] = {bta_ag_at_hsp_cback,
+                                                                 bta_ag_at_hfp_cback};
 
 /*******************************************************************************
  *
@@ -233,8 +231,7 @@ void bta_ag_disc_int_res(tBTA_AG_SCB* p_scb, const tBTA_AG_DATA& data) {
   log::verbose("bta_ag_disc_int_res: Status: {}", data.disc_result.status);
 
   /* if found service */
-  if (data.disc_result.status == SDP_SUCCESS ||
-      data.disc_result.status == SDP_DB_FULL) {
+  if (data.disc_result.status == SDP_SUCCESS || data.disc_result.status == SDP_DB_FULL) {
     /* get attributes */
     if (bta_ag_sdp_find_attr(p_scb, p_scb->open_services)) {
       /* set connected service */
@@ -243,9 +240,8 @@ void bta_ag_disc_int_res(tBTA_AG_SCB* p_scb, const tBTA_AG_DATA& data) {
       /* send ourselves sdp ok event */
       event = BTA_AG_DISC_OK_EVT;
 
-      DEVICE_IOT_CONFIG_ADDR_SET_HEX_IF_GREATER(
-          p_scb->peer_addr, IOT_CONF_KEY_HFP_VERSION, p_scb->peer_version,
-          IOT_CONF_BYTE_NUM_2);
+      DEVICE_IOT_CONFIG_ADDR_SET_HEX_IF_GREATER(p_scb->peer_addr, IOT_CONF_KEY_HFP_VERSION,
+                                                p_scb->peer_version, IOT_CONF_BYTE_NUM_2);
     }
   }
 
@@ -254,8 +250,7 @@ void bta_ag_disc_int_res(tBTA_AG_SCB* p_scb, const tBTA_AG_DATA& data) {
 
   /* if service not found check if we should search for other service */
   if ((event == BTA_AG_DISC_FAIL_EVT) &&
-      (data.disc_result.status == SDP_SUCCESS ||
-       data.disc_result.status == SDP_DB_FULL ||
+      (data.disc_result.status == SDP_SUCCESS || data.disc_result.status == SDP_DB_FULL ||
        data.disc_result.status == SDP_NO_RECS_MATCH)) {
     if ((p_scb->open_services & BTA_HFP_SERVICE_MASK) &&
         (p_scb->open_services & BTA_HSP_SERVICE_MASK)) {
@@ -289,13 +284,11 @@ void bta_ag_disc_int_res(tBTA_AG_SCB* p_scb, const tBTA_AG_DATA& data) {
  ******************************************************************************/
 void bta_ag_disc_acp_res(tBTA_AG_SCB* p_scb, const tBTA_AG_DATA& data) {
   /* if found service */
-  if (data.disc_result.status == SDP_SUCCESS ||
-      data.disc_result.status == SDP_DB_FULL) {
+  if (data.disc_result.status == SDP_SUCCESS || data.disc_result.status == SDP_DB_FULL) {
     /* get attributes */
     bta_ag_sdp_find_attr(p_scb, bta_ag_svc_mask[p_scb->conn_service]);
-    DEVICE_IOT_CONFIG_ADDR_SET_HEX_IF_GREATER(
-        p_scb->peer_addr, IOT_CONF_KEY_HFP_VERSION, p_scb->peer_version,
-        IOT_CONF_BYTE_NUM_2);
+    DEVICE_IOT_CONFIG_ADDR_SET_HEX_IF_GREATER(p_scb->peer_addr, IOT_CONF_KEY_HFP_VERSION,
+                                              p_scb->peer_version, IOT_CONF_BYTE_NUM_2);
   }
 
   /* free discovery db */
@@ -446,8 +439,9 @@ void bta_ag_rfc_close(tBTA_AG_SCB* p_scb, const tBTA_AG_DATA& /* data */) {
     /* start only unopened server */
     services = p_scb->reg_services;
     for (i = 0; i < BTA_AG_NUM_IDX && services != 0; i++) {
-      if (p_scb->serv_handle[i])
+      if (p_scb->serv_handle[i]) {
         services &= ~((tBTA_SERVICE_MASK)1 << (BTA_HSP_SERVICE_ID + i));
+      }
     }
     bta_ag_start_servers(p_scb, services);
 
@@ -458,8 +452,9 @@ void bta_ag_rfc_close(tBTA_AG_SCB* p_scb, const tBTA_AG_DATA& /* data */) {
 
     /* Check if all the SLCs are down */
     for (i = 0; i < BTA_AG_MAX_NUM_CLIENTS; i++) {
-      if (bta_ag_cb.scb[i].in_use && bta_ag_cb.scb[i].svc_conn)
+      if (bta_ag_cb.scb[i].in_use && bta_ag_cb.scb[i].svc_conn) {
         num_active_conn++;
+      }
     }
 
     if (!num_active_conn) {
@@ -470,8 +465,8 @@ void bta_ag_rfc_close(tBTA_AG_SCB* p_scb, const tBTA_AG_DATA& /* data */) {
   /* else close port and deallocate scb */
   else {
     if (RFCOMM_RemoveServer(p_scb->conn_handle) != PORT_SUCCESS) {
-      log::warn("Unable to remove RFCOMM server peer:{} handle:{}",
-                p_scb->peer_addr, p_scb->conn_handle);
+      log::warn("Unable to remove RFCOMM server peer:{} handle:{}", p_scb->peer_addr,
+                p_scb->conn_handle);
     };
     bta_ag_scb_dealloc(p_scb);
   }
@@ -494,20 +489,17 @@ void bta_ag_rfc_open(tBTA_AG_SCB* p_scb, const tBTA_AG_DATA& data) {
   p_scb->ccwa_enabled = false;
   p_scb->cmer_enabled = false;
   p_scb->cmee_enabled = false;
-  p_scb->inband_enabled =
-      ((p_scb->features & BTA_AG_FEAT_INBAND) == BTA_AG_FEAT_INBAND);
+  p_scb->inband_enabled = ((p_scb->features & BTA_AG_FEAT_INBAND) == BTA_AG_FEAT_INBAND);
   if (p_scb->conn_service == BTA_AG_HFP) {
     size_t version_value_size = sizeof(p_scb->peer_version);
-    if (!btif_config_get_bin(
-            p_scb->peer_addr.ToString(), BTIF_STORAGE_KEY_HFP_VERSION,
-            (uint8_t*)&p_scb->peer_version, &version_value_size)) {
+    if (!btif_config_get_bin(p_scb->peer_addr.ToString(), BTIF_STORAGE_KEY_HFP_VERSION,
+                             (uint8_t*)&p_scb->peer_version, &version_value_size)) {
       log::warn("Failed read cached peer HFP version for {}", p_scb->peer_addr);
       p_scb->peer_version = HFP_HSP_VERSION_UNKNOWN;
     }
     size_t sdp_features_size = sizeof(p_scb->peer_sdp_features);
-    if (btif_config_get_bin(
-            p_scb->peer_addr.ToString(), BTIF_STORAGE_KEY_HFP_SDP_FEATURES,
-            (uint8_t*)&p_scb->peer_sdp_features, &sdp_features_size)) {
+    if (btif_config_get_bin(p_scb->peer_addr.ToString(), BTIF_STORAGE_KEY_HFP_SDP_FEATURES,
+                            (uint8_t*)&p_scb->peer_sdp_features, &sdp_features_size)) {
       bool sdp_wbs_support = p_scb->peer_sdp_features & BTA_AG_FEAT_WBS_SUPPORT;
       if (!p_scb->received_at_bac && sdp_wbs_support) {
         p_scb->codec_updated = true;
@@ -521,8 +513,7 @@ void bta_ag_rfc_open(tBTA_AG_SCB* p_scb, const tBTA_AG_DATA& data) {
         p_scb->sco_codec = BTM_SCO_CODEC_LC3;
       }
     } else {
-      log::warn("Failed read cached peer HFP SDP features for {}",
-                p_scb->peer_addr);
+      log::warn("Failed read cached peer HFP SDP features for {}", p_scb->peer_addr);
     }
   }
 
@@ -546,8 +537,8 @@ void bta_ag_rfc_open(tBTA_AG_SCB* p_scb, const tBTA_AG_DATA& data) {
   log::verbose("bta_ag_rfc_open: ag_conn_timeout: {}", ag_conn_timeout);
   if (p_scb->conn_service == BTA_AG_HFP) {
     /* if hfp start timer for service level conn */
-    bta_sys_start_timer(p_scb->ring_timer,ag_conn_timeout,
-                        BTA_AG_SVC_TIMEOUT_EVT, bta_ag_scb_to_idx(p_scb));
+    bta_sys_start_timer(p_scb->ring_timer, ag_conn_timeout, BTA_AG_SVC_TIMEOUT_EVT,
+                        bta_ag_scb_to_idx(p_scb));
   } else {
     /* else service level conn is open */
     bta_ag_svc_conn_open(p_scb, data);
@@ -565,8 +556,7 @@ void bta_ag_rfc_open(tBTA_AG_SCB* p_scb, const tBTA_AG_DATA& data) {
  *
  ******************************************************************************/
 void bta_ag_rfc_acp_open(tBTA_AG_SCB* p_scb, const tBTA_AG_DATA& data) {
-  log::verbose("serv_handle0 = {} serv_handle = {}", p_scb->serv_handle[0],
-               p_scb->serv_handle[1]);
+  log::verbose("serv_handle0 = {} serv_handle = {}", p_scb->serv_handle[0], p_scb->serv_handle[1]);
   /* set role */
   p_scb->role = BTA_AG_ACP;
 
@@ -592,18 +582,16 @@ void bta_ag_rfc_acp_open(tBTA_AG_SCB* p_scb, const tBTA_AG_DATA& data) {
       }
     }
     if (dev_addr == ag_scb.peer_addr && p_scb != &ag_scb) {
-      log::info(
-          "close outgoing connection before accepting {} with conn_handle={}",
-          ag_scb.peer_addr, ag_scb.conn_handle);
+      log::info("close outgoing connection before accepting {} with conn_handle={}",
+                ag_scb.peer_addr, ag_scb.conn_handle);
 
       // If client port is opened, close it, state machine will handle rfcomm
       // closed in opening state as failure and pass to upper layer
       if (ag_scb.conn_handle > 0) {
         status = RFCOMM_RemoveConnection(ag_scb.conn_handle);
         if (status != PORT_SUCCESS) {
-          log::warn(
-              "RFCOMM_RemoveConnection failed for {}, handle {}, error {}",
-              dev_addr, ag_scb.conn_handle, status);
+          log::warn("RFCOMM_RemoveConnection failed for {}, handle {}, error {}", dev_addr,
+                    ag_scb.conn_handle, status);
         }
       } else if (com::android::bluetooth::flags::reset_after_collision()) {
         // As no existing outgoing rfcomm connection, then manual reset current
@@ -611,17 +599,16 @@ void bta_ag_rfc_acp_open(tBTA_AG_SCB* p_scb, const tBTA_AG_DATA& data) {
         bta_ag_rfc_fail(&ag_scb, tBTA_AG_DATA::kEmpty);
       }
     }
-    log::info("dev_addr={}, peer_addr={}, in_use={}, index={}", dev_addr,
-              ag_scb.peer_addr, ag_scb.in_use, bta_ag_scb_to_idx(p_scb));
+    log::info("dev_addr={}, peer_addr={}, in_use={}, index={}", dev_addr, ag_scb.peer_addr,
+              ag_scb.in_use, bta_ag_scb_to_idx(p_scb));
   }
 
   p_scb->peer_addr = dev_addr;
 
   /* determine connected service from port handle */
   for (uint8_t i = 0; i < BTA_AG_NUM_IDX; i++) {
-    log::verbose(
-        "bta_ag_rfc_acp_open: i = {} serv_handle = {} port_handle = {}", i,
-        p_scb->serv_handle[i], data.rfc.port_handle);
+    log::verbose("bta_ag_rfc_acp_open: i = {} serv_handle = {} port_handle = {}", i,
+                 p_scb->serv_handle[i], data.rfc.port_handle);
 
     if (p_scb->serv_handle[i] == data.rfc.port_handle) {
       p_scb->conn_service = i;
@@ -630,21 +617,18 @@ void bta_ag_rfc_acp_open(tBTA_AG_SCB* p_scb, const tBTA_AG_DATA& data) {
     }
   }
 
-  log::verbose("bta_ag_rfc_acp_open: conn_service = {} conn_handle = {}",
-               p_scb->conn_service, p_scb->conn_handle);
+  log::verbose("bta_ag_rfc_acp_open: conn_service = {} conn_handle = {}", p_scb->conn_service,
+               p_scb->conn_handle);
 
   /* close any unopened server */
-  bta_ag_close_servers(
-      p_scb, (p_scb->reg_services & ~bta_ag_svc_mask[p_scb->conn_service]));
+  bta_ag_close_servers(p_scb, (p_scb->reg_services & ~bta_ag_svc_mask[p_scb->conn_service]));
 
   size_t version_value_size = sizeof(hfp_version);
-  bool get_version = btif_config_get_bin(
-      p_scb->peer_addr.ToString(), BTIF_STORAGE_KEY_HFP_VERSION,
-      (uint8_t*)&hfp_version, &version_value_size);
+  bool get_version = btif_config_get_bin(p_scb->peer_addr.ToString(), BTIF_STORAGE_KEY_HFP_VERSION,
+                                         (uint8_t*)&hfp_version, &version_value_size);
 
   if (p_scb->conn_service == BTA_AG_HFP && get_version) {
-    DEVICE_IOT_CONFIG_ADDR_SET_HEX_IF_GREATER(p_scb->peer_addr,
-                                              IOT_CONF_KEY_HFP_VERSION,
+    DEVICE_IOT_CONFIG_ADDR_SET_HEX_IF_GREATER(p_scb->peer_addr, IOT_CONF_KEY_HFP_VERSION,
                                               hfp_version, IOT_CONF_BYTE_NUM_2);
   }
   /* do service discovery to get features */
@@ -673,8 +657,7 @@ void bta_ag_rfc_data(tBTA_AG_SCB* p_scb, const tBTA_AG_DATA& /* data */) {
   /* do the following */
   for (;;) {
     /* read data from rfcomm; if bad status, we're done */
-    if (PORT_ReadData(p_scb->conn_handle, buf, BTA_AG_RFC_READ_MAX, &len) !=
-        PORT_SUCCESS) {
+    if (PORT_ReadData(p_scb->conn_handle, buf, BTA_AG_RFC_READ_MAX, &len) != PORT_SUCCESS) {
       log::error("failed to read data {}", p_scb->peer_addr);
       break;
     }
@@ -688,8 +671,7 @@ void bta_ag_rfc_data(tBTA_AG_SCB* p_scb, const tBTA_AG_DATA& /* data */) {
     /* run AT command interpreter on data */
     bta_sys_busy(BTA_ID_AG, p_scb->app_id, p_scb->peer_addr);
     bta_ag_at_parse(&p_scb->at_cb, buf, len);
-    if ((p_scb->sco_idx != BTM_INVALID_SCO_INDEX) &&
-        bta_ag_sco_is_open(p_scb)) {
+    if ((p_scb->sco_idx != BTM_INVALID_SCO_INDEX) && bta_ag_sco_is_open(p_scb)) {
       log::verbose("change link policy for SCO");
       bta_sys_sco_open(BTA_ID_AG, p_scb->app_id, p_scb->peer_addr);
     } else {
@@ -797,11 +779,9 @@ void bta_ag_post_sco_close(tBTA_AG_SCB* p_scb, const tBTA_AG_DATA& data) {
       /* Sending callsetup IND and Ring were defered to after SCO close. */
       bta_ag_send_call_inds(p_scb, BTA_AG_IN_CALL_RES);
 
-      if (bta_ag_inband_enabled(p_scb) &&
-          !(p_scb->features & BTA_AG_FEAT_NOSCO)) {
+      if (bta_ag_inband_enabled(p_scb) && !(p_scb->features & BTA_AG_FEAT_NOSCO)) {
         p_scb->post_sco = BTA_AG_POST_SCO_RING;
-        if (!bta_ag_is_sco_open_allowed(p_scb,
-                                        "BTA_AG_POST_SCO_CALL_END_INCALL")) {
+        if (!bta_ag_is_sco_open_allowed(p_scb, "BTA_AG_POST_SCO_CALL_END_INCALL")) {
           break;
         }
         if (bta_ag_is_sco_managed_by_audio()) {
@@ -873,17 +853,15 @@ void bta_ag_svc_conn_open(tBTA_AG_SCB* p_scb, const tBTA_AG_DATA& /* data */) {
 void bta_ag_setcodec(tBTA_AG_SCB* p_scb, const tBTA_AG_DATA& data) {
   tBTA_AG_PEER_CODEC codec_type = data.api_setcodec.codec;
   tBTA_AG_VAL val = {};
-  const bool aptx_voice = is_hfp_aptx_voice_enabled() &&
-                          (codec_type == BTA_AG_SCO_APTX_SWB_SETTINGS_Q0);
+  const bool aptx_voice =
+          is_hfp_aptx_voice_enabled() && (codec_type == BTA_AG_SCO_APTX_SWB_SETTINGS_Q0);
   log::verbose("aptx_voice={}, codec_type={:#x}", aptx_voice, codec_type);
 
   val.hdr.handle = bta_ag_scb_to_idx(p_scb);
 
   /* Check if the requested codec type is valid */
-  if ((codec_type != BTM_SCO_CODEC_NONE) &&
-      (codec_type != BTM_SCO_CODEC_CVSD) &&
-      (codec_type != BTM_SCO_CODEC_MSBC) && (codec_type != BTM_SCO_CODEC_LC3) &&
-      !aptx_voice) {
+  if ((codec_type != BTM_SCO_CODEC_NONE) && (codec_type != BTM_SCO_CODEC_CVSD) &&
+      (codec_type != BTM_SCO_CODEC_MSBC) && (codec_type != BTM_SCO_CODEC_LC3) && !aptx_voice) {
     val.num = codec_type;
     val.hdr.status = BTA_AG_FAIL_RESOURCES;
     log::error("bta_ag_setcodec error: unsupported codec type {}", codec_type);
@@ -917,14 +895,11 @@ static void bta_ag_collision_timer_cback(void* data) {
   bta_ag_resume_open(static_cast<tBTA_AG_SCB*>(data));
 }
 
-void bta_ag_handle_collision(tBTA_AG_SCB* p_scb,
-                             const tBTA_AG_DATA& /* data */) {
+void bta_ag_handle_collision(tBTA_AG_SCB* p_scb, const tBTA_AG_DATA& /* data */) {
   /* Cancel SDP if it had been started. */
   if (p_scb->p_disc_db) {
-    if (!get_legacy_stack_sdp_api()->service.SDP_CancelServiceSearch(
-            p_scb->p_disc_db)) {
-      log::warn("Unable to cancel SDP service discovery search peer:{}",
-                p_scb->peer_addr);
+    if (!get_legacy_stack_sdp_api()->service.SDP_CancelServiceSearch(p_scb->p_disc_db)) {
+      log::warn("Unable to cancel SDP service discovery search peer:{}", p_scb->peer_addr);
     }
     bta_ag_free_db(p_scb, tBTA_AG_DATA::kEmpty);
   }

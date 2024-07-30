@@ -27,8 +27,8 @@
 #include "os/log.h"
 
 class BaseBindThreadTest : public ::testing::Test {
- public:
- protected:
+public:
+protected:
 };
 
 namespace {
@@ -37,9 +37,7 @@ struct Vars {
   int b{0};
   int c{0};
 
-  bool operator==(const Vars& rhs) const {
-    return (a == rhs.a && b == rhs.b && c == rhs.c);
-  }
+  bool operator==(const Vars& rhs) const { return a == rhs.a && b == rhs.b && c == rhs.c; }
 
 } g_vars;
 
@@ -53,7 +51,7 @@ void func_abc(int a, int b, int c) {
   func_ab(a, b);
   g_vars.c = c;
 }
-}  // namespace
+} // namespace
 
 TEST_F(BaseBindThreadTest, simple) {
   struct Vars v;

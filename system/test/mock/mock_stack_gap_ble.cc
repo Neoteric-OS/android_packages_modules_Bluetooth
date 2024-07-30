@@ -33,8 +33,7 @@ bool GAP_BleCancelReadPeerDevName(const RawAddress& /* peer_bda */) {
   inc_func_call_count(__func__);
   return false;
 }
-bool GAP_BleReadPeerDevName(const RawAddress& /* peer_bda */,
-                            tGAP_BLE_CMPL_CBACK* /* p_cback */) {
+bool GAP_BleReadPeerDevName(const RawAddress& /* peer_bda */, tGAP_BLE_CMPL_CBACK* /* p_cback */) {
   inc_func_call_count(__func__);
   return false;
 }
@@ -42,8 +41,7 @@ bool GAP_BleReadPeerPrefConnParams(const RawAddress& /* peer_bda */) {
   inc_func_call_count(__func__);
   return false;
 }
-void GAP_BleAttrDBUpdate(uint16_t /* attr_uuid */,
-                         tGAP_BLE_ATTR_VALUE* /* p_value */) {
+void GAP_BleAttrDBUpdate(uint16_t /* attr_uuid */, tGAP_BLE_ATTR_VALUE* /* p_value */) {
   inc_func_call_count(__func__);
 }
 

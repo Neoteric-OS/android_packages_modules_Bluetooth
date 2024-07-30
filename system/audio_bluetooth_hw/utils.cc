@@ -30,8 +30,7 @@ namespace bluetooth {
 namespace audio {
 namespace utils {
 
-std::unordered_map<std::string, std::string> ParseAudioParams(
-    const std::string& params) {
+std::unordered_map<std::string, std::string> ParseAudioParams(const std::string& params) {
   std::vector<std::string> segments = android::base::Split(params, ";");
   std::unordered_map<std::string, std::string> params_map;
   for (const auto& segment : segments) {
@@ -48,8 +47,7 @@ std::unordered_map<std::string, std::string> ParseAudioParams(
   return params_map;
 }
 
-std::string GetAudioParamString(
-    std::unordered_map<std::string, std::string>& params_map) {
+std::string GetAudioParamString(std::unordered_map<std::string, std::string>& params_map) {
   std::ostringstream sout;
   for (const auto& ptr : params_map) {
     sout << "key: '" << ptr.first << "' value: '" << ptr.second << "'\n";
@@ -61,7 +59,7 @@ size_t FrameCount(uint64_t microseconds, uint32_t sample_rate) {
   return (microseconds * sample_rate) / 1000000;
 }
 
-}  // namespace utils
-}  // namespace audio
-}  // namespace bluetooth
-}  // namespace android
+} // namespace utils
+} // namespace audio
+} // namespace bluetooth
+} // namespace android

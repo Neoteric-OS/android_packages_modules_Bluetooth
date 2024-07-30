@@ -21,5 +21,5 @@ namespace bluetooth_keystore {
 
 BluetoothKeystoreInterface* getBluetoothKeystoreInterface();
 
-}  // namespace bluetooth_keystore
-}  // namespace bluetooth
+} // namespace bluetooth_keystore
+} // namespace bluetooth

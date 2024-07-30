@@ -55,9 +55,9 @@ struct osi_malloc osi_malloc;
 struct osi_strdup osi_strdup;
 struct osi_strndup osi_strndup;
 
-}  // namespace osi_allocator
-}  // namespace mock
-}  // namespace test
+} // namespace osi_allocator
+} // namespace mock
+} // namespace test
 
 // Mocked functions, if any
 void* osi_calloc(size_t size) {

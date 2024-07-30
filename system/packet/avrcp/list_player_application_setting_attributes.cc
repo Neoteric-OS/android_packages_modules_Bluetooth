@@ -21,23 +21,22 @@ namespace avrcp {
 
 std::unique_ptr<ListPlayerApplicationSettingAttributesResponseBuilder>
 ListPlayerApplicationSettingAttributesResponseBuilder::MakeBuilder(
-    std::vector<PlayerAttribute> attributes) {
-  std::unique_ptr<ListPlayerApplicationSettingAttributesResponseBuilder>
-      builder(new ListPlayerApplicationSettingAttributesResponseBuilder(
-          std::move(attributes)));
+        std::vector<PlayerAttribute> attributes) {
+  std::unique_ptr<ListPlayerApplicationSettingAttributesResponseBuilder> builder(
+          new ListPlayerApplicationSettingAttributesResponseBuilder(std::move(attributes)));
 
   return builder;
 }
 
 size_t ListPlayerApplicationSettingAttributesResponseBuilder::size() const {
   size_t len = VendorPacket::kMinSize();
-  len += sizeof(uint8_t);                       // Number of attributes size
-  len += attributes_.size() * sizeof(uint8_t);  // Attributes size
+  len += sizeof(uint8_t);                      // Number of attributes size
+  len += attributes_.size() * sizeof(uint8_t); // Attributes size
   return len;
 }
 
 bool ListPlayerApplicationSettingAttributesResponseBuilder::Serialize(
-    const std::shared_ptr<::bluetooth::Packet>& pkt) {
+        const std::shared_ptr<::bluetooth::Packet>& pkt) {
   ReserveSpace(pkt, size());
 
   PacketBuilder::PushHeader(pkt);
@@ -52,5 +51,5 @@ bool ListPlayerApplicationSettingAttributesResponseBuilder::Serialize(
   return true;
 }
 
-}  // namespace avrcp
-}  // namespace bluetooth
+} // namespace avrcp
+} // namespace bluetooth

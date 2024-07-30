@@ -37,14 +37,15 @@ namespace internal {
 class DataPipelineManager;
 
 class Fifo : public Scheduler {
- public:
-  Fifo(DataPipelineManager* data_pipeline_manager, LowerQueueUpEnd* link_queue_up_end, os::Handler* handler);
+public:
+  Fifo(DataPipelineManager* data_pipeline_manager, LowerQueueUpEnd* link_queue_up_end,
+       os::Handler* handler);
   ~Fifo();
   void OnPacketsReady(Cid cid, int number_packets) override;
   void SetChannelTxPriority(Cid cid, bool high_priority) override;
   void RemoveChannel(Cid cid) override;
 
- private:
+private:
   DataPipelineManager* data_pipeline_manager_;
   LowerQueueUpEnd* link_queue_up_end_;
   os::Handler* handler_;
@@ -57,6 +58,6 @@ class Fifo : public Scheduler {
   std::unique_ptr<LowerEnqueue> link_queue_enqueue_callback();
 };
 
-}  // namespace internal
-}  // namespace l2cap
-}  // namespace bluetooth
+} // namespace internal
+} // namespace l2cap
+} // namespace bluetooth

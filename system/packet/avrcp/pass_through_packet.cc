@@ -20,25 +20,24 @@ namespace bluetooth {
 namespace avrcp {
 
 std::unique_ptr<PassThroughPacketBuilder> PassThroughPacketBuilder::MakeBuilder(
-    bool response, bool pushed, uint8_t opperation_id) {
+        bool response, bool pushed, uint8_t opperation_id) {
   auto builder = std::unique_ptr<PassThroughPacketBuilder>(
-      new PassThroughPacketBuilder(response, pushed, opperation_id));
+          new PassThroughPacketBuilder(response, pushed, opperation_id));
 
   return builder;
 }
 
-size_t PassThroughPacketBuilder::size() const {
-  return PassThroughPacket::kMinSize();
-}
+size_t PassThroughPacketBuilder::size() const { return PassThroughPacket::kMinSize(); }
 
-bool PassThroughPacketBuilder::Serialize(
-    const std::shared_ptr<::bluetooth::Packet>& pkt) {
+bool PassThroughPacketBuilder::Serialize(const std::shared_ptr<::bluetooth::Packet>& pkt) {
   ReserveSpace(pkt, size());
 
   PacketBuilder::PushHeader(pkt);
 
   uint8_t byte = opperation_id_ & 0b01111111;
-  if (!pushed_) byte |= 0b10000000;
+  if (!pushed_) {
+    byte |= 0b10000000;
+  }
   AddPayloadOctets1(pkt, byte);
   // Data length, for this packet it's always 0;
   AddPayloadOctets1(pkt, 0x00);
@@ -70,5 +69,5 @@ std::string PassThroughPacket::ToString() const {
   return ss.str();
 }
 
-}  // namespace avrcp
-}  // namespace bluetooth
+} // namespace avrcp
+} // namespace bluetooth

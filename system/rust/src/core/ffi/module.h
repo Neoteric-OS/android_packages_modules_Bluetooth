@@ -28,5 +28,5 @@ namespace rust_shim {
 
 void FutureReady(future_t& future);
 
-}  // namespace rust_shim
-}  // namespace bluetooth
+} // namespace rust_shim
+} // namespace bluetooth

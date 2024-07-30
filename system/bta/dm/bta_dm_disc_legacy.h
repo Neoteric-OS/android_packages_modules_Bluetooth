@@ -16,7 +16,7 @@
 
 #pragma once
 
-#include "bta/include/bta_api.h"  // tBTA_DM_SEARCH_CBACK
+#include "bta/include/bta_api.h" // tBTA_DM_SEARCH_CBACK
 #include "stack/include/bt_hdr.h"
 #include "types/bt_transport.h"
 #include "types/raw_address.h"
@@ -35,8 +35,7 @@ void bta_dm_disc_stop_device_discovery();
 
 // Bta service discovery start and stop entry points
 void bta_dm_disc_start_service_discovery(service_discovery_callbacks cbacks,
-                                         const RawAddress& bd_addr,
-                                         tBT_TRANSPORT transport);
+                                         const RawAddress& bd_addr, tBT_TRANSPORT transport);
 
 // Bta subsystem entrypoint and lifecycle
 void bta_dm_disc_disable_search_and_disc();
@@ -68,4 +67,4 @@ void bta_dm_disc_remove_device(const RawAddress& bd_addr);
 // Provide data for the dumpsys procedure
 void DumpsysBtaDmDisc(int fd);
 
-}  // namespace bta_dm_disc_legacy
+} // namespace bta_dm_disc_legacy

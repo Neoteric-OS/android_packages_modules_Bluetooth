@@ -50,17 +50,17 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE
 
 #pragma once
 
-#include "audio_a2dp_hw/include/audio_a2dp_hw.h"
 #include <vendor/qti/hardware/bluetooth_audio/2.0/types.h>
 #include <vendor/qti/hardware/bluetooth_audio/2.1/types.h>
-#include "osi/include/thread.h"
+
+#include "audio_a2dp_hw/include/audio_a2dp_hw.h"
 #include "bta_av_api.h"
-#include "internal_include/bt_target.h"
-
 #include "common/message_loop_thread.h"
+#include "internal_include/bt_target.h"
+#include "osi/include/thread.h"
 
-using vendor::qti::hardware::bluetooth_audio::V2_0::SessionType;
 using vendor::qti::hardware::bluetooth_audio::V2_0::SessionParamType;
+using vendor::qti::hardware::bluetooth_audio::V2_0::SessionType;
 
 namespace bluetooth {
 namespace audio {
@@ -83,7 +83,7 @@ enum class BluetoothAudioHalVersion : uint8_t {
 };
 
 // Initialize BluetoothAudio HAL: openProvider
-bool init( bluetooth::common::MessageLoopThread* message_loop);
+bool init(bluetooth::common::MessageLoopThread* message_loop);
 // Set up the codec into BluetoothAudio HAL
 bool setup_codec();
 
@@ -104,7 +104,7 @@ size_t read(uint8_t* p_buf, uint32_t len);
 void set_remote_delay(uint16_t delay_report);
 void update_session_params(SessionParamType param_type);
 
-}  // namespace a2dp
-}  // namespace qti_hidl
-}  // namespace audio
-}  // namespace bluetooth
+} // namespace a2dp
+} // namespace qti_hidl
+} // namespace audio
+} // namespace bluetooth

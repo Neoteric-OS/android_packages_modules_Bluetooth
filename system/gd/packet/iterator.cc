@@ -173,5 +173,5 @@ Iterator<little_endian> Iterator<little_endian>::Subrange(size_t index, size_t l
 // Explicit instantiations for both types of Iterators.
 template class Iterator<true>;
 template class Iterator<false>;
-}  // namespace packet
-}  // namespace bluetooth
+} // namespace packet
+} // namespace bluetooth

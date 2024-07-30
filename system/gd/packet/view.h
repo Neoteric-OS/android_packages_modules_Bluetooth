@@ -25,7 +25,7 @@ namespace packet {
 
 // Base class that holds a shared pointer to data with bounds.
 class View {
- public:
+public:
   View(std::shared_ptr<const std::vector<uint8_t>> data, size_t begin, size_t end);
   View(const View& view, size_t begin, size_t end);
   View(const View& view) = default;
@@ -35,11 +35,11 @@ class View {
 
   size_t size() const;
 
- private:
+private:
   std::shared_ptr<const std::vector<uint8_t>> data_;
   size_t begin_;
   size_t end_;
 };
 
-}  // namespace packet
-}  // namespace bluetooth
+} // namespace packet
+} // namespace bluetooth

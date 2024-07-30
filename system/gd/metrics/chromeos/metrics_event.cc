@@ -42,7 +42,7 @@ constexpr char kChipsetInfoWlanDirPath[] = "/sys/class/net/wlan0/device";
 constexpr char kChipsetInfoMlanDirPath[] = "/sys/class/net/mlan0/device";
 constexpr char kChipsetInfoModaliasPath[] = "/sys/class/bluetooth/hci%d/device/modalias";
 constexpr char kChipInfoModuleDirPath[] = "/sys/class/bluetooth/hci%d/device/driver/module";
-}  // namespace
+} // namespace
 
 // topshim::btif::BtBondState is a copy of hardware/bluetooth.h:bt_bond_state_t
 typedef bt_bond_state_t BtBondState;
@@ -54,9 +54,11 @@ typedef bt_conn_direction_t BtConnectionDirection;
 typedef bt_status_t BtStatus;
 // topshim::profile::a2dp::BtavConnectionState is a copy of hardware/bt_av.h:btav_connection_state_t
 typedef btav_connection_state_t BtavConnectionState;
-// topshim::profile::hid_host::BthhConnectionState is a copy of hardware/bt_hh.h:bthh_connection_state_t
+// topshim::profile::hid_host::BthhConnectionState is a copy of
+// hardware/bt_hh.h:bthh_connection_state_t
 typedef bthh_connection_state_t BthhConnectionState;
-// topshim::profile::hid_host::BthfConnectionState is a copy of hardware/bt_hh.h:bthf_connection_state_t
+// topshim::profile::hid_host::BthfConnectionState is a copy of
+// hardware/bt_hh.h:bthf_connection_state_t
 typedef headset::bthf_connection_state_t BthfConnectionState;
 
 // A copy of topshim::btif::BtDeviceType
@@ -265,14 +267,18 @@ ConnectionType ToPairingDeviceType(std::string addr, uint32_t device_type) {
 PairingState ToPairingState(uint32_t status, uint32_t bond_state, int32_t fail_reason) {
   PairingState pairing_state = PairingState::PAIR_FAIL_UNKNOWN;
 
-  // The Bonding is a transitional state during the pairing process. Ignore it by returning the starting again.
-  if ((BtBondState)bond_state == BtBondState::BT_BOND_STATE_BONDING) return PairingState::PAIR_STARTING;
+  // The Bonding is a transitional state during the pairing process. Ignore it by returning the
+  // starting again.
+  if ((BtBondState)bond_state == BtBondState::BT_BOND_STATE_BONDING) {
+    return PairingState::PAIR_STARTING;
+  }
 
-  if ((BtStatus)status == BtStatus::BT_STATUS_SUCCESS && (hci::ErrorCode)fail_reason == hci::ErrorCode::SUCCESS) {
+  if ((BtStatus)status == BtStatus::BT_STATUS_SUCCESS &&
+      (hci::ErrorCode)fail_reason == hci::ErrorCode::SUCCESS) {
     if ((BtBondState)bond_state == BtBondState::BT_BOND_STATE_BONDED) {
       return PairingState::PAIR_SUCCEED;
-    } else {  // must be BtBondState::BT_BOND_STATE_NONE as BT_BOND_STATE_BONDING case has been
-              // checked early
+    } else { // must be BtBondState::BT_BOND_STATE_NONE as BT_BOND_STATE_BONDING case has been
+             // checked early
       // This implies the event is from forgetting a device. Return an absurd value to let caller
       // know.
       return PairingState::PAIR_FAIL_END;
@@ -281,10 +287,15 @@ PairingState ToPairingState(uint32_t status, uint32_t bond_state, int32_t fail_r
 
   // TODO(b/287392029): Translate cases of bond cancelled into PairingState:PAIR_FAIL_CANCELLED
 
-  // When both status and fail reason are provided and disagree with each other, overwrite status with the fail reason
-  // as fail reason is generated closer to the HCI and provides a more accurate description.
-  if (status) pairing_state = StatusToPairingState(status);
-  if (fail_reason) pairing_state = FailReasonToPairingState(fail_reason);
+  // When both status and fail reason are provided and disagree with each other, overwrite status
+  // with the fail reason as fail reason is generated closer to the HCI and provides a more accurate
+  // description.
+  if (status) {
+    pairing_state = StatusToPairingState(status);
+  }
+  if (fail_reason) {
+    pairing_state = FailReasonToPairingState(fail_reason);
+  }
 
   return pairing_state;
 }
@@ -332,7 +343,8 @@ int64_t StatusToProfileConnectionState(uint32_t status, StateChangeType type) {
         state = (int64_t)MetricProfileDisconnectionStatus::PROFILE_DISCONN_STATE_BUSY_DISCONNECTING;
         break;
       case BtStatus::BT_STATUS_DONE:
-        state = (int64_t)MetricProfileDisconnectionStatus::PROFILE_DISCONN_STATE_ALREADY_DISCONNECTED;
+        state = (int64_t)
+                MetricProfileDisconnectionStatus::PROFILE_DISCONN_STATE_ALREADY_DISCONNECTED;
         break;
       case BtStatus::BT_STATUS_UNSUPPORTED:
         state = (int64_t)MetricProfileDisconnectionStatus::PROFILE_DISCONN_STATE_UNKNOWN_ERROR;
@@ -341,13 +353,15 @@ int64_t StatusToProfileConnectionState(uint32_t status, StateChangeType type) {
         state = (int64_t)MetricProfileDisconnectionStatus::PROFILE_DISCONN_STATE_INVALID_PARAMS;
         break;
       case BtStatus::BT_STATUS_AUTH_FAILURE:
-        state = (int64_t)MetricProfileDisconnectionStatus::PROFILE_DISCONN_STATE_DISCONNECTION_REFUSED;
+        state = (int64_t)
+                MetricProfileDisconnectionStatus::PROFILE_DISCONN_STATE_DISCONNECTION_REFUSED;
         break;
       case BtStatus::BT_STATUS_RMT_DEV_DOWN:
         state = (int64_t)MetricProfileDisconnectionStatus::PROFILE_DISCONN_STATE_UNKNOWN_ERROR;
         break;
       case BtStatus::BT_STATUS_AUTH_REJECTED:
-        state = (int64_t)MetricProfileDisconnectionStatus::PROFILE_DISCONN_STATE_DISCONNECTION_REFUSED;
+        state = (int64_t)
+                MetricProfileDisconnectionStatus::PROFILE_DISCONN_STATE_DISCONNECTION_REFUSED;
         break;
       case BtStatus::BT_STATUS_FAIL:
       case BtStatus::BT_STATUS_NOT_READY:
@@ -483,10 +497,11 @@ static std::pair<uint32_t, uint32_t> ToProfileConnectionState(uint32_t profile, 
   return output;
 }
 
-ProfileConnectionEvent ToProfileConnectionEvent(std::string addr, uint32_t profile, uint32_t status, uint32_t state) {
+ProfileConnectionEvent ToProfileConnectionEvent(std::string addr, uint32_t profile, uint32_t status,
+                                                uint32_t state) {
   ProfileConnectionEvent event;
-  // A map stores the pending StateChangeType used to match a (dis)connection event with unknown type.
-  // map<std::pair<address, profile>, type>
+  // A map stores the pending StateChangeType used to match a (dis)connection event with unknown
+  // type. map<std::pair<address, profile>, type>
   static std::map<std::pair<std::string, uint32_t>, StateChangeType> pending_type;
 
   auto profile_state_pair = ToProfileConnectionState(profile, state);
@@ -506,10 +521,10 @@ ProfileConnectionEvent ToProfileConnectionEvent(std::string addr, uint32_t profi
       break;
     case ProfilesConnectionState::DISCONNECTED:
       event.type = pending_type.find(key) != pending_type.end()
-                       ? (int64_t)pending_type[key]
-                       : (int64_t)StateChangeType::STATE_CHANGE_TYPE_DISCONNECT;
-      // If the profile successfully disconnected for a connect intent, i.e., a connection is attempted but received a
-      // disconnection state update. Report this as an unknown error.
+                           ? (int64_t)pending_type[key]
+                           : (int64_t)StateChangeType::STATE_CHANGE_TYPE_DISCONNECT;
+      // If the profile successfully disconnected for a connect intent, i.e., a connection is
+      // attempted but received a disconnection state update. Report this as an unknown error.
       if (StateChangeType::STATE_CHANGE_TYPE_CONNECT == (StateChangeType)event.type &&
           BtStatus::BT_STATUS_SUCCESS == (BtStatus)status) {
         event.state = (int64_t)MetricProfileConnectionStatus::PROFILE_CONN_STATE_UNKNOWN_ERROR;
@@ -600,8 +615,9 @@ void PendingAclConnectAttemptEvent(std::string addr, int64_t time, uint32_t acl_
   pending_acl_events[addr] = std::make_pair(acl_state, time);
 }
 
-AclConnectionEvent ToAclConnectionEvent(
-    std::string addr, int64_t time, uint32_t acl_status, uint32_t acl_state, uint32_t direction, uint32_t hci_reason) {
+AclConnectionEvent ToAclConnectionEvent(std::string addr, int64_t time, uint32_t acl_status,
+                                        uint32_t acl_state, uint32_t direction,
+                                        uint32_t hci_reason) {
   AclConnectionEvent event;
 
   if (pending_acl_events.find(addr) == pending_acl_events.end()) {
@@ -680,12 +696,13 @@ static MetricTransportType GetChipsetInfoTransport(void) {
   }
 
   module_name = module_realpath.BaseName().value();
-  if (base::MatchPattern(module_name, "*usb*"))
+  if (base::MatchPattern(module_name, "*usb*")) {
     transport = MetricTransportType::TRANSPORT_TYPE_USB;
-  else if (base::MatchPattern(module_name, "*uart*"))
+  } else if (base::MatchPattern(module_name, "*uart*")) {
     transport = MetricTransportType::TRANSPORT_TYPE_UART;
-  else if (base::MatchPattern(module_name, "*sdio*"))
+  } else if (base::MatchPattern(module_name, "*sdio*")) {
     transport = MetricTransportType::TRANSPORT_TYPE_SDIO;
+  }
 
   return transport;
 }
@@ -709,5 +726,5 @@ MetricsChipsetInfo GetMetricsChipsetInfo() {
   return info;
 }
 
-}  // namespace metrics
-}  // namespace bluetooth
+} // namespace metrics
+} // namespace bluetooth

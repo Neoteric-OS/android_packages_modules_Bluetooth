@@ -33,50 +33,70 @@ namespace ecc {
 #define DWORD_BITS_SHIFT 5
 
 void multiprecision_init(uint32_t* c) {
-  for (uint32_t i = 0; i < KEY_LENGTH_DWORDS_P256; i++) c[i] = 0;
+  for (uint32_t i = 0; i < KEY_LENGTH_DWORDS_P256; i++) {
+    c[i] = 0;
+  }
 }
 
 void multiprecision_copy(uint32_t* c, const uint32_t* a) {
-  for (uint32_t i = 0; i < KEY_LENGTH_DWORDS_P256; i++) c[i] = a[i];
+  for (uint32_t i = 0; i < KEY_LENGTH_DWORDS_P256; i++) {
+    c[i] = a[i];
+  }
 }
 
 int multiprecision_compare(const uint32_t* a, const uint32_t* b) {
   for (int i = KEY_LENGTH_DWORDS_P256 - 1; i >= 0; i--) {
-    if (a[i] > b[i]) return 1;
-    if (a[i] < b[i]) return -1;
+    if (a[i] > b[i]) {
+      return 1;
+    }
+    if (a[i] < b[i]) {
+      return -1;
+    }
   }
   return 0;
 }
 
 int multiprecision_iszero(const uint32_t* a) {
-  for (uint32_t i = 0; i < KEY_LENGTH_DWORDS_P256; i++)
-    if (a[i]) return 0;
+  for (uint32_t i = 0; i < KEY_LENGTH_DWORDS_P256; i++) {
+    if (a[i]) {
+      return 0;
+    }
+  }
 
   return 1;
 }
 
 uint32_t multiprecision_dword_bits(uint32_t a) {
   uint32_t i;
-  for (i = 0; i < DWORD_BITS; i++, a >>= 1)
-    if (a == 0) break;
+  for (i = 0; i < DWORD_BITS; i++, a >>= 1) {
+    if (a == 0) {
+      break;
+    }
+  }
 
   return i;
 }
 
 uint32_t multiprecision_most_signdwords(const uint32_t* a) {
   int i;
-  for (i = KEY_LENGTH_DWORDS_P256 - 1; i >= 0; i--)
-    if (a[i]) break;
-  return (i + 1);
+  for (i = KEY_LENGTH_DWORDS_P256 - 1; i >= 0; i--) {
+    if (a[i]) {
+      break;
+    }
+  }
+  return i + 1;
 }
 
 uint32_t multiprecision_most_signbits(const uint32_t* a) {
   int aMostSignDWORDs;
 
   aMostSignDWORDs = multiprecision_most_signdwords(a);
-  if (aMostSignDWORDs == 0) return 0;
+  if (aMostSignDWORDs == 0) {
+    return 0;
+  }
 
-  return (((aMostSignDWORDs - 1) << DWORD_BITS_SHIFT) + multiprecision_dword_bits(a[aMostSignDWORDs - 1]));
+  return ((aMostSignDWORDs - 1) << DWORD_BITS_SHIFT) +
+         multiprecision_dword_bits(a[aMostSignDWORDs - 1]);
 }
 
 uint32_t multiprecision_add(uint32_t* c, const uint32_t* a, const uint32_t* b) {
@@ -131,7 +151,7 @@ void multiprecision_rshift(uint32_t* c, const uint32_t* a) {
   uint32_t carrier = 0;
   uint32_t temp;
   for (int i = KEY_LENGTH_DWORDS_P256 - 1; i >= 0; i--) {
-    temp = a[i];  // in case of c==a
+    temp = a[i]; // in case of c==a
     c[i] = (temp >> b) | carrier;
     carrier = temp << j;
   }
@@ -139,7 +159,8 @@ void multiprecision_rshift(uint32_t* c, const uint32_t* a) {
 
 // Curve specific optimization when p is a pseudo-Mersenns prime,
 // p=2^(KEY_LENGTH_BITS)-omega
-void multiprecision_mersenns_mult_mod(uint32_t* c, const uint32_t* a, const uint32_t* b, const uint32_t* modp) {
+void multiprecision_mersenns_mult_mod(uint32_t* c, const uint32_t* a, const uint32_t* b,
+                                      const uint32_t* modp) {
   uint32_t cc[2 * KEY_LENGTH_DWORDS_P256];
 
   multiprecision_mult(cc, a, b);
@@ -152,7 +173,8 @@ void multiprecision_mersenns_squa_mod(uint32_t* c, const uint32_t* a, const uint
 }
 
 // c=(a+b) mod p, b<p, a<p
-void multiprecision_add_mod(uint32_t* c, const uint32_t* a, const uint32_t* b, const uint32_t* modp) {
+void multiprecision_add_mod(uint32_t* c, const uint32_t* a, const uint32_t* b,
+                            const uint32_t* modp) {
   uint32_t carrier = multiprecision_add(c, a, b);
   if (carrier) {
     multiprecision_sub(c, c, modp);
@@ -162,11 +184,14 @@ void multiprecision_add_mod(uint32_t* c, const uint32_t* a, const uint32_t* b, c
 }
 
 // c=(a-b) mod p, a<p, b<p
-void multiprecision_sub_mod(uint32_t* c, const uint32_t* a, const uint32_t* b, const uint32_t* modp) {
+void multiprecision_sub_mod(uint32_t* c, const uint32_t* a, const uint32_t* b,
+                            const uint32_t* modp) {
   uint32_t borrow;
 
   borrow = multiprecision_sub(c, a, b);
-  if (borrow) multiprecision_add(c, c, modp);
+  if (borrow) {
+    multiprecision_add(c, c, modp);
+  }
 }
 
 // c=a<<b, b<DWORD_BITS, c has a buffer size of Numuint32_ts+1
@@ -179,7 +204,7 @@ uint32_t multiprecision_lshift(uint32_t* c, const uint32_t* a) {
   uint32_t temp;
 
   for (uint32_t i = 0; i < KEY_LENGTH_DWORDS_P256; i++) {
-    temp = a[i];  // in case c==a
+    temp = a[i]; // in case c==a
     c[i] = (temp << b) | carrier;
     carrier = temp >> j;
   }
@@ -444,7 +469,9 @@ void multiprecision_fast_mod_P256(uint32_t* c, const uint32_t* a, const uint32_t
     }
   }
 
-  if (multiprecision_compare(c, modp) >= 0) multiprecision_sub(c, c, modp);
+  if (multiprecision_compare(c, modp) >= 0) {
+    multiprecision_sub(c, c, modp);
+  }
 }
 
 void multiprecision_inv_mod(uint32_t* aminus, uint32_t* u, const uint32_t* modp) {
@@ -458,26 +485,26 @@ void multiprecision_inv_mod(uint32_t* aminus, uint32_t* u, const uint32_t* modp)
   A[0] = 1;
 
   while (!multiprecision_iszero(u)) {
-    while (!(u[0] & 0x01))  // u is even
+    while (!(u[0] & 0x01)) // u is even
     {
       multiprecision_rshift(u, u);
-      if (!(A[0] & 0x01))  // A is even
+      if (!(A[0] & 0x01)) { // A is even
         multiprecision_rshift(A, A);
-      else {
-        A[KEY_LENGTH_DWORDS_P256] = multiprecision_add(A, A, modp);  // A =A+p
+      } else {
+        A[KEY_LENGTH_DWORDS_P256] = multiprecision_add(A, A, modp); // A =A+p
         multiprecision_rshift(A, A);
         A[KEY_LENGTH_DWORDS_P256 - 1] |= (A[KEY_LENGTH_DWORDS_P256] << 31);
       }
     }
 
-    while (!(v[0] & 0x01))  // v is even
+    while (!(v[0] & 0x01)) // v is even
     {
       multiprecision_rshift(v, v);
-      if (!(C[0] & 0x01))  // C is even
+      if (!(C[0] & 0x01)) // C is even
       {
         multiprecision_rshift(C, C);
       } else {
-        C[KEY_LENGTH_DWORDS_P256] = multiprecision_add(C, C, modp);  // C =C+p
+        C[KEY_LENGTH_DWORDS_P256] = multiprecision_add(C, C, modp); // C =C+p
         multiprecision_rshift(C, C);
         C[KEY_LENGTH_DWORDS_P256 - 1] |= (C[KEY_LENGTH_DWORDS_P256] << 31);
       }
@@ -492,12 +519,13 @@ void multiprecision_inv_mod(uint32_t* aminus, uint32_t* u, const uint32_t* modp)
     }
   }
 
-  if (multiprecision_compare(C, modp) >= 0)
+  if (multiprecision_compare(C, modp) >= 0) {
     multiprecision_sub(aminus, C, modp);
-  else
+  } else {
     multiprecision_copy(aminus, C);
+  }
 }
 
-}  // namespace ecc
-}  // namespace security
-}  // namespace bluetooth
+} // namespace ecc
+} // namespace security
+} // namespace bluetooth

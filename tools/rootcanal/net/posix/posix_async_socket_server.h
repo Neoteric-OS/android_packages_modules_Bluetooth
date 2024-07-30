@@ -14,14 +14,14 @@
 // limitations under the License.
 #pragma once
 
-#include <memory>  // for shared_ptr
+#include <memory> // for shared_ptr
 
-#include "net/async_data_channel_server.h"  // for AsyncDataChannelServer
-#include "net/posix/posix_async_socket.h"   // for AsyncManager, PosixAsyncS...
+#include "net/async_data_channel_server.h" // for AsyncDataChannelServer
+#include "net/posix/posix_async_socket.h"  // for AsyncManager, PosixAsyncS...
 
 namespace rootcanal {
 class AsyncManager;
-}  // namespace rootcanal
+} // namespace rootcanal
 
 using rootcanal::AsyncManager;
 
@@ -33,13 +33,13 @@ namespace net {
 //
 // It uses the AsyncManager for watching the socket.
 class PosixAsyncSocketServer : public AsyncDataChannelServer {
- public:
+public:
   // Binds to the given port on all interfaces.
   // Note: do not use port 0!
   PosixAsyncSocketServer(int port, AsyncManager* am);
 
   // Return the port that this server was initialized with.
-  int port() const { return port_; };
+  int port() const { return port_; }
 
   bool StartListening() override;
 
@@ -49,7 +49,7 @@ class PosixAsyncSocketServer : public AsyncDataChannelServer {
 
   bool Connected() override;
 
- private:
+private:
   void AcceptSocket();
 
   int port_;
@@ -57,5 +57,5 @@ class PosixAsyncSocketServer : public AsyncDataChannelServer {
   AsyncManager* am_;
 };
 
-}  // namespace net
-}  // namespace android
+} // namespace net
+} // namespace android

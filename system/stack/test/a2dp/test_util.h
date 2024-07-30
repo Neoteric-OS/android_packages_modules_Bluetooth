@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-#include <string>
-
 #include <base/files/file_path.h>
+
+#include <string>
 
 namespace bluetooth {
 namespace testing {
@@ -24,5 +24,5 @@ namespace testing {
 base::FilePath GetBinaryPath();
 std::string GetWavFilePath(const std::string& relative_path);
 
-}  // namespace testing
-}  // namespace bluetooth
+} // namespace testing
+} // namespace bluetooth

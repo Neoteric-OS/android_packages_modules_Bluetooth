@@ -25,5 +25,5 @@ namespace fuzz {
 bool uses_command_status(hci::OpCode code);
 
 }
-}  // namespace hci
-}  // namespace bluetooth
+} // namespace hci
+} // namespace bluetooth

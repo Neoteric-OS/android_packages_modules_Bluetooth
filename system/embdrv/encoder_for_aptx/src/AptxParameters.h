@@ -252,4 +252,4 @@ static const uint32_t deltaScale = 4;
 #ifdef _GCC
 #pragma GCC visibility pop
 #endif
-#endif  // APTXPARAMETERS_H
+#endif // APTXPARAMETERS_H

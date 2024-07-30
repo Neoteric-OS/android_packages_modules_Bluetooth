@@ -66,32 +66,27 @@ void MessageLoopThread::StartUp() {
 
       return;
     }
-    thread_ = new std::thread(&MessageLoopThread::RunThread, this,
-                              std::move(start_up_promise));
+    thread_ = new std::thread(&MessageLoopThread::RunThread, this, std::move(start_up_promise));
   }
   start_up_future.wait();
 }
 
-bool MessageLoopThread::DoInThread(const base::Location& from_here,
-                                   base::OnceClosure task) {
-  return DoInThreadDelayed(from_here, std::move(task),
-                           std::chrono::microseconds(0));
+bool MessageLoopThread::DoInThread(const base::Location& from_here, base::OnceClosure task) {
+  return DoInThreadDelayed(from_here, std::move(task), std::chrono::microseconds(0));
 }
 
-bool MessageLoopThread::DoInThreadDelayed(const base::Location& from_here,
-                                          base::OnceClosure task,
+bool MessageLoopThread::DoInThreadDelayed(const base::Location& from_here, base::OnceClosure task,
                                           std::chrono::microseconds delay) {
   std::lock_guard<std::recursive_mutex> api_lock(api_mutex_);
 
   if (message_loop_ == nullptr) {
-    log::error("message loop is null for thread {}, from {}", *this,
-               from_here.ToString());
+    log::error("message loop is null for thread {}, from {}", *this, from_here.ToString());
     return false;
   }
-  if (!message_loop_->task_runner()->PostDelayedTask(
-          from_here, std::move(task), timeDeltaFromMicroseconds(delay))) {
-    log::error("failed to post task to message loop for thread {}, from {}",
-               *this, from_here.ToString());
+  if (!message_loop_->task_runner()->PostDelayedTask(from_here, std::move(task),
+                                                     timeDeltaFromMicroseconds(delay))) {
+    log::error("failed to post task to message loop for thread {}, from {}", *this,
+               from_here.ToString());
     return false;
   }
   return true;
@@ -145,8 +140,7 @@ bool MessageLoopThread::IsRunning() const {
 }
 
 // Non API method, should not be protected by API mutex
-void MessageLoopThread::RunThread(MessageLoopThread* thread,
-                                  std::promise<void> start_up_promise) {
+void MessageLoopThread::RunThread(MessageLoopThread* thread, std::promise<void> start_up_promise) {
   thread->Run(std::move(start_up_promise));
 }
 
@@ -164,14 +158,13 @@ bool MessageLoopThread::EnableRealTimeScheduling() {
     return false;
   }
 
-  struct sched_param rt_params = {.sched_priority =
-                                      kRealTimeFifoSchedulingPriority};
+  struct sched_param rt_params = {.sched_priority = kRealTimeFifoSchedulingPriority};
   int rc = sched_setscheduler(linux_tid_, SCHED_FIFO, &rt_params);
   if (rc != 0) {
     log::error(
-        "unable to set SCHED_FIFO priority {} for linux_tid {}, thread {}, "
-        "error: {}",
-        kRealTimeFifoSchedulingPriority, linux_tid_, *this, strerror(errno));
+            "unable to set SCHED_FIFO priority {} for linux_tid {}, thread {}, "
+            "error: {}",
+            kRealTimeFifoSchedulingPriority, linux_tid_, *this, strerror(errno));
     return false;
   }
   return true;
@@ -216,5 +209,5 @@ void MessageLoopThread::Post(base::OnceClosure closure) {
 
 PostableContext* MessageLoopThread::Postable() { return this; }
 
-}  // namespace common
-}  // namespace bluetooth
+} // namespace common
+} // namespace bluetooth

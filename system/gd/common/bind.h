@@ -31,8 +31,9 @@ using base::Unretained;
 
 template <typename T, typename Functor, typename... Args>
 inline auto BindOn(T* obj, Functor&& functor, Args&&... args) {
-  return common::Bind(std::forward<Functor>(functor), common::Unretained(obj), std::forward<Args>(args)...);
+  return common::Bind(std::forward<Functor>(functor), common::Unretained(obj),
+                      std::forward<Args>(args)...);
 }
 
-}  // namespace common
-}  // namespace bluetooth
+} // namespace common
+} // namespace bluetooth

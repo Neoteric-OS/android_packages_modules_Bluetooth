@@ -28,7 +28,7 @@ namespace bluetooth {
 namespace common {
 
 class AddressObfuscator {
- public:
+public:
   static constexpr unsigned int kOctet32Length = hci::kOctet32Length;
   using Octet32 = hci::Octet32;
   static AddressObfuscator* GetInstance() {
@@ -66,11 +66,11 @@ class AddressObfuscator {
    */
   std::string Obfuscate(const RawAddress& address);
 
- private:
+private:
   AddressObfuscator() : salt_256bit_({0}) {}
   Octet32 salt_256bit_;
   std::recursive_mutex instance_mutex_;
 };
 
-}  // namespace common
-}  // namespace bluetooth
+} // namespace common
+} // namespace bluetooth

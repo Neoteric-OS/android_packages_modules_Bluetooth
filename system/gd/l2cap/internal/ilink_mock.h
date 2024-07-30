@@ -16,9 +16,9 @@
 
 #pragma once
 
-#include "l2cap/internal/ilink.h"
-
 #include <gmock/gmock.h>
+
+#include "l2cap/internal/ilink.h"
 
 // Unit test interfaces
 namespace bluetooth {
@@ -27,13 +27,13 @@ namespace internal {
 namespace testing {
 
 class MockILink : public ILink {
- public:
+public:
   MOCK_METHOD(hci::AddressWithType, GetDevice, (), (const, override));
   MOCK_METHOD(void, SendDisconnectionRequest, (Cid, Cid), (override));
   MOCK_METHOD(void, SendLeCredit, (Cid, uint16_t), (override));
 };
 
-}  // namespace testing
-}  // namespace internal
-}  // namespace l2cap
-}  // namespace bluetooth
+} // namespace testing
+} // namespace internal
+} // namespace l2cap
+} // namespace bluetooth

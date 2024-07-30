@@ -27,8 +27,8 @@ namespace topshim {
 namespace rust {
 
 class CsisClientIntf {
- public:
-  CsisClientIntf(csis::CsisClientInterface* intf) : intf_(intf){};
+public:
+  CsisClientIntf(csis::CsisClientInterface* intf) : intf_(intf) {}
 
   void init(/*CsisClientCallbacks* callbacks*/);
   void connect(RawAddress addr);
@@ -37,12 +37,12 @@ class CsisClientIntf {
   void remove_device(RawAddress addr);
   void cleanup();
 
- private:
+private:
   csis::CsisClientInterface* intf_;
 };
 
 std::unique_ptr<CsisClientIntf> GetCsisClientProfile(const unsigned char* btif);
 
-}  // namespace rust
-}  // namespace topshim
-}  // namespace bluetooth
+} // namespace rust
+} // namespace topshim
+} // namespace bluetooth

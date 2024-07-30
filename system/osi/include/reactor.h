@@ -31,10 +31,10 @@ typedef struct reactor_object_t reactor_object_t;
 
 // Enumerates the reasons a reactor has stopped.
 typedef enum {
-  REACTOR_STATUS_STOP,   // |reactor_stop| was called.
-  REACTOR_STATUS_ERROR,  // there was an error during the operation.
-  REACTOR_STATUS_DONE,   // the reactor completed its work (for the _run_once*
-                         // variants).
+  REACTOR_STATUS_STOP,  // |reactor_stop| was called.
+  REACTOR_STATUS_ERROR, // there was an error during the operation.
+  REACTOR_STATUS_DONE,  // the reactor completed its work (for the _run_once*
+                        // variants).
 } reactor_status_t;
 
 // Creates a new reactor object. Returns NULL on failure. The returned object
@@ -77,8 +77,7 @@ reactor_object_t* reactor_register(reactor_t* reactor, int fd, void* context,
 // |write_ready| callback routines, they can call this routine. Returns true if
 // the subscription was changed, false otherwise.
 // |object| may not be NULL, |read_ready| and |write_ready| may be NULL.
-bool reactor_change_registration(reactor_object_t* object,
-                                 void (*read_ready)(void* context),
+bool reactor_change_registration(reactor_object_t* object, void (*read_ready)(void* context),
                                  void (*write_ready)(void* context));
 
 // Unregisters a previously registered file descriptor with its reactor. |obj|

@@ -78,4 +78,4 @@ struct formatter<tRFC_MX_STATE> : enum_formatter<tRFC_MX_STATE> {};
 template <>
 struct formatter<tRFC_PORT_STATE> : enum_formatter<tRFC_PORT_STATE> {};
 
-}  // namespace fmt
+} // namespace fmt

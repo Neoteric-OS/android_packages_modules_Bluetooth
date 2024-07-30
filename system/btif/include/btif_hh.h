@@ -95,7 +95,7 @@ typedef struct {
   fixed_queue_t* get_rpt_id_queue;
 #if ENABLE_UHID_SET_REPORT
   fixed_queue_t* set_rpt_id_queue;
-#endif  // ENABLE_UHID_SET_REPORT
+#endif // ENABLE_UHID_SET_REPORT
 } btif_hh_uhid_t;
 
 /* Control block to maintain properties of devices */
@@ -108,7 +108,7 @@ typedef struct {
   uint8_t app_id;
   pthread_t hh_poll_thread_id;
   alarm_t* vup_timer;
-  bool local_vup;  // Indicated locally initiated VUP
+  bool local_vup; // Indicated locally initiated VUP
   btif_hh_uhid_t uhid;
 } btif_hh_device_t;
 
@@ -117,7 +117,7 @@ typedef struct {
   uint8_t dev_handle;
   tAclLinkSpec link_spec;
   tBTA_HH_ATTR_MASK attr_mask;
-  bool reconnect_allowed;  // Connection policy
+  bool reconnect_allowed; // Connection policy
 } btif_hh_added_device_t;
 
 /**
@@ -145,16 +145,15 @@ btif_hh_device_t* btif_hh_find_empty_dev(void);
 bt_status_t btif_hh_connect(const tAclLinkSpec& link_spec);
 bt_status_t btif_hh_virtual_unplug(const tAclLinkSpec& link_spec);
 void btif_hh_remove_device(const tAclLinkSpec& link_spec);
-void btif_hh_setreport(btif_hh_uhid_t* p_uhid, bthh_report_type_t r_type,
-                       uint16_t size, uint8_t* report);
+void btif_hh_setreport(btif_hh_uhid_t* p_uhid, bthh_report_type_t r_type, uint16_t size,
+                       uint8_t* report);
 void btif_hh_senddata(btif_hh_uhid_t* p_uhid, uint16_t size, uint8_t* report);
-void btif_hh_getreport(btif_hh_uhid_t* p_uhid, bthh_report_type_t r_type,
-                       uint8_t reportId, uint16_t bufferSize);
+void btif_hh_getreport(btif_hh_uhid_t* p_uhid, bthh_report_type_t r_type, uint8_t reportId,
+                       uint16_t bufferSize);
 void btif_hh_service_registration(bool enable);
 
-void btif_hh_load_bonded_dev(const tAclLinkSpec& link_spec,
-                             tBTA_HH_ATTR_MASK attr_mask, uint8_t sub_class,
-                             uint8_t app_id, tBTA_HH_DEV_DSCP_INFO dscp_info,
+void btif_hh_load_bonded_dev(const tAclLinkSpec& link_spec, tBTA_HH_ATTR_MASK attr_mask,
+                             uint8_t sub_class, uint8_t app_id, tBTA_HH_DEV_DSCP_INFO dscp_info,
                              bool reconnect_allowed);
 
 void DumpsysHid(int fd);
@@ -162,6 +161,6 @@ void DumpsysHid(int fd);
 namespace fmt {
 template <>
 struct formatter<BTIF_HH_STATUS> : enum_formatter<BTIF_HH_STATUS> {};
-}  // namespace fmt
+} // namespace fmt
 
 #endif

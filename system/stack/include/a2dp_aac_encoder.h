@@ -80,4 +80,4 @@ int a2dp_aac_get_effective_frame_size();
 // |timestamp_us| is the current timestamp (in microseconds).
 void a2dp_aac_send_frames(uint64_t timestamp_us);
 
-#endif  // A2DP_AAC_ENCODER_H
+#endif // A2DP_AAC_ENCODER_H

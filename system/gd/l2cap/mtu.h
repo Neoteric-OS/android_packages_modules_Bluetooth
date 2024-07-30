@@ -26,5 +26,5 @@ constexpr Mtu kMinimumClassicMtu = 48;
 constexpr Mtu kMinimumLeMtu = 23;
 constexpr Mtu kDefaultClassicMtu = 672;
 
-}  // namespace l2cap
-}  // namespace bluetooth
+} // namespace l2cap
+} // namespace bluetooth

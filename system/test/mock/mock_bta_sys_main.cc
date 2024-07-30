@@ -45,9 +45,9 @@ struct bta_sys_sendmsg bta_sys_sendmsg;
 struct bta_sys_sendmsg_delayed bta_sys_sendmsg_delayed;
 struct bta_sys_start_timer bta_sys_start_timer;
 
-}  // namespace bta_sys_main
-}  // namespace mock
-}  // namespace test
+} // namespace bta_sys_main
+} // namespace mock
+} // namespace test
 
 // Mocked functions, if any
 void BTA_sys_signal_hw_error() {
@@ -85,8 +85,7 @@ void bta_sys_sendmsg_delayed(void* p_msg, std::chrono::microseconds delay) {
 void bta_sys_start_timer(alarm_t* alarm, uint64_t interval_ms, uint16_t event,
                          uint16_t layer_specific) {
   inc_func_call_count(__func__);
-  test::mock::bta_sys_main::bta_sys_start_timer(alarm, interval_ms, event,
-                                                layer_specific);
+  test::mock::bta_sys_main::bta_sys_start_timer(alarm, interval_ms, event, layer_specific);
 }
 // Mocked functions complete
 // END mockcify generation

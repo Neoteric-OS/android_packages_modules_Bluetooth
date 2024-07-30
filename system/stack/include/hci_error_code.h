@@ -44,7 +44,7 @@ typedef enum : uint8_t {
   HCI_ERR_HOST_REJECT_RESOURCES = 0x0D,
   HCI_ERR_HOST_REJECT_SECURITY = 0x0E,
   HCI_ERR_HOST_REJECT_DEVICE = 0x0F,
-  HCI_ERR_HOST_TIMEOUT = 0x10,  // stack/btm/btm_ble_gap,
+  HCI_ERR_HOST_TIMEOUT = 0x10, // stack/btm/btm_ble_gap,
   HCI_ERR_ILLEGAL_PARAMETER_FMT = 0x12,
   HCI_ERR_PEER_USER = 0x13,
   HCI_ERR_REMOTE_LOW_RESOURCE = 0x14,
@@ -52,28 +52,28 @@ typedef enum : uint8_t {
   HCI_ERR_CONN_CAUSE_LOCAL_HOST = 0x16,
   HCI_ERR_REPEATED_ATTEMPTS = 0x17,
   HCI_ERR_PAIRING_NOT_ALLOWED = 0x18,
-  HCI_ERR_UNSUPPORTED_REM_FEATURE = 0x1A,  // stack/btm/btm_ble_gap
+  HCI_ERR_UNSUPPORTED_REM_FEATURE = 0x1A, // stack/btm/btm_ble_gap
   HCI_ERR_UNSPECIFIED = 0x1F,
-  HCI_ERR_LMP_RESPONSE_TIMEOUT = 0x22,     // GATT_CONN_LMP_TIMEOUT
-  HCI_ERR_LMP_ERR_TRANS_COLLISION = 0x23,  // TODO remove
+  HCI_ERR_LMP_RESPONSE_TIMEOUT = 0x22,    // GATT_CONN_LMP_TIMEOUT
+  HCI_ERR_LMP_ERR_TRANS_COLLISION = 0x23, // TODO remove
   HCI_ERR_ENCRY_MODE_NOT_ACCEPTABLE = 0x25,
   HCI_ERR_UNIT_KEY_USED = 0x26,
   HCI_ERR_PAIRING_WITH_UNIT_KEY_NOT_SUPPORTED = 0x29,
-  HCI_ERR_DIFF_TRANSACTION_COLLISION = 0x2A,  // stack/btm/btm_sec
-  HCI_ERR_INSUFFCIENT_SECURITY = 0x2F,        // btif/btu
-  HCI_ERR_ROLE_SWITCH_PENDING = 0x32,         // stack/btm/btm_sco
+  HCI_ERR_DIFF_TRANSACTION_COLLISION = 0x2A, // stack/btm/btm_sec
+  HCI_ERR_INSUFFCIENT_SECURITY = 0x2F,       // btif/btu
+  HCI_ERR_ROLE_SWITCH_PENDING = 0x32,        // stack/btm/btm_sco
   HCI_ERR_ROLE_SWITCH_FAILED = 0x35,
-  HCI_ERR_HOST_BUSY_PAIRING = 0x38,          // stack/btm/btm_sec
-  HCI_ERR_UNACCEPT_CONN_INTERVAL = 0x3B,     // stack/l2cap/l2c_ble
-  HCI_ERR_ADVERTISING_TIMEOUT = 0x3C,        // stack/btm/btm_ble
-  HCI_ERR_CONN_FAILED_ESTABLISHMENT = 0x3E,  // GATT_CONN_FAIL_ESTABLISH
-  HCI_ERR_LIMIT_REACHED = 0x43,              // stack/btm/btm_ble_multi_adv.cc
+  HCI_ERR_HOST_BUSY_PAIRING = 0x38,         // stack/btm/btm_sec
+  HCI_ERR_UNACCEPT_CONN_INTERVAL = 0x3B,    // stack/l2cap/l2c_ble
+  HCI_ERR_ADVERTISING_TIMEOUT = 0x3C,       // stack/btm/btm_ble
+  HCI_ERR_CONN_FAILED_ESTABLISHMENT = 0x3E, // GATT_CONN_FAIL_ESTABLISH
+  HCI_ERR_LIMIT_REACHED = 0x43,             // stack/btm/btm_ble_multi_adv.cc
 
   _HCI_ERR_MAX_ERR = 0x43,
   HCI_ERR_UNDEFINED = 0xff,
 } tHCI_ERROR_CODE;
 
-#define HCI_ERR_MAX_ERR _HCI_ERR_MAX_ERR  // HACK for now for SMP
+#define HCI_ERR_MAX_ERR _HCI_ERR_MAX_ERR // HACK for now for SMP
 
 inline std::string hci_error_code_text(const tHCI_ERROR_CODE& error_code) {
   switch (error_code) {
@@ -135,21 +135,27 @@ inline std::string hci_reason_code_text(const tHCI_REASON& reason_code) {
 
 // Conversion from raw packet value
 inline tHCI_ERROR_CODE to_hci_error_code(const uint8_t& error_code) {
-  if (error_code > _HCI_ERR_MAX_ERR) return HCI_ERR_UNDEFINED;
+  if (error_code > _HCI_ERR_MAX_ERR) {
+    return HCI_ERR_UNDEFINED;
+  }
   return static_cast<tHCI_ERROR_CODE>(error_code);
 }
 
 inline tHCI_STATUS to_hci_status_code(const uint8_t& status_code) {
-  if (status_code > _HCI_ERR_MAX_ERR) return HCI_ERR_UNDEFINED;
+  if (status_code > _HCI_ERR_MAX_ERR) {
+    return HCI_ERR_UNDEFINED;
+  }
   return static_cast<tHCI_STATUS>(status_code);
 }
 
 inline tHCI_REASON to_hci_reason_code(const uint8_t& reason_code) {
-  if (reason_code > _HCI_ERR_MAX_ERR) return HCI_ERR_UNDEFINED;
+  if (reason_code > _HCI_ERR_MAX_ERR) {
+    return HCI_ERR_UNDEFINED;
+  }
   return static_cast<tHCI_REASON>(reason_code);
 }
 
 namespace fmt {
 template <>
 struct formatter<tHCI_ERROR_CODE> : enum_formatter<tHCI_ERROR_CODE> {};
-}  // namespace fmt
+} // namespace fmt

@@ -23,18 +23,15 @@ namespace bluetooth {
 namespace hci {
 
 constexpr SubeventCode LeConnectionManagementEvents[] = {
-    SubeventCode::CONNECTION_COMPLETE,
-    SubeventCode::ENHANCED_CONNECTION_COMPLETE,
-    SubeventCode::CONNECTION_UPDATE_COMPLETE,
-    SubeventCode::PHY_UPDATE_COMPLETE,
-    SubeventCode::DATA_LENGTH_CHANGE,
-    SubeventCode::REMOTE_CONNECTION_PARAMETER_REQUEST,
-    SubeventCode::LE_SUBRATE_CHANGE,
-    // TODO implement callback for READ_REMOTE_FEATURES_COMPLETE
-    // SubeventCode::READ_REMOTE_FEATURES_COMPLETE
+        SubeventCode::CONNECTION_COMPLETE,        SubeventCode::ENHANCED_CONNECTION_COMPLETE,
+        SubeventCode::CONNECTION_UPDATE_COMPLETE, SubeventCode::PHY_UPDATE_COMPLETE,
+        SubeventCode::DATA_LENGTH_CHANGE,         SubeventCode::REMOTE_CONNECTION_PARAMETER_REQUEST,
+        SubeventCode::LE_SUBRATE_CHANGE,
+        // TODO implement callback for READ_REMOTE_FEATURES_COMPLETE
+        // SubeventCode::READ_REMOTE_FEATURES_COMPLETE
 };
 
 typedef CommandInterface<AclCommandBuilder> LeAclConnectionInterface;
 
-}  // namespace hci
-}  // namespace bluetooth
+} // namespace hci
+} // namespace bluetooth

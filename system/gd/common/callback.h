@@ -26,5 +26,5 @@ using base::Closure;
 using base::OnceCallback;
 using base::OnceClosure;
 
-}  // namespace common
-}  // namespace bluetooth
+} // namespace common
+} // namespace bluetooth

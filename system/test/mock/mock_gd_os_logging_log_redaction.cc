@@ -23,5 +23,5 @@ namespace os {
 
 bool should_log_be_redacted() { return false; }
 
-}  // namespace os
-}  // namespace bluetooth
+} // namespace os
+} // namespace bluetooth

@@ -27,14 +27,11 @@ namespace hearing_aid {
 
 // Check if new bluetooth_audio is enabled
 bool is_hal_enabled() {
-  if (HalVersionManager::GetHalTransport() ==
-      BluetoothAudioHalTransport::HIDL) {
+  if (HalVersionManager::GetHalTransport() == BluetoothAudioHalTransport::HIDL) {
     return hidl::hearing_aid::is_hal_2_0_enabled();
-  } else if (HalVersionManager::GetHalTransport() ==
-      BluetoothAudioHalTransport::AIDL) {
+  } else if (HalVersionManager::GetHalTransport() == BluetoothAudioHalTransport::AIDL) {
     return aidl::hearing_aid::is_hal_enabled();
-  } else if (HalVersionManager::GetHalTransport() ==
-      BluetoothAudioHalTransport::QTI_HIDL) {
+  } else if (HalVersionManager::GetHalTransport() == BluetoothAudioHalTransport::QTI_HIDL) {
     LOG(INFO) << __func__ << ": qti_hidl is_hal_enabled";
     return qti_hidl::hearing_aid::is_hal_2_0_enabled();
   }
@@ -42,17 +39,13 @@ bool is_hal_enabled() {
 }
 
 // Initialize BluetoothAudio HAL: openProvider
-bool init(StreamCallbacks stream_cb,
-          bluetooth::common::MessageLoopThread* message_loop) {
-  if (HalVersionManager::GetHalTransport() ==
-      BluetoothAudioHalTransport::HIDL) {
+bool init(StreamCallbacks stream_cb, bluetooth::common::MessageLoopThread* message_loop) {
+  if (HalVersionManager::GetHalTransport() == BluetoothAudioHalTransport::HIDL) {
     return hidl::hearing_aid::init(stream_cb, message_loop);
-  } else if (HalVersionManager::GetHalTransport() ==
-      BluetoothAudioHalTransport::AIDL) {
+  } else if (HalVersionManager::GetHalTransport() == BluetoothAudioHalTransport::AIDL) {
     return aidl::hearing_aid::init(stream_cb, message_loop);
-  } else if (HalVersionManager::GetHalTransport() ==
-      BluetoothAudioHalTransport::QTI_HIDL) {
-    LOG(INFO) << __func__<< ": qti_hidl init";
+  } else if (HalVersionManager::GetHalTransport() == BluetoothAudioHalTransport::QTI_HIDL) {
+    LOG(INFO) << __func__ << ": qti_hidl init";
     return qti_hidl::hearing_aid::init(stream_cb, message_loop);
   }
   return false;
@@ -60,14 +53,11 @@ bool init(StreamCallbacks stream_cb,
 
 // Clean up BluetoothAudio HAL
 void cleanup() {
-  if (HalVersionManager::GetHalTransport() ==
-      BluetoothAudioHalTransport::HIDL) {
+  if (HalVersionManager::GetHalTransport() == BluetoothAudioHalTransport::HIDL) {
     hidl::hearing_aid::cleanup();
-  } else if (HalVersionManager::GetHalTransport() ==
-      BluetoothAudioHalTransport::AIDL) {
+  } else if (HalVersionManager::GetHalTransport() == BluetoothAudioHalTransport::AIDL) {
     aidl::hearing_aid::cleanup();
-  } else if (HalVersionManager::GetHalTransport() ==
-      BluetoothAudioHalTransport::QTI_HIDL) {
+  } else if (HalVersionManager::GetHalTransport() == BluetoothAudioHalTransport::QTI_HIDL) {
     LOG(INFO) << __func__ << ": qti_hidl cleanup";
     qti_hidl::hearing_aid::cleanup();
   }
@@ -76,14 +66,11 @@ void cleanup() {
 
 // Send command to the BluetoothAudio HAL: StartSession, EndSession
 void start_session() {
-  if (HalVersionManager::GetHalTransport() ==
-      BluetoothAudioHalTransport::HIDL) {
+  if (HalVersionManager::GetHalTransport() == BluetoothAudioHalTransport::HIDL) {
     hidl::hearing_aid::start_session();
-  } else if (HalVersionManager::GetHalTransport() ==
-      BluetoothAudioHalTransport::AIDL) {
+  } else if (HalVersionManager::GetHalTransport() == BluetoothAudioHalTransport::AIDL) {
     aidl::hearing_aid::start_session();
-  } else if (HalVersionManager::GetHalTransport() ==
-      BluetoothAudioHalTransport::QTI_HIDL) {
+  } else if (HalVersionManager::GetHalTransport() == BluetoothAudioHalTransport::QTI_HIDL) {
     LOG(INFO) << __func__ << ": qti_hidl start_session";
     qti_hidl::hearing_aid::start_session();
   }
@@ -91,14 +78,11 @@ void start_session() {
 }
 
 void end_session() {
-  if (HalVersionManager::GetHalTransport() ==
-      BluetoothAudioHalTransport::HIDL) {
+  if (HalVersionManager::GetHalTransport() == BluetoothAudioHalTransport::HIDL) {
     hidl::hearing_aid::end_session();
-  } else if (HalVersionManager::GetHalTransport() ==
-      BluetoothAudioHalTransport::AIDL) {
+  } else if (HalVersionManager::GetHalTransport() == BluetoothAudioHalTransport::AIDL) {
     aidl::hearing_aid::end_session();
-  } else if (HalVersionManager::GetHalTransport() ==
-      BluetoothAudioHalTransport::QTI_HIDL) {
+  } else if (HalVersionManager::GetHalTransport() == BluetoothAudioHalTransport::QTI_HIDL) {
     LOG(INFO) << __func__ << ": qti_hidl end_session";
     qti_hidl::hearing_aid::end_session();
   }
@@ -106,15 +90,12 @@ void end_session() {
 }
 
 void set_remote_delay(uint16_t delay_report_ms) {
-  if (HalVersionManager::GetHalTransport() ==
-      BluetoothAudioHalTransport::HIDL) {
+  if (HalVersionManager::GetHalTransport() == BluetoothAudioHalTransport::HIDL) {
     hidl::hearing_aid::set_remote_delay(delay_report_ms);
-  } else if (HalVersionManager::GetHalTransport() ==
-      BluetoothAudioHalTransport::AIDL) {
+  } else if (HalVersionManager::GetHalTransport() == BluetoothAudioHalTransport::AIDL) {
     aidl::hearing_aid::set_remote_delay(delay_report_ms);
-  } else if (HalVersionManager::GetHalTransport() ==
-      BluetoothAudioHalTransport::QTI_HIDL) {
-    LOG(INFO) << __func__ <<": qti_hidl set_remote_delay";
+  } else if (HalVersionManager::GetHalTransport() == BluetoothAudioHalTransport::QTI_HIDL) {
+    LOG(INFO) << __func__ << ": qti_hidl set_remote_delay";
     qti_hidl::hearing_aid::set_remote_delay(delay_report_ms);
   }
   return;
@@ -122,20 +103,17 @@ void set_remote_delay(uint16_t delay_report_ms) {
 
 // Read from the FMQ of BluetoothAudio HAL
 size_t read(uint8_t* p_buf, uint32_t len) {
-  if (HalVersionManager::GetHalTransport() ==
-      BluetoothAudioHalTransport::HIDL) {
+  if (HalVersionManager::GetHalTransport() == BluetoothAudioHalTransport::HIDL) {
     return hidl::hearing_aid::read(p_buf, len);
-  } else if (HalVersionManager::GetHalTransport() ==
-      BluetoothAudioHalTransport::AIDL) {
+  } else if (HalVersionManager::GetHalTransport() == BluetoothAudioHalTransport::AIDL) {
     return aidl::hearing_aid::read(p_buf, len);
-  } else if (HalVersionManager::GetHalTransport() ==
-      BluetoothAudioHalTransport::QTI_HIDL) {
-    LOG(INFO) << __func__ <<": qti_hidl read";
+  } else if (HalVersionManager::GetHalTransport() == BluetoothAudioHalTransport::QTI_HIDL) {
+    LOG(INFO) << __func__ << ": qti_hidl read";
     return qti_hidl::hearing_aid::read(p_buf, len);
   }
   return 0;
 }
 
-}  // namespace hearing_aid
-}  // namespace audio
-}  // namespace bluetooth
+} // namespace hearing_aid
+} // namespace audio
+} // namespace bluetooth

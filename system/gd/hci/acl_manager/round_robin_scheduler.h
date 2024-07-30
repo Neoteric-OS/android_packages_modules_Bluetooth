@@ -31,9 +31,9 @@ namespace hci {
 namespace acl_manager {
 
 class RoundRobinScheduler {
- public:
-  RoundRobinScheduler(
-      os::Handler* handler, Controller* controller, common::BidiQueueEnd<AclBuilder, AclView>* hci_queue_end);
+public:
+  RoundRobinScheduler(os::Handler* handler, Controller* controller,
+                      common::BidiQueueEnd<AclBuilder, AclView>* hci_queue_end);
   ~RoundRobinScheduler();
 
   enum ConnectionType { CLASSIC, LE };
@@ -42,8 +42,8 @@ class RoundRobinScheduler {
     ConnectionType connection_type_;
     std::shared_ptr<acl_manager::AclConnection::Queue> queue_;
     bool dequeue_is_registered_ = false;
-    uint16_t number_of_sent_packets_ = 0;  // Track credits
-    bool high_priority_ = false;           // For A2dp use
+    uint16_t number_of_sent_packets_ = 0; // Track credits
+    bool high_priority_ = false;          // For A2dp use
   };
 
   void Register(ConnectionType connection_type, uint16_t handle,
@@ -53,7 +53,7 @@ class RoundRobinScheduler {
   uint16_t GetCredits();
   uint16_t GetLeCredits();
 
- private:
+private:
   void start_round_robin();
   void buffer_packet(uint16_t acl_handle);
   void unregister_all_connections();
@@ -64,7 +64,8 @@ class RoundRobinScheduler {
   os::Handler* handler_ = nullptr;
   Controller* controller_ = nullptr;
   std::map<uint16_t, acl_queue_handler> acl_queue_handlers_;
-  common::MultiPriorityQueue<std::pair<ConnectionType, std::unique_ptr<AclBuilder>>, 2> fragments_to_send_;
+  common::MultiPriorityQueue<std::pair<ConnectionType, std::unique_ptr<AclBuilder>>, 2>
+          fragments_to_send_;
   uint16_t max_acl_packet_credits_ = 0;
   uint16_t acl_packet_credits_ = 0;
   uint16_t le_max_acl_packet_credits_ = 0;
@@ -77,12 +78,12 @@ class RoundRobinScheduler {
   std::map<uint16_t, acl_queue_handler>::iterator starting_point_;
 };
 
-}  // namespace acl_manager
-}  // namespace hci
-}  // namespace bluetooth
+} // namespace acl_manager
+} // namespace hci
+} // namespace bluetooth
 
 namespace fmt {
 template <>
 struct formatter<bluetooth::hci::acl_manager::RoundRobinScheduler::ConnectionType>
     : enum_formatter<bluetooth::hci::acl_manager::RoundRobinScheduler::ConnectionType> {};
-}  // namespace fmt
+} // namespace fmt

@@ -26,16 +26,16 @@
 
 namespace base {
 class MessageLoop;
-}  // namespace base
+} // namespace base
 
 namespace {
 const RawAddress bdaddr1({0x11, 0x22, 0x33, 0x44, 0x55, 0x66});
-}  // namespace
+} // namespace
 
 bool bta_ag_is_call_present(const RawAddress* peer_addr) { return true; }
 
 class BtaHfClientSecurityTest : public testing::Test {
- protected:
+protected:
   void SetUp() override {
     // Reset the memory block, this is the state on which the allocate handle
     // would start operating

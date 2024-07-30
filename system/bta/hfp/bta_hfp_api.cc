@@ -18,6 +18,4 @@
 
 #include <android_bluetooth_sysprop.h>
 
-int get_default_hfp_version() {
-  return GET_SYSPROP(Hfp, version, HFP_VERSION_1_7);
-}
+int get_default_hfp_version() { return GET_SYSPROP(Hfp, version, HFP_VERSION_1_7); }

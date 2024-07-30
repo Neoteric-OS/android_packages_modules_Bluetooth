@@ -34,9 +34,7 @@ elliptic_curve_t curve_p256;
 
 static void p_256_init_point(Point* q) { memset(q, 0, sizeof(Point)); }
 
-static void p_256_copy_point(Point* q, Point* p) {
-  memcpy(q, p, sizeof(Point));
-}
+static void p_256_copy_point(Point* q, Point* p) { memcpy(q, p, sizeof(Point)); }
 
 // q=2q
 static void ECC_Double(Point* q, Point* p) {
@@ -52,7 +50,7 @@ static void ECC_Double(Point* q, Point* p) {
 
   if (multiprecision_iszero(p->z)) {
     multiprecision_init(q->z);
-    return;  // return infinity
+    return; // return infinity
   }
 
   x1 = p->x;
@@ -62,29 +60,29 @@ static void ECC_Double(Point* q, Point* p) {
   y3 = q->y;
   z3 = q->z;
 
-  multiprecision_mersenns_squa_mod(t1, z1);      // t1=z1^2
-  multiprecision_sub_mod(t2, x1, t1);            // t2=x1-t1
-  multiprecision_add_mod(t1, x1, t1);            // t1=x1+t1
-  multiprecision_mersenns_mult_mod(t2, t1, t2);  // t2=t2*t1
+  multiprecision_mersenns_squa_mod(t1, z1);     // t1=z1^2
+  multiprecision_sub_mod(t2, x1, t1);           // t2=x1-t1
+  multiprecision_add_mod(t1, x1, t1);           // t1=x1+t1
+  multiprecision_mersenns_mult_mod(t2, t1, t2); // t2=t2*t1
   multiprecision_lshift_mod(t3, t2);
-  multiprecision_add_mod(t2, t3, t2);  // t2=3t2
+  multiprecision_add_mod(t2, t3, t2); // t2=3t2
 
-  multiprecision_mersenns_mult_mod(z3, y1, z1);  // z3=y1*z1
+  multiprecision_mersenns_mult_mod(z3, y1, z1); // z3=y1*z1
   multiprecision_lshift_mod(z3, z3);
 
-  multiprecision_mersenns_squa_mod(y3, y1);  // y3=y1^2
+  multiprecision_mersenns_squa_mod(y3, y1); // y3=y1^2
   multiprecision_lshift_mod(y3, y3);
-  multiprecision_mersenns_mult_mod(t3, y3, x1);  // t3=y3*x1=x1*y1^2
+  multiprecision_mersenns_mult_mod(t3, y3, x1); // t3=y3*x1=x1*y1^2
   multiprecision_lshift_mod(t3, t3);
-  multiprecision_mersenns_squa_mod(y3, y3);  // y3=y3^2=y1^4
+  multiprecision_mersenns_squa_mod(y3, y3); // y3=y3^2=y1^4
   multiprecision_lshift_mod(y3, y3);
 
-  multiprecision_mersenns_squa_mod(x3, t2);      // x3=t2^2
-  multiprecision_lshift_mod(t1, t3);             // t1=2t3
-  multiprecision_sub_mod(x3, x3, t1);            // x3=x3-t1
-  multiprecision_sub_mod(t1, t3, x3);            // t1=t3-x3
-  multiprecision_mersenns_mult_mod(t1, t1, t2);  // t1=t1*t2
-  multiprecision_sub_mod(y3, t1, y3);            // y3=t1-y3
+  multiprecision_mersenns_squa_mod(x3, t2);     // x3=t2^2
+  multiprecision_lshift_mod(t1, t3);            // t1=2t3
+  multiprecision_sub_mod(x3, x3, t1);           // x3=x3-t1
+  multiprecision_sub_mod(t1, t3, x3);           // t1=t3-x3
+  multiprecision_mersenns_mult_mod(t1, t1, t2); // t1=t1*t2
+  multiprecision_sub_mod(y3, t1, y3);           // y3=t1-y3
 }
 
 // q=q+p,     zp must be 1
@@ -123,13 +121,13 @@ static void ECC_Add(Point* r, Point* p, Point* q) {
     return;
   }
 
-  multiprecision_mersenns_squa_mod(t1, z1);      // t1=z1^2
-  multiprecision_mersenns_mult_mod(t2, z1, t1);  // t2=t1*z1
-  multiprecision_mersenns_mult_mod(t1, x2, t1);  // t1=t1*x2
-  multiprecision_mersenns_mult_mod(t2, y2, t2);  // t2=t2*y2
+  multiprecision_mersenns_squa_mod(t1, z1);     // t1=z1^2
+  multiprecision_mersenns_mult_mod(t2, z1, t1); // t2=t1*z1
+  multiprecision_mersenns_mult_mod(t1, x2, t1); // t1=t1*x2
+  multiprecision_mersenns_mult_mod(t2, y2, t2); // t2=t2*y2
 
-  multiprecision_sub_mod(t1, t1, x1);  // t1=t1-x1
-  multiprecision_sub_mod(t2, t2, y1);  // t2=t2-y1
+  multiprecision_sub_mod(t1, t1, x1); // t1=t1-x1
+  multiprecision_sub_mod(t2, t2, y1); // t2=t2-y1
 
   if (multiprecision_iszero(t1)) {
     if (multiprecision_iszero(t2)) {
@@ -137,21 +135,21 @@ static void ECC_Add(Point* r, Point* p, Point* q) {
       return;
     } else {
       multiprecision_init(z3);
-      return;  // return infinity
+      return; // return infinity
     }
   }
 
-  multiprecision_mersenns_mult_mod(z3, z1, t1);  // z3=z1*t1
-  multiprecision_mersenns_squa_mod(y3, t1);      // t3=t1^2
-  multiprecision_mersenns_mult_mod(z1, y3, t1);  // t4=t3*t1
-  multiprecision_mersenns_mult_mod(y3, y3, x1);  // t3=t3*x1
-  multiprecision_lshift_mod(t1, y3);             // t1=2*t3
-  multiprecision_mersenns_squa_mod(x3, t2);      // x3=t2^2
-  multiprecision_sub_mod(x3, x3, t1);            // x3=x3-t1
-  multiprecision_sub_mod(x3, x3, z1);            // x3=x3-t4
-  multiprecision_sub_mod(y3, y3, x3);            // t3=t3-x3
-  multiprecision_mersenns_mult_mod(y3, y3, t2);  // t3=t3*t2
-  multiprecision_mersenns_mult_mod(z1, z1, y1);  // t4=t4*t1
+  multiprecision_mersenns_mult_mod(z3, z1, t1); // z3=z1*t1
+  multiprecision_mersenns_squa_mod(y3, t1);     // t3=t1^2
+  multiprecision_mersenns_mult_mod(z1, y3, t1); // t4=t3*t1
+  multiprecision_mersenns_mult_mod(y3, y3, x1); // t3=t3*x1
+  multiprecision_lshift_mod(t1, y3);            // t1=2*t3
+  multiprecision_mersenns_squa_mod(x3, t2);     // x3=t2^2
+  multiprecision_sub_mod(x3, x3, t1);           // x3=x3-t1
+  multiprecision_sub_mod(x3, x3, z1);           // x3=x3-t4
+  multiprecision_sub_mod(y3, y3, x3);           // t3=t3-x3
+  multiprecision_mersenns_mult_mod(y3, y3, t2); // t3=t3*t2
+  multiprecision_mersenns_mult_mod(z1, z1, y1); // t4=t4*t1
   multiprecision_sub_mod(y3, y3, z1);
 }
 
@@ -163,25 +161,26 @@ static void ECC_NAF(uint8_t* naf, uint32_t* NumNAF, uint32_t* k) {
   uint32_t var;
 
   while ((var = multiprecision_most_signbits(k)) >= 1) {
-    if (k[0] & 0x01)  // k is odd
+    if (k[0] & 0x01) // k is odd
     {
-      sign = (k[0] & 0x03);  // 1 or 3
+      sign = (k[0] & 0x03); // 1 or 3
 
       // k = k-naf[i]
-      if (sign == 1)
+      if (sign == 1) {
         k[0] = k[0] & 0xFFFFFFFE;
-      else {
+      } else {
         k[0] = k[0] + 1;
-        if (k[0] == 0)  // overflow
+        if (k[0] == 0) // overflow
         {
           j = 1;
           do {
             k[j]++;
-          } while (k[j++] == 0);  // overflow
+          } while (k[j++] == 0); // overflow
         }
       }
-    } else
+    } else {
       sign = 0;
+    }
 
     multiprecision_rshift(k, k);
     naf[i / 4] |= (sign) << ((i % 4) * 2);

@@ -28,7 +28,7 @@ namespace facade {
 class HciFacadeService;
 
 class HciFacadeModule : public ::bluetooth::grpc::GrpcFacadeModule {
- public:
+public:
   static const ModuleFactory Factory;
 
   void ListDependencies(ModuleList* list) const override;
@@ -36,10 +36,10 @@ class HciFacadeModule : public ::bluetooth::grpc::GrpcFacadeModule {
   void Stop() override;
   ::grpc::Service* GetService() const override;
 
- private:
+private:
   HciFacadeService* service_;
 };
 
-}  // namespace facade
-}  // namespace hci
-}  // namespace bluetooth
+} // namespace facade
+} // namespace hci
+} // namespace bluetooth

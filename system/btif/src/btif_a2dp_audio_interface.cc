@@ -25,6 +25,7 @@
 #include <base/callback.h>
 #include <base/location.h>
 #include <hwbinder/ProcessState.h>
+
 #include <mutex>
 
 #include "audio_a2dp_hw/include/audio_a2dp_hw.h"
@@ -39,26 +40,26 @@
 #include "os/log.h"
 #include "stack/include/a2dp_codec_api.h"
 #include "stack/include/avdt_api.h"
-#include "stack/include/btu.h"  // do_in_main_thread
+#include "stack/include/btu.h" // do_in_main_thread
 
 using bluetooth::common::A2dpSessionMetrics;
 using bluetooth::common::BluetoothMetricsLogger;
 
-using android::hardware::bluetooth::a2dp::V1_0::IBluetoothAudioOffload;
-using android::hardware::bluetooth::a2dp::V1_0::IBluetoothAudioHost;
-using android::hardware::bluetooth::a2dp::V1_0::Status;
-using android::hardware::bluetooth::a2dp::V1_0::CodecConfiguration;
-using android::hardware::bluetooth::a2dp::V1_0::CodecType;
-using android::hardware::bluetooth::a2dp::V1_0::SampleRate;
-using android::hardware::bluetooth::a2dp::V1_0::BitsPerSample;
-using android::hardware::bluetooth::a2dp::V1_0::ChannelMode;
+using ::android::sp;
+using ::android::wp;
+using ::android::hardware::hidl_death_recipient;
+using ::android::hardware::hidl_vec;
 using android::hardware::ProcessState;
 using ::android::hardware::Return;
 using ::android::hardware::Void;
-using ::android::hardware::hidl_death_recipient;
-using ::android::hardware::hidl_vec;
-using ::android::sp;
-using ::android::wp;
+using android::hardware::bluetooth::a2dp::V1_0::BitsPerSample;
+using android::hardware::bluetooth::a2dp::V1_0::ChannelMode;
+using android::hardware::bluetooth::a2dp::V1_0::CodecConfiguration;
+using android::hardware::bluetooth::a2dp::V1_0::CodecType;
+using android::hardware::bluetooth::a2dp::V1_0::IBluetoothAudioHost;
+using android::hardware::bluetooth::a2dp::V1_0::IBluetoothAudioOffload;
+using android::hardware::bluetooth::a2dp::V1_0::SampleRate;
+using android::hardware::bluetooth::a2dp::V1_0::Status;
 android::sp<IBluetoothAudioOffload> btAudio;
 
 #define CASE_RETURN_STR(const) \
@@ -78,7 +79,7 @@ static void btif_a2dp_audio_interface_restart_session();
 // static void btif_a2dp_audio_send_sink_latency();
 
 class A2dpOffloadAudioStats {
- public:
+public:
   A2dpOffloadAudioStats() { Reset(); }
   void Reset() {
     std::lock_guard<std::recursive_mutex> lock(lock_);
@@ -122,7 +123,7 @@ class A2dpOffloadAudioStats {
     codec_index_ = codec_index;
   }
 
- private:
+private:
   std::recursive_mutex lock_;
   int64_t audio_start_time_ms_ = -1;
   int64_t audio_stop_time_ms_ = -1;
@@ -132,7 +133,7 @@ class A2dpOffloadAudioStats {
 static A2dpOffloadAudioStats a2dp_offload_audio_stats;
 
 class BluetoothAudioHost : public IBluetoothAudioHost {
- public:
+public:
   Return<void> startStream() override {
     btif_a2dp_audio_send_start_req();
     return Void();
@@ -155,18 +156,15 @@ class BluetoothAudioHost : public IBluetoothAudioHost {
 };
 
 class BluetoothAudioDeathRecipient : public hidl_death_recipient {
- public:
-  void serviceDied(
-      uint64_t /*cookie*/,
-      const wp<::android::hidl::base::V1_0::IBase>& /*who*/) override {
+public:
+  void serviceDied(uint64_t /*cookie*/,
+                   const wp<::android::hidl::base::V1_0::IBase>& /*who*/) override {
     log::error("");
     // Restart the session on the correct thread
-    do_in_main_thread(FROM_HERE,
-                      base::Bind(&btif_a2dp_audio_interface_restart_session));
+    do_in_main_thread(FROM_HERE, base::Bind(&btif_a2dp_audio_interface_restart_session));
   }
 };
-sp<BluetoothAudioDeathRecipient> bluetoothAudioDeathRecipient =
-    new BluetoothAudioDeathRecipient();
+sp<BluetoothAudioDeathRecipient> bluetoothAudioDeathRecipient = new BluetoothAudioDeathRecipient();
 
 static Status mapToStatus(uint8_t resp) {
   switch (resp) {
@@ -187,14 +185,13 @@ static Status mapToStatus(uint8_t resp) {
   }
 }
 
-static void btif_a2dp_get_codec_configuration(
-    CodecConfiguration* p_codec_info) {
+static void btif_a2dp_get_codec_configuration(CodecConfiguration* p_codec_info) {
   log::info("");
   tBT_A2DP_OFFLOAD a2dp_offload;
   A2dpCodecConfig* a2dpCodecConfig = bta_av_get_a2dp_current_codec();
   if (!a2dpCodecConfig) {
-      APPL_TRACE_ERROR("%s: failed to get current a2dp codec config", __func__);
-      return;
+    APPL_TRACE_ERROR("%s: failed to get current a2dp codec config", __func__);
+    return;
   }
 
   a2dpCodecConfig->getCodecSpecificConfig(&a2dp_offload);
@@ -204,46 +201,35 @@ static void btif_a2dp_get_codec_configuration(
   switch (codec_config.codec_type) {
     case BTAV_A2DP_CODEC_INDEX_SOURCE_SBC:
       p_codec_info->codecType =
-          (::android::hardware::bluetooth::a2dp::V1_0::CodecType)
-              BTA_AV_CODEC_TYPE_SBC;
-      p_codec_info->codecSpecific.sbcData.codecParameters =
-          a2dp_offload.codec_info[0];
+              (::android::hardware::bluetooth::a2dp::V1_0::CodecType)BTA_AV_CODEC_TYPE_SBC;
+      p_codec_info->codecSpecific.sbcData.codecParameters = a2dp_offload.codec_info[0];
       log::info("codec parameters ={}", a2dp_offload.codec_info[0]);
-      p_codec_info->codecSpecific.sbcData.minBitpool =
-          a2dp_offload.codec_info[1];
-      p_codec_info->codecSpecific.sbcData.maxBitpool =
-          a2dp_offload.codec_info[2];
+      p_codec_info->codecSpecific.sbcData.minBitpool = a2dp_offload.codec_info[1];
+      p_codec_info->codecSpecific.sbcData.maxBitpool = a2dp_offload.codec_info[2];
       break;
     case BTAV_A2DP_CODEC_INDEX_SOURCE_AAC:
       p_codec_info->codecType =
-          (::android::hardware::bluetooth::a2dp::V1_0::CodecType)
-              BTA_AV_CODEC_TYPE_AAC;
+              (::android::hardware::bluetooth::a2dp::V1_0::CodecType)BTA_AV_CODEC_TYPE_AAC;
       break;
     case BTAV_A2DP_CODEC_INDEX_SOURCE_APTX:
       p_codec_info->codecType =
-          (::android::hardware::bluetooth::a2dp::V1_0::CodecType)
-              BTA_AV_CODEC_TYPE_APTX;
+              (::android::hardware::bluetooth::a2dp::V1_0::CodecType)BTA_AV_CODEC_TYPE_APTX;
       break;
     case BTAV_A2DP_CODEC_INDEX_SOURCE_APTX_HD:
       p_codec_info->codecType =
-          (::android::hardware::bluetooth::a2dp::V1_0::CodecType)
-              BTA_AV_CODEC_TYPE_APTXHD;
+              (::android::hardware::bluetooth::a2dp::V1_0::CodecType)BTA_AV_CODEC_TYPE_APTXHD;
       break;
     case BTAV_A2DP_CODEC_INDEX_SOURCE_APTX_ADAPTIVE:
-      p_codec_info->codecType =
-          (::android::hardware::bluetooth::a2dp::V1_0::CodecType)
+      p_codec_info->codecType = (::android::hardware::bluetooth::a2dp::V1_0::CodecType)
               BTA_AV_CODEC_TYPE_APTX_ADAPTIVE;
       break;
     case BTAV_A2DP_CODEC_INDEX_SOURCE_LDAC:
       p_codec_info->codecType =
-          (::android::hardware::bluetooth::a2dp::V1_0::CodecType)
-              BTA_AV_CODEC_TYPE_LDAC;
-      p_codec_info->codecSpecific.ldacData.bitrateIndex =
-          a2dp_offload.codec_info[6];
+              (::android::hardware::bluetooth::a2dp::V1_0::CodecType)BTA_AV_CODEC_TYPE_LDAC;
+      p_codec_info->codecSpecific.ldacData.bitrateIndex = a2dp_offload.codec_info[6];
       break;
     default:
-      APPL_TRACE_ERROR("%s: Unknown Codec type :%d ", __func__,
-                       codec_config.codec_type);
+      APPL_TRACE_ERROR("%s: Unknown Codec type :%d ", __func__, codec_config.codec_type);
   }
 
   // Obtain the MTU
@@ -256,17 +242,15 @@ static void btif_a2dp_get_codec_configuration(
   } else {
     p_codec_info->peerMtu = peer_param.peer_mtu;
   }
-  log::info("peer MTU: {} effective MTU: {} result MTU: {}", peer_param.peer_mtu, effectiveMtu, p_codec_info->peerMtu);
+  log::info("peer MTU: {} effective MTU: {} result MTU: {}", peer_param.peer_mtu, effectiveMtu,
+            p_codec_info->peerMtu);
 
   p_codec_info->sampleRate =
-      (::android::hardware::bluetooth::a2dp::V1_0::SampleRate)
-          codec_config.sample_rate;
+          (::android::hardware::bluetooth::a2dp::V1_0::SampleRate)codec_config.sample_rate;
   p_codec_info->bitsPerSample =
-      (::android::hardware::bluetooth::a2dp::V1_0::BitsPerSample)
-          codec_config.bits_per_sample;
+          (::android::hardware::bluetooth::a2dp::V1_0::BitsPerSample)codec_config.bits_per_sample;
   p_codec_info->channelMode =
-      (::android::hardware::bluetooth::a2dp::V1_0::ChannelMode)
-          codec_config.channel_mode;
+          (::android::hardware::bluetooth::a2dp::V1_0::ChannelMode)codec_config.channel_mode;
   p_codec_info->encodedAudioBitrate = a2dpCodecConfig->getTrackBitRate();
 }
 
@@ -281,7 +265,8 @@ static void btif_a2dp_audio_interface_init() {
     log::error("Cannot observe the Bluetooth Audio HAL's death");
   }
 
-  log::info("IBluetoothAudioOffload::getService() returned {} ({})", fmt::ptr(btAudio.get()), (btAudio->isRemote() ? "remote" : "local"));
+  log::info("IBluetoothAudioOffload::getService() returned {} ({})", fmt::ptr(btAudio.get()),
+            (btAudio->isRemote() ? "remote" : "local"));
 
   log::info("Init returned");
 }
@@ -300,7 +285,7 @@ static void btif_a2dp_audio_interface_deinit() {
 void btif_a2dp_audio_interface_start_session() {
   log::info("");
   BluetoothMetricsLogger::GetInstance()->LogBluetoothSessionStart(
-      bluetooth::common::CONNECTION_TECHNOLOGY_TYPE_BREDR, 0);
+          bluetooth::common::CONNECTION_TECHNOLOGY_TYPE_BREDR, 0);
   a2dp_offload_audio_stats.Reset();
   btif_a2dp_audio_interface_init();
   CHECK(btAudio != nullptr);
@@ -314,9 +299,11 @@ void btif_a2dp_audio_interface_end_session() {
   log::info("");
   a2dp_offload_audio_stats.LogAudioStopMetricsAndReset();
   BluetoothMetricsLogger::GetInstance()->LogBluetoothSessionEnd(
-      bluetooth::common::DISCONNECT_REASON_UNKNOWN, 0);
+          bluetooth::common::DISCONNECT_REASON_UNKNOWN, 0);
   a2dp_offload_audio_stats.Reset();
-  if (btAudio == nullptr) return;
+  if (btAudio == nullptr) {
+    return;
+  }
   auto ret = btAudio->endSession();
   if (!ret.isOk()) {
     log::error("HAL server is dead");
@@ -388,7 +375,9 @@ void btif_a2dp_audio_send_start_req() {
     if (status == Status::SUCCESS) {
       a2dp_offload_audio_stats.LogAudioStart();
     }
-    if (!ret.isOk()) log::error("HAL server died");
+    if (!ret.isOk()) {
+      log::error("HAL server died");
+    }
   }
 }
 void btif_a2dp_audio_send_suspend_req() {
@@ -401,7 +390,9 @@ void btif_a2dp_audio_send_suspend_req() {
     if (status == Status::SUCCESS) {
       a2dp_offload_audio_stats.LogAudioStopMetricsAndReset();
     }
-    if (!ret.isOk()) log::error("HAL server died");
+    if (!ret.isOk()) {
+      log::error("HAL server died");
+    }
   }
 }
 
@@ -432,8 +423,7 @@ uint8_t btif_a2dp_audio_process_request(uint8_t cmd) {
        * while in a call, and respond with BAD_STATE.
        */
       if (!bluetooth::headset::IsCallIdle()) {
-        APPL_TRACE_WARNING("%s: A2DP command %s failed as call state is busy",
-                           __func__,
+        APPL_TRACE_WARNING("%s: A2DP command %s failed as call state is busy", __func__,
                            audio_a2dp_hw_dump_ctrl_event((tA2DP_CTRL_CMD)cmd));
         status = A2DP_CTRL_ACK_INCALL_FAILURE;
         break;
@@ -462,15 +452,13 @@ uint8_t btif_a2dp_audio_process_request(uint8_t cmd) {
         break;
       }
 
-      APPL_TRACE_WARNING("%s: A2DP command %s while AV stream is not ready",
-                         __func__,
+      APPL_TRACE_WARNING("%s: A2DP command %s while AV stream is not ready", __func__,
                          audio_a2dp_hw_dump_ctrl_event((tA2DP_CTRL_CMD)cmd));
       status = A2DP_CTRL_ACK_FAILURE;
       break;
 
     case A2DP_CTRL_CMD_STOP:
-      if (btif_av_get_peer_sep() == AVDT_TSEP_SNK &&
-          !btif_a2dp_source_is_streaming()) {
+      if (btif_av_get_peer_sep() == AVDT_TSEP_SNK && !btif_a2dp_source_is_streaming()) {
         /* We are already stopped, just ack back */
         status = A2DP_CTRL_ACK_SUCCESS;
         break;
@@ -504,7 +492,8 @@ uint8_t btif_a2dp_audio_process_request(uint8_t cmd) {
       status = A2DP_CTRL_ACK_FAILURE;
       break;
   }
-  log::info("a2dp-ctrl-cmd : {} DONE returning status {}", audio_a2dp_hw_dump_ctrl_event((tA2DP_CTRL_CMD)cmd), status);
+  log::info("a2dp-ctrl-cmd : {} DONE returning status {}",
+            audio_a2dp_hw_dump_ctrl_event((tA2DP_CTRL_CMD)cmd), status);
   if (status == A2DP_CTRL_ACK_PENDING) {
     a2dp_cmd_pending = cmd;
   } else {

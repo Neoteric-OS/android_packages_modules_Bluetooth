@@ -57,7 +57,7 @@ struct ControllerQuirks {
 // and the capabilities of the Link Manager and Baseband in the BR/EDR
 // Controller. The Host device cannot modify any of these parameters.
 struct ControllerProperties {
- public:
+public:
   ControllerProperties();
   ControllerProperties(rootcanal::configuration::Controller const&);
   ControllerProperties(ControllerProperties const&) = default;
@@ -90,7 +90,7 @@ struct ControllerProperties {
   LmpVersion lmp_version{LmpVersion::V_5_3};
   uint16_t hci_subversion{0};
   uint16_t lmp_subversion{0};
-  uint16_t company_identifier{0x00E0};  // Google
+  uint16_t company_identifier{0x00E0}; // Google
 
   // Transports.
   bool br_supported{true};
@@ -181,14 +181,13 @@ struct ControllerProperties {
 
   bool SupportsCommand(bluetooth::hci::OpCodeIndex op_code) const {
     int index = static_cast<int>(op_code);
-    return (supported_commands[index / 10] & (UINT64_C(1) << (index % 10))) !=
-           0;
+    return (supported_commands[index / 10] & (UINT64_C(1) << (index % 10))) != 0;
   }
 
   /// Return a bit mask with all supported PHYs
   /// (0b001 = LE_1M, 0b010 = LE_2M, 0b100 = LE_CODED).
   uint8_t LeSupportedPhys() const {
-    uint8_t supported_phys = 0x1;  // LE_1M is always supported.
+    uint8_t supported_phys = 0x1; // LE_1M is always supported.
     if (SupportsLLFeature(bluetooth::hci::LLFeaturesBits::LE_2M_PHY)) {
       supported_phys |= 0x2;
     }
@@ -199,4 +198,4 @@ struct ControllerProperties {
   }
 };
 
-}  // namespace rootcanal
+} // namespace rootcanal

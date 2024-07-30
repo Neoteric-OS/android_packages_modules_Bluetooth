@@ -53,4 +53,4 @@ void a2dp_vendor_ldac_decoder_suspend(void);
 // A2DP LDAC decoder configuration.
 void a2dp_vendor_ldac_decoder_configure(const uint8_t* p_codec_info);
 
-#endif  // A2DP_VENDOR_LDAC_DECODER_H
+#endif // A2DP_VENDOR_LDAC_DECODER_H

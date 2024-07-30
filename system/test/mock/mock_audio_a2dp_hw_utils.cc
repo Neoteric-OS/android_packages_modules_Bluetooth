@@ -38,9 +38,9 @@ namespace audio_a2dp_hw_utils {
 struct audio_a2dp_hw_dump_ctrl_event audio_a2dp_hw_dump_ctrl_event;
 struct delay_reporting_enabled delay_reporting_enabled;
 
-}  // namespace audio_a2dp_hw_utils
-}  // namespace mock
-}  // namespace test
+} // namespace audio_a2dp_hw_utils
+} // namespace mock
+} // namespace test
 
 // Mocked function return values, if any
 namespace test {
@@ -50,9 +50,9 @@ namespace audio_a2dp_hw_utils {
 const char* audio_a2dp_hw_dump_ctrl_event::return_value = nullptr;
 bool delay_reporting_enabled::return_value = false;
 
-}  // namespace audio_a2dp_hw_utils
-}  // namespace mock
-}  // namespace test
+} // namespace audio_a2dp_hw_utils
+} // namespace mock
+} // namespace test
 
 // Mocked functions, if any
 const char* audio_a2dp_hw_dump_ctrl_event(tA2DP_CTRL_CMD event) {

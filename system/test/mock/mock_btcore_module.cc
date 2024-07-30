@@ -40,9 +40,9 @@ struct module_management_stop module_management_stop;
 struct module_shut_down module_shut_down;
 struct module_start_up module_start_up;
 
-}  // namespace btcore_module
-}  // namespace mock
-}  // namespace test
+} // namespace btcore_module
+} // namespace mock
+} // namespace test
 
 // Mocked functions, if any
 const module_t* get_module(const char* name) {

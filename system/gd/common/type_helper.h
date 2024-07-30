@@ -27,5 +27,5 @@ struct is_specialization_of : std::false_type {};
 template <template <typename...> class TemplateType, typename... Args>
 struct is_specialization_of<TemplateType<Args...>, TemplateType> : std::true_type {};
 
-}  // namespace common
-}  // namespace bluetooth
+} // namespace common
+} // namespace bluetooth

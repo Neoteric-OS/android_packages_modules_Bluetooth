@@ -24,7 +24,7 @@
 namespace bluetooth::le_audio {
 
 class ContentControlIdKeeper {
- public:
+public:
   ContentControlIdKeeper();
   ~ContentControlIdKeeper() = default;
   static ContentControlIdKeeper* GetInstance(void) {
@@ -38,8 +38,8 @@ class ContentControlIdKeeper {
   int GetCcid(types::LeAudioContextType context_type) const;
   std::vector<uint8_t> GetAllCcids(const types::AudioContexts& contexts) const;
 
- private:
+private:
   struct impl;
   std::unique_ptr<impl> pimpl_;
 };
-}  // namespace bluetooth::le_audio
+} // namespace bluetooth::le_audio

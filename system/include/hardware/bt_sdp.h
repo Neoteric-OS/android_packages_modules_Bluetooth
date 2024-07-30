@@ -29,15 +29,15 @@ __BEGIN_DECLS
  * These events are handled by the state machine
  */
 typedef enum {
-  SDP_TYPE_RAW,         // Used to carry raw SDP search data for unknown UUIDs
-  SDP_TYPE_MAP_MAS,     // Message Access Profile - Server
-  SDP_TYPE_MAP_MNS,     // Message Access Profile - Client (Notification Server)
-  SDP_TYPE_PBAP_PSE,    // Phone Book Profile - Server
-  SDP_TYPE_PBAP_PCE,    // Phone Book Profile - Client
-  SDP_TYPE_OPP_SERVER,  // Object Push Profile
-  SDP_TYPE_SAP_SERVER,  // SIM Access Profile
-  SDP_TYPE_DIP,         // Device Identification Profile
-  SDP_TYPE_MPS          // Multi-Profile Specification
+  SDP_TYPE_RAW,        // Used to carry raw SDP search data for unknown UUIDs
+  SDP_TYPE_MAP_MAS,    // Message Access Profile - Server
+  SDP_TYPE_MAP_MNS,    // Message Access Profile - Client (Notification Server)
+  SDP_TYPE_PBAP_PSE,   // Phone Book Profile - Server
+  SDP_TYPE_PBAP_PCE,   // Phone Book Profile - Client
+  SDP_TYPE_OPP_SERVER, // Object Push Profile
+  SDP_TYPE_SAP_SERVER, // SIM Access Profile
+  SDP_TYPE_DIP,        // Device Identification Profile
+  SDP_TYPE_MPS         // Multi-Profile Specification
 } bluetooth_sdp_types;
 
 typedef struct _bluetooth_sdp_hdr {
@@ -132,10 +132,8 @@ typedef union {
 } bluetooth_sdp_record;
 
 /** Callback for SDP search */
-typedef void (*btsdp_search_callback)(bt_status_t status,
-                                      const RawAddress& bd_addr,
-                                      const bluetooth::Uuid& uuid,
-                                      int num_records,
+typedef void (*btsdp_search_callback)(bt_status_t status, const RawAddress& bd_addr,
+                                      const bluetooth::Uuid& uuid, int num_records,
                                       bluetooth_sdp_record* records);
 
 typedef struct {
@@ -170,8 +168,7 @@ typedef struct {
    * record_handle    (out)The corresponding record handle will be written to
    * this pointer.
    */
-  bt_status_t (*create_sdp_record)(bluetooth_sdp_record* record,
-                                   int* record_handle);
+  bt_status_t (*create_sdp_record)(bluetooth_sdp_record* record, int* record_handle);
 
   /** Remove a SDP record created by createSdpRecord */
   bt_status_t (*remove_sdp_record)(int sdp_handle);
@@ -185,6 +182,6 @@ __END_DECLS
 namespace fmt {
 template <>
 struct formatter<bluetooth_sdp_types> : enum_formatter<bluetooth_sdp_types> {};
-}  // namespace fmt
+} // namespace fmt
 
-#endif  // __has_include(<bluetooth/log.h>)
+#endif // __has_include(<bluetooth/log.h>)

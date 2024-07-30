@@ -38,6 +38,6 @@ constexpr int kMaximumBufferSize = 32768;
 // Thread constants.
 constexpr char kWorkerThreadName[] = "bt_mmc_worker_thread";
 constexpr int kThreadCheckTimeout = 1;
-}  // namespace mmc
+} // namespace mmc
 
-#endif  // MMC_DAEMON_DBUS_CONSTANTS_H_
+#endif // MMC_DAEMON_DBUS_CONSTANTS_H_

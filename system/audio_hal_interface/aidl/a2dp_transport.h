@@ -30,9 +30,8 @@ using ::bluetooth::audio::aidl::LatencyMode;
 BluetoothAudioCtrlAck a2dp_ack_to_bt_audio_ctrl_ack(tA2DP_CTRL_ACK ack);
 
 // Provide call-in APIs for the Bluetooth Audio HAL
-class A2dpTransport
-    : public ::bluetooth::audio::aidl::IBluetoothSinkTransportInstance {
- public:
+class A2dpTransport : public ::bluetooth::audio::aidl::IBluetoothSinkTransportInstance {
+public:
   A2dpTransport(SessionType sessionType);
 
   BluetoothAudioCtrlAck StartRequest(bool is_low_latency) override;
@@ -43,8 +42,7 @@ class A2dpTransport
 
   void SetLatencyMode(LatencyMode latency_mode) override;
 
-  bool GetPresentationPosition(uint64_t* remote_delay_report_ns,
-                               uint64_t* total_bytes_read,
+  bool GetPresentationPosition(uint64_t* remote_delay_report_ns, uint64_t* total_bytes_read,
                                timespec* data_position) override;
 
   void SourceMetadataChanged(const source_metadata_v7_t& source_metadata);
@@ -62,15 +60,15 @@ class A2dpTransport
   // delay reports from AVDTP is based on 1/10 ms (100us)
   void SetRemoteDelay(uint16_t delay_report);
 
- private:
+private:
   static tA2DP_CTRL_CMD a2dp_pending_cmd_;
   static uint16_t remote_delay_report_;
   uint64_t total_bytes_read_;
   timespec data_position_;
 };
-}  // namespace
+} // namespace
 
-}  // namespace a2dp
-}  // namespace aidl
-}  // namespace audio
-}  // namespace bluetooth
+} // namespace a2dp
+} // namespace aidl
+} // namespace audio
+} // namespace bluetooth

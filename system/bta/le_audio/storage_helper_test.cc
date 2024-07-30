@@ -186,8 +186,7 @@ TEST(StorageHelperTest, DeserializeSourcePacs) {
   ASSERT_TRUE(serialize == validSourcePack);
 
   ASSERT_FALSE(DeserializeSourcePacs(&leAudioDevice, invalidSourcePackMagic));
-  ASSERT_FALSE(
-      DeserializeSourcePacs(&leAudioDevice, invalidSourcePackNumOfPacs));
+  ASSERT_FALSE(DeserializeSourcePacs(&leAudioDevice, invalidSourcePackNumOfPacs));
 }
 
 TEST(StorageHelperTest, DeserializeAses) {
@@ -309,4 +308,4 @@ TEST(StorageHelperTest, DeserializeHandles) {
   ASSERT_FALSE(DeserializeHandles(&leAudioDevice, invalidHandlesMagic));
   ASSERT_FALSE(DeserializeHandles(&leAudioDevice, invalidHandles));
 }
-}  // namespace bluetooth::le_audio
+} // namespace bluetooth::le_audio

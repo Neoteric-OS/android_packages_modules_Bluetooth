@@ -24,10 +24,10 @@ namespace test {
 namespace headless {
 
 class Read : public HeadlessTest<int> {
- public:
+public:
   Read(const bluetooth::test::headless::GetOpt& options);
 };
 
-}  // namespace headless
-}  // namespace test
-}  // namespace bluetooth
+} // namespace headless
+} // namespace test
+} // namespace bluetooth

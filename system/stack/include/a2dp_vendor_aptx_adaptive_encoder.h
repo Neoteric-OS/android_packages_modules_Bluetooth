@@ -40,7 +40,7 @@
 #define A2DP_VENDOR_APTX_ADAPTIVE_ENCODER_H
 
 #include "a2dp_codec_api.h"
-//#include "osi/include/time.h"
+// #include "osi/include/time.h"
 
 // Loads the A2DP aptX-adaptive encoder.
 // Return true on success, otherwise false.
@@ -54,11 +54,10 @@ void A2DP_VendorUnloadEncoderAptxAdaptive(void);
 // The current A2DP codec config is in |a2dp_codec_config|.
 // |read_callback| is the callback for reading the input audio data.
 // |enqueue_callback| is the callback for enqueueing the encoded audio data.
-void a2dp_vendor_aptx_adaptive_encoder_init(
-    const tA2DP_ENCODER_INIT_PEER_PARAMS* p_peer_params,
-    A2dpCodecConfig* a2dp_codec_config,
-    a2dp_source_read_callback_t read_callback,
-    a2dp_source_enqueue_callback_t enqueue_callback);
+void a2dp_vendor_aptx_adaptive_encoder_init(const tA2DP_ENCODER_INIT_PEER_PARAMS* p_peer_params,
+                                            A2dpCodecConfig* a2dp_codec_config,
+                                            a2dp_source_read_callback_t read_callback,
+                                            a2dp_source_enqueue_callback_t enqueue_callback);
 
 // Cleanup the A2DP aptX-adaptive encoder.
 void a2dp_vendor_aptx_adaptive_encoder_cleanup(void);
@@ -78,4 +77,4 @@ void a2dp_vendor_aptx_adaptive_send_frames(uint64_t timestamp_us);
 
 int a2dp_vendor_aptx_adaptive_get_effective_frame_size();
 
-#endif  // A2DP_VENDOR_APTX_ADAPTIVE_ENCODER_H
+#endif // A2DP_VENDOR_APTX_ADAPTIVE_ENCODER_H

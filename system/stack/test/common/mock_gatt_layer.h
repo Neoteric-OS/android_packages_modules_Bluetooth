@@ -26,17 +26,16 @@ namespace bluetooth {
 namespace gatt {
 
 class GattInterface {
- public:
+public:
   virtual void ClientInitServerStatus(tGATT_TCB& tcb) = 0;
   virtual bool ClientReadSupportedFeatures(
-      const RawAddress& peer_bda,
-      base::OnceCallback<void(const RawAddress&, uint8_t)> cb) = 0;
+          const RawAddress& peer_bda, base::OnceCallback<void(const RawAddress&, uint8_t)> cb) = 0;
   virtual bool GetEattSupport(const RawAddress& peer_bda) = 0;
   virtual ~GattInterface() = default;
 };
 
 class MockGattInterface : public GattInterface {
- public:
+public:
   MOCK_METHOD1(ClientInitServerStatus, void(tGATT_TCB& tcb));
   MOCK_METHOD2(ClientReadSupportedFeatures,
                bool(const RawAddress& peer_bda,
@@ -51,5 +50,5 @@ class MockGattInterface : public GattInterface {
  */
 void SetMockGattInterface(MockGattInterface* mock_gatt_interface);
 
-}  // namespace gatt
-}  // namespace bluetooth
+} // namespace gatt
+} // namespace bluetooth

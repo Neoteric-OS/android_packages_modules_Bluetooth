@@ -39,6 +39,6 @@ enum class SecurityPolicy {
 
 };
 
-}  // namespace classic
-}  // namespace l2cap
-}  // namespace bluetooth
+} // namespace classic
+} // namespace l2cap
+} // namespace bluetooth

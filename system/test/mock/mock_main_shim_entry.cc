@@ -37,8 +37,8 @@ MockLeAdvertisingManager* mock_le_advertising_manager_{nullptr};
 MockLeScanningManager* mock_le_scanning_manager_{nullptr};
 MockDistanceMeasurementManager* mock_distance_measurement_manager_{nullptr};
 
-}  // namespace testing
-}  // namespace hci
+} // namespace testing
+} // namespace hci
 
 class Dumpsys;
 
@@ -46,16 +46,10 @@ namespace shim {
 
 Dumpsys* GetDumpsys() { return hci::testing::shim_dumpsys_; }
 hci::AclManager* GetAclManager() { return hci::testing::mock_acl_manager_; }
-hci::ControllerInterface* GetController() {
-  return hci::testing::mock_controller_;
-}
+hci::ControllerInterface* GetController() { return hci::testing::mock_controller_; }
 hci::HciInterface* GetHciLayer() { return hci::testing::mock_hci_layer_; }
-hci::LeAdvertisingManager* GetAdvertising() {
-  return hci::testing::mock_le_advertising_manager_;
-}
-hci::LeScanningManager* GetScanning() {
-  return hci::testing::mock_le_scanning_manager_;
-}
+hci::LeAdvertisingManager* GetAdvertising() { return hci::testing::mock_le_advertising_manager_; }
+hci::LeScanningManager* GetScanning() { return hci::testing::mock_le_scanning_manager_; }
 hci::DistanceMeasurementManager* GetDistanceMeasurementManager() {
   return hci::testing::mock_distance_measurement_manager_;
 }
@@ -68,5 +62,5 @@ hci::MsftExtensionManager* GetMsftExtensionManager() { return nullptr; }
 #endif
 hci::RemoteNameRequestModule* GetRemoteNameRequest() { return nullptr; }
 
-}  // namespace shim
-}  // namespace bluetooth
+} // namespace shim
+} // namespace bluetooth

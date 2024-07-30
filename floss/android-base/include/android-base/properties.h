@@ -23,11 +23,10 @@ namespace base {
 
 // Returns the current value of the system property `key`,
 // or `default_value` if the property is empty or doesn't exist.
-std::string GetProperty(const std::string& key,
-                        const std::string& default_value);
+std::string GetProperty(const std::string& key, const std::string& default_value);
 
 // Sets the system property `key` to `value`.
 bool SetProperty(const std::string& key, const std::string& value);
 
-}  // namespace base
-}  // namespace android
+} // namespace base
+} // namespace android

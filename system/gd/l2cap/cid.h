@@ -36,5 +36,5 @@ constexpr Cid kLeSignallingCid = 5;
 constexpr Cid kSmpCid = 6;
 constexpr Cid kSmpBrCid = 7;
 
-}  // namespace l2cap
-}  // namespace bluetooth
+} // namespace l2cap
+} // namespace bluetooth

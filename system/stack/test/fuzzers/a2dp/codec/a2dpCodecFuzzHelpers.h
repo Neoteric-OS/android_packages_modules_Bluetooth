@@ -21,7 +21,9 @@
 //       It is included by the corresponding "...Functions.h" file.
 
 #include <fuzzer/FuzzedDataProvider.h>
+
 #include <vector>
+
 #include "a2dp_codec_api.h"
 #include "fuzzers/a2dp/codec/a2dpCodecInfoFuzzHelpers.h"
 
@@ -43,4 +45,4 @@ void cleanupA2dpCodecFuzz() {
   cleanupA2dpCodecInfoFuzz();
 }
 
-#endif  // BT_STACK_FUZZ_A2DP_CODEC_HELPERS_H_
+#endif // BT_STACK_FUZZ_A2DP_CODEC_HELPERS_H_
