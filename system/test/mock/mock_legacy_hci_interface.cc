@@ -24,6 +24,6 @@ namespace bluetooth::legacy::hci {
 namespace testing {
 const MockInterface* interface_;
 void SetMock(const MockInterface& mock) { interface_ = &mock; }
-} // namespace testing
+}  // namespace testing
 const Interface& GetInterface() { return *testing::interface_; }
-} // namespace bluetooth::legacy::hci
+}  // namespace bluetooth::legacy::hci

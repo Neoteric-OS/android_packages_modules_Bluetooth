@@ -24,5 +24,5 @@ namespace shim {
 DistanceMeasurementInterface* get_distance_measurement_instance();
 void init_distance_measurement_manager();
 
-} // namespace shim
-} // namespace bluetooth
+}  // namespace shim
+}  // namespace bluetooth

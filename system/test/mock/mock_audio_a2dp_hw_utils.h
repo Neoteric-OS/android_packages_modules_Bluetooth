@@ -42,8 +42,8 @@ namespace audio_a2dp_hw_utils {
 struct audio_a2dp_hw_dump_ctrl_event {
   static const char* return_value;
   std::function<const char*(tA2DP_CTRL_CMD event)> body{
-          [](tA2DP_CTRL_CMD /* event */) { return return_value; }};
-  const char* operator()(tA2DP_CTRL_CMD event) { return body(event); }
+      [](tA2DP_CTRL_CMD /* event */) { return return_value; }};
+  const char* operator()(tA2DP_CTRL_CMD event) { return body(event); };
 };
 extern struct audio_a2dp_hw_dump_ctrl_event audio_a2dp_hw_dump_ctrl_event;
 
@@ -53,12 +53,12 @@ extern struct audio_a2dp_hw_dump_ctrl_event audio_a2dp_hw_dump_ctrl_event;
 struct delay_reporting_enabled {
   static bool return_value;
   std::function<bool()> body{[]() { return return_value; }};
-  bool operator()() { return body(); }
+  bool operator()() { return body(); };
 };
 extern struct delay_reporting_enabled delay_reporting_enabled;
 
-} // namespace audio_a2dp_hw_utils
-} // namespace mock
-} // namespace test
+}  // namespace audio_a2dp_hw_utils
+}  // namespace mock
+}  // namespace test
 
 // END mockcify generation

@@ -57,9 +57,9 @@ struct mgmt_rp_get_vs_opcode {
 
 // This class provides an interface to interact with the kernel.
 class Mgmt {
-public:
+ public:
   uint16_t get_vs_opcode(uint16_t vendor_specification);
 };
 
-} // namespace hal
-} // namespace bluetooth
+}  // namespace hal
+}  // namespace bluetooth

@@ -47,5 +47,5 @@ void AddressObfuscator::Initialize(const Octet32& salt_256bit) {
   salt_256bit_ = salt_256bit;
 }
 
-} // namespace common
-} // namespace bluetooth
+}  // namespace common
+}  // namespace bluetooth

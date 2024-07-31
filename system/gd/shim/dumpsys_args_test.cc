@@ -15,10 +15,9 @@
  */
 
 #include "shim/dumpsys_args.h"
+#include "shim/dumpsys.h"
 
 #include <gtest/gtest.h>
-
-#include "shim/dumpsys.h"
 
 using namespace bluetooth;
 
@@ -31,7 +30,7 @@ TEST(DumpsysArgsTest, no_args) {
 
 TEST(DumpsysArgsTest, parsed_args_without_dev) {
   const char* args[]{
-          nullptr,
+      nullptr,
   };
   shim::ParsedDumpsysArgs parsed_dumpsys_args(args);
   ASSERT_FALSE(parsed_dumpsys_args.IsDeveloper());
@@ -39,11 +38,11 @@ TEST(DumpsysArgsTest, parsed_args_without_dev) {
 
 TEST(DumpsysArgsTest, parsed_args_with_dev) {
   const char* args[]{
-          bluetooth::shim::kArgumentDeveloper,
-          nullptr,
+      bluetooth::shim::kArgumentDeveloper,
+      nullptr,
   };
   shim::ParsedDumpsysArgs parsed_dumpsys_args(args);
   ASSERT_TRUE(parsed_dumpsys_args.IsDeveloper());
 }
 
-} // namespace testing
+}  // namespace testing

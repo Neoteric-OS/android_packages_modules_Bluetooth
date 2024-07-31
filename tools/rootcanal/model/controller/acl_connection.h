@@ -35,9 +35,10 @@ enum AclConnectionState {
 
 // Model the connection of a device to the controller.
 class AclConnection {
-public:
+ public:
   AclConnection(AddressWithType address, AddressWithType own_address,
-                AddressWithType resolved_address, Phy::Type phy_type, bluetooth::hci::Role role);
+                AddressWithType resolved_address, Phy::Type phy_type,
+                bluetooth::hci::Role role);
 
   virtual ~AclConnection() = default;
 
@@ -52,7 +53,9 @@ public:
 
   void SetLinkPolicySettings(uint16_t settings);
   uint16_t GetLinkPolicySettings() const { return link_policy_settings_; }
-  bool IsRoleSwitchEnabled() const { return (link_policy_settings_ & 0x1) != 0; }
+  bool IsRoleSwitchEnabled() const {
+    return (link_policy_settings_ & 0x1) != 0;
+  }
   bool IsHoldModeEnabled() const { return (link_policy_settings_ & 0x2) != 0; }
   bool IsSniffModeEnabled() const { return (link_policy_settings_ & 0x4) != 0; }
 
@@ -79,7 +82,7 @@ public:
   void SetTxPhy(bluetooth::hci::PhyType phy) { tx_phy_ = phy; }
   void SetRxPhy(bluetooth::hci::PhyType phy) { rx_phy_ = phy; }
 
-private:
+ private:
   AddressWithType address_;
   AddressWithType own_address_;
   AddressWithType resolved_address_;
@@ -103,4 +106,4 @@ private:
   bool initiated_phy_update_{false};
 };
 
-} // namespace rootcanal
+}  // namespace rootcanal

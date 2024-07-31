@@ -36,9 +36,9 @@ namespace bta_dm_main {
 // Function state capture and return values, if needed
 struct DumpsysBtaDm DumpsysBtaDm;
 
-} // namespace bta_dm_main
-} // namespace mock
-} // namespace test
+}  // namespace bta_dm_main
+}  // namespace mock
+}  // namespace test
 
 // Mocked functions, if any
 void DumpsysBtaDm(int fd) {

@@ -24,7 +24,8 @@
 namespace bluetooth::le_audio {
 namespace has {
 
-void HasClient::Initialize(bluetooth::has::HasClientCallbacks*, base::RepeatingCallback<void()>) {
+void HasClient::Initialize(bluetooth::has::HasClientCallbacks*,
+                           base::RepeatingCallback<void()>) {
   inc_func_call_count(__func__);
 }
 void HasClient::CleanUp() { inc_func_call_count(__func__); }
@@ -33,7 +34,8 @@ bool HasClient::IsHasClientRunning() {
   inc_func_call_count(__func__);
   return false;
 }
-void HasClient::AddFromStorage(RawAddress const&, unsigned char, unsigned short) {
+void HasClient::AddFromStorage(RawAddress const&, unsigned char,
+                               unsigned short) {
   inc_func_call_count(__func__);
 }
 HasClient* HasClient::Get() {
@@ -41,5 +43,5 @@ HasClient* HasClient::Get() {
   return nullptr;
 }
 
-} // namespace has
-} // namespace bluetooth::le_audio
+}  // namespace has
+}  // namespace bluetooth::le_audio

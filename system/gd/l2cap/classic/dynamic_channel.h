@@ -24,6 +24,6 @@ namespace classic {
 
 using DynamicChannel = l2cap::DynamicChannel;
 
-} // namespace classic
-} // namespace l2cap
-} // namespace bluetooth
+}  // namespace classic
+}  // namespace l2cap
+}  // namespace bluetooth

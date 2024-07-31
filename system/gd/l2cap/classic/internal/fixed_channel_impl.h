@@ -34,7 +34,7 @@ class Link;
 
 class FixedChannelImpl : public l2cap::internal::ChannelImpl,
                          public bluetooth::common::IRedactableLoggable {
-public:
+  public:
   FixedChannelImpl(Cid cid, Link* link, os::Handler* l2cap_handler);
 
   FixedChannelImpl(const FixedChannelImpl&) = delete;
@@ -42,16 +42,19 @@ public:
 
   virtual ~FixedChannelImpl() = default;
 
-  hci::Address GetDevice() const { return device_.GetAddress(); }
+  hci::Address GetDevice() const {
+    return device_.GetAddress();
+  }
 
-  virtual void RegisterOnCloseCallback(os::Handler* user_handler,
-                                       FixedChannel::OnCloseCallback on_close_callback);
+  virtual void RegisterOnCloseCallback(os::Handler* user_handler, FixedChannel::OnCloseCallback on_close_callback);
 
   virtual void Acquire();
 
   virtual void Release();
 
-  virtual bool IsAcquired() const { return acquired_; }
+  virtual bool IsAcquired() const {
+    return acquired_;
+  }
 
   virtual void OnClosed(hci::ErrorCode status);
 
@@ -67,21 +70,23 @@ public:
     return ss.str();
   }
 
-  common::BidiQueueEnd<packet::BasePacketBuilder, packet::PacketView<packet::kLittleEndian>>*
-  GetQueueUpEnd() {
+  common::BidiQueueEnd<packet::BasePacketBuilder, packet::PacketView<packet::kLittleEndian>>* GetQueueUpEnd() {
     return channel_queue_.GetUpEnd();
   }
 
-  common::BidiQueueEnd<packet::PacketView<packet::kLittleEndian>, packet::BasePacketBuilder>*
-  GetQueueDownEnd() {
+  common::BidiQueueEnd<packet::PacketView<packet::kLittleEndian>, packet::BasePacketBuilder>* GetQueueDownEnd() {
     return channel_queue_.GetDownEnd();
   }
 
-  Cid GetCid() const { return cid_; }
+  Cid GetCid() const {
+    return cid_;
+  }
 
-  Cid GetRemoteCid() const { return cid_; }
+  Cid GetRemoteCid() const {
+    return cid_;
+  }
 
-private:
+ private:
   // Constructor states
   // For logging purpose only
   const Cid cid_;
@@ -100,11 +105,11 @@ private:
   bool closed_ = false;
   hci::ErrorCode close_reason_ = hci::ErrorCode::SUCCESS;
   static constexpr size_t kChannelQueueSize = 10;
-  common::BidiQueue<packet::PacketView<packet::kLittleEndian>, packet::BasePacketBuilder>
-          channel_queue_{kChannelQueueSize};
+  common::BidiQueue<packet::PacketView<packet::kLittleEndian>, packet::BasePacketBuilder> channel_queue_{
+      kChannelQueueSize};
 };
 
-} // namespace internal
-} // namespace classic
-} // namespace l2cap
-} // namespace bluetooth
+}  // namespace internal
+}  // namespace classic
+}  // namespace l2cap
+}  // namespace bluetooth

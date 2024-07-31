@@ -15,7 +15,6 @@
  */
 
 #include <string>
-
 #include "dumpsys/reflection_schema.h"
 
 namespace bluetooth {
@@ -23,5 +22,5 @@ namespace dumpsys {
 
 void FilterSchema(const ReflectionSchema& reflection_schema, std::string* dumpsys_data);
 
-} // namespace dumpsys
-} // namespace bluetooth
+}  // namespace dumpsys
+}  // namespace bluetooth

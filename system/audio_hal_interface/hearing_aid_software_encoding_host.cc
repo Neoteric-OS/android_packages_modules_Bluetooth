@@ -22,7 +22,8 @@ namespace hearing_aid {
 
 bool is_hal_enabled() { return false; }
 
-bool init(StreamCallbacks stream_cb, bluetooth::common::MessageLoopThread* message_loop) {
+bool init(StreamCallbacks stream_cb,
+          bluetooth::common::MessageLoopThread* message_loop) {
   return false;
 }
 
@@ -36,6 +37,6 @@ size_t read(uint8_t* p_buf, uint32_t len) { return 0; }
 
 void set_remote_delay(uint16_t delay_report_ms) {}
 
-} // namespace hearing_aid
-} // namespace audio
-} // namespace bluetooth
+}  // namespace hearing_aid
+}  // namespace audio
+}  // namespace bluetooth

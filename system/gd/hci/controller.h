@@ -31,7 +31,7 @@ namespace bluetooth {
 namespace hci {
 
 class Controller : public Module, public ControllerInterface {
-public:
+ public:
   Controller();
   Controller(const Controller&) = delete;
   Controller& operator=(const Controller&) = delete;
@@ -141,25 +141,27 @@ public:
   virtual void SetEventFilterInquiryResultAllDevices() override;
 
   virtual void SetEventFilterInquiryResultClassOfDevice(
-          ClassOfDevice class_of_device, ClassOfDevice class_of_device_mask) override;
+      ClassOfDevice class_of_device, ClassOfDevice class_of_device_mask) override;
 
   virtual void SetEventFilterInquiryResultAddress(Address address) override;
 
   virtual void SetEventFilterConnectionSetupAllDevices(AutoAcceptFlag auto_accept_flag) override;
 
-  virtual void SetEventFilterConnectionSetupClassOfDevice(ClassOfDevice class_of_device,
-                                                          ClassOfDevice class_of_device_mask,
-                                                          AutoAcceptFlag auto_accept_flag) override;
+  virtual void SetEventFilterConnectionSetupClassOfDevice(
+      ClassOfDevice class_of_device,
+      ClassOfDevice class_of_device_mask,
+      AutoAcceptFlag auto_accept_flag) override;
 
-  virtual void SetEventFilterConnectionSetupAddress(Address address,
-                                                    AutoAcceptFlag auto_accept_flag) override;
+  virtual void SetEventFilterConnectionSetupAddress(
+      Address address, AutoAcceptFlag auto_accept_flag) override;
 
   virtual void WriteLocalName(std::string local_name) override;
 
-  virtual void HostBufferSize(uint16_t host_acl_data_packet_length,
-                              uint8_t host_synchronous_data_packet_length,
-                              uint16_t host_total_num_acl_data_packets,
-                              uint16_t host_total_num_synchronous_data_packets) override;
+  virtual void HostBufferSize(
+      uint16_t host_acl_data_packet_length,
+      uint8_t host_synchronous_data_packet_length,
+      uint16_t host_total_num_acl_data_packets,
+      uint16_t host_total_num_synchronous_data_packets) override;
 
   // LE controller commands
   virtual void LeSetEventMask(uint64_t le_event_mask) override;
@@ -193,7 +195,7 @@ public:
 
   virtual uint32_t GetDabSupportedCodecs() const override;
   virtual const std::array<DynamicAudioBufferCodecCapability, 32>& GetDabCodecCapabilities()
-          const override;
+      const override;
 
   virtual void SetDabAudioBufferTime(uint16_t buffer_time_ms) override;
 
@@ -214,7 +216,7 @@ public:
 
   static uint64_t MaskLeEventMask(HciVersion version, uint64_t mask);
 
-protected:
+ protected:
   void ListDependencies(ModuleList* list) const override;
 
   void Start() override;
@@ -223,10 +225,9 @@ protected:
 
   std::string ToString() const override;
 
-  DumpsysDataFinisher GetDumpsysData(
-          flatbuffers::FlatBufferBuilder* builder) const override; // Module
+  DumpsysDataFinisher GetDumpsysData(flatbuffers::FlatBufferBuilder* builder) const override;  // Module
 
-private:
+ private:
   virtual uint64_t GetLocalFeatures(uint8_t page_number) const;
   virtual uint64_t GetLocalLeFeatures() const;
 
@@ -234,5 +235,5 @@ private:
   std::unique_ptr<impl> impl_;
 };
 
-} // namespace hci
-} // namespace bluetooth
+}  // namespace hci
+}  // namespace bluetooth

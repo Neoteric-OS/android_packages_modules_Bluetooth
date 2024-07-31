@@ -48,11 +48,12 @@ bool await_callback(Context& context);
 namespace sdp {
 
 CheckPoint get_check_point();
-bool await_service_discovery(const Timeout& timeout, const CheckPoint& check_point,
-                             const size_t count);
-std::deque<remote_device_properties_params_t> collect_from(CheckPoint& check_point);
+bool await_service_discovery(const Timeout& timeout,
+                             const CheckPoint& check_point, const size_t count);
+std::deque<remote_device_properties_params_t> collect_from(
+    CheckPoint& check_point);
 
-} // namespace sdp
-} // namespace messenger
+}  // namespace sdp
+}  // namespace messenger
 
-} // namespace bluetooth::test::headless
+}  // namespace bluetooth::test::headless

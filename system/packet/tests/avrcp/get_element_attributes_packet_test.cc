@@ -14,11 +14,10 @@
  * limitations under the License.
  */
 
-#include "get_element_attributes_packet.h"
-
 #include <gtest/gtest.h>
 
 #include "avrcp_test_packets.h"
+#include "get_element_attributes_packet.h"
 #include "packet_test_helper.h"
 
 namespace bluetooth {
@@ -28,7 +27,8 @@ using TestGetElemAttrReqPacket = TestPacketType<GetElementAttributesRequest>;
 
 TEST(GetElementAttributesRequestPacketTest, getterTest) {
   // Only Title is requested
-  auto test_packet = TestGetElemAttrReqPacket::Make(get_element_attributes_request_partial);
+  auto test_packet =
+      TestGetElemAttrReqPacket::Make(get_element_attributes_request_partial);
 
   ASSERT_EQ(test_packet->GetIdentifier(), 0u);
 
@@ -38,7 +38,8 @@ TEST(GetElementAttributesRequestPacketTest, getterTest) {
 
   // Title, Artist, Album, Media Numer, Playing Time, Total Number of Media,
   // and Genre requested
-  test_packet = TestGetElemAttrReqPacket::Make(get_element_attributes_request_full);
+  test_packet =
+      TestGetElemAttrReqPacket::Make(get_element_attributes_request_full);
 
   ASSERT_EQ(test_packet->GetIdentifier(), 0u);
 
@@ -54,10 +55,12 @@ TEST(GetElementAttributesRequestPacketTest, getterTest) {
 }
 
 TEST(GetElementAttributesRequestPacketTest, validTest) {
-  auto test_packet = TestGetElemAttrReqPacket::Make(get_element_attributes_request_partial);
+  auto test_packet =
+      TestGetElemAttrReqPacket::Make(get_element_attributes_request_partial);
   ASSERT_TRUE(test_packet->IsValid());
 
-  test_packet = TestGetElemAttrReqPacket::Make(get_element_attributes_request_full);
+  test_packet =
+      TestGetElemAttrReqPacket::Make(get_element_attributes_request_full);
   ASSERT_TRUE(test_packet->IsValid());
 }
 
@@ -67,7 +70,8 @@ TEST(GetElementAttributesRequestPacketTest, invalidTest) {
   auto test_packet = TestGetElemAttrReqPacket::Make(packet_copy);
   ASSERT_FALSE(test_packet->IsValid());
 
-  std::vector<uint8_t> short_packet = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+  std::vector<uint8_t> short_packet = {0x00, 0x00, 0x00, 0x00, 0x00,
+                                       0x00, 0x00, 0x00, 0x00, 0x00};
   test_packet = TestGetElemAttrReqPacket::Make(short_packet);
   ASSERT_FALSE(test_packet->IsValid());
 }
@@ -101,13 +105,20 @@ TEST(GetElementAttributesResponseBuilderTest, builderTest) {
 
 TEST(GetElementAttributesResponseBuilderTest, builderMtuTest) {
   std::vector<AttributeEntry> test_data = {
-          {Attribute::TITLE, "Test Song 1"},        {Attribute::ARTIST_NAME, "Test Artist"},
-          {Attribute::ALBUM_NAME, "Test Album"},    {Attribute::TRACK_NUMBER, "1"},
-          {Attribute::TOTAL_NUMBER_OF_TRACKS, "2"}, {Attribute::GENRE, "Test Genre"},
-          {Attribute::PLAYING_TIME, "10 200"},      {Attribute::TITLE, "Test Song 2"},
-          {Attribute::ARTIST_NAME, "Test Artist"},  {Attribute::ALBUM_NAME, "Test Album"},
-          {Attribute::TRACK_NUMBER, "2"},           {Attribute::TOTAL_NUMBER_OF_TRACKS, "2"},
-          {Attribute::GENRE, "Test Genre"},         {Attribute::PLAYING_TIME, "1500"},
+      {Attribute::TITLE, "Test Song 1"},
+      {Attribute::ARTIST_NAME, "Test Artist"},
+      {Attribute::ALBUM_NAME, "Test Album"},
+      {Attribute::TRACK_NUMBER, "1"},
+      {Attribute::TOTAL_NUMBER_OF_TRACKS, "2"},
+      {Attribute::GENRE, "Test Genre"},
+      {Attribute::PLAYING_TIME, "10 200"},
+      {Attribute::TITLE, "Test Song 2"},
+      {Attribute::ARTIST_NAME, "Test Artist"},
+      {Attribute::ALBUM_NAME, "Test Album"},
+      {Attribute::TRACK_NUMBER, "2"},
+      {Attribute::TOTAL_NUMBER_OF_TRACKS, "2"},
+      {Attribute::GENRE, "Test Genre"},
+      {Attribute::PLAYING_TIME, "1500"},
   };
 
   using Builder = GetElementAttributesResponseBuilder;
@@ -136,14 +147,17 @@ TEST(GetElementAttributesResponseBuilderTest, builderMtuTest) {
 TEST(GetElementAttributesResponseBuilderTest, truncateBuilderTest) {
   auto attribute = AttributeEntry(Attribute::TITLE, "1234");
   size_t truncated_size = VendorPacket::kMinSize();
-  truncated_size += 1;                // Number of attributes
-  truncated_size += attribute.size(); // Attribute size
+  truncated_size += 1;                 // Number of attributes
+  truncated_size += attribute.size();  // Attribute size
 
-  auto truncated_builder = GetElementAttributesResponseBuilder::MakeBuilder(truncated_size);
-  ASSERT_TRUE(truncated_builder->AddAttributeEntry(Attribute::TITLE, "1234truncated"));
+  auto truncated_builder =
+      GetElementAttributesResponseBuilder::MakeBuilder(truncated_size);
+  ASSERT_TRUE(
+      truncated_builder->AddAttributeEntry(Attribute::TITLE, "1234truncated"));
   ASSERT_EQ(truncated_builder->size(), truncated_size);
 
-  ASSERT_FALSE(truncated_builder->AddAttributeEntry(Attribute::ARTIST_NAME, "Can not add"));
+  ASSERT_FALSE(truncated_builder->AddAttributeEntry(Attribute::ARTIST_NAME,
+                                                    "Can not add"));
 
   auto truncated_packet = TestGetElemAttrReqPacket::Make();
   truncated_builder->Serialize(truncated_packet);
@@ -156,5 +170,5 @@ TEST(GetElementAttributesResponseBuilderTest, truncateBuilderTest) {
   ASSERT_EQ(truncated_packet->GetData(), test_packet->GetData());
 }
 
-} // namespace avrcp
-} // namespace bluetooth
+}  // namespace avrcp
+}  // namespace bluetooth

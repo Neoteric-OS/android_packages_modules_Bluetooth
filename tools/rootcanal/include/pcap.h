@@ -58,4 +58,4 @@ static void WriteRecordHeader(std::ostream& output, uint32_t length) {
   output.write((char*)&original_packet_length, 4);
 }
 
-} // namespace rootcanal::pcap
+}  // namespace rootcanal::pcap

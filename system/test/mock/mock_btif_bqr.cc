@@ -34,5 +34,5 @@ void DumpBtScheduling(uint8_t /* length */, const uint8_t* /* p_event */) {
   inc_func_call_count(__func__);
 }
 
-} // namespace bqr
-} // namespace bluetooth
+}  // namespace bqr
+}  // namespace bluetooth

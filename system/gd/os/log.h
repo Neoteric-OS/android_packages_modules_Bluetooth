@@ -27,4 +27,4 @@
 #if defined(__ANDROID__)
 #include <log/log.h>
 #include <log/log_event_list.h>
-#endif // defined(__ANDROID__)
+#endif  // defined(__ANDROID__)

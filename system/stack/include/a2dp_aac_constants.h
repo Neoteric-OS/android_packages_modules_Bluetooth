@@ -62,4 +62,4 @@
 // [Octet 4], [Bits 0-7] Bit Rate - Bits 8-15 in the 23-bit UiMsfb
 // [Octet 5], [Bits 0-7] Bit Rate - Bits 0-7 in the 23-bit UiMsfb
 
-#endif // A2DP_AAC_CONSTANTS_H
+#endif  // A2DP_AAC_CONSTANTS_H

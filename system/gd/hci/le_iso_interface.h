@@ -23,11 +23,14 @@ namespace bluetooth {
 namespace hci {
 
 constexpr hci::SubeventCode LeIsoEvents[] = {
-        hci::SubeventCode::CIS_ESTABLISHED,      hci::SubeventCode::CIS_REQUEST,
-        hci::SubeventCode::CREATE_BIG_COMPLETE,  hci::SubeventCode::TERMINATE_BIG_COMPLETE,
-        hci::SubeventCode::BIG_SYNC_ESTABLISHED, hci::SubeventCode::BIG_SYNC_LOST,
+    hci::SubeventCode::CIS_ESTABLISHED,
+    hci::SubeventCode::CIS_REQUEST,
+    hci::SubeventCode::CREATE_BIG_COMPLETE,
+    hci::SubeventCode::TERMINATE_BIG_COMPLETE,
+    hci::SubeventCode::BIG_SYNC_ESTABLISHED,
+    hci::SubeventCode::BIG_SYNC_LOST,
 };
 
 typedef CommandInterface<LeIsoCommandBuilder> LeIsoInterface;
-} // namespace hci
-} // namespace bluetooth
+}  // namespace hci
+}  // namespace bluetooth

@@ -16,9 +16,9 @@
 
 #pragma once
 
-#include <base/sys_byteorder.h>
-
 #include <set>
+
+#include <base/sys_byteorder.h>
 
 namespace bluetooth {
 namespace avrcp {
@@ -168,7 +168,7 @@ enum class PlayerShuffleValue : uint8_t {
 };
 
 class AttributeEntry {
-public:
+ public:
   AttributeEntry(const Attribute& attribute, const std::string& value)
       : attribute_(attribute), value_(value) {}
 
@@ -182,9 +182,9 @@ public:
 
   static constexpr size_t kHeaderSize() {
     size_t ret = 0;
-    ret += 4; // Size of attribute field
-    ret += 2; // Size of length field
-    ret += 2; // Size of character encoding field
+    ret += 4;  // Size of attribute field
+    ret += 2;  // Size of length field
+    ret += 2;  // Size of character encoding field
     return ret;
   }
 
@@ -199,9 +199,11 @@ public:
 
   bool empty() { return value_.empty(); }
 
-  bool operator<(const AttributeEntry& rhs) const { return attribute_ < rhs.attribute_; }
+  bool operator<(const AttributeEntry& rhs) const {
+    return attribute_ < rhs.attribute_;
+  }
 
-private:
+ private:
   Attribute attribute_;
   std::string value_;
 };
@@ -224,15 +226,15 @@ struct MediaPlayerItem {
 
   static constexpr size_t kHeaderSize() {
     size_t ret = 0;
-    ret += 1;  // Media Player Type
-    ret += 2;  // Item Length
-    ret += 2;  // Player Id
-    ret += 1;  // Player Type
-    ret += 4;  // Player Subtype
-    ret += 1;  // Play Status
-    ret += 16; // Features
-    ret += 2;  // UTF-8 character set
-    ret += 2;  // Name Length
+    ret += 1;   // Media Player Type
+    ret += 2;   // Item Length
+    ret += 2;   // Player Id
+    ret += 1;   // Player Type
+    ret += 4;   // Player Subtype
+    ret += 1;   // Play Status
+    ret += 16;  // Features
+    ret += 2;   // UTF-8 character set
+    ret += 2;   // Name Length
     return ret;
   }
 
@@ -245,8 +247,12 @@ struct FolderItem {
   bool is_playable_;
   std::string name_;
 
-  FolderItem(uint64_t uid, uint8_t folder_type, bool is_playable, const std::string& name)
-      : uid_(uid), folder_type_(folder_type), is_playable_(is_playable), name_(name) {
+  FolderItem(uint64_t uid, uint8_t folder_type, bool is_playable,
+             const std::string& name)
+      : uid_(uid),
+        folder_type_(folder_type),
+        is_playable_(is_playable),
+        name_(name) {
     if (name_.size() > MAX_FIELD_LEN) {
       name_.resize(MAX_FIELD_LEN);
     }
@@ -256,13 +262,13 @@ struct FolderItem {
 
   static constexpr size_t kHeaderSize() {
     size_t ret = 0;
-    ret += 1; // Folder Item Type
-    ret += 2; // Item Length
-    ret += 8; // Folder UID
-    ret += 1; // Folder Type
-    ret += 1; // Is Playable byte
-    ret += 2; // UTF-8 Character Set
-    ret += 2; // Name Length
+    ret += 1;  // Folder Item Type
+    ret += 2;  // Item Length
+    ret += 8;  // Folder UID
+    ret += 1;  // Folder Type
+    ret += 1;  // Is Playable byte
+    ret += 2;  // UTF-8 Character Set
+    ret += 2;  // Name Length
     return ret;
   }
 
@@ -277,7 +283,8 @@ struct MediaElementItem {
 
   // Truncate the name and attribute fields so that we don't have a single item
   // that can exceed the Browsing MTU
-  MediaElementItem(uint64_t uid, const std::string& name, std::set<AttributeEntry> attributes)
+  MediaElementItem(uint64_t uid, const std::string& name,
+                   std::set<AttributeEntry> attributes)
       : uid_(uid), name_(name) {
     if (name_.size() > MAX_FIELD_LEN) {
       name_.resize(MAX_FIELD_LEN);
@@ -293,14 +300,14 @@ struct MediaElementItem {
 
   size_t size() const {
     size_t ret = 0;
-    ret += 1; // Media Element Item Type
-    ret += 2; // Item Length
-    ret += 8; // Item UID
-    ret += 1; // Media Type
-    ret += 2; // UTF-8 Character Set
-    ret += 2; // Name Length
+    ret += 1;  // Media Element Item Type
+    ret += 2;  // Item Length
+    ret += 8;  // Item UID
+    ret += 1;  // Media Type
+    ret += 2;  // UTF-8 Character Set
+    ret += 2;  // Name Length
     ret += name_.size();
-    ret += 1; // Number of Attributes
+    ret += 1;  // Number of Attributes
     for (const auto& entry : attributes_) {
       ret += entry.size();
     }
@@ -367,5 +374,5 @@ struct MediaListItem {
 
 constexpr size_t AVCT_HDR_LEN = 3;
 
-} // namespace avrcp
-} // namespace bluetooth
+}  // namespace avrcp
+}  // namespace bluetooth

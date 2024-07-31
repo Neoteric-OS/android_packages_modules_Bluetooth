@@ -21,7 +21,7 @@ constexpr char kDefaultGeneratedOutputPath[] = ".";
 constexpr char kDefaultNamespace[] = "";
 constexpr char kDefaultNamespaceDelim[] = "::";
 constexpr char kDefaultTitle[] = "Bundled schema tables";
-} // namespace
+}  // namespace
 
 struct Opts {
   bool verbose{false};
@@ -40,12 +40,12 @@ struct Opts {
 extern Opts opts;
 
 namespace {
-namespace helper { // Part of flatbuffers API
+namespace helper {  // Part of flatbuffers API
 constexpr bool AsBinaryFile = true;
 constexpr bool AsTextFile = false;
-} // namespace helper
+}  // namespace helper
 
-} // namespace
+}  // namespace
 
 /**
  * Read and parse a previously generated bundle data file

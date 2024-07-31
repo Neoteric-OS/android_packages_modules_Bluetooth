@@ -43,12 +43,10 @@ static std::array<uint8_t, SIZE> GenerateRandom() {
   }
 
   std::array<uint8_t, SIZE> r;
-  for (size_t i = 0; i < SIZE; i++) {
-    r[i] = std::rand();
-  }
+  for (size_t i = 0; i < SIZE; i++) r[i] = std::rand();
   return r;
 }
-} // namespace
+}  // namespace
 /*********************************************************************************************************************/
 
 namespace bluetooth {
@@ -66,8 +64,7 @@ std::pair<std::array<uint8_t, 32>, EcdhPublicKey> GenerateECDHKeyPair() {
   memcpy(pk.y.data(), public_key.y, 32);
 
   /* private_key, public key pair */
-  return std::make_pair<std::array<uint8_t, 32>, EcdhPublicKey>(std::move(private_key),
-                                                                std::move(pk));
+  return std::make_pair<std::array<uint8_t, 32>, EcdhPublicKey>(std::move(private_key), std::move(pk));
 }
 
 bool ValidateECDHPoint(EcdhPublicKey pk) {
@@ -78,8 +75,7 @@ bool ValidateECDHPoint(EcdhPublicKey pk) {
   return ECC_ValidatePoint(public_key);
 }
 
-std::array<uint8_t, 32> ComputeDHKey(std::array<uint8_t, 32> my_private_key,
-                                     EcdhPublicKey remote_public_key) {
+std::array<uint8_t, 32> ComputeDHKey(std::array<uint8_t, 32> my_private_key, EcdhPublicKey remote_public_key) {
   ecc::Point peer_publ_key, new_publ_key;
   uint32_t private_key[8];
   memcpy(private_key, my_private_key.data(), 32);
@@ -95,5 +91,5 @@ std::array<uint8_t, 32> ComputeDHKey(std::array<uint8_t, 32> my_private_key,
   return dhkey;
 }
 
-} // namespace security
-} // namespace bluetooth
+}  // namespace security
+}  // namespace bluetooth

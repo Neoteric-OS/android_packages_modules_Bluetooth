@@ -42,11 +42,10 @@ class ILink;
 
 /**
  * A middle layer between L2CAP channel and outgoing packet scheduler.
- * Fetches data (SDU) from an L2CAP channel queue end, handles L2CAP segmentation, and gives data to
- * L2CAP scheduler.
+ * Fetches data (SDU) from an L2CAP channel queue end, handles L2CAP segmentation, and gives data to L2CAP scheduler.
  */
 class Sender {
-public:
+ public:
   using UpperEnqueue = packet::PacketView<packet::kLittleEndian>;
   using UpperDequeue = packet::BasePacketBuilder;
   using UpperQueueDownEnd = common::BidiQueueEnd<UpperEnqueue, UpperDequeue>;
@@ -57,15 +56,14 @@ public:
     LE_CREDIT_BASED = 10,
   };
 
-  Sender(os::Handler* handler, ILink* link, Scheduler* scheduler,
-         std::shared_ptr<ChannelImpl> channel);
-  Sender(os::Handler* handler, ILink* link, Scheduler* scheduler,
-         std::shared_ptr<ChannelImpl> channel, ChannelMode mode);
+  Sender(os::Handler* handler, ILink* link, Scheduler* scheduler, std::shared_ptr<ChannelImpl> channel);
+  Sender(os::Handler* handler, ILink* link, Scheduler* scheduler, std::shared_ptr<ChannelImpl> channel,
+         ChannelMode mode);
   ~Sender();
 
   /**
-   * Callback from scheduler to indicate that scheduler already dequeued a packet from sender's
-   * queue. Segmenter can continue dequeuing from channel queue end.
+   * Callback from scheduler to indicate that scheduler already dequeued a packet from sender's queue.
+   * Segmenter can continue dequeuing from channel queue end.
    */
   void OnPacketSent();
 
@@ -77,7 +75,7 @@ public:
   void UpdateClassicConfiguration(classic::internal::ChannelConfigurationState config);
   DataController* GetDataController();
 
-private:
+ private:
   os::Handler* handler_;
   ILink* link_;
   UpperQueueDownEnd* queue_end_;
@@ -85,13 +83,12 @@ private:
   const Cid channel_id_;
   const Cid remote_channel_id_;
   std::atomic_bool is_dequeue_registered_ = false;
-  RetransmissionAndFlowControlModeOption mode_ =
-          RetransmissionAndFlowControlModeOption::L2CAP_BASIC;
+  RetransmissionAndFlowControlModeOption mode_ = RetransmissionAndFlowControlModeOption::L2CAP_BASIC;
   std::unique_ptr<DataController> data_controller_;
 
   void try_register_dequeue();
   void dequeue_callback();
 };
-} // namespace internal
-} // namespace l2cap
-} // namespace bluetooth
+}  // namespace internal
+}  // namespace l2cap
+}  // namespace bluetooth

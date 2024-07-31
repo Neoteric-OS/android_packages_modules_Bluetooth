@@ -28,14 +28,15 @@
 /// The codec priority is always the lowest, so that software codecs
 /// can be picked over offloaded codecs.
 class A2dpCodecConfigExt : public A2dpCodecConfig {
-public:
+ public:
   A2dpCodecConfigExt(btav_a2dp_codec_index_t codec_index, bool is_source);
 
   bool init() override { return false; }
   bool useRtpHeaderMarkerBit() const override { return false; }
   bool setCodecConfig(const uint8_t* p_peer_codec_info, bool is_capability,
                       uint8_t* p_result_codec_config) override;
-  bool setPeerCodecCapabilities(const uint8_t* p_peer_codec_capabilities) override;
+  bool setPeerCodecCapabilities(
+      const uint8_t* p_peer_codec_capabilities) override;
 
   const std::vector<uint8_t>& getVendorCodecParameters() const {
     return vendor_specific_parameters_;
@@ -52,8 +53,8 @@ public:
     vendor_specific_parameters_ = vendor_specific_parameters;
   }
 
-private:
-  [[maybe_unused]] bool is_source_; // True if local is Source
+ private:
+  [[maybe_unused]] bool is_source_;  // True if local is Source
   std::vector<uint8_t> vendor_specific_parameters_;
 };
 
@@ -61,4 +62,5 @@ private:
 // The A2DP source path always sets up the encoder interface,
 // whether the codec encoding is offloaded or not.
 // |p_codec_info| contains the codec information.
-const tA2DP_ENCODER_INTERFACE* A2DP_GetEncoderInterfaceExt(const uint8_t* p_codec_info);
+const tA2DP_ENCODER_INTERFACE* A2DP_GetEncoderInterfaceExt(
+    const uint8_t* p_codec_info);

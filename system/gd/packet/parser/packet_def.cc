@@ -25,15 +25,13 @@
 #include "util.h"
 
 PacketDef::PacketDef(std::string name, FieldList fields) : ParentDef(name, fields, nullptr) {}
-PacketDef::PacketDef(std::string name, FieldList fields, PacketDef* parent)
-    : ParentDef(name, fields, parent) {}
+PacketDef::PacketDef(std::string name, FieldList fields, PacketDef* parent) : ParentDef(name, fields, parent) {}
 
 PacketField* PacketDef::GetNewField(const std::string&, ParseLocation) const {
-  return nullptr; // Packets can't be fields
+  return nullptr;  // Packets can't be fields
 }
 
-void PacketDef::GenParserDefinition(std::ostream& s, bool generate_fuzzing,
-                                    bool generate_tests) const {
+void PacketDef::GenParserDefinition(std::ostream& s, bool generate_fuzzing, bool generate_tests) const {
   s << "class " << name_ << "View";
   if (parent_ != nullptr) {
     s << " : public " << parent_->name_ << "View {";
@@ -69,8 +67,8 @@ void PacketDef::GenParserDefinition(std::ostream& s, bool generate_fuzzing,
   }
 
   std::set<std::string> fixed_types = {
-          FixedScalarField::kFieldType,
-          FixedEnumField::kFieldType,
+      FixedScalarField::kFieldType,
+      FixedEnumField::kFieldType,
   };
 
   // Print all of the public fields which are all the fields minus the fixed fields.
@@ -93,10 +91,8 @@ void PacketDef::GenParserDefinition(std::ostream& s, bool generate_fuzzing,
     s << "explicit " << name_ << "View(" << parent_->name_ << "View parent)";
     s << " : " << parent_->name_ << "View(std::move(parent)) { was_validated_ = false; }";
   } else {
-    s << "explicit " << name_ << "View(PacketView<" << (is_little_endian_ ? "" : "!")
-      << "kLittleEndian> packet) ";
-    s << " : PacketView<" << (is_little_endian_ ? "" : "!")
-      << "kLittleEndian>(packet) { was_validated_ = false;}";
+    s << "explicit " << name_ << "View(PacketView<" << (is_little_endian_ ? "" : "!") << "kLittleEndian> packet) ";
+    s << " : PacketView<" << (is_little_endian_ ? "" : "!") << "kLittleEndian>(packet) { was_validated_ = false;}";
   }
 
   // Print the private fields which are the fixed fields.
@@ -145,8 +141,7 @@ void PacketDef::GenParserDefinitionPybind11(std::ostream& s) const {
   if (parent_ != nullptr) {
     s << ".def(py::init([](" << parent_->name_ << "View parent) {";
   } else {
-    s << ".def(py::init([](PacketView<" << (is_little_endian_ ? "" : "!")
-      << "kLittleEndian> parent) {";
+    s << ".def(py::init([](PacketView<" << (is_little_endian_ ? "" : "!") << "kLittleEndian> parent) {";
   }
   s << "auto view =" << name_ << "View::Create(std::move(parent));";
   s << "if (!view.IsValid()) { throw std::invalid_argument(\"Bad packet view\"); }";
@@ -154,10 +149,10 @@ void PacketDef::GenParserDefinitionPybind11(std::ostream& s) const {
 
   s << ".def(py::init(&" << name_ << "View::Create))";
   std::set<std::string> protected_field_types = {
-          FixedScalarField::kFieldType,
-          FixedEnumField::kFieldType,
-          SizeField::kFieldType,
-          CountField::kFieldType,
+      FixedScalarField::kFieldType,
+      FixedEnumField::kFieldType,
+      SizeField::kFieldType,
+      CountField::kFieldType,
   };
   const auto& public_fields = fields_.GetFieldsWithoutTypes(protected_field_types);
   for (const auto& field : public_fields) {
@@ -184,7 +179,9 @@ void PacketDef::GenParserFieldGetter(std::ostream& s, const PacketField* field) 
   field->GenGetter(s, start_field_offset, end_field_offset);
 }
 
-TypeDef::Type PacketDef::GetDefinitionType() const { return TypeDef::Type::PACKET; }
+TypeDef::Type PacketDef::GetDefinitionType() const {
+  return TypeDef::Type::PACKET;
+}
 
 void PacketDef::GenValidator(std::ostream& s) const {
   // Get the static offset for all of our fields.
@@ -254,8 +251,8 @@ void PacketDef::GenValidator(std::ostream& s) const {
       const auto& field_name = ((ChecksumStartField*)field)->GetStartedFieldName();
       const auto& started_field = fields_.GetField(field_name);
       if (started_field == nullptr) {
-        ERROR(field) << __func__ << ": Can't find checksum field named " << field_name << "("
-                     << field->GetName() << ")";
+        ERROR(field) << __func__ << ": Can't find checksum field named " << field_name << "(" << field->GetName()
+                     << ")";
       }
       auto end_offset = GetOffsetForField(started_field->GetName(), false);
       if (!end_offset.empty()) {
@@ -265,8 +262,7 @@ void PacketDef::GenValidator(std::ostream& s) const {
         if (end_offset.empty()) {
           ERROR(started_field) << "Checksum Field end_offset can not be determined.";
         }
-        s << "size_t end_sum_index = size() - (" << started_field->GetSize() << " - " << end_offset
-          << ") / 8;";
+        s << "size_t end_sum_index = size() - (" << started_field->GetSize() << " - " << end_offset << ") / 8;";
       }
       s << "if (end_sum_index >= size()) { return false; }";
       if (is_little_endian_) {
@@ -359,11 +355,9 @@ void PacketDef::GenParserToString(std::ostream& s) const {
     s << "ss << \"\" ";
     bool firstfield = true;
     for (const auto& field : fields_) {
-      if (field->GetFieldType() == ReservedField::kFieldType ||
-          field->GetFieldType() == FixedScalarField::kFieldType ||
-          field->GetFieldType() == ChecksumStartField::kFieldType) {
+      if (field->GetFieldType() == ReservedField::kFieldType || field->GetFieldType() == FixedScalarField::kFieldType ||
+          field->GetFieldType() == ChecksumStartField::kFieldType)
         continue;
-      }
 
       s << (firstfield ? " << \"" : " << \", ") << field->GetName() << " = \" << ";
 
@@ -381,8 +375,7 @@ void PacketDef::GenParserToString(std::ostream& s) const {
   s << "}\n";
 }
 
-void PacketDef::GenBuilderDefinition(std::ostream& s, bool generate_fuzzing,
-                                     bool generate_tests) const {
+void PacketDef::GenBuilderDefinition(std::ostream& s, bool generate_fuzzing, bool generate_tests) const {
   s << "class " << name_ << "Builder";
   if (parent_ != nullptr) {
     s << " : public " << parent_->name_ << "Builder";
@@ -446,7 +439,7 @@ void PacketDef::GenTestingFromView(std::ostream& s) const {
   s << "if (!view.IsValid()) return nullptr;";
   s << "return " << name_ << "Builder::Create(";
   FieldList params = GetParamList().GetFieldsWithoutTypes({
-          BodyField::kFieldType,
+      BodyField::kFieldType,
   });
   for (std::size_t i = 0; i < params.size(); i++) {
     params[i]->GenBuilderParameterFromView(s);
@@ -487,8 +480,7 @@ void PacketDef::GenBuilderDefinitionPybind11(std::ostream& s) const {
 void PacketDef::GenTestDefine(std::ostream& s) const {
   s << "#ifdef PACKET_TESTING\n";
   s << "#define DEFINE_AND_INSTANTIATE_" << name_ << "ReflectionTest(...)";
-  s << "class " << name_
-    << "ReflectionTest : public testing::TestWithParam<std::vector<uint8_t>> { ";
+  s << "class " << name_ << "ReflectionTest : public testing::TestWithParam<std::vector<uint8_t>> { ";
   s << "public: ";
   s << "void CompareBytes(std::vector<uint8_t> captured_packet) {";
   s << name_ << "View view = " << name_ << "View::FromBytes(captured_packet);";
@@ -497,8 +489,7 @@ void PacketDef::GenTestDefine(std::ostream& s) const {
        "i)); }}";
   s << "ASSERT_TRUE(view.IsValid());";
   s << "auto packet = " << name_ << "Builder::FromView(view);";
-  s << "std::shared_ptr<std::vector<uint8_t>> packet_bytes = "
-       "std::make_shared<std::vector<uint8_t>>();";
+  s << "std::shared_ptr<std::vector<uint8_t>> packet_bytes = std::make_shared<std::vector<uint8_t>>();";
   s << "packet_bytes->reserve(packet->size());";
   s << "BitInserter it(*packet_bytes);";
   s << "packet->Serialize(it);";
@@ -541,8 +532,7 @@ void PacketDef::GenReflectTestDefine(std::ostream& s) const {
   s << name_ << "View view = " << name_ << "View::FromBytes(vec);";
   s << "if (!view.IsValid()) { return; }";
   s << "auto packet = " << name_ << "Builder::FromView(view);";
-  s << "std::shared_ptr<std::vector<uint8_t>> packet_bytes = "
-       "std::make_shared<std::vector<uint8_t>>();";
+  s << "std::shared_ptr<std::vector<uint8_t>> packet_bytes = std::make_shared<std::vector<uint8_t>>();";
   s << "packet_bytes->reserve(packet->size());";
   s << "BitInserter it(*packet_bytes);";
   s << "packet->Serialize(it);";
@@ -557,12 +547,10 @@ void PacketDef::GenFuzzTestDefine(std::ostream& s) const {
   s << " class " << name_ << "ReflectionFuzzTestRegistrant {";
   s << "public: ";
   s << "explicit " << name_
-    << "ReflectionFuzzTestRegistrant(std::vector<void(*)(const uint8_t*, size_t)>& "
-       "fuzz_test_registry) {";
+    << "ReflectionFuzzTestRegistrant(std::vector<void(*)(const uint8_t*, size_t)>& fuzz_test_registry) {";
   s << "fuzz_test_registry.push_back(Run" << name_ << "ReflectionFuzzTest);";
   s << "}}; ";
-  s << name_ << "ReflectionFuzzTestRegistrant " << name_
-    << "_reflection_fuzz_test_registrant(REGISTRY);";
+  s << name_ << "ReflectionFuzzTestRegistrant " << name_ << "_reflection_fuzz_test_registrant(REGISTRY);";
   s << "\n#endif";
 }
 
@@ -592,8 +580,8 @@ void PacketDef::GenBuilderCreate(std::ostream& s) const {
   s << "auto builder = std::unique_ptr<" << name_ << "Builder>(new " << name_ << "Builder(";
 
   params = params.GetFieldsWithoutTypes({
-          PayloadField::kFieldType,
-          BodyField::kFieldType,
+      PayloadField::kFieldType,
+      BodyField::kFieldType,
   });
   // Add the parameters.
   for (std::size_t i = 0; i < params.size(); i++) {
@@ -658,8 +646,7 @@ void PacketDef::GenBuilderCreatePybind11(std::ostream& s) const {
       s << "BitInserter " << param->GetName() + "_bi(*" << param->GetName() << "_bytes);";
       s << param->GetName() << "[i]->Serialize(" << param->GetName() << "_bi);";
       // Parse it again
-      s << "auto " << param->GetName() << "_view = PacketView<kLittleEndian>(" << param->GetName()
-        << "_bytes);";
+      s << "auto " << param->GetName() << "_view = PacketView<kLittleEndian>(" << param->GetName() << "_bytes);";
       s << param->GetElementField()->GetDataType() << " " << param->GetName() << "_reparsed = ";
       s << "Parse" << struct_type << "(" << param->GetName() + "_view.begin());";
       // Push it into a new container
@@ -731,8 +718,8 @@ void PacketDef::GenBuilderConstructor(std::ostream& s) const {
 
   // Generate the constructor parameters.
   auto params = GetParamList().GetFieldsWithoutTypes({
-          PayloadField::kFieldType,
-          BodyField::kFieldType,
+      PayloadField::kFieldType,
+      BodyField::kFieldType,
   });
   for (std::size_t i = 0; i < params.size(); i++) {
     params[i]->GenBuilderParameter(s);
@@ -752,8 +739,8 @@ void PacketDef::GenBuilderConstructor(std::ostream& s) const {
     // Pass parameters to the parent constructor
     s << parent_->name_ << "Builder(";
     parent_params = parent_->GetParamList().GetFieldsWithoutTypes({
-            PayloadField::kFieldType,
-            BodyField::kFieldType,
+        PayloadField::kFieldType,
+        BodyField::kFieldType,
     });
 
     // Go through all the fields and replace constrained fields with fixed values

@@ -14,11 +14,10 @@
  * limitations under the License.
  */
 
-#include "utils.h"
-
 #include <gtest/gtest.h>
-
 #include <unordered_map>
+
+#include "utils.h"
 
 namespace {
 
@@ -26,7 +25,7 @@ using ::android::bluetooth::audio::utils::FrameCount;
 using ::android::bluetooth::audio::utils::ParseAudioParams;
 
 class UtilsTest : public testing::Test {
-protected:
+ protected:
   void SetUp() override {}
   void TearDown() override { map_.clear(); }
 
@@ -140,4 +139,4 @@ TEST_F(UtilsTest, FrameCountTest) {
   EXPECT_EQ(FrameCount(7500, 32000), 240);
 }
 
-} // namespace
+}  // namespace

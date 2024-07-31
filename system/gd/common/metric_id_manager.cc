@@ -37,13 +37,13 @@ using hci::Address;
 const size_t MetricIdManager::kMaxNumUnpairedDevicesInMemory = 200;
 const size_t MetricIdManager::kMaxNumPairedDevicesInMemory = 65000;
 const int MetricIdManager::kMinId = 1;
-const int MetricIdManager::kMaxId = 65534; // 2^16 - 2
+const int MetricIdManager::kMaxId = 65534;  // 2^16 - 2
 
 // id space should always be larger than kMaxNumPairedDevicesInMemory +
 // kMaxNumUnpairedDevicesInMemory
 static_assert((MetricIdManager::kMaxNumUnpairedDevicesInMemory +
                MetricIdManager::kMaxNumPairedDevicesInMemory) <
-                      (MetricIdManager::kMaxId - MetricIdManager::kMinId),
+                  (MetricIdManager::kMaxId - MetricIdManager::kMinId),
               "id space should always be larger than "
               "kMaxNumPairedDevicesInMemory + MaxNumUnpairedDevicesInMemory");
 
@@ -51,8 +51,9 @@ MetricIdManager::MetricIdManager()
     : paired_device_cache_(kMaxNumPairedDevicesInMemory),
       temporary_device_cache_(kMaxNumUnpairedDevicesInMemory) {}
 
-bool MetricIdManager::Init(const std::unordered_map<Address, int>& paired_device_map,
-                           Callback save_id_callback, Callback forget_device_callback) {
+bool MetricIdManager::Init(
+    const std::unordered_map<Address, int>& paired_device_map,
+    Callback save_id_callback, Callback forget_device_callback) {
   std::lock_guard<std::mutex> lock(id_allocator_mutex_);
   if (initialized_) {
     return false;
@@ -61,8 +62,9 @@ bool MetricIdManager::Init(const std::unordered_map<Address, int>& paired_device
   // init paired_devices_map
   if (paired_device_map.size() > kMaxNumPairedDevicesInMemory) {
     log::fatal(
-            "Paired device map has size {}, which is bigger than kMaxNumPairedDevicesInMemory {}",
-            paired_device_map.size(), kMaxNumPairedDevicesInMemory);
+        "Paired device map has size {}, which is bigger than kMaxNumPairedDevicesInMemory {}",
+        paired_device_map.size(),
+        kMaxNumPairedDevicesInMemory);
     // fail loudly to let caller know
     return false;
   }
@@ -70,8 +72,12 @@ bool MetricIdManager::Init(const std::unordered_map<Address, int>& paired_device
   next_id_ = kMinId;
   for (const auto& p : paired_device_map) {
     if (p.second < kMinId || p.second > kMaxId) {
-      log::fatal("Invalid Bluetooth Metric Id in config. Id {} of {} is out of range [{}, {}]",
-                 p.second, p.first, kMinId, kMaxId);
+      log::fatal(
+          "Invalid Bluetooth Metric Id in config. Id {} of {} is out of range [{}, {}]",
+          p.second,
+          p.first,
+          kMinId,
+          kMaxId);
     }
     auto evicted = paired_device_cache_.insert_or_assign(p.first, p.second);
     if (evicted) {
@@ -112,7 +118,8 @@ MetricIdManager& MetricIdManager::GetInstance() {
 
 bool MetricIdManager::IsEmpty() const {
   std::lock_guard<std::mutex> lock(id_allocator_mutex_);
-  return paired_device_cache_.size() == 0 && temporary_device_cache_.size() == 0;
+  return paired_device_cache_.size() == 0 &&
+         temporary_device_cache_.size() == 0;
 }
 
 // call this function when a new device is scanned
@@ -187,12 +194,15 @@ void MetricIdManager::ForgetDevice(const Address& mac_address) {
   ForgetDevicePostprocess(mac_address, opt->second);
 }
 
-bool MetricIdManager::IsValidId(const int id) { return id >= kMinId && id <= kMaxId; }
+bool MetricIdManager::IsValidId(const int id) {
+  return id >= kMinId && id <= kMaxId;
+}
 
-void MetricIdManager::ForgetDevicePostprocess(const Address& mac_address, const int id) {
+void MetricIdManager::ForgetDevicePostprocess(const Address& mac_address,
+                                                const int id) {
   id_set_.erase(id);
   forget_device_callback_(mac_address, id);
 }
 
-} // namespace common
-} // namespace bluetooth
+}  // namespace common
+}  // namespace bluetooth

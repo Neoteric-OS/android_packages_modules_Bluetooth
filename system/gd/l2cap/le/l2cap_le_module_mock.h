@@ -15,9 +15,9 @@
  */
 #pragma once
 
-#include <gmock/gmock.h>
-
 #include "l2cap/le/l2cap_le_module.h"
+
+#include <gmock/gmock.h>
 
 // Unit test interfaces
 namespace bluetooth {
@@ -26,11 +26,11 @@ namespace le {
 namespace testing {
 
 class MockL2capLeModule : public L2capLeModule {
-public:
+ public:
   MOCK_METHOD(std::unique_ptr<FixedChannelManager>, GetFixedChannelManager, (), (override));
 };
 
-} // namespace testing
-} // namespace le
-} // namespace l2cap
-} // namespace bluetooth
+}  // namespace testing
+}  // namespace le
+}  // namespace l2cap
+}  // namespace bluetooth

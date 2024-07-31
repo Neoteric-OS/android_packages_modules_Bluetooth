@@ -30,12 +30,12 @@ namespace bluetooth {
 namespace hal {
 
 class SnoopLoggerSocket {
-public:
+ public:
   static constexpr int DEFAULT_LOCALHOST_ = 0x7F000001;
   static constexpr int DEFAULT_LISTEN_PORT_ = 8872;
 
-  SnoopLoggerSocket(SyscallWrapperInterface* syscall_if, int address = DEFAULT_LOCALHOST_,
-                    int port = DEFAULT_LISTEN_PORT_);
+  SnoopLoggerSocket(
+      SyscallWrapperInterface* syscall_if, int address = DEFAULT_LOCALHOST_, int port = DEFAULT_LISTEN_PORT_);
   SnoopLoggerSocket(const SnoopLoggerSocket&) = delete;
   SnoopLoggerSocket& operator=(const SnoopLoggerSocket&) = delete;
   virtual ~SnoopLoggerSocket();
@@ -57,7 +57,7 @@ public:
 
   SyscallWrapperInterface* GetSyscallWrapperInterface() const;
 
-private:
+ private:
   // Pointer to syscall interface
   SyscallWrapperInterface* syscall_if_;
 
@@ -83,5 +83,5 @@ private:
   std::condition_variable client_socket_cv_;
 };
 
-} // namespace hal
-} // namespace bluetooth
+}  // namespace hal
+}  // namespace bluetooth

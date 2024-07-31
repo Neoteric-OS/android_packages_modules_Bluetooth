@@ -24,18 +24,24 @@ namespace parser {
 namespace test {
 
 class SimpleSum {
-public:
-  void Initialize() { sum = 0; }
+ public:
+  void Initialize() {
+    sum = 0;
+  }
 
-  void AddByte(uint8_t byte) { sum += byte; }
+  void AddByte(uint8_t byte) {
+    sum += byte;
+  }
 
-  uint16_t GetChecksum() const { return sum; }
+  uint16_t GetChecksum() const {
+    return sum;
+  }
 
-private:
+ private:
   uint16_t sum;
 };
 
-} // namespace test
-} // namespace parser
-} // namespace packet
-} // namespace bluetooth
+}  // namespace test
+}  // namespace parser
+}  // namespace packet
+}  // namespace bluetooth

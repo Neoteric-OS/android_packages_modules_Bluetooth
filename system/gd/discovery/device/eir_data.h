@@ -37,7 +37,7 @@ struct service_uuid32_t {
 };
 
 class EirData : public DataParser {
-public:
+ public:
   EirData(const std::vector<uint8_t>& data);
 
   bool GetCompleteNames(std::vector<std::array<uint8_t, 240>>&) const;
@@ -60,6 +60,6 @@ public:
   bool GetTxPowerLevel(std::vector<int8_t>&) const;
 };
 
-} // namespace device
-} // namespace discovery
-} // namespace bluetooth
+}  // namespace device
+}  // namespace discovery
+}  // namespace bluetooth

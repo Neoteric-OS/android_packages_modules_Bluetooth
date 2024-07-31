@@ -27,7 +27,9 @@
 #include "osi/include/osi.h"
 #include "osi/include/wakelock.h"
 
-future_t* osi_init(void) { return future_new_immediate(FUTURE_SUCCESS); }
+future_t* osi_init(void) {
+  return future_new_immediate(FUTURE_SUCCESS);
+}
 
 future_t* osi_clean_up(void) {
   alarm_cleanup();

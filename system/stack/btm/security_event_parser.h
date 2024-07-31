@@ -21,10 +21,10 @@
 namespace bluetooth::stack::btm {
 
 class SecurityEventParser {
-public:
+ public:
   SecurityEventParser() = default;
   virtual ~SecurityEventParser() = default;
   void OnSecurityEvent(bluetooth::hci::EventView event);
 };
 
-} // namespace bluetooth::stack::btm
+}  // namespace bluetooth::stack::btm

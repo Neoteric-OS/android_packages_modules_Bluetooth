@@ -36,7 +36,7 @@ namespace hci {
 class Address final : public packet::CustomFieldFixedSizeInterface<Address>,
                       public storage::Serializable<Address>,
                       public bluetooth::common::IRedactableLoggable {
-public:
+ public:
   static constexpr size_t kLength = 6;
 
   // Bluetooth MAC address bytes saved in little endian format.
@@ -65,7 +65,7 @@ public:
 
   bool operator<(const Address& rhs) const { return address < rhs.address; }
   bool operator==(const Address& rhs) const { return address == rhs.address; }
-  bool operator>(const Address& rhs) const { return rhs < *this; }
+  bool operator>(const Address& rhs) const { return (rhs < *this); }
   bool operator<=(const Address& rhs) const { return !(*this > rhs); }
   bool operator>=(const Address& rhs) const { return !(*this < rhs); }
   bool operator!=(const Address& rhs) const { return !(*this == rhs); }
@@ -83,9 +83,9 @@ public:
 
   static bool IsValidAddress(const std::string& address);
 
-  static const Address kEmpty; // 00:00:00:00:00:00
-  static const Address kAny;   // FF:FF:FF:FF:FF:FF
-private:
+  static const Address kEmpty;  // 00:00:00:00:00:00
+  static const Address kAny;    // FF:FF:FF:FF:FF:FF
+ private:
   std::string _ToMaskedColonSepHexString(int bytes_to_mask) const;
 };
 
@@ -96,8 +96,8 @@ inline std::ostream& operator<<(std::ostream& os, const Address& a) {
   return os;
 }
 
-} // namespace hci
-} // namespace bluetooth
+}  // namespace hci
+}  // namespace bluetooth
 
 namespace std {
 template <>
@@ -105,11 +105,12 @@ struct hash<bluetooth::hci::Address> {
   std::size_t operator()(const bluetooth::hci::Address& val) const {
     static_assert(sizeof(uint64_t) >= bluetooth::hci::Address::kLength);
     uint64_t int_addr = 0;
-    memcpy(reinterpret_cast<uint8_t*>(&int_addr), val.data(), bluetooth::hci::Address::kLength);
+    memcpy(reinterpret_cast<uint8_t*>(&int_addr), val.data(),
+           bluetooth::hci::Address::kLength);
     return std::hash<uint64_t>{}(int_addr);
   }
 };
-} // namespace std
+}  // namespace std
 
 #if __has_include(<bluetooth/log.h>)
 #include <bluetooth/log.h>
@@ -118,13 +119,14 @@ namespace fmt {
 template <>
 struct formatter<bluetooth::hci::Address> : formatter<std::string> {
   template <class Context>
-  typename Context::iterator format(const bluetooth::hci::Address& address, Context& ctx) const {
+  typename Context::iterator format(const bluetooth::hci::Address& address,
+                                    Context& ctx) const {
     std::string repr = bluetooth::os::should_log_be_redacted()
-                               ? address.ToRedactedStringForLogging()
-                               : address.ToStringForLogging();
+                           ? address.ToRedactedStringForLogging()
+                           : address.ToStringForLogging();
     return fmt::formatter<std::string>::format(repr, ctx);
   }
 };
-} // namespace fmt
+}  // namespace fmt
 
-#endif // __has_include(<bluetooth/log.h>)
+#endif  // __has_include(<bluetooth/log.h>)

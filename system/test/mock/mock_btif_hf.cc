@@ -35,9 +35,9 @@ namespace btif_hf {
 
 // Function state capture and return values, if needed
 struct GetInterface GetInterface;
-} // namespace btif_hf
-} // namespace mock
-} // namespace test
+}  // namespace btif_hf
+}  // namespace mock
+}  // namespace test
 
 // Mocked functions, if any
 namespace bluetooth {
@@ -46,8 +46,8 @@ Interface* GetInterface() {
   inc_func_call_count(__func__);
   return test::mock::btif_hf::GetInterface();
 }
-} // namespace headset
-} // namespace bluetooth
+}  // namespace headset
+}  // namespace bluetooth
 
 // Mocked functions complete
 // END mockcify generation

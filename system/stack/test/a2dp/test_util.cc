@@ -31,5 +31,5 @@ std::string GetWavFilePath(const std::string& relative_path) {
   return GetBinaryPath().Append(relative_path).value();
 }
 
-} // namespace testing
-} // namespace bluetooth
+}  // namespace testing
+}  // namespace bluetooth

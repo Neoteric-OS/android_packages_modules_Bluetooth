@@ -44,9 +44,9 @@ struct socket_unregister socket_unregister;
 struct socket_write socket_write;
 struct socket_write_and_transfer_fd socket_write_and_transfer_fd;
 
-} // namespace osi_socket
-} // namespace mock
-} // namespace test
+}  // namespace osi_socket
+}  // namespace mock
+}  // namespace test
 
 // Mocked functions, if any
 socket_t* socket_accept(const socket_t* socket) {
@@ -77,10 +77,11 @@ ssize_t socket_read(const socket_t* socket, void* buf, size_t count) {
   inc_func_call_count(__func__);
   return test::mock::osi_socket::socket_read(socket, buf, count);
 }
-void socket_register(socket_t* socket, reactor_t* reactor, void* context, socket_cb read_cb,
-                     socket_cb write_cb) {
+void socket_register(socket_t* socket, reactor_t* reactor, void* context,
+                     socket_cb read_cb, socket_cb write_cb) {
   inc_func_call_count(__func__);
-  test::mock::osi_socket::socket_register(socket, reactor, context, read_cb, write_cb);
+  test::mock::osi_socket::socket_register(socket, reactor, context, read_cb,
+                                          write_cb);
 }
 void socket_unregister(socket_t* socket) {
   inc_func_call_count(__func__);
@@ -90,14 +91,16 @@ ssize_t socket_write(const socket_t* socket, const void* buf, size_t count) {
   inc_func_call_count(__func__);
   return test::mock::osi_socket::socket_write(socket, buf, count);
 }
-ssize_t socket_write_and_transfer_fd(const socket_t* socket, const void* buf, size_t count,
-                                     int fd) {
+ssize_t socket_write_and_transfer_fd(const socket_t* socket, const void* buf,
+                                     size_t count, int fd) {
   inc_func_call_count(__func__);
-  return test::mock::osi_socket::socket_write_and_transfer_fd(socket, buf, count, fd);
+  return test::mock::osi_socket::socket_write_and_transfer_fd(socket, buf,
+                                                              count, fd);
 }
 // Mocked functions complete
 // END mockcify generation
-int osi_socket_local_server_bind(int /* s */, const char* /* name */, int /* namespaceId */) {
+int osi_socket_local_server_bind(int /* s */, const char* /* name */,
+                                 int /* namespaceId */) {
   inc_func_call_count(__func__);
   return 0;
 }

@@ -99,11 +99,13 @@ void Stack::StartEverything() {
   Start(&modules);
   is_running_ = true;
   // Make sure the leaf modules are started
-  log::assert_that(stack_manager_.GetInstance<storage::StorageModule>() != nullptr,
-                   "assert failed: stack_manager_.GetInstance<storage::StorageModule>() != "
-                   "nullptr");
-  log::assert_that(stack_manager_.GetInstance<shim::Dumpsys>() != nullptr,
-                   "assert failed: stack_manager_.GetInstance<shim::Dumpsys>() != nullptr");
+  log::assert_that(
+      stack_manager_.GetInstance<storage::StorageModule>() != nullptr,
+      "assert failed: stack_manager_.GetInstance<storage::StorageModule>() != "
+      "nullptr");
+  log::assert_that(
+      stack_manager_.GetInstance<shim::Dumpsys>() != nullptr,
+      "assert failed: stack_manager_.GetInstance<shim::Dumpsys>() != nullptr");
   if (stack_manager_.IsStarted<hci::Controller>()) {
     pimpl_->acl_ = new legacy::Acl(stack_handler_, legacy::GetAclInterface(),
                                    GetController()->GetLeFilterAcceptListSize(),
@@ -118,7 +120,8 @@ void Stack::StartEverything() {
   bluetooth::shim::init_distance_measurement_manager();
 }
 
-void Stack::StartModuleStack(const ModuleList* modules, const os::Thread* thread) {
+void Stack::StartModuleStack(const ModuleList* modules,
+                             const os::Thread* thread) {
   std::lock_guard<std::recursive_mutex> lock(mutex_);
   log::assert_that(!is_running_, "Gd stack already running");
   stack_thread_ = const_cast<os::Thread*>(thread);
@@ -135,7 +138,8 @@ void Stack::Start(ModuleList* modules) {
   log::assert_that(!is_running_, "Gd stack already running");
   log::info("Starting Gd stack");
 
-  stack_thread_ = new os::Thread("gd_stack_thread", os::Thread::Priority::REAL_TIME);
+  stack_thread_ =
+      new os::Thread("gd_stack_thread", os::Thread::Priority::REAL_TIME);
   stack_manager_.StartUp(modules, stack_thread_);
 
   stack_handler_ = new os::Handler(stack_thread_);
@@ -191,7 +195,8 @@ const StackManager* Stack::GetStackManager() const {
 legacy::Acl* Stack::GetAcl() {
   std::lock_guard<std::recursive_mutex> lock(mutex_);
   log::assert_that(is_running_, "assert failed: is_running_");
-  log::assert_that(pimpl_->acl_ != nullptr, "Acl shim layer has not been created");
+  log::assert_that(pimpl_->acl_ != nullptr,
+                   "Acl shim layer has not been created");
   return pimpl_->acl_;
 }
 
@@ -214,5 +219,5 @@ bool Stack::LockForDumpsys(std::function<void()> dumpsys_callback) {
   return is_running_;
 }
 
-} // namespace shim
-} // namespace bluetooth
+}  // namespace shim
+}  // namespace bluetooth

@@ -13,21 +13,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 #pragma once
-#include <chrono> // for operator""ms, chrono_literals
-#include <memory> // for shared_ptr
-#include <string> // for string
+#include <chrono>  // for operator""ms, chrono_literals
+#include <memory>  // for shared_ptr
+#include <string>  // for string
 
-#include "net/async_data_channel_connector.h" // for AsyncDataChannelConnector
+#include "net/async_data_channel_connector.h"  // for AsyncDataChannelConnector
 
 namespace android {
 namespace net {
 class AsyncDataChannel;
-} // namespace net
-} // namespace android
+}  // namespace net
+}  // namespace android
 
 namespace rootcanal {
 class AsyncManager;
-} // namespace rootcanal
+}  // namespace rootcanal
 
 using rootcanal::AsyncManager;
 namespace android {
@@ -39,7 +39,7 @@ using namespace std::chrono_literals;
 //
 // Supports both Darwin (freebsd) and linux.
 class PosixAsyncSocketConnector : public AsyncDataChannelConnector {
-public:
+ public:
   PosixAsyncSocketConnector(AsyncManager* am);
   ~PosixAsyncSocketConnector() = default;
 
@@ -50,10 +50,11 @@ public:
   // Note: This does not mean that the socket is fully opened! A server
   // might not (yet?) have called accept on the socket.
   std::shared_ptr<AsyncDataChannel> ConnectToRemoteServer(
-          const std::string& server, int port, std::chrono::milliseconds timeout = 5000ms);
+      const std::string& server, int port,
+      std::chrono::milliseconds timeout = 5000ms);
 
-private:
+ private:
   AsyncManager* am_;
 };
-} // namespace net
-} // namespace android
+}  // namespace net
+}  // namespace android

@@ -39,12 +39,14 @@ namespace {
 constexpr int sync_timeout_in_ms = 3000;
 constexpr char title[] = "module_state_dumper_test";
 
-} // namespace
+}  // namespace
 
 // Module private implementation that is inaccessible externally
 struct StateDumperTestModule::PrivateImpl : public ModuleMainloop {};
 
-bool StateDumperTestModule::IsStarted() const { return pimpl_ != nullptr; }
+bool StateDumperTestModule::IsStarted() const {
+  return pimpl_ != nullptr;
+}
 
 void StateDumperTestModule::Start() {
   ASSERT_FALSE(IsStarted());
@@ -56,13 +58,15 @@ void StateDumperTestModule::Stop() {
   pimpl_.reset();
 }
 
-std::string StateDumperTestModule::ToString() const { return std::string(__func__); }
+std::string StateDumperTestModule::ToString() const {
+  return std::string(__func__);
+}
 
 const bluetooth::ModuleFactory StateDumperTestModule::Factory =
-        bluetooth::ModuleFactory([]() { return new StateDumperTestModule(); });
+    bluetooth::ModuleFactory([]() { return new StateDumperTestModule(); });
 
 DumpsysDataFinisher StateDumperTestModule::GetDumpsysData(
-        flatbuffers::FlatBufferBuilder* /* builder */) const {
+    flatbuffers::FlatBufferBuilder* /* builder */) const {
   log::info("flatbuffers");
   return EmptyDumpsysDataFinisher;
 }
@@ -71,7 +75,7 @@ DumpsysDataFinisher StateDumperTestModule::GetDumpsysData(
 // Module GDx Testing Below
 //
 class ModuleStateDumperTest : public ::testing::Test {
-protected:
+ protected:
   void SetUp() override {
     test_framework_tid_ = base::PlatformThread::CurrentId();
     module_ = new StateDumperTestModule();
@@ -90,7 +94,7 @@ protected:
     std::future future = promise.get_future();
     post_on_bt_main([&promise]() { promise.set_value(); });
     future.wait_for(std::chrono::milliseconds(sync_timeout_in_ms));
-  }
+  };
 
   static pid_t get_mainloop_tid() {
     std::promise<pid_t> pid_promise = std::promise<pid_t>();
@@ -106,22 +110,20 @@ protected:
 };
 
 class ModuleStateDumperWithStackTest : public ModuleStateDumperTest {
-protected:
+ protected:
   void SetUp() override {
     ModuleStateDumperTest::SetUp();
-    module_registry_.InjectTestModule(&StateDumperTestModule::Factory,
-                                      module_ /* pass ownership */);
-    module_ = nullptr; // ownership is passed
+    module_registry_.InjectTestModule(
+        &StateDumperTestModule::Factory, module_ /* pass ownership */);
+    module_ = nullptr;  // ownership is passed
   }
 
   static pid_t get_handler_tid(os::Handler* handler) {
     std::promise<pid_t> handler_tid_promise = std::promise<pid_t>();
     std::future<pid_t> future = handler_tid_promise.get_future();
     handler->Post(common::BindOnce(
-            [](std::promise<pid_t> promise) {
-              promise.set_value(base::PlatformThread::CurrentId());
-            },
-            std::move(handler_tid_promise)));
+        [](std::promise<pid_t> promise) { promise.set_value(base::PlatformThread::CurrentId()); },
+        std::move(handler_tid_promise)));
     return future.get();
   }
 
@@ -139,7 +141,7 @@ protected:
 
 TEST_F(ModuleStateDumperTest, lifecycle) {
   ::bluetooth::os::Thread* thread =
-          new bluetooth::os::Thread("Name", bluetooth::os::Thread::Priority::REAL_TIME);
+      new bluetooth::os::Thread("Name", bluetooth::os::Thread::Priority::REAL_TIME);
   ASSERT_FALSE(module_registry_.IsStarted<StateDumperTestModule>());
   module_registry_.Start<StateDumperTestModule>(thread);
   ASSERT_TRUE(module_registry_.IsStarted<StateDumperTestModule>());

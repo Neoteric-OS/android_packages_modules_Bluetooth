@@ -30,7 +30,7 @@ namespace hal {
 class HciHalFacadeService;
 
 class HciHalFacadeModule : public ::bluetooth::grpc::GrpcFacadeModule {
-public:
+ public:
   static const ModuleFactory Factory;
 
   void ListDependencies(ModuleList* list) const override;
@@ -40,9 +40,9 @@ public:
 
   ::grpc::Service* GetService() const override;
 
-private:
+ private:
   HciHalFacadeService* service_;
 };
 
-} // namespace hal
-} // namespace bluetooth
+}  // namespace hal
+}  // namespace bluetooth

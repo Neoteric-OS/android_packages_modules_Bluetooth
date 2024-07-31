@@ -70,7 +70,8 @@ namespace {
 const Address kAddress = Address({0x11, 0x22, 0x33, 0x44, 0x55, 0x66});
 const Address kAddress2 = Address({0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc});
 const RawAddress kRawAddress = RawAddress({0x11, 0x22, 0x33, 0x44, 0x55, 0x66});
-const RawAddress kRawAddress2 = RawAddress({0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc});
+const RawAddress kRawAddress2 =
+    RawAddress({0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc});
 const BD_NAME kBdName = {'A', ' ', 'B', 'd', ' ', 'N', 'a', 'm', 'e', '\0'};
 const BD_NAME kEmptyName = "";
 
@@ -79,10 +80,10 @@ bool gBTM_REMOTE_DEV_NAME_sent{false};
 
 static constexpr uint8_t kNumCommandPackets = 1;
 
-} // namespace
+}  // namespace
 
 class BtmInqTest : public BtmWithMocksTest {
-protected:
+ protected:
   void SetUp() override {
     BtmWithMocksTest::SetUp();
     btm_cb = {};
@@ -92,7 +93,7 @@ protected:
 };
 
 class BtmInqActiveTest : public BtmInqTest {
-protected:
+ protected:
   void SetUp() override {
     BtmInqTest::SetUp();
     gBTM_REMOTE_DEV_NAME = {};
@@ -183,30 +184,33 @@ TEST_F(BtmInqActiveTest, btm_process_remote_name__different_address) {
 }
 
 class BtmInquiryCallbacks {
-public:
+ public:
   virtual ~BtmInquiryCallbacks() = default;
-  virtual void btm_inq_results_cb(tBTM_INQ_RESULTS*, const uint8_t*, uint16_t) = 0;
+  virtual void btm_inq_results_cb(tBTM_INQ_RESULTS*, const uint8_t*,
+                                  uint16_t) = 0;
   virtual void btm_inq_cmpl_cb(void*) = 0;
 };
 
 class MockBtmInquiryCallbacks : public BtmInquiryCallbacks {
-public:
+ public:
   MOCK_METHOD(void, btm_inq_results_cb,
-              (tBTM_INQ_RESULTS * p_inq_results, const uint8_t* p_eir, uint16_t eir_len),
+              (tBTM_INQ_RESULTS * p_inq_results, const uint8_t* p_eir,
+               uint16_t eir_len),
               (override));
   MOCK_METHOD(void, btm_inq_cmpl_cb, (void*), (override));
 };
 
 MockBtmInquiryCallbacks* inquiry_callback_ptr = nullptr;
 
-void btm_inq_results_cb(tBTM_INQ_RESULTS* p_inq_results, const uint8_t* p_eir, uint16_t eir_len) {
+void btm_inq_results_cb(tBTM_INQ_RESULTS* p_inq_results, const uint8_t* p_eir,
+                        uint16_t eir_len) {
   inquiry_callback_ptr->btm_inq_results_cb(p_inq_results, p_eir, eir_len);
 }
 
 void btm_inq_cmpl_cb(void* p1) { inquiry_callback_ptr->btm_inq_cmpl_cb(p1); }
 
 class BtmDeviceInquiryTest : public BtmInqTest {
-protected:
+ protected:
   void SetUp() override {
     BtmInqTest::SetUp();
     main_thread_start_up();
@@ -216,23 +220,27 @@ protected:
     bluetooth::hci::testing::mock_hci_layer_ = &hci_layer_;
 
     // Start Inquiry
-    EXPECT_EQ(BTM_CMD_STARTED, BTM_StartInquiry(btm_inq_results_cb, btm_inq_cmpl_cb));
+    EXPECT_EQ(BTM_CMD_STARTED,
+              BTM_StartInquiry(btm_inq_results_cb, btm_inq_cmpl_cb));
     auto view = hci_layer_.GetCommand(OpCode::INQUIRY);
-    hci_layer_.IncomingEvent(
-            InquiryStatusBuilder::Create(bluetooth::hci::ErrorCode::SUCCESS, kNumCommandPackets));
+    hci_layer_.IncomingEvent(InquiryStatusBuilder::Create(
+        bluetooth::hci::ErrorCode::SUCCESS, kNumCommandPackets));
 
     // Send one response to synchronize
     std::promise<void> first_result_promise;
     auto first_result = first_result_promise.get_future();
     EXPECT_CALL(*inquiry_callback_ptr, btm_inq_results_cb(_, _, _))
-            .WillOnce([&first_result_promise]() { first_result_promise.set_value(); })
-            .RetiresOnSaturation();
+        .WillOnce(
+            [&first_result_promise]() { first_result_promise.set_value(); })
+        .RetiresOnSaturation();
 
-    InquiryResponse one_device(kAddress, bluetooth::hci::PageScanRepetitionMode::R0,
+    InquiryResponse one_device(kAddress,
+                               bluetooth::hci::PageScanRepetitionMode::R0,
                                bluetooth::hci::ClassOfDevice(), 0x1234);
     hci_layer_.IncomingEvent(InquiryResultBuilder::Create({one_device}));
 
-    EXPECT_EQ(std::future_status::ready, first_result.wait_for(std::chrono::seconds(1)));
+    EXPECT_EQ(std::future_status::ready,
+              first_result.wait_for(std::chrono::seconds(1)));
   }
 
   void TearDown() override {
@@ -255,12 +263,14 @@ TEST_F(BtmDeviceInquiryTest, bta_dm_disc_device_discovery_single_result) {
   std::promise<void> one_result_promise;
   auto one_result = one_result_promise.get_future();
   EXPECT_CALL(*inquiry_callback_ptr, btm_inq_results_cb(_, _, _))
-          .WillOnce([&one_result_promise]() { one_result_promise.set_value(); })
-          .RetiresOnSaturation();
+      .WillOnce([&one_result_promise]() { one_result_promise.set_value(); })
+      .RetiresOnSaturation();
 
-  InquiryResponse one_device(kAddress2, bluetooth::hci::PageScanRepetitionMode::R0,
+  InquiryResponse one_device(kAddress2,
+                             bluetooth::hci::PageScanRepetitionMode::R0,
                              bluetooth::hci::ClassOfDevice(), 0x2345);
   hci_layer_.IncomingEvent(InquiryResultBuilder::Create({one_device}));
 
-  EXPECT_EQ(std::future_status::ready, one_result.wait_for(std::chrono::seconds(1)));
+  EXPECT_EQ(std::future_status::ready,
+            one_result.wait_for(std::chrono::seconds(1)));
 }

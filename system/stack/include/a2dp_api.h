@@ -85,8 +85,8 @@ typedef struct {
 } tA2DP_Service;
 
 /* This is the callback to notify the result of the SDP discovery process. */
-using tA2DP_FIND_CBACK =
-        base::Callback<void(bool found, tA2DP_Service* p_service, const RawAddress& peer_address)>;
+using tA2DP_FIND_CBACK = base::Callback<void(
+    bool found, tA2DP_Service* p_service, const RawAddress& peer_address)>;
 
 /*****************************************************************************
  *  external function declarations
@@ -121,8 +121,9 @@ using tA2DP_FIND_CBACK =
  *                  A2DP_FAIL if function execution failed.
  *
  *****************************************************************************/
-tA2DP_STATUS A2DP_AddRecord(uint16_t service_uuid, char* p_service_name, char* p_provider_name,
-                            uint16_t features, uint32_t sdp_handle);
+tA2DP_STATUS A2DP_AddRecord(uint16_t service_uuid, char* p_service_name,
+                            char* p_provider_name, uint16_t features,
+                            uint32_t sdp_handle);
 
 /******************************************************************************
  *
@@ -160,7 +161,8 @@ tA2DP_STATUS A2DP_AddRecord(uint16_t service_uuid, char* p_service_name, char* p
  *
  *****************************************************************************/
 tA2DP_STATUS A2DP_FindService(uint16_t service_uuid, const RawAddress& bd_addr,
-                              tA2DP_SDP_DB_PARAMS* p_db, tA2DP_FIND_CBACK p_cback);
+                              tA2DP_SDP_DB_PARAMS* p_db,
+                              tA2DP_FIND_CBACK p_cback);
 
 /******************************************************************************
  *
@@ -186,4 +188,4 @@ uint8_t A2DP_BitsSet(uint64_t num);
 // Initializes the A2DP control block.
 void A2DP_Init(void);
 
-#endif // A2DP_API_H
+#endif  // A2DP_API_H

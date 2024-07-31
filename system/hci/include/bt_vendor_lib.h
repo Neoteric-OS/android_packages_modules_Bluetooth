@@ -210,12 +210,12 @@ typedef enum {
     used in BT_VND_OP_USERIAL_OPEN operation.
  */
 typedef enum {
-  CH_CMD,     // HCI Command channel
-  CH_EVT,     // HCI Event channel
-  CH_ACL_OUT, // HCI ACL downstream channel
-  CH_ACL_IN,  // HCI ACL upstream channel
+  CH_CMD,      // HCI Command channel
+  CH_EVT,      // HCI Event channel
+  CH_ACL_OUT,  // HCI ACL downstream channel
+  CH_ACL_IN,   // HCI ACL upstream channel
 
-  CH_MAX // Total channels
+  CH_MAX  // Total channels
 } bt_vendor_hci_channels_t;
 
 /** LPM disable/enable request */
@@ -317,7 +317,8 @@ typedef void (*tINT_CMD_CBACK)(void* p_mem);
  *  HCI Command packet. For example, opcode = 0x0c03 for the HCI_RESET command
  *  packet.
  */
-typedef uint8_t (*cmd_xmit_cb)(uint16_t opcode, void* p_buf, tINT_CMD_CBACK p_cback);
+typedef uint8_t (*cmd_xmit_cb)(uint16_t opcode, void* p_buf,
+                               tINT_CMD_CBACK p_cback);
 
 typedef void (*cfg_a2dp_cb)(bt_vendor_op_result_t result, bt_vendor_opcode_t op,
                             uint8_t bta_av_handle);

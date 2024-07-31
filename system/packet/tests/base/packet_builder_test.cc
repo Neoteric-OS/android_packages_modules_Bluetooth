@@ -15,7 +15,6 @@
  */
 
 #include <gtest/gtest.h>
-
 #include <memory>
 
 #include "packet.h"
@@ -69,4 +68,4 @@ TEST(PacketBuilderTest, addPayloadOctetsTest) {
   }
 }
 
-} // namespace bluetooth
+}  // namespace bluetooth

@@ -34,11 +34,15 @@
 namespace bluetooth::shim {
 namespace testing {
 const hci_t* test_interface = nullptr;
-void hci_layer_set_interface(const hci_t* interface) { test_interface = interface; }
-} // namespace testing
-} // namespace bluetooth::shim
+void hci_layer_set_interface(const hci_t* interface) {
+  test_interface = interface;
+}
+}  // namespace testing
+}  // namespace bluetooth::shim
 
-const hci_t* bluetooth::shim::hci_layer_get_interface() { return testing::test_interface; }
+const hci_t* bluetooth::shim::hci_layer_get_interface() {
+  return testing::test_interface;
+}
 
 namespace test {
 namespace mock {
@@ -50,33 +54,34 @@ struct OnTransmitPacketStatus OnTransmitPacketStatus;
 struct hci_on_reset_complete hci_on_reset_complete;
 struct hci_on_shutting_down hci_on_shutting_down;
 
-} // namespace main_shim_hci_layer
-} // namespace mock
-} // namespace test
+}  // namespace main_shim_hci_layer
+}  // namespace mock
+}  // namespace test
 
 // Mocked function return values, if any
 namespace test {
 namespace mock {
-namespace main_shim_hci_layer {} // namespace main_shim_hci_layer
-} // namespace mock
-} // namespace test
+namespace main_shim_hci_layer {}  // namespace main_shim_hci_layer
+}  // namespace mock
+}  // namespace test
 
 // Mocked functions, if any
 namespace cpp {
-void OnTransmitPacketCommandComplete(command_complete_cb complete_callback, void* context,
+void OnTransmitPacketCommandComplete(command_complete_cb complete_callback,
+                                     void* context,
                                      bluetooth::hci::CommandCompleteView view) {
   inc_func_call_count(__func__);
-  test::mock::main_shim_hci_layer::OnTransmitPacketCommandComplete(complete_callback, context,
-                                                                   view);
+  test::mock::main_shim_hci_layer::OnTransmitPacketCommandComplete(
+      complete_callback, context, view);
 }
 void OnTransmitPacketStatus(command_status_cb status_callback, void* context,
                             std::unique_ptr<OsiObject> command,
                             bluetooth::hci::CommandStatusView view) {
   inc_func_call_count(__func__);
-  test::mock::main_shim_hci_layer::OnTransmitPacketStatus(status_callback, context,
-                                                          std::move(command), view);
+  test::mock::main_shim_hci_layer::OnTransmitPacketStatus(
+      status_callback, context, std::move(command), view);
 }
-} // namespace cpp
+}  // namespace cpp
 
 void bluetooth::shim::hci_on_reset_complete() {
   inc_func_call_count(__func__);

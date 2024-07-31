@@ -42,17 +42,18 @@ struct RangingResult {
 };
 
 class RangingHalCallback {
-public:
+ public:
   virtual ~RangingHalCallback() = default;
-  virtual void OnOpened(uint16_t connection_handle,
-                        const std::vector<VendorSpecificCharacteristic>& vendor_specific_reply) = 0;
+  virtual void OnOpened(
+      uint16_t connection_handle,
+      const std::vector<VendorSpecificCharacteristic>& vendor_specific_reply) = 0;
   virtual void OnOpenFailed(uint16_t connection_handle) = 0;
   virtual void OnHandleVendorSpecificReplyComplete(uint16_t connection_handle, bool success) = 0;
   virtual void OnResult(uint16_t connection_handle, const RangingResult& ranging_result) = 0;
 };
 
 class RangingHal : public ::bluetooth::Module {
-public:
+ public:
   static const ModuleFactory Factory;
 
   virtual ~RangingHal() = default;
@@ -60,13 +61,14 @@ public:
   virtual void RegisterCallback(RangingHalCallback* callback) = 0;
   virtual std::vector<VendorSpecificCharacteristic> GetVendorSpecificCharacteristics() = 0;
   virtual void OpenSession(
-          uint16_t connection_handle, uint16_t att_handle,
-          const std::vector<hal::VendorSpecificCharacteristic>& vendor_specific_data) = 0;
+      uint16_t connection_handle,
+      uint16_t att_handle,
+      const std::vector<hal::VendorSpecificCharacteristic>& vendor_specific_data) = 0;
   virtual void HandleVendorSpecificReply(
-          uint16_t connection_handle,
-          const std::vector<hal::VendorSpecificCharacteristic>& vendor_specific_reply) = 0;
+      uint16_t connection_handle,
+      const std::vector<hal::VendorSpecificCharacteristic>& vendor_specific_reply) = 0;
   virtual void WriteRawData(uint16_t connection_handle, const ChannelSoundingRawData& raw_data) = 0;
 };
 
-} // namespace hal
-} // namespace bluetooth
+}  // namespace hal
+}  // namespace bluetooth

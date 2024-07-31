@@ -66,4 +66,4 @@ enum : uint64_t {
   A2DP_CODEC_ID_APTX_AD = 0x00ad00d7ff,
 };
 
-#endif // A2DP_CONSTANTS_H
+#endif  // A2DP_CONSTANTS_H

@@ -30,5 +30,5 @@ void hci_on_reset_complete();
 
 void hci_on_shutting_down();
 
-} // namespace shim
-} // namespace bluetooth
+}  // namespace shim
+}  // namespace bluetooth

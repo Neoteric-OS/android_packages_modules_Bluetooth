@@ -14,4 +14,4 @@ struct DumpsysTestDataClass {
   virtual ~DumpsysTestDataClass() = default;
 };
 
-} // namespace testing
+}  // namespace testing

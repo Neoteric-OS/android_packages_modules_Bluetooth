@@ -50,7 +50,9 @@ std::unordered_map<uint16_t /* sci */, tRFC_MCB*> rfc_lcid_mcb;
  *                  start event to the state machine.
  *
  ******************************************************************************/
-void RFCOMM_StartReq(tRFC_MCB* p_mcb) { rfc_mx_sm_execute(p_mcb, RFC_MX_EVENT_START_REQ, nullptr); }
+void RFCOMM_StartReq(tRFC_MCB* p_mcb) {
+  rfc_mx_sm_execute(p_mcb, RFC_MX_EVENT_START_REQ, nullptr);
+}
 
 /*******************************************************************************
  *
@@ -99,7 +101,8 @@ void RFCOMM_DlcEstablishReq(tRFC_MCB* p_mcb, uint8_t dlci, uint16_t /* mtu */) {
  *                  acks Establish Indication.
  *
  ******************************************************************************/
-void RFCOMM_DlcEstablishRsp(tRFC_MCB* p_mcb, uint8_t dlci, uint16_t /* mtu */, uint16_t result) {
+void RFCOMM_DlcEstablishRsp(tRFC_MCB* p_mcb, uint8_t dlci, uint16_t /* mtu */,
+                            uint16_t result) {
   if ((p_mcb->state != RFC_MX_STATE_CONNECTED) && (result == RFCOMM_SUCCESS)) {
     PORT_DlcReleaseInd(p_mcb, dlci);
     return;
@@ -124,7 +127,8 @@ void RFCOMM_DlcEstablishRsp(tRFC_MCB* p_mcb, uint8_t dlci, uint16_t /* mtu */, u
  *                  block.
  *
  ******************************************************************************/
-void RFCOMM_ParameterNegotiationRequest(tRFC_MCB* p_mcb, uint8_t dlci, uint16_t mtu) {
+void RFCOMM_ParameterNegotiationRequest(tRFC_MCB* p_mcb, uint8_t dlci,
+                                        uint16_t mtu) {
   uint8_t flow;
   uint8_t cl;
   uint8_t k;
@@ -149,7 +153,8 @@ void RFCOMM_ParameterNegotiationRequest(tRFC_MCB* p_mcb, uint8_t dlci, uint16_t 
   /* Set convergence layer and number of credits (k) */
   if (flow == PORT_FC_CREDIT) {
     cl = RFCOMM_PN_CONV_LAYER_CBFC_I;
-    k = (p_port->credit_rx_max < RFCOMM_K_MAX) ? p_port->credit_rx_max : RFCOMM_K_MAX;
+    k = (p_port->credit_rx_max < RFCOMM_K_MAX) ? p_port->credit_rx_max
+                                               : RFCOMM_K_MAX;
     p_port->credit_rx = k;
   } else {
     cl = RFCOMM_PN_CONV_LAYER_TYPE_1;
@@ -172,11 +177,9 @@ void RFCOMM_ParameterNegotiationRequest(tRFC_MCB* p_mcb, uint8_t dlci, uint16_t 
  *                  DLC parameter negotiation.
  *
  ******************************************************************************/
-void RFCOMM_ParameterNegotiationResponse(tRFC_MCB* p_mcb, uint8_t dlci, uint16_t mtu, uint8_t cl,
-                                         uint8_t k) {
-  if (p_mcb->state != RFC_MX_STATE_CONNECTED) {
-    return;
-  }
+void RFCOMM_ParameterNegotiationResponse(tRFC_MCB* p_mcb, uint8_t dlci,
+                                         uint16_t mtu, uint8_t cl, uint8_t k) {
+  if (p_mcb->state != RFC_MX_STATE_CONNECTED) return;
 
   /* Send Parameter Negotiation Response UIH frame */
   rfc_send_pn(p_mcb, dlci, false, mtu, cl, k);
@@ -193,7 +196,8 @@ void RFCOMM_ParameterNegotiationResponse(tRFC_MCB* p_mcb, uint8_t dlci, uint16_t
  *                  control block.
  *
  ******************************************************************************/
-void RFCOMM_PortParameterNegotiationRequest(tRFC_MCB* p_mcb, uint8_t dlci, tPORT_STATE* p_pars) {
+void RFCOMM_PortParameterNegotiationRequest(tRFC_MCB* p_mcb, uint8_t dlci,
+                                            tPORT_STATE* p_pars) {
   if (p_mcb->state != RFC_MX_STATE_CONNECTED) {
     PORT_PortNegCnf(p_mcb, dlci, nullptr, RFCOMM_ERROR);
     return;
@@ -206,11 +210,10 @@ void RFCOMM_PortParameterNegotiationRequest(tRFC_MCB* p_mcb, uint8_t dlci, tPORT
   }
 
   /* Send Parameter Negotiation Command UIH frame */
-  if (!p_pars) {
+  if (!p_pars)
     p_port->rfc.expected_rsp |= RFC_RSP_RPN_REPLY;
-  } else {
+  else
     p_port->rfc.expected_rsp |= RFC_RSP_RPN;
-  }
 
   rfc_send_rpn(p_mcb, dlci, true, p_pars, RFCOMM_RPN_PM_MASK);
   rfc_port_timer_start(p_port, RFC_T2_TIMEOUT);
@@ -224,11 +227,10 @@ void RFCOMM_PortParameterNegotiationRequest(tRFC_MCB* p_mcb, uint8_t dlci, tPORT
  *                  Port parameters negotiation.
  *
  ******************************************************************************/
-void RFCOMM_PortParameterNegotiationResponse(tRFC_MCB* p_mcb, uint8_t dlci, tPORT_STATE* p_pars,
+void RFCOMM_PortParameterNegotiationResponse(tRFC_MCB* p_mcb, uint8_t dlci,
+                                             tPORT_STATE* p_pars,
                                              uint16_t param_mask) {
-  if (p_mcb->state != RFC_MX_STATE_CONNECTED) {
-    return;
-  }
+  if (p_mcb->state != RFC_MX_STATE_CONNECTED) return;
 
   rfc_send_rpn(p_mcb, dlci, false, p_pars, param_mask);
 }
@@ -248,9 +250,9 @@ void RFCOMM_ControlReq(tRFC_MCB* p_mcb, uint8_t dlci, tPORT_CTRL* p_pars) {
     return;
   }
 
-  if ((p_port->state != PORT_CONNECTION_STATE_OPENED) || (p_port->rfc.state != RFC_STATE_OPENED)) {
+  if ((p_port->state != PORT_CONNECTION_STATE_OPENED) ||
+      (p_port->rfc.state != RFC_STATE_OPENED))
     return;
-  }
 
   p_port->port_ctrl |= PORT_CTRL_REQ_SENT;
 
@@ -276,9 +278,9 @@ void RFCOMM_FlowReq(tRFC_MCB* p_mcb, uint8_t dlci, bool enable) {
     return;
   }
 
-  if ((p_port->state != PORT_CONNECTION_STATE_OPENED) || (p_port->rfc.state != RFC_STATE_OPENED)) {
+  if ((p_port->state != PORT_CONNECTION_STATE_OPENED) ||
+      (p_port->rfc.state != RFC_STATE_OPENED))
     return;
-  }
 
   p_port->local_ctrl.fc = !enable;
 
@@ -303,9 +305,9 @@ void RFCOMM_LineStatusReq(tRFC_MCB* p_mcb, uint8_t dlci, uint8_t status) {
     return;
   }
 
-  if ((p_port->state != PORT_CONNECTION_STATE_OPENED) || (p_port->rfc.state != RFC_STATE_OPENED)) {
+  if ((p_port->state != PORT_CONNECTION_STATE_OPENED) ||
+      (p_port->rfc.state != RFC_STATE_OPENED))
     return;
-  }
 
   p_port->rfc.expected_rsp |= RFC_RSP_RLS;
 
@@ -321,7 +323,8 @@ void RFCOMM_LineStatusReq(tRFC_MCB* p_mcb, uint8_t dlci, uint8_t status) {
  *
  ******************************************************************************/
 void RFCOMM_DlcReleaseReq(tRFC_MCB* p_mcb, uint8_t dlci) {
-  rfc_port_sm_execute(port_find_mcb_dlci_port(p_mcb, dlci), RFC_PORT_EVENT_CLOSE, nullptr);
+  rfc_port_sm_execute(port_find_mcb_dlci_port(p_mcb, dlci),
+                      RFC_PORT_EVENT_CLOSE, nullptr);
 }
 
 /*******************************************************************************
@@ -332,5 +335,6 @@ void RFCOMM_DlcReleaseReq(tRFC_MCB* p_mcb, uint8_t dlci) {
  *
  ******************************************************************************/
 void RFCOMM_DataReq(tRFC_MCB* p_mcb, uint8_t dlci, BT_HDR* p_buf) {
-  rfc_port_sm_execute(port_find_mcb_dlci_port(p_mcb, dlci), RFC_PORT_EVENT_DATA, p_buf);
+  rfc_port_sm_execute(port_find_mcb_dlci_port(p_mcb, dlci), RFC_PORT_EVENT_DATA,
+                      p_buf);
 }

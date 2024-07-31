@@ -29,7 +29,7 @@
 namespace bluetooth {
 namespace shim {
 class EncKeyMaterialInterface {
-public:
+ public:
   virtual ~EncKeyMaterialInterface() = default;
   /** Registers an EncKeyMaterialInterface with the stack */
   virtual void Init() = 0;
@@ -44,5 +44,5 @@ void init_advertising_manager();
 EncKeyMaterialInterface* get_enc_key_material_instance();
 void init_enc_key_material_manager();
 
-} // namespace shim
-} // namespace bluetooth
+}  // namespace shim
+}  // namespace bluetooth

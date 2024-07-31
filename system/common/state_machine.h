@@ -29,7 +29,7 @@ namespace common {
  * State machine used by Bluetooth native stack.
  */
 class StateMachine {
-public:
+ public:
   enum { kStateInvalid = -1 };
 
   /**
@@ -38,7 +38,7 @@ public:
   class State {
     friend class StateMachine;
 
-  public:
+   public:
     /**
      * Constructor.
      *
@@ -67,7 +67,7 @@ public:
      */
     int StateId() const { return state_id_; }
 
-  protected:
+   protected:
     /**
      * Called when a state is entered.
      */
@@ -91,18 +91,21 @@ public:
      *
      * @param dest_state the state to transition to. It cannot be nullptr.
      */
-    void TransitionTo(StateMachine::State* dest_state) { sm_.TransitionTo(dest_state); }
+    void TransitionTo(StateMachine::State* dest_state) {
+      sm_.TransitionTo(dest_state);
+    }
 
-  private:
+   private:
     StateMachine& sm_;
     int state_id_;
   };
 
-  StateMachine() : initial_state_(nullptr), previous_state_(nullptr), current_state_(nullptr) {}
+  StateMachine()
+      : initial_state_(nullptr),
+        previous_state_(nullptr),
+        current_state_(nullptr) {}
   ~StateMachine() {
-    for (auto& kv : states_) {
-      delete kv.second;
-    }
+    for (auto& kv : states_) delete kv.second;
   }
 
   /**
@@ -149,9 +152,7 @@ public:
    * @return true if the processing was completed, otherwise false
    */
   bool ProcessEvent(uint32_t event, void* p_data) {
-    if (current_state_ == nullptr) {
-      return false;
-    }
+    if (current_state_ == nullptr) return false;
     return current_state_->ProcessEvent(event, p_data);
   }
 
@@ -164,7 +165,8 @@ public:
   void TransitionTo(int dest_state_id) {
     auto it = states_.find(dest_state_id);
 
-    log::assert_that(it != states_.end(), "Unknown State ID: {}", dest_state_id);
+    log::assert_that(it != states_.end(), "Unknown State ID: {}",
+                     dest_state_id);
     State* dest_state = it->second;
     TransitionTo(dest_state);
   }
@@ -190,7 +192,9 @@ public:
    *
    * @param state the state to add
    */
-  void AddState(State* state) { states_.insert(std::make_pair(state->StateId(), state)); }
+  void AddState(State* state) {
+    states_.insert(std::make_pair(state->StateId(), state));
+  }
 
   /**
    * Set the initial state of the State Machine.
@@ -199,13 +203,13 @@ public:
    */
   void SetInitialState(State* initial_state) { initial_state_ = initial_state; }
 
-private:
+ private:
   State* initial_state_;
   State* previous_state_;
   State* current_state_;
   std::map<int, State*> states_;
 };
 
-} // namespace common
+}  // namespace common
 
-} // namespace bluetooth
+}  // namespace bluetooth

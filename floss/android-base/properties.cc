@@ -21,7 +21,8 @@
 namespace android {
 namespace base {
 
-std::string GetProperty(const std::string& key, const std::string& default_value) {
+std::string GetProperty(const std::string& key,
+                        const std::string& default_value) {
   return bluetooth::os::GetSystemProperty(key).value_or(default_value);
 }
 
@@ -30,5 +31,5 @@ bool SetProperty(const std::string& key, const std::string& value) {
   return bluetooth::os::SetSystemProperty(key, value);
 }
 
-} // namespace base
-} // namespace android
+}  // namespace base
+}  // namespace android

@@ -79,7 +79,7 @@ enum class DataElementType : uint8_t {
 
 // Constant that define the different sizes of data element.
 enum class DataElementSize : uint8_t {
-  BYTE1 = 0x0, // Exception: If the data element is NIL then size is 0 bytes
+  BYTE1 = 0x0,  // Exception: If the data element is NIL then size is 0 bytes
   BYTE2 = 0x1,
   BYTE4 = 0x2,
   BYTE8 = 0x3,
@@ -91,5 +91,5 @@ enum class DataElementSize : uint8_t {
   ADDITIONAL_32BIT = 0x7,
 };
 
-} // namespace sdp
-} // namespace bluetooth
+}  // namespace sdp
+}  // namespace bluetooth

@@ -23,8 +23,8 @@ namespace l2cap {
 namespace classic {
 
 /**
- * Configuration Option specified by L2CAP Channel user on a dynamic channel. L2CAP module will
- * configure the channel based on user provided option.
+ * Configuration Option specified by L2CAP Channel user on a dynamic channel. L2CAP module will configure the channel
+ * based on user provided option.
  */
 struct DynamicChannelConfigurationOption {
   enum class RetransmissionAndFlowControlMode {
@@ -34,8 +34,7 @@ struct DynamicChannelConfigurationOption {
   };
   /**
    * Retransmission and flow control mode. Currently L2CAP_BASIC and ENHANCED_RETRANSMISSION.
-   * If the remote doesn't support a mode, it might fall back to basic, as this is a negotiable
-   * option.
+   * If the remote doesn't support a mode, it might fall back to basic, as this is a negotiable option.
    */
   RetransmissionAndFlowControlMode channel_mode = RetransmissionAndFlowControlMode::L2CAP_BASIC;
 
@@ -50,6 +49,6 @@ struct DynamicChannelConfigurationOption {
   Mtu minimal_remote_mtu = kMinimumClassicMtu;
 };
 
-} // namespace classic
-} // namespace l2cap
-} // namespace bluetooth
+}  // namespace classic
+}  // namespace l2cap
+}  // namespace bluetooth

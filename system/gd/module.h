@@ -42,30 +42,32 @@ class TestModuleRegistry;
 class FuzzTestModuleRegistry;
 
 class ModuleFactory {
-  friend ModuleRegistry;
-  friend FuzzTestModuleRegistry;
+ friend ModuleRegistry;
+ friend FuzzTestModuleRegistry;
 
 public:
-  ModuleFactory(std::function<Module*()> ctor);
+ ModuleFactory(std::function<Module*()> ctor);
 
 private:
-  std::function<Module*()> ctor_;
+ std::function<Module*()> ctor_;
 };
 
 class ModuleList {
-  friend Module;
-  friend ModuleRegistry;
+ friend Module;
+ friend ModuleRegistry;
 
 public:
-  template <class T>
-  void add() {
-    list_.push_back(&T::Factory);
-  }
+ template <class T>
+ void add() {
+   list_.push_back(&T::Factory);
+ }
 
-  // Return the number of modules in this list
-  size_t NumModules() const { return list_.size(); }
+ // Return the number of modules in this list
+ size_t NumModules() const {
+   return list_.size();
+ }
 
-private:
+ private:
   std::vector<const ModuleFactory*> list_;
 };
 
@@ -86,10 +88,10 @@ class Module {
   friend ModuleRegistry;
   friend TestModuleRegistry;
 
-public:
+ public:
   virtual ~Module() = default;
 
-protected:
+ protected:
   // Populate the provided list with modules that must start before yours
   virtual void ListDependencies(ModuleList* list) const = 0;
 
@@ -123,7 +125,7 @@ protected:
 
   virtual DumpsysDataFinisher GetDumpsysData(flatbuffers::FlatBufferBuilder* builder) const;
 
-private:
+ private:
   Module* GetDependency(const ModuleFactory* module) const;
 
   ::bluetooth::os::Handler* handler_ = nullptr;
@@ -132,11 +134,10 @@ private:
 };
 
 class ModuleRegistry {
-  friend Module;
-  friend ModuleDumper;
-  friend class StackManager;
-
-public:
+ friend Module;
+ friend ModuleDumper;
+ friend class StackManager;
+ public:
   template <class T>
   bool IsStarted() const {
     return IsStarted(&T::Factory);
@@ -158,7 +159,7 @@ public:
   // Stop all running modules in reverse order of start
   void StopAll();
 
-protected:
+ protected:
   Module* Get(const ModuleFactory* module) const;
 
   void set_registry_and_handler(Module* instance, ::bluetooth::os::Thread* thread) const;
@@ -171,7 +172,7 @@ protected:
 };
 
 class TestModuleRegistry : public ModuleRegistry {
-public:
+ public:
   void InjectTestModule(const ModuleFactory* module, Module* instance) {
     start_order_.push_back(module);
     started_modules_[module] = instance;
@@ -179,7 +180,9 @@ public:
     instance->Start();
   }
 
-  Module* GetModuleUnderTest(const ModuleFactory* module) const { return Get(module); }
+  Module* GetModuleUnderTest(const ModuleFactory* module) const {
+    return Get(module);
+  }
 
   template <class T>
   T* GetModuleUnderTest() const {
@@ -190,10 +193,11 @@ public:
     return GetModuleHandler(module);
   }
 
-  os::Thread& GetTestThread() { return test_thread; }
+  os::Thread& GetTestThread() {
+    return test_thread;
+  }
 
-  bool SynchronizeModuleHandler(const ModuleFactory* module,
-                                std::chrono::milliseconds timeout) const {
+  bool SynchronizeModuleHandler(const ModuleFactory* module, std::chrono::milliseconds timeout) const {
     return SynchronizeHandler(GetTestModuleHandler(module), timeout);
   }
 
@@ -204,12 +208,12 @@ public:
     return future.wait_for(timeout) == std::future_status::ready;
   }
 
-private:
+ private:
   os::Thread test_thread{"test_thread", os::Thread::Priority::NORMAL};
 };
 
 class FuzzTestModuleRegistry : public TestModuleRegistry {
-public:
+ public:
   template <class T>
   T* Inject(const ModuleFactory* overriding) {
     Module* instance = T::Factory.ctor_();
@@ -230,4 +234,4 @@ public:
   }
 };
 
-} // namespace bluetooth
+}  // namespace bluetooth

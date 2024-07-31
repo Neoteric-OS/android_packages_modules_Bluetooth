@@ -39,13 +39,13 @@ using ::android::hardware::audio::common::V5_0::SourceMetadata;
 using ::android::hardware::bluetooth::audio::V2_0::IBluetoothAudioPort;
 using ::bluetooth::common::StopWatchLegacy;
 
-using DataMQ =
-        ::android::hardware::MessageQueue<uint8_t, ::android::hardware::kSynchronizedReadWrite>;
+using DataMQ = ::android::hardware::MessageQueue<
+    uint8_t, ::android::hardware::kSynchronizedReadWrite>;
 
-static constexpr int kDefaultDataReadTimeoutMs = 10;      // 10 ms
-static constexpr int kDefaultDataWriteTimeoutMs = 10;     // 10 ms
-static constexpr int kDefaultDataReadPollIntervalMs = 1;  // non-blocking poll
-static constexpr int kDefaultDataWritePollIntervalMs = 1; // non-blocking poll
+static constexpr int kDefaultDataReadTimeoutMs = 10;       // 10 ms
+static constexpr int kDefaultDataWriteTimeoutMs = 10;      // 10 ms
+static constexpr int kDefaultDataReadPollIntervalMs = 1;   // non-blocking poll
+static constexpr int kDefaultDataWritePollIntervalMs = 1;  // non-blocking poll
 
 std::ostream& operator<<(std::ostream& os, const BluetoothAudioCtrlAck& ack) {
   switch (ack) {
@@ -67,7 +67,7 @@ std::ostream& operator<<(std::ostream& os, const BluetoothAudioCtrlAck& ack) {
 }
 
 class BluetoothAudioPortImpl : public IBluetoothAudioPort {
-public:
+ public:
   BluetoothAudioPortImpl(IBluetoothTransportInstance* transport_instance,
                          const android::sp<IBluetoothAudioProvider>& provider)
       : transport_instance_(transport_instance), provider_(provider) {}
@@ -76,7 +76,8 @@ public:
     StopWatchLegacy stop_watch(__func__);
     BluetoothAudioCtrlAck ack = transport_instance_->StartRequest();
     if (ack != BluetoothAudioCtrlAck::PENDING) {
-      auto hidl_retval = provider_->streamStarted(BluetoothAudioCtrlAckToHalStatus(ack));
+      auto hidl_retval =
+          provider_->streamStarted(BluetoothAudioCtrlAckToHalStatus(ack));
       if (!hidl_retval.isOk()) {
         log::error("BluetoothAudioHal failure: {}", hidl_retval.description());
       }
@@ -88,7 +89,8 @@ public:
     StopWatchLegacy stop_watch(__func__);
     BluetoothAudioCtrlAck ack = transport_instance_->SuspendRequest();
     if (ack != BluetoothAudioCtrlAck::PENDING) {
-      auto hidl_retval = provider_->streamSuspended(BluetoothAudioCtrlAckToHalStatus(ack));
+      auto hidl_retval =
+          provider_->streamSuspended(BluetoothAudioCtrlAckToHalStatus(ack));
       if (!hidl_retval.isOk()) {
         log::error("BluetoothAudioHal failure: {}", hidl_retval.description());
       }
@@ -102,13 +104,14 @@ public:
     return Void();
   }
 
-  Return<void> getPresentationPosition(getPresentationPosition_cb _hidl_cb) override {
+  Return<void> getPresentationPosition(
+      getPresentationPosition_cb _hidl_cb) override {
     StopWatchLegacy stop_watch(__func__);
     uint64_t remote_delay_report_ns;
     uint64_t total_bytes_read;
     timespec data_position;
-    bool retval = transport_instance_->GetPresentationPosition(&remote_delay_report_ns,
-                                                               &total_bytes_read, &data_position);
+    bool retval = transport_instance_->GetPresentationPosition(
+        &remote_delay_report_ns, &total_bytes_read, &data_position);
 
     TimeSpec transmittedOctetsTimeStamp;
     if (retval) {
@@ -119,9 +122,12 @@ public:
       transmittedOctetsTimeStamp = {};
     }
     log::verbose("result={}, delay={}, data={} byte(s), timestamp={}", retval,
-                 remote_delay_report_ns, total_bytes_read, toString(transmittedOctetsTimeStamp));
-    _hidl_cb((retval ? BluetoothAudioStatus::SUCCESS : BluetoothAudioStatus::FAILURE),
-             remote_delay_report_ns, total_bytes_read, transmittedOctetsTimeStamp);
+                 remote_delay_report_ns, total_bytes_read,
+                 toString(transmittedOctetsTimeStamp));
+    _hidl_cb((retval ? BluetoothAudioStatus::SUCCESS
+                     : BluetoothAudioStatus::FAILURE),
+             remote_delay_report_ns, total_bytes_read,
+             transmittedOctetsTimeStamp);
     return Void();
   }
 
@@ -133,45 +139,52 @@ public:
     metadata_vec.reserve(sourceMetadata.tracks.size());
     for (const auto& metadata : sourceMetadata.tracks) {
       metadata_vec.push_back({
-              .usage = static_cast<audio_usage_t>(metadata.usage),
-              .content_type = static_cast<audio_content_type_t>(metadata.contentType),
-              .gain = metadata.gain,
+          .usage = static_cast<audio_usage_t>(metadata.usage),
+          .content_type =
+              static_cast<audio_content_type_t>(metadata.contentType),
+          .gain = metadata.gain,
       });
     }
-    const source_metadata_t source_metadata = {.track_count = metadata_vec.size(),
-                                               .tracks = metadata_vec.data()};
+    const source_metadata_t source_metadata = {
+        .track_count = metadata_vec.size(), .tracks = metadata_vec.data()};
     transport_instance_->MetadataChanged(source_metadata);
     return Void();
   }
 
-private:
+ private:
   IBluetoothTransportInstance* transport_instance_;
   const android::sp<IBluetoothAudioProvider> provider_;
   TimeSpec timespec_convert_to_hal(const timespec& ts) {
-    return {.tvSec = static_cast<uint64_t>(ts.tv_sec), .tvNSec = static_cast<uint64_t>(ts.tv_nsec)};
+    return {.tvSec = static_cast<uint64_t>(ts.tv_sec),
+            .tvNSec = static_cast<uint64_t>(ts.tv_nsec)};
   }
 };
 
-class BluetoothAudioDeathRecipient : public ::android::hardware::hidl_death_recipient {
-public:
-  BluetoothAudioDeathRecipient(BluetoothAudioClientInterface* clientif,
-                               bluetooth::common::MessageLoopThread* message_loop)
+class BluetoothAudioDeathRecipient
+    : public ::android::hardware::hidl_death_recipient {
+ public:
+  BluetoothAudioDeathRecipient(
+      BluetoothAudioClientInterface* clientif,
+      bluetooth::common::MessageLoopThread* message_loop)
       : bluetooth_audio_clientif_(clientif), message_loop_(message_loop) {}
-  void serviceDied(uint64_t /*cookie*/,
-                   const ::android::wp<::android::hidl::base::V1_0::IBase>& /*who*/) override {
+  void serviceDied(
+      uint64_t /*cookie*/,
+      const ::android::wp<::android::hidl::base::V1_0::IBase>& /*who*/)
+      override {
     log::warn("restarting connection with new Audio Hal");
     if (bluetooth_audio_clientif_ != nullptr && message_loop_ != nullptr) {
       // restart the session on the correct thread
       message_loop_->DoInThread(
-              FROM_HERE,
-              base::BindOnce(&BluetoothAudioClientInterface::RenewAudioProviderAndSession,
-                             base::Unretained(bluetooth_audio_clientif_)));
+          FROM_HERE,
+          base::BindOnce(
+              &BluetoothAudioClientInterface::RenewAudioProviderAndSession,
+              base::Unretained(bluetooth_audio_clientif_)));
     } else {
       log::error("BluetoothAudioClientInterface corrupted");
     }
   }
 
-private:
+ private:
   BluetoothAudioClientInterface* bluetooth_audio_clientif_;
   bluetooth::common::MessageLoopThread* message_loop_;
 };
@@ -180,8 +193,8 @@ private:
 // BluetoothAudio HAL. |message_loop| is the thread where callbacks are
 // invoked.
 BluetoothAudioClientInterface::BluetoothAudioClientInterface(
-        android::sp<BluetoothAudioDeathRecipient> death_recipient,
-        IBluetoothTransportInstance* instance)
+    android::sp<BluetoothAudioDeathRecipient> death_recipient,
+    IBluetoothTransportInstance* instance)
     : provider_(nullptr),
       provider_2_1_(nullptr),
       session_started_(false),
@@ -194,65 +207,73 @@ bool BluetoothAudioClientInterface::IsValid() const {
   return provider_ != nullptr || provider_2_1_ != nullptr;
 }
 
-std::vector<AudioCapabilities> BluetoothAudioClientInterface::GetAudioCapabilities() const {
+std::vector<AudioCapabilities>
+BluetoothAudioClientInterface::GetAudioCapabilities() const {
   return capabilities_;
 }
 
-std::vector<AudioCapabilities_2_1> BluetoothAudioClientInterface::GetAudioCapabilities_2_1() const {
+std::vector<AudioCapabilities_2_1>
+BluetoothAudioClientInterface::GetAudioCapabilities_2_1() const {
   return capabilities_2_1_;
 }
 
-std::vector<AudioCapabilities> BluetoothAudioClientInterface::GetAudioCapabilities(
-        SessionType session_type) {
+std::vector<AudioCapabilities>
+BluetoothAudioClientInterface::GetAudioCapabilities(SessionType session_type) {
   std::vector<AudioCapabilities> capabilities(0);
 
-  if (HalVersionManager::GetHalVersion() == BluetoothAudioHalVersion::VERSION_UNAVAILABLE) {
+  if (HalVersionManager::GetHalVersion() ==
+      BluetoothAudioHalVersion::VERSION_UNAVAILABLE) {
     log::error("can't get capability from unknown factory");
     return capabilities;
   }
 
   android::sp<IBluetoothAudioProvidersFactory_2_0> providersFactory =
-          HalVersionManager::GetProvidersFactory_2_0();
+      HalVersionManager::GetProvidersFactory_2_0();
   log::assert_that(providersFactory != nullptr,
                    "IBluetoothAudioProvidersFactory::getService() failed");
 
   auto getProviderCapabilities_cb =
-          [&capabilities](const hidl_vec<AudioCapabilities>& audioCapabilities) {
-            for (auto capability : audioCapabilities) {
-              capabilities.push_back(capability);
-            }
-          };
-  auto hidl_retval =
-          providersFactory->getProviderCapabilities(session_type, getProviderCapabilities_cb);
+      [&capabilities](const hidl_vec<AudioCapabilities>& audioCapabilities) {
+        for (auto capability : audioCapabilities) {
+          capabilities.push_back(capability);
+        }
+      };
+  auto hidl_retval = providersFactory->getProviderCapabilities(
+      session_type, getProviderCapabilities_cb);
   if (!hidl_retval.isOk()) {
-    log::fatal("BluetoothAudioHal::getProviderCapabilities failure: {}", hidl_retval.description());
+    log::fatal("BluetoothAudioHal::getProviderCapabilities failure: {}",
+               hidl_retval.description());
   }
   return capabilities;
 }
 
-std::vector<AudioCapabilities_2_1> BluetoothAudioClientInterface::GetAudioCapabilities_2_1(
-        SessionType_2_1 session_type_2_1) {
+std::vector<AudioCapabilities_2_1>
+BluetoothAudioClientInterface::GetAudioCapabilities_2_1(
+    SessionType_2_1 session_type_2_1) {
   std::vector<AudioCapabilities_2_1> capabilities_2_1(0);
-  if (HalVersionManager::GetHalVersion() != BluetoothAudioHalVersion::VERSION_2_1) {
+  if (HalVersionManager::GetHalVersion() !=
+      BluetoothAudioHalVersion::VERSION_2_1) {
     log::error("can't get capability for HAL 2.1");
     return capabilities_2_1;
   }
 
   android::sp<IBluetoothAudioProvidersFactory_2_1> providersFactory =
-          HalVersionManager::GetProvidersFactory_2_1();
+      HalVersionManager::GetProvidersFactory_2_1();
   log::assert_that(providersFactory != nullptr,
                    "IBluetoothAudioProvidersFactory::getService() failed");
 
   auto getProviderCapabilities_cb =
-          [&capabilities_2_1](const hidl_vec<AudioCapabilities_2_1>& audioCapabilities_2_1) {
-            for (auto capability_2_1 : audioCapabilities_2_1) {
-              capabilities_2_1.push_back(capability_2_1);
-            }
-          };
-  auto hidl_retval = providersFactory->getProviderCapabilities_2_1(session_type_2_1,
-                                                                   getProviderCapabilities_cb);
+      [&capabilities_2_1](
+          const hidl_vec<AudioCapabilities_2_1>& audioCapabilities_2_1) {
+        for (auto capability_2_1 : audioCapabilities_2_1) {
+          capabilities_2_1.push_back(capability_2_1);
+        }
+      };
+  auto hidl_retval = providersFactory->getProviderCapabilities_2_1(
+      session_type_2_1, getProviderCapabilities_cb);
   if (!hidl_retval.isOk()) {
-    log::fatal("BluetoothAudioHal::getProviderCapabilities failure: {}", hidl_retval.description());
+    log::fatal("BluetoothAudioHal::getProviderCapabilities failure: {}",
+               hidl_retval.description());
   }
   return capabilities_2_1;
 }
@@ -263,21 +284,23 @@ void BluetoothAudioClientInterface::FetchAudioProvider() {
   }
 
   android::sp<IBluetoothAudioProvidersFactory_2_0> providersFactory =
-          HalVersionManager::GetProvidersFactory_2_0();
+      HalVersionManager::GetProvidersFactory_2_0();
   log::assert_that(providersFactory != nullptr,
                    "IBluetoothAudioProvidersFactory::getService() failed");
 
-  auto getProviderCapabilities_cb = [&capabilities = this->capabilities_](
-                                            const hidl_vec<AudioCapabilities>& audioCapabilities) {
-    capabilities.clear();
-    for (auto capability : audioCapabilities) {
-      capabilities.push_back(capability);
-    }
-  };
-  auto hidl_retval = providersFactory->getProviderCapabilities(transport_->GetSessionType(),
-                                                               getProviderCapabilities_cb);
+  auto getProviderCapabilities_cb =
+      [&capabilities = this->capabilities_](
+          const hidl_vec<AudioCapabilities>& audioCapabilities) {
+        capabilities.clear();
+        for (auto capability : audioCapabilities) {
+          capabilities.push_back(capability);
+        }
+      };
+  auto hidl_retval = providersFactory->getProviderCapabilities(
+      transport_->GetSessionType(), getProviderCapabilities_cb);
   if (!hidl_retval.isOk()) {
-    log::fatal("BluetoothAudioHal::getProviderCapabilities failure: {}", hidl_retval.description());
+    log::fatal("BluetoothAudioHal::getProviderCapabilities failure: {}",
+               hidl_retval.description());
     return;
   }
   if (capabilities_.empty()) {
@@ -290,31 +313,36 @@ void BluetoothAudioClientInterface::FetchAudioProvider() {
 
   std::promise<void> openProvider_promise;
   auto openProvider_future = openProvider_promise.get_future();
-  auto openProvider_cb = [&provider_ = this->provider_, &openProvider_promise](
-                                 BluetoothAudioStatus status,
-                                 const android::sp<IBluetoothAudioProvider>& provider) {
-    log::info("openProvider_cb({})", toString(status));
-    if (status == BluetoothAudioStatus::SUCCESS) {
-      provider_ = provider;
-    }
-    if (!provider_) {
-      log::error("Failed to open BluetoothAudio provider");
-    }
-    openProvider_promise.set_value();
-  };
-  hidl_retval = providersFactory->openProvider(transport_->GetSessionType(), openProvider_cb);
+  auto openProvider_cb =
+      [&provider_ = this->provider_, &openProvider_promise](
+          BluetoothAudioStatus status,
+          const android::sp<IBluetoothAudioProvider>& provider) {
+        log::info("openProvider_cb({})", toString(status));
+        if (status == BluetoothAudioStatus::SUCCESS) {
+          provider_ = provider;
+        }
+        if (!provider_) {
+          log::error("Failed to open BluetoothAudio provider");
+        }
+        openProvider_promise.set_value();
+      };
+  hidl_retval = providersFactory->openProvider(transport_->GetSessionType(),
+                                               openProvider_cb);
   openProvider_future.get();
   if (!hidl_retval.isOk()) {
-    log::fatal("BluetoothAudioHal::openProvider failure: {}", hidl_retval.description());
+    log::fatal("BluetoothAudioHal::openProvider failure: {}",
+               hidl_retval.description());
   }
   log::assert_that(provider_ != nullptr, "assert failed: provider_ != nullptr");
 
   if (!provider_->linkToDeath(death_recipient_, 0).isOk()) {
-    log::fatal("BluetoothAudioDeathRecipient failure: {}", hidl_retval.description());
+    log::fatal("BluetoothAudioDeathRecipient failure: {}",
+               hidl_retval.description());
   }
 
   log::info("IBluetoothAudioProvidersFactory::openProvider() returned {}{}",
-            fmt::ptr(provider_.get()), (provider_->isRemote() ? " (remote)" : " (local)"));
+            fmt::ptr(provider_.get()),
+            (provider_->isRemote() ? " (remote)" : " (local)"));
 }
 
 void BluetoothAudioClientInterface::FetchAudioProvider_2_1() {
@@ -323,22 +351,23 @@ void BluetoothAudioClientInterface::FetchAudioProvider_2_1() {
   }
 
   android::sp<IBluetoothAudioProvidersFactory_2_1> providersFactory =
-          HalVersionManager::GetProvidersFactory_2_1();
+      HalVersionManager::GetProvidersFactory_2_1();
   log::assert_that(providersFactory != nullptr,
                    "IBluetoothAudioProvidersFactory_2_1::getService() failed");
 
   auto getProviderCapabilities_cb =
-          [&capabilities_2_1 = this->capabilities_2_1_](
-                  const hidl_vec<AudioCapabilities_2_1>& audioCapabilities_2_1) {
-            capabilities_2_1.clear();
-            for (auto capability_2_1 : audioCapabilities_2_1) {
-              capabilities_2_1.push_back(capability_2_1);
-            }
-          };
-  auto hidl_retval = providersFactory->getProviderCapabilities_2_1(transport_->GetSessionType_2_1(),
-                                                                   getProviderCapabilities_cb);
+      [&capabilities_2_1 = this->capabilities_2_1_](
+          const hidl_vec<AudioCapabilities_2_1>& audioCapabilities_2_1) {
+        capabilities_2_1.clear();
+        for (auto capability_2_1 : audioCapabilities_2_1) {
+          capabilities_2_1.push_back(capability_2_1);
+        }
+      };
+  auto hidl_retval = providersFactory->getProviderCapabilities_2_1(
+      transport_->GetSessionType_2_1(), getProviderCapabilities_cb);
   if (!hidl_retval.isOk()) {
-    log::fatal("BluetoothAudioHal::getProviderCapabilities failure: {}", hidl_retval.description());
+    log::fatal("BluetoothAudioHal::getProviderCapabilities failure: {}",
+               hidl_retval.description());
     return;
   }
   if (capabilities_2_1_.empty()) {
@@ -347,47 +376,58 @@ void BluetoothAudioClientInterface::FetchAudioProvider_2_1() {
     return;
   }
   log::info("BluetoothAudioHal SessionType={} has {} AudioCapabilities",
-            toString(transport_->GetSessionType_2_1()), capabilities_2_1_.size());
+            toString(transport_->GetSessionType_2_1()),
+            capabilities_2_1_.size());
 
   std::promise<void> openProvider_promise;
   auto openProvider_future = openProvider_promise.get_future();
-  auto openProvider_cb = [&provider_2_1_ = this->provider_2_1_, &openProvider_promise](
-                                 BluetoothAudioStatus status,
-                                 const android::sp<IBluetoothAudioProvider_2_1>& provider_2_1) {
-    log::info("openProvider_cb({})", toString(status));
-    if (status == BluetoothAudioStatus::SUCCESS) {
-      provider_2_1_ = provider_2_1;
-    }
-    if (!provider_2_1_) {
-      log::error("Failed to open BluetoothAudio provider_2_1");
-    }
-    openProvider_promise.set_value();
-  };
-  hidl_retval =
-          providersFactory->openProvider_2_1(transport_->GetSessionType_2_1(), openProvider_cb);
+  auto openProvider_cb =
+      [&provider_2_1_ = this->provider_2_1_, &openProvider_promise](
+          BluetoothAudioStatus status,
+          const android::sp<IBluetoothAudioProvider_2_1>& provider_2_1) {
+        log::info("openProvider_cb({})", toString(status));
+        if (status == BluetoothAudioStatus::SUCCESS) {
+          provider_2_1_ = provider_2_1;
+        }
+        if (!provider_2_1_) {
+          log::error("Failed to open BluetoothAudio provider_2_1");
+        }
+        openProvider_promise.set_value();
+      };
+  hidl_retval = providersFactory->openProvider_2_1(
+      transport_->GetSessionType_2_1(), openProvider_cb);
   openProvider_future.get();
   if (!hidl_retval.isOk()) {
-    log::fatal("BluetoothAudioHal::openProvider failure: {}", hidl_retval.description());
+    log::fatal("BluetoothAudioHal::openProvider failure: {}",
+               hidl_retval.description());
   }
-  log::assert_that(provider_2_1_ != nullptr, "assert failed: provider_2_1_ != nullptr");
+  log::assert_that(provider_2_1_ != nullptr,
+                   "assert failed: provider_2_1_ != nullptr");
 
   if (!provider_2_1_->linkToDeath(death_recipient_, 0).isOk()) {
-    log::fatal("BluetoothAudioDeathRecipient failure: {}", hidl_retval.description());
+    log::fatal("BluetoothAudioDeathRecipient failure: {}",
+               hidl_retval.description());
   }
 
   log::info("IBluetoothAudioProvidersFactory::openProvider() returned {}{}",
-            fmt::ptr(provider_2_1_.get()), (provider_2_1_->isRemote() ? " (remote)" : " (local)"));
+            fmt::ptr(provider_2_1_.get()),
+            (provider_2_1_->isRemote() ? " (remote)" : " (local)"));
 }
 
 BluetoothAudioSinkClientInterface::BluetoothAudioSinkClientInterface(
-        IBluetoothSinkTransportInstance* sink, bluetooth::common::MessageLoopThread* message_loop)
-    : BluetoothAudioClientInterface{new BluetoothAudioDeathRecipient(this, message_loop), sink},
+    IBluetoothSinkTransportInstance* sink,
+    bluetooth::common::MessageLoopThread* message_loop)
+    : BluetoothAudioClientInterface{new BluetoothAudioDeathRecipient(
+                                        this, message_loop),
+                                    sink},
       sink_(sink) {
-  if (HalVersionManager::GetHalVersion() == BluetoothAudioHalVersion::VERSION_UNAVAILABLE) {
+  if (HalVersionManager::GetHalVersion() ==
+      BluetoothAudioHalVersion::VERSION_UNAVAILABLE) {
     return;
   }
 
-  if ((HalVersionManager::GetHalVersion() == BluetoothAudioHalVersion::VERSION_2_1) &&
+  if ((HalVersionManager::GetHalVersion() ==
+       BluetoothAudioHalVersion::VERSION_2_1) &&
       (sink_->GetSessionType_2_1() != SessionType_2_1::UNKNOWN)) {
     FetchAudioProvider_2_1();
     return;
@@ -399,27 +439,33 @@ BluetoothAudioSinkClientInterface::~BluetoothAudioSinkClientInterface() {
   if (provider_ != nullptr) {
     auto hidl_retval = provider_->unlinkToDeath(death_recipient_);
     if (!hidl_retval.isOk()) {
-      log::fatal("BluetoothAudioDeathRecipient failure: {}", hidl_retval.description());
+      log::fatal("BluetoothAudioDeathRecipient failure: {}",
+                 hidl_retval.description());
     }
   }
   if (provider_2_1_ != nullptr) {
     auto hidl_retval = provider_2_1_->unlinkToDeath(death_recipient_);
     if (!hidl_retval.isOk()) {
-      log::fatal("BluetoothAudioDeathRecipient failure: {}", hidl_retval.description());
+      log::fatal("BluetoothAudioDeathRecipient failure: {}",
+                 hidl_retval.description());
     }
   }
 }
 
 BluetoothAudioSourceClientInterface::BluetoothAudioSourceClientInterface(
-        IBluetoothSourceTransportInstance* source,
-        bluetooth::common::MessageLoopThread* message_loop)
-    : BluetoothAudioClientInterface{new BluetoothAudioDeathRecipient(this, message_loop), source},
+    IBluetoothSourceTransportInstance* source,
+    bluetooth::common::MessageLoopThread* message_loop)
+    : BluetoothAudioClientInterface{new BluetoothAudioDeathRecipient(
+                                        this, message_loop),
+                                    source},
       source_(source) {
-  if (HalVersionManager::GetHalVersion() == BluetoothAudioHalVersion::VERSION_UNAVAILABLE) {
+  if (HalVersionManager::GetHalVersion() ==
+      BluetoothAudioHalVersion::VERSION_UNAVAILABLE) {
     return;
   }
 
-  if ((HalVersionManager::GetHalVersion() == BluetoothAudioHalVersion::VERSION_2_1) &&
+  if ((HalVersionManager::GetHalVersion() ==
+       BluetoothAudioHalVersion::VERSION_2_1) &&
       (source_->GetSessionType_2_1() != SessionType_2_1::UNKNOWN)) {
     FetchAudioProvider_2_1();
     return;
@@ -431,30 +477,37 @@ BluetoothAudioSourceClientInterface::~BluetoothAudioSourceClientInterface() {
   if (provider_ != nullptr) {
     auto hidl_retval = provider_->unlinkToDeath(death_recipient_);
     if (!hidl_retval.isOk()) {
-      log::fatal("BluetoothAudioDeathRecipient failure: {}", hidl_retval.description());
+      log::fatal("BluetoothAudioDeathRecipient failure: {}",
+                 hidl_retval.description());
     }
   }
   if (provider_2_1_ != nullptr) {
     auto hidl_retval = provider_2_1_->unlinkToDeath(death_recipient_);
     if (!hidl_retval.isOk()) {
-      log::fatal("BluetoothAudioDeathRecipient failure: {}", hidl_retval.description());
+      log::fatal("BluetoothAudioDeathRecipient failure: {}",
+                 hidl_retval.description());
     }
   }
 }
 
-bool BluetoothAudioClientInterface::UpdateAudioConfig(const AudioConfiguration& audio_config) {
+bool BluetoothAudioClientInterface::UpdateAudioConfig(
+    const AudioConfiguration& audio_config) {
   bool is_software_session =
-          (transport_->GetSessionType() == SessionType::A2DP_SOFTWARE_ENCODING_DATAPATH ||
-           transport_->GetSessionType() == SessionType::HEARING_AID_SOFTWARE_ENCODING_DATAPATH);
-  bool is_offload_session =
-          (transport_->GetSessionType() == SessionType::A2DP_HARDWARE_OFFLOAD_DATAPATH);
+      (transport_->GetSessionType() ==
+           SessionType::A2DP_SOFTWARE_ENCODING_DATAPATH ||
+       transport_->GetSessionType() ==
+           SessionType::HEARING_AID_SOFTWARE_ENCODING_DATAPATH);
+  bool is_offload_session = (transport_->GetSessionType() ==
+                             SessionType::A2DP_HARDWARE_OFFLOAD_DATAPATH);
   auto audio_config_discriminator = audio_config.getDiscriminator();
   bool is_software_audio_config =
-          (is_software_session &&
-           audio_config_discriminator == AudioConfiguration::hidl_discriminator::pcmConfig);
+      (is_software_session &&
+       audio_config_discriminator ==
+           AudioConfiguration::hidl_discriminator::pcmConfig);
   bool is_offload_audio_config =
-          (is_offload_session &&
-           audio_config_discriminator == AudioConfiguration::hidl_discriminator::codecConfig);
+      (is_offload_session &&
+       audio_config_discriminator ==
+           AudioConfiguration::hidl_discriminator::codecConfig);
   if (!is_software_audio_config && !is_offload_audio_config) {
     return false;
   }
@@ -463,23 +516,27 @@ bool BluetoothAudioClientInterface::UpdateAudioConfig(const AudioConfiguration& 
 }
 
 bool BluetoothAudioClientInterface::UpdateAudioConfig_2_1(
-        const AudioConfiguration_2_1& audio_config_2_1) {
+    const AudioConfiguration_2_1& audio_config_2_1) {
   bool is_software_session =
-          (transport_->GetSessionType_2_1() == SessionType_2_1::A2DP_SOFTWARE_ENCODING_DATAPATH ||
-           transport_->GetSessionType_2_1() ==
-                   SessionType_2_1::HEARING_AID_SOFTWARE_ENCODING_DATAPATH ||
-           transport_->GetSessionType_2_1() ==
-                   SessionType_2_1::LE_AUDIO_SOFTWARE_ENCODING_DATAPATH ||
-           transport_->GetSessionType_2_1() == SessionType_2_1::LE_AUDIO_SOFTWARE_DECODED_DATAPATH);
-  bool is_offload_session =
-          (transport_->GetSessionType_2_1() == SessionType_2_1::A2DP_HARDWARE_OFFLOAD_DATAPATH);
+      (transport_->GetSessionType_2_1() ==
+           SessionType_2_1::A2DP_SOFTWARE_ENCODING_DATAPATH ||
+       transport_->GetSessionType_2_1() ==
+           SessionType_2_1::HEARING_AID_SOFTWARE_ENCODING_DATAPATH ||
+       transport_->GetSessionType_2_1() ==
+           SessionType_2_1::LE_AUDIO_SOFTWARE_ENCODING_DATAPATH ||
+       transport_->GetSessionType_2_1() ==
+           SessionType_2_1::LE_AUDIO_SOFTWARE_DECODED_DATAPATH);
+  bool is_offload_session = (transport_->GetSessionType_2_1() ==
+                             SessionType_2_1::A2DP_HARDWARE_OFFLOAD_DATAPATH);
   auto audio_config_discriminator = audio_config_2_1.getDiscriminator();
   bool is_software_audio_config =
-          (is_software_session &&
-           audio_config_discriminator == AudioConfiguration_2_1::hidl_discriminator::pcmConfig);
+      (is_software_session &&
+       audio_config_discriminator ==
+           AudioConfiguration_2_1::hidl_discriminator::pcmConfig);
   bool is_offload_audio_config =
-          (is_offload_session &&
-           audio_config_discriminator == AudioConfiguration_2_1::hidl_discriminator::codecConfig);
+      (is_offload_session &&
+       audio_config_discriminator ==
+           AudioConfiguration_2_1::hidl_discriminator::codecConfig);
   if (!is_software_audio_config && !is_offload_audio_config) {
     return false;
   }
@@ -499,7 +556,8 @@ int BluetoothAudioClientInterface::StartSession() {
     return -EBUSY;
   }
 
-  android::sp<IBluetoothAudioPort> stack_if = new BluetoothAudioPortImpl(transport_, provider_);
+  android::sp<IBluetoothAudioPort> stack_if =
+      new BluetoothAudioPortImpl(transport_, provider_);
 
   std::unique_ptr<DataMQ> tempDataMQ;
   BluetoothAudioStatus session_status;
@@ -507,7 +565,8 @@ int BluetoothAudioClientInterface::StartSession() {
   std::promise<void> hidl_startSession_promise;
   auto hidl_startSession_future = hidl_startSession_promise.get_future();
   auto hidl_cb = [&session_status, &tempDataMQ, &hidl_startSession_promise](
-                         BluetoothAudioStatus status, const DataMQ::Descriptor& dataMQ) {
+                     BluetoothAudioStatus status,
+                     const DataMQ::Descriptor& dataMQ) {
     log::info("startSession_cb({})", toString(status));
     session_status = status;
     if (status == BluetoothAudioStatus::SUCCESS && dataMQ.isHandleValid()) {
@@ -515,8 +574,8 @@ int BluetoothAudioClientInterface::StartSession() {
     }
     hidl_startSession_promise.set_value();
   };
-  auto hidl_retval =
-          provider_->startSession(stack_if, transport_->GetAudioConfiguration(), hidl_cb);
+  auto hidl_retval = provider_->startSession(
+      stack_if, transport_->GetAudioConfiguration(), hidl_cb);
   hidl_startSession_future.get();
   if (!hidl_retval.isOk()) {
     log::fatal("BluetoothAudioHal failure: {}", hidl_retval.description());
@@ -525,7 +584,8 @@ int BluetoothAudioClientInterface::StartSession() {
 
   if (tempDataMQ && tempDataMQ->isValid()) {
     mDataMQ = std::move(tempDataMQ);
-  } else if (transport_->GetSessionType() == SessionType::A2DP_HARDWARE_OFFLOAD_DATAPATH &&
+  } else if (transport_->GetSessionType() ==
+                 SessionType::A2DP_HARDWARE_OFFLOAD_DATAPATH &&
              session_status == BluetoothAudioStatus::SUCCESS) {
     transport_->ResetPresentationPosition();
     session_started_ = true;
@@ -557,7 +617,8 @@ int BluetoothAudioClientInterface::StartSession_2_1() {
     return -EBUSY;
   }
 
-  android::sp<IBluetoothAudioPort> stack_if = new BluetoothAudioPortImpl(transport_, provider_2_1_);
+  android::sp<IBluetoothAudioPort> stack_if =
+      new BluetoothAudioPortImpl(transport_, provider_2_1_);
 
   std::unique_ptr<DataMQ> tempDataMQ;
   BluetoothAudioStatus session_status;
@@ -565,7 +626,8 @@ int BluetoothAudioClientInterface::StartSession_2_1() {
   std::promise<void> hidl_startSession_promise;
   auto hidl_startSession_future = hidl_startSession_promise.get_future();
   auto hidl_cb = [&session_status, &tempDataMQ, &hidl_startSession_promise](
-                         BluetoothAudioStatus status, const DataMQ::Descriptor& dataMQ) {
+                     BluetoothAudioStatus status,
+                     const DataMQ::Descriptor& dataMQ) {
     log::info("startSession_cb({})", toString(status));
     session_status = status;
     if (status == BluetoothAudioStatus::SUCCESS && dataMQ.isHandleValid()) {
@@ -574,7 +636,7 @@ int BluetoothAudioClientInterface::StartSession_2_1() {
     hidl_startSession_promise.set_value();
   };
   auto hidl_retval = provider_2_1_->startSession_2_1(
-          stack_if, transport_->GetAudioConfiguration_2_1(), hidl_cb);
+      stack_if, transport_->GetAudioConfiguration_2_1(), hidl_cb);
   hidl_startSession_future.get();
   if (!hidl_retval.isOk()) {
     log::fatal("BluetoothAudioHal failure: {}", hidl_retval.description());
@@ -583,7 +645,8 @@ int BluetoothAudioClientInterface::StartSession_2_1() {
 
   if (tempDataMQ && tempDataMQ->isValid()) {
     mDataMQ = std::move(tempDataMQ);
-  } else if (transport_->GetSessionType_2_1() == SessionType_2_1::A2DP_HARDWARE_OFFLOAD_DATAPATH &&
+  } else if (transport_->GetSessionType_2_1() ==
+                 SessionType_2_1::A2DP_HARDWARE_OFFLOAD_DATAPATH &&
              session_status == BluetoothAudioStatus::SUCCESS) {
     transport_->ResetPresentationPosition();
     session_started_ = true;
@@ -603,7 +666,8 @@ int BluetoothAudioClientInterface::StartSession_2_1() {
   return -EIO;
 }
 
-void BluetoothAudioClientInterface::StreamStarted(const BluetoothAudioCtrlAck& ack) {
+void BluetoothAudioClientInterface::StreamStarted(
+    const BluetoothAudioCtrlAck& ack) {
   if (ack == BluetoothAudioCtrlAck::PENDING) {
     log::info("{} ignored", ack);
     return;
@@ -625,7 +689,8 @@ void BluetoothAudioClientInterface::StreamStarted(const BluetoothAudioCtrlAck& a
   }
 }
 
-void BluetoothAudioClientInterface::StreamSuspended(const BluetoothAudioCtrlAck& ack) {
+void BluetoothAudioClientInterface::StreamSuspended(
+    const BluetoothAudioCtrlAck& ack) {
   if (ack == BluetoothAudioCtrlAck::PENDING) {
     log::info("{} ignored", ack);
     return;
@@ -676,11 +741,10 @@ int BluetoothAudioClientInterface::EndSession() {
 
 void BluetoothAudioClientInterface::FlushAudioData() {
   if (transport_->GetSessionType_2_1() ==
-              SessionType_2_1::LE_AUDIO_HARDWARE_OFFLOAD_ENCODING_DATAPATH ||
+          SessionType_2_1::LE_AUDIO_HARDWARE_OFFLOAD_ENCODING_DATAPATH ||
       transport_->GetSessionType_2_1() ==
-              SessionType_2_1::LE_AUDIO_HARDWARE_OFFLOAD_DECODING_DATAPATH) {
+          SessionType_2_1::LE_AUDIO_HARDWARE_OFFLOAD_DECODING_DATAPATH)
     return;
-  }
 
   if (mDataMQ == nullptr || !mDataMQ->isValid()) {
     log::warn("mDataMQ invalid");
@@ -694,28 +758,24 @@ void BluetoothAudioClientInterface::FlushAudioData() {
 
   uint8_t p_buf[size];
 
-  if (mDataMQ->read(p_buf, size) != size) {
+  if (mDataMQ->read(p_buf, size) != size)
     log::warn("failed to flush data queue!");
-  }
 }
 
-size_t BluetoothAudioSinkClientInterface::ReadAudioData(uint8_t* p_buf, uint32_t len) {
+size_t BluetoothAudioSinkClientInterface::ReadAudioData(uint8_t* p_buf,
+                                                        uint32_t len) {
   if (!IsValid()) {
     log::error("BluetoothAudioHal is not valid");
     return 0;
   }
-  if (p_buf == nullptr || len == 0) {
-    return 0;
-  }
+  if (p_buf == nullptr || len == 0) return 0;
 
   std::lock_guard<std::mutex> guard(internal_mutex_);
 
   size_t total_read = 0;
   int timeout_ms = kDefaultDataReadTimeoutMs;
   do {
-    if (mDataMQ == nullptr || !mDataMQ->isValid()) {
-      break;
-    }
+    if (mDataMQ == nullptr || !mDataMQ->isValid()) break;
 
     size_t avail_to_read = mDataMQ->availableToRead();
     if (avail_to_read) {
@@ -728,7 +788,8 @@ size_t BluetoothAudioSinkClientInterface::ReadAudioData(uint8_t* p_buf, uint32_t
       }
       total_read += avail_to_read;
     } else if (timeout_ms >= kDefaultDataReadPollIntervalMs) {
-      std::this_thread::sleep_for(std::chrono::milliseconds(kDefaultDataReadPollIntervalMs));
+      std::this_thread::sleep_for(
+          std::chrono::milliseconds(kDefaultDataReadPollIntervalMs));
       timeout_ms -= kDefaultDataReadPollIntervalMs;
       continue;
     } else {
@@ -738,7 +799,8 @@ size_t BluetoothAudioSinkClientInterface::ReadAudioData(uint8_t* p_buf, uint32_t
     }
   } while (total_read < len);
 
-  if (timeout_ms < (kDefaultDataReadTimeoutMs - kDefaultDataReadPollIntervalMs) &&
+  if (timeout_ms <
+          (kDefaultDataReadTimeoutMs - kDefaultDataReadPollIntervalMs) &&
       timeout_ms >= kDefaultDataReadPollIntervalMs) {
     log::verbose("underflow {} -> {} read {} ms", len, total_read,
                  kDefaultDataReadTimeoutMs - timeout_ms);
@@ -768,31 +830,27 @@ void BluetoothAudioClientInterface::RenewAudioProviderAndSession() {
     log::info("Restart the session while audio HAL recovering");
     session_started_ = false;
 
-    if (provider_2_1_ != nullptr) {
+    if (provider_2_1_ != nullptr)
       StartSession_2_1();
-    } else {
+    else
       StartSession();
-    }
   }
 }
 
-size_t BluetoothAudioSourceClientInterface::WriteAudioData(const uint8_t* p_buf, uint32_t len) {
+size_t BluetoothAudioSourceClientInterface::WriteAudioData(const uint8_t* p_buf,
+                                                           uint32_t len) {
   if (!IsValid()) {
     log::error("BluetoothAudioHal is not valid");
     return 0;
   }
-  if (p_buf == nullptr || len == 0) {
-    return 0;
-  }
+  if (p_buf == nullptr || len == 0) return 0;
 
   std::lock_guard<std::mutex> guard(internal_mutex_);
 
   size_t total_written = 0;
   int timeout_ms = kDefaultDataWriteTimeoutMs;
   do {
-    if (mDataMQ == nullptr || !mDataMQ->isValid()) {
-      break;
-    }
+    if (mDataMQ == nullptr || !mDataMQ->isValid()) break;
 
     size_t avail_to_write = mDataMQ->availableToWrite();
     if (avail_to_write) {
@@ -805,7 +863,8 @@ size_t BluetoothAudioSourceClientInterface::WriteAudioData(const uint8_t* p_buf,
       }
       total_written += avail_to_write;
     } else if (timeout_ms >= kDefaultDataWritePollIntervalMs) {
-      std::this_thread::sleep_for(std::chrono::milliseconds(kDefaultDataWritePollIntervalMs));
+      std::this_thread::sleep_for(
+          std::chrono::milliseconds(kDefaultDataWritePollIntervalMs));
       timeout_ms -= kDefaultDataWritePollIntervalMs;
       continue;
     } else {
@@ -815,7 +874,8 @@ size_t BluetoothAudioSourceClientInterface::WriteAudioData(const uint8_t* p_buf,
     }
   } while (total_written < len);
 
-  if (timeout_ms < (kDefaultDataWriteTimeoutMs - kDefaultDataWritePollIntervalMs) &&
+  if (timeout_ms <
+          (kDefaultDataWriteTimeoutMs - kDefaultDataWritePollIntervalMs) &&
       timeout_ms >= kDefaultDataWritePollIntervalMs) {
     log::verbose("underflow {} -> {} read {} ms", len, total_written,
                  kDefaultDataWriteTimeoutMs - timeout_ms);
@@ -827,6 +887,6 @@ size_t BluetoothAudioSourceClientInterface::WriteAudioData(const uint8_t* p_buf,
   return total_written;
 }
 
-} // namespace hidl
-} // namespace audio
-} // namespace bluetooth
+}  // namespace hidl
+}  // namespace audio
+}  // namespace bluetooth

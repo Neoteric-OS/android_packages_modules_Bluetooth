@@ -20,10 +20,10 @@ namespace test {
 namespace fake {
 
 class FakeOsi {
-public:
+ public:
   FakeOsi();
   ~FakeOsi();
 };
 
-} // namespace fake
-} // namespace test
+}  // namespace fake
+}  // namespace test

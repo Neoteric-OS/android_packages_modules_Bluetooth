@@ -44,9 +44,9 @@ struct thread_set_priority thread_set_priority;
 struct thread_set_rt_priority thread_set_rt_priority;
 struct thread_stop thread_stop;
 
-} // namespace osi_thread
-} // namespace mock
-} // namespace test
+}  // namespace osi_thread
+}  // namespace mock
+}  // namespace test
 
 // Mocked functions, if any
 void thread_free(thread_t* thread) {

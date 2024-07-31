@@ -27,7 +27,7 @@ namespace security {
  * Callback interface from SecurityManager.
  */
 class ISecurityManagerListener {
-public:
+ public:
   virtual ~ISecurityManagerListener() = 0;
 
   /**
@@ -49,8 +49,7 @@ public:
    *
    * @param address of the device that failed to bond
    */
-  virtual void OnDeviceBondFailed(bluetooth::hci::AddressWithType device,
-                                  PairingFailure status) = 0;
+  virtual void OnDeviceBondFailed(bluetooth::hci::AddressWithType device, PairingFailure status) = 0;
 
   /**
    * Called as a result of a failure during the bonding process.
@@ -60,5 +59,5 @@ public:
   virtual void OnEncryptionStateChanged(hci::EncryptionChangeView encryption_change_view) = 0;
 };
 
-} // namespace security
-} // namespace bluetooth
+}  // namespace security
+}  // namespace bluetooth

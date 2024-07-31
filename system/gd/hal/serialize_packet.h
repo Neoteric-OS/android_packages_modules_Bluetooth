@@ -32,5 +32,5 @@ inline std::vector<uint8_t> SerializePacket(std::unique_ptr<packet::BasePacketBu
   return packet_bytes;
 }
 
-} // namespace hal
-} // namespace bluetooth
+}  // namespace hal
+}  // namespace bluetooth

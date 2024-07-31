@@ -59,7 +59,7 @@ int CodecId(const ConfigParam& config) {
     return kUnsupportedType;
   }
 }
-} // namespace
+}  // namespace
 
 CodecClient::CodecClient() {
   skt_fd_ = -1;
@@ -77,8 +77,8 @@ CodecClient::CodecClient() {
   }
 
   // Get proxy to send DBus method call.
-  codec_manager_ =
-          bus_->GetObjectProxy(mmc::kMmcServiceName, dbus::ObjectPath(mmc::kMmcServicePath));
+  codec_manager_ = bus_->GetObjectProxy(mmc::kMmcServiceName,
+                                        dbus::ObjectPath(mmc::kMmcServicePath));
   if (!codec_manager_) {
     log::error("Failed to get object proxy");
     return;
@@ -87,9 +87,7 @@ CodecClient::CodecClient() {
 
 CodecClient::~CodecClient() {
   cleanup();
-  if (bus_) {
-    bus_->ShutdownAndBlock();
-  }
+  if (bus_) bus_->ShutdownAndBlock();
 }
 
 int CodecClient::init(const ConfigParam config) {
@@ -98,7 +96,8 @@ int CodecClient::init(const ConfigParam config) {
   // Set up record logger.
   record_logger_ = std::make_unique<MmcRttLogger>(CodecId(config));
 
-  dbus::MethodCall method_call(mmc::kMmcServiceInterface, mmc::kCodecInitMethod);
+  dbus::MethodCall method_call(mmc::kMmcServiceInterface,
+                               mmc::kCodecInitMethod);
   dbus::MessageWriter writer(&method_call);
 
   mmc::CodecInitRequest request;
@@ -109,13 +108,14 @@ int CodecClient::init(const ConfigParam config) {
   }
 
   std::unique_ptr<dbus::Response> dbus_response =
-          codec_manager_
-                  ->CallMethodAndBlock(&method_call, dbus::ObjectProxy::TIMEOUT_USE_DEFAULT)
+      codec_manager_
+          ->CallMethodAndBlock(&method_call,
+                               dbus::ObjectProxy::TIMEOUT_USE_DEFAULT)
 // TODO(b/297976471): remove the build flag once libchrome uprev is done.
 #if BASE_VER >= 1170299
-                  .value_or(nullptr)
+          .value_or(nullptr)
 #endif
-          ;
+      ;
 
   if (!dbus_response) {
     log::error("CodecInit failed");
@@ -148,10 +148,12 @@ int CodecClient::init(const ConfigParam config) {
 
   struct sockaddr_un addr = {};
   addr.sun_family = AF_UNIX;
-  strncpy(addr.sun_path, response.socket_token().c_str(), sizeof(addr.sun_path) - 1);
+  strncpy(addr.sun_path, response.socket_token().c_str(),
+          sizeof(addr.sun_path) - 1);
 
   // Connect to socket for transcoding.
-  int rc = connect(skt_fd_, (struct sockaddr*)&addr, sizeof(struct sockaddr_un));
+  int rc =
+      connect(skt_fd_, (struct sockaddr*)&addr, sizeof(struct sockaddr_un));
   if (rc < 0) {
     log::error("Failed to connect socket: {}", strerror(errno));
     return -errno;
@@ -172,16 +174,18 @@ void CodecClient::cleanup() {
     record_logger_.release();
   }
 
-  dbus::MethodCall method_call(mmc::kMmcServiceInterface, mmc::kCodecCleanUpMethod);
+  dbus::MethodCall method_call(mmc::kMmcServiceInterface,
+                               mmc::kCodecCleanUpMethod);
 
   std::unique_ptr<dbus::Response> dbus_response =
-          codec_manager_
-                  ->CallMethodAndBlock(&method_call, dbus::ObjectProxy::TIMEOUT_USE_DEFAULT)
+      codec_manager_
+          ->CallMethodAndBlock(&method_call,
+                               dbus::ObjectProxy::TIMEOUT_USE_DEFAULT)
 // TODO(b/297976471): remove the build flag once libchrome uprev is done.
 #if BASE_VER >= 1170299
-                  .value_or(nullptr)
+          .value_or(nullptr)
 #endif
-          ;
+      ;
 
   if (!dbus_response) {
     log::warn("CodecCleanUp failed");
@@ -189,7 +193,8 @@ void CodecClient::cleanup() {
   return;
 }
 
-int CodecClient::transcode(uint8_t* i_buf, int i_len, uint8_t* o_buf, int o_len) {
+int CodecClient::transcode(uint8_t* i_buf, int i_len, uint8_t* o_buf,
+                           int o_len) {
   // Start Timer
   base::ElapsedTimer timer;
 
@@ -250,4 +255,4 @@ int CodecClient::transcode(uint8_t* i_buf, int i_len, uint8_t* o_buf, int o_len)
   return rc;
 }
 
-} // namespace mmc
+}  // namespace mmc

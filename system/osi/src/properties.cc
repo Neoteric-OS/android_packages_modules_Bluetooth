@@ -31,8 +31,8 @@
 #include <cutils/properties.h>
 #if BUILD_SANITY_PROPERTY_VALUE_MAX != PROPERTY_VALUE_MAX
 #error "PROPERTY_VALUE_MAX from osi/include/properties.h != the Android value"
-#endif // GENERIC_PROPERTY_VALUE_MAX != PROPERTY_VALUE_MAX
-#endif // __ANDROID__
+#endif  // GENERIC_PROPERTY_VALUE_MAX != PROPERTY_VALUE_MAX
+#endif  // __ANDROID__
 
 int osi_property_get(const char* key, char* value, const char* default_value) {
   std::optional<std::string> result = bluetooth::os::GetSystemProperty(key);
@@ -73,8 +73,8 @@ bool osi_property_get_bool(const char* key, bool default_value) {
   }
 }
 
-std::vector<uint32_t> osi_property_get_uintlist(const char* key,
-                                                const std::vector<uint32_t> default_value) {
+std::vector<uint32_t> osi_property_get_uintlist(
+    const char* key, const std::vector<uint32_t> default_value) {
   std::optional<std::string> result = bluetooth::os::GetSystemProperty(key);
   if (!result || result->empty() || result->size() > PROPERTY_VALUE_MAX) {
     return default_value;

@@ -56,5 +56,5 @@ void check_status(CommandStatusView view) {
   }
 }
 
-} // namespace hci
-} // namespace bluetooth
+}  // namespace hci
+}  // namespace bluetooth

@@ -55,7 +55,7 @@ struct ScoLinkParameters {
 struct ScoConnectionParameters {
   uint32_t transmit_bandwidth;
   uint32_t receive_bandwidth;
-  uint16_t max_latency; // 0-3 reserved, 0xFFFF = don't care
+  uint16_t max_latency;  // 0-3 reserved, 0xFFFF = don't care
   uint16_t voice_setting;
   uint8_t retransmission_effort;
   uint16_t packet_type;
@@ -77,14 +77,14 @@ enum ScoState {
 };
 
 enum ScoDatapath {
-  NORMAL = 0,  // data is provided by the host over HCI
-  SPOOFED = 1, // rootcanal generates data itself
+  NORMAL = 0,   // data is provided by the host over HCI
+  SPOOFED = 1,  // rootcanal generates data itself
 };
 
 class ScoConnection {
-public:
-  ScoConnection(Address address, ScoConnectionParameters const& parameters, ScoState state,
-                ScoDatapath datapath, bool legacy)
+ public:
+  ScoConnection(Address address, ScoConnectionParameters const& parameters,
+                ScoState state, ScoDatapath datapath, bool legacy)
       : address_(address),
         parameters_(parameters),
         link_parameters_(),
@@ -102,9 +102,13 @@ public:
   void StartStream(std::function<TaskId()> startStream);
   void StopStream(std::function<void(TaskId)> stopStream);
 
-  ScoConnectionParameters GetConnectionParameters() const { return parameters_; }
+  ScoConnectionParameters GetConnectionParameters() const {
+    return parameters_;
+  }
   ScoLinkParameters GetLinkParameters() const { return link_parameters_; }
-  void SetLinkParameters(ScoLinkParameters const& parameters) { link_parameters_ = parameters; }
+  void SetLinkParameters(ScoLinkParameters const& parameters) {
+    link_parameters_ = parameters;
+  }
 
   // Negotiate the connection parameters.
   // Update the local connection parameters with negotiated values.
@@ -113,7 +117,7 @@ public:
 
   ScoDatapath GetDatapath() const { return datapath_; }
 
-private:
+ private:
   Address address_;
   ScoConnectionParameters parameters_;
   ScoLinkParameters link_parameters_;
@@ -132,4 +136,4 @@ private:
   bool legacy_;
 };
 
-} // namespace rootcanal
+}  // namespace rootcanal

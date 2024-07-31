@@ -117,9 +117,10 @@ typedef struct {
   BD_NAME bd_name; /* Name of peer device. */
 } tBTA_DM_SVC_RES;
 
-using tBTA_DM_MSG = std::variant<tBTA_DM_API_SEARCH, tBTA_DM_API_DISCOVER, tBTA_DM_REMOTE_NAME,
-                                 tBTA_DM_DISC_RESULT, tBTA_DM_INQUIRY_CMPL, tBTA_DM_SDP_RESULT,
-                                 tBTA_DM_SVC_RES>;
+using tBTA_DM_MSG =
+    std::variant<tBTA_DM_API_SEARCH, tBTA_DM_API_DISCOVER, tBTA_DM_REMOTE_NAME,
+                 tBTA_DM_DISC_RESULT, tBTA_DM_INQUIRY_CMPL, tBTA_DM_SDP_RESULT,
+                 tBTA_DM_SVC_RES>;
 
 /* DM search state */
 typedef enum {
@@ -176,7 +177,7 @@ typedef struct {
 extern const uint32_t bta_service_id_to_btm_srv_id_lkup_tbl[];
 extern const uint16_t bta_service_id_to_uuid_lkup_tbl[];
 
-} // namespace bta_dm_disc_legacy
+}  // namespace bta_dm_disc_legacy
 
 namespace fmt {
 template <>
@@ -185,4 +186,4 @@ struct formatter<bta_dm_disc_legacy::tBTA_DM_EVT>
 template <>
 struct formatter<bta_dm_disc_legacy::tBTA_DM_STATE>
     : enum_formatter<bta_dm_disc_legacy::tBTA_DM_STATE> {};
-} // namespace fmt
+}  // namespace fmt

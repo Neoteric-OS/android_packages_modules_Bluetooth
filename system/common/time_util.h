@@ -39,6 +39,6 @@ uint64_t time_gettimeofday_us();
 
 // Get the OS monotonic raw time in microseconds.
 uint64_t time_get_os_monotonic_raw_us();
-} // namespace common
+}  // namespace common
 
-} // namespace bluetooth
+}  // namespace bluetooth

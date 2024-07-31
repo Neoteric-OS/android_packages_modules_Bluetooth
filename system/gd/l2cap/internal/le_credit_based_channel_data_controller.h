@@ -38,13 +38,12 @@ namespace l2cap {
 namespace internal {
 
 class LeCreditBasedDataController : public DataController {
-public:
+ public:
   using UpperEnqueue = packet::PacketView<packet::kLittleEndian>;
   using UpperDequeue = packet::BasePacketBuilder;
   using UpperQueueDownEnd = common::BidiQueueEnd<UpperEnqueue, UpperDequeue>;
-  LeCreditBasedDataController(ILink* link, Cid cid, Cid remote_cid,
-                              UpperQueueDownEnd* channel_queue_end, os::Handler* handler,
-                              Scheduler* scheduler);
+  LeCreditBasedDataController(ILink* link, Cid cid, Cid remote_cid, UpperQueueDownEnd* channel_queue_end,
+                              os::Handler* handler, Scheduler* scheduler);
 
   void OnSdu(std::unique_ptr<packet::BasePacketBuilder> sdu) override;
   void OnPdu(packet::PacketView<true> pdu) override;
@@ -52,7 +51,7 @@ public:
 
   void EnableFcs(bool /* enabled */) override {}
   void SetRetransmissionAndFlowControlOptions(
-          const RetransmissionAndFlowControlConfigurationOption& /* option */) override {}
+      const RetransmissionAndFlowControlConfigurationOption& /* option */) override {}
 
   // TODO: Set MTU and MPS from signalling channel
   void SetMtu(Mtu mtu);
@@ -60,7 +59,7 @@ public:
   // TODO: Handle credits
   void OnCredit(uint16_t credits);
 
-private:
+ private:
   Cid cid_;
   Cid remote_cid_;
   os::EnqueueBuffer<UpperEnqueue> enqueue_buffer_;
@@ -74,15 +73,16 @@ private:
   uint16_t pending_frames_count_ = 0;
 
   class PacketViewForReassembly : public packet::PacketView<kLittleEndian> {
-  public:
+   public:
     PacketViewForReassembly(const PacketView& packetView) : PacketView(packetView) {}
-    void AppendPacketView(packet::PacketView<kLittleEndian> to_append) { Append(to_append); }
+    void AppendPacketView(packet::PacketView<kLittleEndian> to_append) {
+      Append(to_append);
+    }
   };
-  PacketViewForReassembly reassembly_stage_{
-          PacketView<kLittleEndian>(std::make_shared<std::vector<uint8_t>>())};
+  PacketViewForReassembly reassembly_stage_{PacketView<kLittleEndian>(std::make_shared<std::vector<uint8_t>>())};
   uint16_t remaining_sdu_continuation_packet_size_ = 0;
 };
 
-} // namespace internal
-} // namespace l2cap
-} // namespace bluetooth
+}  // namespace internal
+}  // namespace l2cap
+}  // namespace bluetooth

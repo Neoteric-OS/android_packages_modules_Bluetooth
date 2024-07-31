@@ -37,12 +37,12 @@ namespace aidl {
 namespace hfp {
 
 std::map<bt_status_t, BluetoothAudioCtrlAck> status_to_ack_map = {
-        {BT_STATUS_SUCCESS, BluetoothAudioCtrlAck::SUCCESS_FINISHED},
-        {BT_STATUS_DONE, BluetoothAudioCtrlAck::SUCCESS_FINISHED},
-        {BT_STATUS_FAIL, BluetoothAudioCtrlAck::FAILURE},
-        {BT_STATUS_NOT_READY, BluetoothAudioCtrlAck::FAILURE_BUSY},
-        {BT_STATUS_BUSY, BluetoothAudioCtrlAck::FAILURE_BUSY},
-        {BT_STATUS_UNSUPPORTED, BluetoothAudioCtrlAck::FAILURE_UNSUPPORTED},
+    {BT_STATUS_SUCCESS, BluetoothAudioCtrlAck::SUCCESS_FINISHED},
+    {BT_STATUS_DONE, BluetoothAudioCtrlAck::SUCCESS_FINISHED},
+    {BT_STATUS_FAIL, BluetoothAudioCtrlAck::FAILURE},
+    {BT_STATUS_NOT_READY, BluetoothAudioCtrlAck::FAILURE_BUSY},
+    {BT_STATUS_BUSY, BluetoothAudioCtrlAck::FAILURE_BUSY},
+    {BT_STATUS_UNSUPPORTED, BluetoothAudioCtrlAck::FAILURE_UNSUPPORTED},
 };
 
 tBTA_AG_SCB* get_hfp_active_device_callback() {
@@ -64,9 +64,10 @@ tBTA_AG_SCB* get_hfp_active_device_callback() {
   return cb;
 }
 
-std::unordered_map<tBTA_AG_UUID_CODEC, ::hfp::sco_config> HfpTransport::GetHfpScoConfig(
-        SessionType sessionType) {
-  auto providerInfo = ::bluetooth::audio::aidl::ProviderInfo::GetProviderInfo(sessionType);
+std::unordered_map<tBTA_AG_UUID_CODEC, ::hfp::sco_config>
+HfpTransport::GetHfpScoConfig(SessionType sessionType) {
+  auto providerInfo =
+      ::bluetooth::audio::aidl::ProviderInfo::GetProviderInfo(sessionType);
   return providerInfo->GetHfpScoConfig();
 }
 
@@ -82,9 +83,7 @@ BluetoothAudioCtrlAck HfpTransport::StartRequest() {
   }
 
   auto cb = get_hfp_active_device_callback();
-  if (cb == nullptr) {
-    return BluetoothAudioCtrlAck::FAILURE;
-  }
+  if (cb == nullptr) return BluetoothAudioCtrlAck::FAILURE;
 
   if (bta_ag_sco_is_open(cb)) {
     // Already started, ACK back immediately.
@@ -95,7 +94,8 @@ BluetoothAudioCtrlAck HfpTransport::StartRequest() {
   hfp_pending_cmd_ = HFP_CTRL_CMD_START;
   // as ConnectAudio only queues the command into main thread, keep PENDING
   // status
-  auto status = bluetooth::headset::GetInterface()->ConnectAudio(&cb->peer_addr, 0);
+  auto status =
+      bluetooth::headset::GetInterface()->ConnectAudio(&cb->peer_addr, 0);
   log::info("ConnectAudio status = {} - {}", status, bt_status_text(status));
   auto ctrl_ack = status_to_ack_map.find(status);
   if (ctrl_ack == status_to_ack_map.end()) {
@@ -150,20 +150,23 @@ BluetoothAudioCtrlAck HfpTransport::SuspendRequest() {
   }
   auto status = instance->DisconnectAudio(&addr);
   log::info("DisconnectAudio status = {} - {}", status, bt_status_text(status));
-  return status == BT_STATUS_SUCCESS ? BluetoothAudioCtrlAck::SUCCESS_FINISHED
-                                     : BluetoothAudioCtrlAck::FAILURE;
+  return status == BT_STATUS_SUCCESS ?
+    BluetoothAudioCtrlAck::SUCCESS_FINISHED :
+    BluetoothAudioCtrlAck::FAILURE;
 }
 
 void HfpTransport::SetLatencyMode(LatencyMode latency_mode) {}
 
-void HfpTransport::SourceMetadataChanged(const source_metadata_v7_t& source_metadata) {}
+void HfpTransport::SourceMetadataChanged(
+    const source_metadata_v7_t& source_metadata) {}
 
 void HfpTransport::SinkMetadataChanged(const sink_metadata_v7_t&) {}
 
 void HfpTransport::ResetPresentationPosition() {}
 
 bool HfpTransport::GetPresentationPosition(uint64_t* remote_delay_report_ns,
-                                           uint64_t* total_bytes_read, timespec* data_position) {
+                                           uint64_t* total_bytes_read,
+                                           timespec* data_position) {
   return false;
 }
 
@@ -171,7 +174,7 @@ bool HfpTransport::GetPresentationPosition(uint64_t* remote_delay_report_ns,
 HfpDecodingTransport::HfpDecodingTransport(SessionType session_type)
     : IBluetoothSinkTransportInstance(session_type, (AudioConfiguration){}) {
   transport_ = new HfpTransport();
-}
+};
 
 HfpDecodingTransport::~HfpDecodingTransport() { delete transport_; }
 
@@ -187,28 +190,34 @@ void HfpDecodingTransport::SetLatencyMode(LatencyMode latency_mode) {
   transport_->SetLatencyMode(latency_mode);
 }
 
-bool HfpDecodingTransport::GetPresentationPosition(uint64_t* remote_delay_report_ns,
-                                                   uint64_t* total_bytes_written,
-                                                   timespec* data_position) {
-  return transport_->GetPresentationPosition(remote_delay_report_ns, total_bytes_written,
-                                             data_position);
+bool HfpDecodingTransport::GetPresentationPosition(
+    uint64_t* remote_delay_report_ns, uint64_t* total_bytes_written,
+    timespec* data_position) {
+  return transport_->GetPresentationPosition(
+      remote_delay_report_ns, total_bytes_written, data_position);
 }
 
-void HfpDecodingTransport::SourceMetadataChanged(const source_metadata_v7_t& source_metadata) {
+void HfpDecodingTransport::SourceMetadataChanged(
+    const source_metadata_v7_t& source_metadata) {
   transport_->SourceMetadataChanged(source_metadata);
 }
 
-void HfpDecodingTransport::SinkMetadataChanged(const sink_metadata_v7_t& sink_metadata) {
+void HfpDecodingTransport::SinkMetadataChanged(
+    const sink_metadata_v7_t& sink_metadata) {
   transport_->SinkMetadataChanged(sink_metadata);
 }
 
-void HfpDecodingTransport::ResetPresentationPosition() { transport_->ResetPresentationPosition(); }
+void HfpDecodingTransport::ResetPresentationPosition() {
+  transport_->ResetPresentationPosition();
+}
 
 void HfpDecodingTransport::LogBytesRead(size_t bytes_written) {
   transport_->LogBytesProcessed(bytes_written);
 }
 
-uint8_t HfpDecodingTransport::GetPendingCmd() const { return transport_->GetPendingCmd(); }
+uint8_t HfpDecodingTransport::GetPendingCmd() const {
+  return transport_->GetPendingCmd();
+}
 
 void HfpDecodingTransport::ResetPendingCmd() { transport_->ResetPendingCmd(); }
 
@@ -217,7 +226,7 @@ void HfpDecodingTransport::StopRequest() { transport_->StopRequest(); }
 HfpEncodingTransport::HfpEncodingTransport(SessionType session_type)
     : IBluetoothSourceTransportInstance(session_type, (AudioConfiguration){}) {
   transport_ = new HfpTransport();
-}
+};
 
 HfpEncodingTransport::~HfpEncodingTransport() { delete transport_; }
 
@@ -235,32 +244,38 @@ void HfpEncodingTransport::SetLatencyMode(LatencyMode latency_mode) {
   transport_->SetLatencyMode(latency_mode);
 }
 
-bool HfpEncodingTransport::GetPresentationPosition(uint64_t* remote_delay_report_ns,
-                                                   uint64_t* total_bytes_written,
-                                                   timespec* data_position) {
-  return transport_->GetPresentationPosition(remote_delay_report_ns, total_bytes_written,
-                                             data_position);
+bool HfpEncodingTransport::GetPresentationPosition(
+    uint64_t* remote_delay_report_ns, uint64_t* total_bytes_written,
+    timespec* data_position) {
+  return transport_->GetPresentationPosition(
+      remote_delay_report_ns, total_bytes_written, data_position);
 }
 
-void HfpEncodingTransport::SourceMetadataChanged(const source_metadata_v7_t& source_metadata) {
+void HfpEncodingTransport::SourceMetadataChanged(
+    const source_metadata_v7_t& source_metadata) {
   transport_->SourceMetadataChanged(source_metadata);
 }
 
-void HfpEncodingTransport::SinkMetadataChanged(const sink_metadata_v7_t& sink_metadata) {
+void HfpEncodingTransport::SinkMetadataChanged(
+    const sink_metadata_v7_t& sink_metadata) {
   transport_->SinkMetadataChanged(sink_metadata);
 }
 
-void HfpEncodingTransport::ResetPresentationPosition() { transport_->ResetPresentationPosition(); }
+void HfpEncodingTransport::ResetPresentationPosition() {
+  transport_->ResetPresentationPosition();
+}
 
 void HfpEncodingTransport::LogBytesWritten(size_t bytes_written) {
   transport_->LogBytesProcessed(bytes_written);
 }
 
-uint8_t HfpEncodingTransport::GetPendingCmd() const { return transport_->GetPendingCmd(); }
+uint8_t HfpEncodingTransport::GetPendingCmd() const {
+  return transport_->GetPendingCmd();
+}
 
 void HfpEncodingTransport::ResetPendingCmd() { transport_->ResetPendingCmd(); }
 
-} // namespace hfp
-} // namespace aidl
-} // namespace audio
-} // namespace bluetooth
+}  // namespace hfp
+}  // namespace aidl
+}  // namespace audio
+}  // namespace bluetooth

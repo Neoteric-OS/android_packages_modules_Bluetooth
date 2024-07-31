@@ -16,47 +16,57 @@
 
 #pragma once
 
-#include <fmq/MessageQueue.h>
-#include <hardware/audio.h>
 #include <time.h>
+#include <mutex>
+
 #include <vendor/qti/hardware/bluetooth_audio/2.0/IBluetoothAudioProvider.h>
 #include <vendor/qti/hardware/bluetooth_audio/2.0/types.h>
 #include <vendor/qti/hardware/bluetooth_audio/2.1/IBluetoothAudioProvider.h>
 #include <vendor/qti/hardware/bluetooth_audio/2.1/types.h>
-
-#include <mutex>
-
-#include "common/message_loop_thread.h"
+#include <fmq/MessageQueue.h>
+#include <hardware/audio.h>
 #include "osi/include/thread.h"
 
-#define BLUETOOTH_AUDIO_PROP_ENABLED "persist.bluetooth.bluetooth_audio_hal.enabled"
+#include "common/message_loop_thread.h"
+
+#define BLUETOOTH_AUDIO_PROP_ENABLED \
+  "persist.bluetooth.bluetooth_audio_hal.enabled"
 
 namespace bluetooth {
 namespace audio {
 namespace qti_hidl {
 
-using audioCapabilities = vendor::qti::hardware::bluetooth_audio::V2_0::AudioCapabilities;
-using audioCapabilities_2_1 = vendor::qti::hardware::bluetooth_audio::V2_1::AudioCapabilities;
-using AudioConfiguration = vendor::qti::hardware::bluetooth_audio::V2_0::AudioConfiguration;
-using AudioConfiguration_2_1 = vendor::qti::hardware::bluetooth_audio::V2_1::AudioConfiguration;
+using audioCapabilities =
+      vendor::qti::hardware::bluetooth_audio::V2_0::AudioCapabilities;
+using audioCapabilities_2_1 =
+      vendor::qti::hardware::bluetooth_audio::V2_1::AudioCapabilities;
+using AudioConfiguration =
+      vendor::qti::hardware::bluetooth_audio::V2_0::AudioConfiguration;
+using AudioConfiguration_2_1 =
+      vendor::qti::hardware::bluetooth_audio::V2_1::AudioConfiguration;
 using vendor::qti::hardware::bluetooth_audio::V2_0::BitsPerSample;
 using vendor::qti::hardware::bluetooth_audio::V2_0::ChannelMode;
-using CodecConfiguration = vendor::qti::hardware::bluetooth_audio::V2_0::CodecConfiguration;
-using CodecConfiguration_2_1 = vendor::qti::hardware::bluetooth_audio::V2_1::CodecConfiguration;
+using CodecConfiguration =
+      vendor::qti::hardware::bluetooth_audio::V2_0::CodecConfiguration;
+using CodecConfiguration_2_1 =
+      vendor::qti::hardware::bluetooth_audio::V2_1::CodecConfiguration;
 using CodecType = vendor::qti::hardware::bluetooth_audio::V2_0::CodecType;
 using CodecType_2_1 = vendor::qti::hardware::bluetooth_audio::V2_1::CodecType;
 using BluetoothAudioProvider =
-        vendor::qti::hardware::bluetooth_audio::V2_0::IBluetoothAudioProvider;
+      vendor::qti::hardware::bluetooth_audio::V2_0::IBluetoothAudioProvider;
 using BluetoothAudioProvider_2_1 =
-        vendor::qti::hardware::bluetooth_audio::V2_1::IBluetoothAudioProvider;
+      vendor::qti::hardware::bluetooth_audio::V2_1::IBluetoothAudioProvider;
 using vendor::qti::hardware::bluetooth_audio::V2_0::PcmParameters;
 using vendor::qti::hardware::bluetooth_audio::V2_0::SampleRate;
 using vendor::qti::hardware::bluetooth_audio::V2_0::SessionType;
 using vendor::qti::hardware::bluetooth_audio::V2_0::TimeSpec;
-using BluetoothAudioPort = vendor::qti::hardware::bluetooth_audio::V2_0::IBluetoothAudioPort;
-using BluetoothAudioPort_2_1 = vendor::qti::hardware::bluetooth_audio::V2_1::IBluetoothAudioPort;
+using BluetoothAudioPort =
+      vendor::qti::hardware::bluetooth_audio::V2_0::IBluetoothAudioPort;
+using BluetoothAudioPort_2_1 =
+      vendor::qti::hardware::bluetooth_audio::V2_1::IBluetoothAudioPort;
 using vendor::qti::hardware::bluetooth_audio::V2_0::SessionParams;
-using BluetoothAudioStatus = vendor::qti::hardware::bluetooth_audio::V2_0::Status;
+using BluetoothAudioStatus =
+    vendor::qti::hardware::bluetooth_audio::V2_0::Status;
 
 enum class BluetoothAudioCtrlAck : uint8_t {
   SUCCESS_FINISHED = 0,
@@ -71,7 +81,8 @@ enum class BluetoothAudioCtrlAck : uint8_t {
 
 std::ostream& operator<<(std::ostream& os, const BluetoothAudioCtrlAck& ack);
 
-inline BluetoothAudioStatus BluetoothAudioCtrlAckToHalStatus(const BluetoothAudioCtrlAck& ack) {
+inline BluetoothAudioStatus BluetoothAudioCtrlAckToHalStatus(
+    const BluetoothAudioCtrlAck& ack) {
   switch (ack) {
     case BluetoothAudioCtrlAck::SUCCESS_FINISHED:
       return BluetoothAudioStatus::SUCCESS;
@@ -95,9 +106,10 @@ inline BluetoothAudioStatus BluetoothAudioCtrlAckToHalStatus(const BluetoothAudi
 // An IBluetoothTransportInstance needs to be implemented by a Bluetooth audio
 // transport, such as A2DP or Hearing Aid, to handle callbacks from Audio HAL.
 class IBluetoothTransportInstance {
-public:
-  IBluetoothTransportInstance(SessionType sessionType, AudioConfiguration audioConfig)
-      : session_type_(sessionType), audio_config_(std::move(audioConfig)) {}
+ public:
+  IBluetoothTransportInstance(SessionType sessionType,
+                              AudioConfiguration audioConfig)
+      : session_type_(sessionType), audio_config_(std::move(audioConfig)){};
   virtual ~IBluetoothTransportInstance() = default;
 
   SessionType GetSessionType() const { return session_type_; }
@@ -108,7 +120,9 @@ public:
     audio_config_ = audio_config;
   }
 
-  void UpdateSessionType(SessionType& sessionType) { session_type_ = sessionType; }
+  void UpdateSessionType( SessionType& sessionType) {
+    session_type_ = sessionType;
+  }
 
   virtual BluetoothAudioCtrlAck StartRequest() = 0;
 
@@ -117,7 +131,8 @@ public:
   virtual void StopRequest() = 0;
 
   virtual bool GetPresentationPosition(uint64_t* remote_delay_report_ns,
-                                       uint64_t* total_bytes_readed, timespec* data_position) = 0;
+                                       uint64_t* total_bytes_readed,
+                                       timespec* data_position) = 0;
 
   // Invoked when the transport is requested to reset presentation position
   virtual void ResetPresentationPosition() = 0;
@@ -125,14 +140,15 @@ public:
   // Invoked when the transport is requested to log bytes read
   virtual void LogBytesRead(size_t bytes_readed) = 0;
 
-private:
+ private:
   SessionType session_type_;
   AudioConfiguration audio_config_;
 };
 class IBluetoothTransportInstance_2_1 {
-public:
-  IBluetoothTransportInstance_2_1(SessionType sessionType, AudioConfiguration_2_1 audioConfig)
-      : session_type_(sessionType), audio_config_2_1_(std::move(audioConfig)) {}
+ public:
+  IBluetoothTransportInstance_2_1(SessionType sessionType,
+                              AudioConfiguration_2_1 audioConfig)
+      : session_type_(sessionType), audio_config_2_1_(std::move(audioConfig)) {};
 
   virtual ~IBluetoothTransportInstance_2_1() = default;
 
@@ -140,12 +156,14 @@ public:
 
   AudioConfiguration_2_1 GetAudioConfiguration() const { return audio_config_2_1_; }
 
-  // AudioConfiguration_2_1 GetAudioConfiguration_2_1() const { return audio_config_2_1_; }
+  //AudioConfiguration_2_1 GetAudioConfiguration_2_1() const { return audio_config_2_1_; }
 
   void UpdateAudioConfiguration(const AudioConfiguration_2_1& audio_config) {
     audio_config_2_1_ = audio_config;
   }
-  void UpdateSessionType(SessionType& sessionType) { session_type_ = sessionType; }
+  void UpdateSessionType( SessionType& sessionType) {
+    session_type_ = sessionType;
+  }
 
   virtual BluetoothAudioCtrlAck StartRequest() = 0;
 
@@ -154,7 +172,8 @@ public:
   virtual void StopRequest() = 0;
 
   virtual bool GetPresentationPosition(uint64_t* remote_delay_report_ns,
-                                       uint64_t* total_bytes_readed, timespec* data_position) = 0;
+                                       uint64_t* total_bytes_readed,
+                                       timespec* data_position) = 0;
 
   // Invoked when the transport is requested to reset presentation position
   virtual void ResetPresentationPosition() = 0;
@@ -162,7 +181,7 @@ public:
   // Invoked when the transport is requested to log bytes read
   virtual void LogBytesRead(size_t bytes_readed) = 0;
 
-private:
+ private:
   SessionType session_type_;
   AudioConfiguration_2_1 audio_config_2_1_;
 };
@@ -174,17 +193,17 @@ class BluetoothAudioDeathRecipient;
 // IBluetoothAudioProvider and helps to route callbacks to
 // IBluetoothTransportInstance
 class BluetoothAudioClientInterface {
-public:
+ public:
   // Constructs an BluetoothAudioClientInterface to communicate to
   // BluetoothAudio HAL. |sink| is the implementation for the transport, and
   // |message_loop| is the thread where callbacks are invoked.
-  BluetoothAudioClientInterface(IBluetoothTransportInstance* sink,
-                                bluetooth::common::MessageLoopThread* message_loop,
-                                std::mutex* mutex);
-  BluetoothAudioClientInterface(IBluetoothTransportInstance_2_1* sink,
-                                bluetooth::common::MessageLoopThread* message_loop,
-                                std::mutex* mutex);
-  // BluetoothAudioClientInterface();
+  BluetoothAudioClientInterface(
+      IBluetoothTransportInstance* sink,
+       bluetooth::common::MessageLoopThread* message_loop, std::mutex* mutex);
+  BluetoothAudioClientInterface(
+      IBluetoothTransportInstance_2_1* sink,
+       bluetooth::common::MessageLoopThread* message_loop, std::mutex* mutex);
+  //BluetoothAudioClientInterface();
   ~BluetoothAudioClientInterface() = default;
   std::vector<audioCapabilities> GetAudioCapabilities() const;
 
@@ -224,11 +243,11 @@ public:
   void RenewAudioProviderAndSession();
 
   static constexpr PcmParameters kInvalidPcmConfiguration = {
-          .sampleRate = SampleRate::RATE_UNKNOWN,
-          .bitsPerSample = BitsPerSample::BITS_UNKNOWN,
-          .channelMode = ChannelMode::UNKNOWN};
+      .sampleRate = SampleRate::RATE_UNKNOWN,
+      .bitsPerSample = BitsPerSample::BITS_UNKNOWN,
+      .channelMode = ChannelMode::UNKNOWN};
 
-private:
+ private:
   // Helper function to connect to an IBluetoothAudioProvider
   void fetch_audio_provider();
 
@@ -237,17 +256,17 @@ private:
   android::sp<BluetoothAudioProvider> provider_;
   android::sp<BluetoothAudioProvider_2_1> provider_2_1_;
   android::sp<BluetoothAudioPort> stack_if_;
-  android::sp<BluetoothAudioPort_2_1> stack_if_2_1_;
+  android::sp<BluetoothAudioPort_2_1>stack_if_2_1_;
   std::vector<audioCapabilities> capabilities_;
   std::vector<audioCapabilities_2_1> capabilities_2_1_;
   bool session_started_;
-  std::unique_ptr<
-          ::android::hardware::MessageQueue<uint8_t, ::android::hardware::kSynchronizedReadWrite>>
-          mDataMQ;
-  mutable std::mutex* external_mutex_;
+  std::unique_ptr<::android::hardware::MessageQueue<
+      uint8_t, ::android::hardware::kSynchronizedReadWrite>>
+      mDataMQ;
+  mutable std::mutex *external_mutex_;
   android::sp<BluetoothAudioDeathRecipient> death_recipient_;
 };
 
-} // namespace qti_hidl
-} // namespace audio
-} // namespace bluetooth
+}  // namespace qti_hidl
+}  // namespace audio
+}  // namespace bluetooth

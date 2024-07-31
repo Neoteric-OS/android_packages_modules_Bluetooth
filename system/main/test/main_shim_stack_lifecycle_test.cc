@@ -49,9 +49,7 @@ constexpr char kTestStackThreadName[] = "test_stack_thread";
 constexpr char kTestDataTag[] = "This is a test";
 
 inline void maybe_yield() {
-  if (std::rand() & 1) {
-    std::this_thread::yield();
-  }
+  if (std::rand() & 1) std::this_thread::yield();
 }
 
 constexpr size_t kTagLength = 48 + sizeof(' ') + sizeof(' ');
@@ -62,7 +60,7 @@ inline void log_tag(std::string tag) {
 }
 
 class MainThread {
-public:
+ public:
   MainThread() { main_thread_start_up(); }
 
   ~MainThread() {
@@ -70,7 +68,7 @@ public:
     main_thread_shut_down();
   }
 
-private:
+ private:
   void sync_main_handler() {
     std::promise promise = std::promise<void>();
     std::future future = promise.get_future();
@@ -80,7 +78,7 @@ private:
 };
 
 class TestStackManager {
-public:
+ public:
   TestStackManager() {
     // Start is executed by the test after each test adds the default
     // or their own modules
@@ -99,20 +97,17 @@ public:
   }
 
   void Start() {
-    if (stack_started_) {
-      return;
-    }
+    if (stack_started_) return;
     log::info("Started stack manager");
     stack_started_ = true;
     bluetooth::os::Thread* stack_thread = new bluetooth::os::Thread(
-            kTestStackThreadName, bluetooth::os::Thread::Priority::NORMAL);
-    bluetooth::shim::Stack::GetInstance()->StartModuleStack(&modules_, stack_thread);
+        kTestStackThreadName, bluetooth::os::Thread::Priority::NORMAL);
+    bluetooth::shim::Stack::GetInstance()->StartModuleStack(&modules_,
+                                                            stack_thread);
   }
 
   void Stop() {
-    if (!stack_started_) {
-      return;
-    }
+    if (!stack_started_) return;
     stack_started_ = false;
     bluetooth::shim::Stack::GetInstance()->Stop();
   }
@@ -121,12 +116,14 @@ public:
   // if stack manager has not started or shutdown
   template <typename T>
   static T* GetUnsafeModule() {
-    return bluetooth::shim::Stack::GetInstance()->GetStackManager()->GetInstance<T>();
+    return bluetooth::shim::Stack::GetInstance()
+        ->GetStackManager()
+        ->GetInstance<T>();
   }
 
   size_t NumModules() const { return modules_.NumModules(); }
 
-private:
+ private:
   bluetooth::ModuleList modules_;
   bool stack_started_{false};
 };
@@ -144,29 +141,31 @@ struct TestData {
   std::function<void(TestCallbackData callback_data)> callback;
 };
 
-class TestStackModuleBase : public bluetooth::Module, public ModuleMainloop, public ModuleJniloop {
-public:
+class TestStackModuleBase : public bluetooth::Module,
+                            public ModuleMainloop,
+                            public ModuleJniloop {
+ public:
   TestStackModuleBase(const TestStackModuleBase&) = delete;
   TestStackModuleBase& operator=(const TestStackModuleBase&) = delete;
 
-  virtual ~TestStackModuleBase() {}
+  virtual ~TestStackModuleBase(){};
   static const ModuleFactory Factory;
 
   virtual void TestMethod(TestData test_data) const {
     log::info("Test base class iter:{} tag:{}", test_data.iter, test_data.tag);
   }
 
-protected:
-  void ListDependencies(ModuleList* list) const override {}
-  void Start() override { log::error("Started TestStackModuleBase"); }
-  void Stop() override { log::error("Stopped TestStackModuleBase"); }
+ protected:
+  void ListDependencies(ModuleList* list) const override{};
+  void Start() override { log::error("Started TestStackModuleBase"); };
+  void Stop() override { log::error("Stopped TestStackModuleBase"); };
   std::string ToString() const override { return std::string("TestFunction"); }
 
   TestStackModuleBase() = default;
 };
 
 class TestStackModule1 : public TestStackModuleBase {
-public:
+ public:
   TestStackModule1(const TestStackModule1&) = delete;
   TestStackModule1& operator=(const TestStackModule1&) = delete;
   virtual ~TestStackModule1() = default;
@@ -175,7 +174,7 @@ public:
 
   void TestMethod(TestData test_data) const override;
 
-private:
+ private:
   struct impl;
   std::shared_ptr<impl> impl_;
   TestStackModule1();
@@ -184,23 +183,26 @@ private:
 struct TestStackModule1::impl : public ModuleMainloop, public ModuleJniloop {
   void test(TestData test_data) {
     TestCallbackData callback_data{
-            .iter = test_data.iter,
-            .tag = std::string(__func__),
+        .iter = test_data.iter,
+        .tag = std::string(__func__),
     };
-    PostFunctionOnMain([](std::function<void(TestCallbackData callback_data)> callback,
-                          TestCallbackData data) { callback(data); },
-                       test_data.callback, callback_data);
+    PostFunctionOnMain(
+        [](std::function<void(TestCallbackData callback_data)> callback,
+           TestCallbackData data) { callback(data); },
+        test_data.callback, callback_data);
   }
 };
 
-TestStackModule1::TestStackModule1() : TestStackModuleBase() { impl_ = std::make_shared<impl>(); }
+TestStackModule1::TestStackModule1() : TestStackModuleBase() {
+  impl_ = std::make_shared<impl>();
+}
 
 void TestStackModule1::TestMethod(TestData test_data) const {
   PostMethodOnMain(impl_, &impl::test, test_data);
 }
 
 class TestStackModule2 : public TestStackModuleBase {
-public:
+ public:
   TestStackModule2(const TestStackModule2&) = delete;
   TestStackModule2& operator=(const TestStackModule2&) = delete;
   virtual ~TestStackModule2() = default;
@@ -209,7 +211,7 @@ public:
 
   void TestMethod(TestData test_data) const override;
 
-private:
+ private:
   struct impl;
   std::shared_ptr<impl> impl_;
   TestStackModule2();
@@ -218,23 +220,26 @@ private:
 struct TestStackModule2::impl : public ModuleMainloop, public ModuleJniloop {
   void test(TestData test_data) {
     TestCallbackData callback_data{
-            .iter = test_data.iter,
-            .tag = std::string(__func__),
+        .iter = test_data.iter,
+        .tag = std::string(__func__),
     };
-    PostFunctionOnMain([](std::function<void(TestCallbackData callback_data)> callback,
-                          TestCallbackData data) { callback(data); },
-                       test_data.callback, callback_data);
+    PostFunctionOnMain(
+        [](std::function<void(TestCallbackData callback_data)> callback,
+           TestCallbackData data) { callback(data); },
+        test_data.callback, callback_data);
   }
 };
 
-TestStackModule2::TestStackModule2() : TestStackModuleBase() { impl_ = std::make_shared<impl>(); }
+TestStackModule2::TestStackModule2() : TestStackModuleBase() {
+  impl_ = std::make_shared<impl>();
+}
 
 void TestStackModule2::TestMethod(TestData test_data) const {
   PostMethodOnMain(impl_, &impl::test, test_data);
 }
 
 class TestStackModule3 : public TestStackModuleBase {
-public:
+ public:
   TestStackModule3(const TestStackModule3&) = delete;
   TestStackModule3& operator=(const TestStackModule3&) = delete;
   virtual ~TestStackModule3() = default;
@@ -243,7 +248,7 @@ public:
 
   void TestMethod(TestData test_data) const override;
 
-private:
+ private:
   struct impl;
   std::shared_ptr<impl> impl_;
   TestStackModule3();
@@ -252,23 +257,26 @@ private:
 struct TestStackModule3::impl : public ModuleMainloop, public ModuleJniloop {
   void test(TestData test_data) {
     TestCallbackData callback_data{
-            .iter = test_data.iter,
-            .tag = std::string(__func__),
+        .iter = test_data.iter,
+        .tag = std::string(__func__),
     };
-    PostFunctionOnMain([](std::function<void(TestCallbackData callback_data)> callback,
-                          TestCallbackData data) { callback(data); },
-                       test_data.callback, callback_data);
+    PostFunctionOnMain(
+        [](std::function<void(TestCallbackData callback_data)> callback,
+           TestCallbackData data) { callback(data); },
+        test_data.callback, callback_data);
   }
 };
 
-TestStackModule3::TestStackModule3() : TestStackModuleBase() { impl_ = std::make_shared<impl>(); }
+TestStackModule3::TestStackModule3() : TestStackModuleBase() {
+  impl_ = std::make_shared<impl>();
+}
 
 void TestStackModule3::TestMethod(TestData test_data) const {
   PostMethodOnMain(impl_, &impl::test, test_data);
 }
 
 class TestStackModule4 : public TestStackModuleBase {
-public:
+ public:
   TestStackModule4(const TestStackModule4&) = delete;
   TestStackModule4& operator=(const TestStackModule3&) = delete;
   virtual ~TestStackModule4() = default;
@@ -279,7 +287,7 @@ public:
     log::info("mod:{} iter:{} tag:{}", __func__, test_data.iter, test_data.tag);
   }
 
-private:
+ private:
   struct impl;
   std::shared_ptr<impl> impl_;
   TestStackModule4() : TestStackModuleBase() {}
@@ -287,34 +295,36 @@ private:
 
 struct TestStackModule4::impl : public ModuleMainloop, public ModuleJniloop {};
 
-} // namespace
+}  // namespace
 
 const ModuleFactory TestStackModuleBase::Factory =
-        ModuleFactory([]() { return new TestStackModuleBase(); });
+    ModuleFactory([]() { return new TestStackModuleBase(); });
 
 const ModuleFactory TestStackModule1::Factory =
-        ModuleFactory([]() { return new TestStackModule1(); });
+    ModuleFactory([]() { return new TestStackModule1(); });
 const ModuleFactory TestStackModule2::Factory =
-        ModuleFactory([]() { return new TestStackModule2(); });
+    ModuleFactory([]() { return new TestStackModule2(); });
 const ModuleFactory TestStackModule3::Factory =
-        ModuleFactory([]() { return new TestStackModule3(); });
+    ModuleFactory([]() { return new TestStackModule3(); });
 const ModuleFactory TestStackModule4::Factory =
-        ModuleFactory([]() { return new TestStackModule4(); });
+    ModuleFactory([]() { return new TestStackModule4(); });
 
 class StackWithMainThreadUnitTest : public ::testing::Test {
-protected:
+ protected:
   void SetUp() override { main_thread_ = std::make_unique<MainThread>(); }
   void TearDown() override { main_thread_.reset(); }
 
-private:
+ private:
   std::unique_ptr<MainThread> main_thread_;
 };
 
 class StackLifecycleUnitTest : public StackWithMainThreadUnitTest {
-public:
-  std::shared_ptr<TestStackManager> StackManager() const { return stack_manager_; }
+ public:
+  std::shared_ptr<TestStackManager> StackManager() const {
+    return stack_manager_;
+  }
 
-protected:
+ protected:
   void SetUp() override {
     StackWithMainThreadUnitTest::SetUp();
     stack_manager_ = std::make_shared<TestStackManager>();
@@ -325,14 +335,16 @@ protected:
     StackWithMainThreadUnitTest::TearDown();
   }
 
-private:
+ private:
   std::shared_ptr<TestStackManager> stack_manager_;
 };
 
-TEST_F(StackLifecycleUnitTest, no_modules_in_stack) { ASSERT_EQ(0U, StackManager()->NumModules()); }
+TEST_F(StackLifecycleUnitTest, no_modules_in_stack) {
+  ASSERT_EQ(0U, StackManager()->NumModules());
+}
 
 class StackLifecycleWithDefaultModulesUnitTest : public StackLifecycleUnitTest {
-protected:
+ protected:
   void SetUp() override {
     StackLifecycleUnitTest::SetUp();
     StackManager()->AddModule<TestStackModule1>();
@@ -349,13 +361,14 @@ struct CallablePostCnt {
   size_t success{0};
   size_t misses{0};
   CallablePostCnt operator+=(const CallablePostCnt& post_cnt) {
-    return CallablePostCnt({success += post_cnt.success, misses += post_cnt.misses});
+    return CallablePostCnt(
+        {success += post_cnt.success, misses += post_cnt.misses});
   }
 };
 
 // Provide a client user of the stack manager module services
 class Client {
-public:
+ public:
   Client(int id) : id_(id) {}
   Client(const Client&) = default;
   virtual ~Client() = default;
@@ -366,15 +379,17 @@ public:
     thread_ = new os::Thread(common::StringFormat("ClientThread%d", id_),
                              os::Thread::Priority::NORMAL);
     handler_ = new os::Handler(thread_);
-    handler_->Post(common::BindOnce([](int id) { log::info("Started client {}", id); }, id_));
+    handler_->Post(common::BindOnce(
+        [](int id) { log::info("Started client {}", id); }, id_));
   }
 
   // Ensure all the client handlers are running
   void Await() {
     std::promise<void> promise;
     std::future future = promise.get_future();
-    handler_->Post(base::BindOnce([](std::promise<void> promise) { promise.set_value(); },
-                                  std::move(promise)));
+    handler_->Post(
+        base::BindOnce([](std::promise<void> promise) { promise.set_value(); },
+                       std::move(promise)));
     future.wait();
   }
 
@@ -392,14 +407,13 @@ public:
 
   // Safely prevent new work tasks from being posted
   void Quiesce() {
-    if (quiesced_) {
-      return;
-    }
+    if (quiesced_) return;
     quiesced_ = true;
     std::promise promise = std::promise<void>();
     std::future future = promise.get_future();
-    handler_->Post(common::BindOnce([](std::promise<void> promise) { promise.set_value(); },
-                                    std::move(promise)));
+    handler_->Post(common::BindOnce(
+        [](std::promise<void> promise) { promise.set_value(); },
+        std::move(promise)));
     future.wait_for(std::chrono::milliseconds(kSyncMainLoopTimeoutMs));
   }
 
@@ -409,7 +423,8 @@ public:
       Quiesce();
     }
     handler_->Clear();
-    handler_->WaitUntilStopped(std::chrono::milliseconds(kWaitUntilHandlerStoppedMs));
+    handler_->WaitUntilStopped(
+        std::chrono::milliseconds(kWaitUntilHandlerStoppedMs));
     delete handler_;
     delete thread_;
   }
@@ -418,9 +433,11 @@ public:
 
   CallablePostCnt GetCallablePostCnt() const { return post_cnt_; }
 
-  std::string Name() const { return common::StringFormat("%s%d", __func__, id_); }
+  std::string Name() const {
+    return common::StringFormat("%s%d", __func__, id_);
+  }
 
-private:
+ private:
   int id_{0};
   CallablePostCnt post_cnt_{};
   bool quiesced_{false};
@@ -430,8 +447,8 @@ private:
 
 // Convenience object to handle multiple clients with logging
 class ClientGroup {
-public:
-  ClientGroup() {}
+ public:
+  ClientGroup(){};
 
   void Start() {
     for (auto& c : clients_) {
@@ -465,7 +482,8 @@ public:
   void Dump() const {
     for (auto& c : clients_) {
       log::info("Callable post cnt client_id:{} success:{} misses:{}", c->Id(),
-                c->GetCallablePostCnt().success, c->GetCallablePostCnt().misses);
+                c->GetCallablePostCnt().success,
+                c->GetCallablePostCnt().misses);
     }
   }
 
@@ -480,7 +498,8 @@ public:
   size_t NumClients() const { return kNumTestClients; }
 
   std::unique_ptr<Client> clients_[kNumTestClients] = {
-          std::make_unique<Client>(1), std::make_unique<Client>(2), std::make_unique<Client>(3)};
+      std::make_unique<Client>(1), std::make_unique<Client>(2),
+      std::make_unique<Client>(3)};
 };
 
 TEST_F(StackLifecycleWithDefaultModulesUnitTest, clients_start) {
@@ -503,32 +522,35 @@ TEST_F(StackLifecycleWithDefaultModulesUnitTest, client_using_stack_manager) {
   for (int i = 0; i < kNumIters; i++) {
     for (auto& c : client_group.clients_) {
       c->Post(base::BindOnce(
-              [](int id, int iter, std::shared_ptr<TestStackManager> stack_manager) {
-                stack_manager->GetUnsafeModule<TestStackModule1>()->TestMethod({
-                        .iter = iter,
-                        .tag = std::string(kTestDataTag),
-                        .callback = [](TestCallbackData data) {},
-                });
-              },
-              c->Id(), i, StackManager()));
+          [](int id, int iter,
+             std::shared_ptr<TestStackManager> stack_manager) {
+            stack_manager->GetUnsafeModule<TestStackModule1>()->TestMethod({
+                .iter = iter,
+                .tag = std::string(kTestDataTag),
+                .callback = [](TestCallbackData data) {},
+            });
+          },
+          c->Id(), i, StackManager()));
       c->Post(base::BindOnce(
-              [](int id, int iter, std::shared_ptr<TestStackManager> stack_manager) {
-                stack_manager->GetUnsafeModule<TestStackModule2>()->TestMethod({
-                        .iter = iter,
-                        .tag = std::string(kTestDataTag),
-                        .callback = [](TestCallbackData data) {},
-                });
-              },
-              c->Id(), i, StackManager()));
+          [](int id, int iter,
+             std::shared_ptr<TestStackManager> stack_manager) {
+            stack_manager->GetUnsafeModule<TestStackModule2>()->TestMethod({
+                .iter = iter,
+                .tag = std::string(kTestDataTag),
+                .callback = [](TestCallbackData data) {},
+            });
+          },
+          c->Id(), i, StackManager()));
       c->Post(base::BindOnce(
-              [](int id, int iter, std::shared_ptr<TestStackManager> stack_manager) {
-                stack_manager->GetUnsafeModule<TestStackModule3>()->TestMethod({
-                        .iter = iter,
-                        .tag = std::string(kTestDataTag),
-                        .callback = [](TestCallbackData data) {},
-                });
-              },
-              c->Id(), i, StackManager()));
+          [](int id, int iter,
+             std::shared_ptr<TestStackManager> stack_manager) {
+            stack_manager->GetUnsafeModule<TestStackModule3>()->TestMethod({
+                .iter = iter,
+                .tag = std::string(kTestDataTag),
+                .callback = [](TestCallbackData data) {},
+            });
+          },
+          c->Id(), i, StackManager()));
     }
   }
 
@@ -537,10 +559,12 @@ TEST_F(StackLifecycleWithDefaultModulesUnitTest, client_using_stack_manager) {
   client_group.Dump();
 
   ASSERT_EQ(client_group.NumClients() * kNumIters * kNumTestModules,
-            client_group.GetCallablePostCnt().success + client_group.GetCallablePostCnt().misses);
+            client_group.GetCallablePostCnt().success +
+                client_group.GetCallablePostCnt().misses);
 }
 
-TEST_F(StackLifecycleWithDefaultModulesUnitTest, client_using_stack_manager_when_shutdown) {
+TEST_F(StackLifecycleWithDefaultModulesUnitTest,
+       client_using_stack_manager_when_shutdown) {
   struct Counters {
     struct {
       std::atomic_size_t cnt{0};
@@ -554,53 +578,62 @@ TEST_F(StackLifecycleWithDefaultModulesUnitTest, client_using_stack_manager_when
   for (int i = 0; i < kNumIters; i++) {
     for (auto& c : client_group.clients_) {
       c->Post(base::BindOnce(
-              [](int id, int iter, Counters* counters,
-                 std::shared_ptr<TestStackManager> stack_manager) {
-                TestData test_data = {
-                        .iter = iter,
-                        .tag = std::string(kTestDataTag),
-                        .callback = [](TestCallbackData data) {},
-                };
-                if (bluetooth::shim::Stack::GetInstance()->CallOnModule<TestStackModule1>(
-                            [test_data](TestStackModule1* mod) { mod->TestMethod(test_data); })) {
-                  counters->up.cnt++;
-                } else {
-                  counters->down.cnt++;
-                }
-              },
-              c->Id(), i, &counters, StackManager()));
+          [](int id, int iter, Counters* counters,
+             std::shared_ptr<TestStackManager> stack_manager) {
+            TestData test_data = {
+                .iter = iter,
+                .tag = std::string(kTestDataTag),
+                .callback = [](TestCallbackData data) {},
+            };
+            if (bluetooth::shim::Stack::GetInstance()
+                    ->CallOnModule<TestStackModule1>(
+                        [test_data](TestStackModule1* mod) {
+                          mod->TestMethod(test_data);
+                        })) {
+              counters->up.cnt++;
+            } else {
+              counters->down.cnt++;
+            }
+          },
+          c->Id(), i, &counters, StackManager()));
       c->Post(base::BindOnce(
-              [](int id, int iter, Counters* counters,
-                 std::shared_ptr<TestStackManager> stack_manager) {
-                TestData test_data = {
-                        .iter = iter,
-                        .tag = std::string(kTestDataTag),
-                        .callback = [](TestCallbackData data) {},
-                };
-                if (bluetooth::shim::Stack::GetInstance()->CallOnModule<TestStackModule2>(
-                            [test_data](TestStackModule2* mod) { mod->TestMethod(test_data); })) {
-                  counters->up.cnt++;
-                } else {
-                  counters->down.cnt++;
-                }
-              },
-              c->Id(), i, &counters, StackManager()));
+          [](int id, int iter, Counters* counters,
+             std::shared_ptr<TestStackManager> stack_manager) {
+            TestData test_data = {
+                .iter = iter,
+                .tag = std::string(kTestDataTag),
+                .callback = [](TestCallbackData data) {},
+            };
+            if (bluetooth::shim::Stack::GetInstance()
+                    ->CallOnModule<TestStackModule2>(
+                        [test_data](TestStackModule2* mod) {
+                          mod->TestMethod(test_data);
+                        })) {
+              counters->up.cnt++;
+            } else {
+              counters->down.cnt++;
+            }
+          },
+          c->Id(), i, &counters, StackManager()));
       c->Post(base::BindOnce(
-              [](int id, int iter, Counters* counters,
-                 std::shared_ptr<TestStackManager> stack_manager) {
-                TestData test_data = {
-                        .iter = iter,
-                        .tag = std::string(kTestDataTag),
-                        .callback = [](TestCallbackData data) {},
-                };
-                if (bluetooth::shim::Stack::GetInstance()->CallOnModule<TestStackModule3>(
-                            [test_data](TestStackModule3* mod) { mod->TestMethod(test_data); })) {
-                  counters->up.cnt++;
-                } else {
-                  counters->down.cnt++;
-                }
-              },
-              c->Id(), i, &counters, StackManager()));
+          [](int id, int iter, Counters* counters,
+             std::shared_ptr<TestStackManager> stack_manager) {
+            TestData test_data = {
+                .iter = iter,
+                .tag = std::string(kTestDataTag),
+                .callback = [](TestCallbackData data) {},
+            };
+            if (bluetooth::shim::Stack::GetInstance()
+                    ->CallOnModule<TestStackModule3>(
+                        [test_data](TestStackModule3* mod) {
+                          mod->TestMethod(test_data);
+                        })) {
+              counters->up.cnt++;
+            } else {
+              counters->down.cnt++;
+            }
+          },
+          c->Id(), i, &counters, StackManager()));
     }
     // Abruptly shutdown stack at some point through the iterations
     if (i == kAbruptStackShutdownIter) {
@@ -611,9 +644,10 @@ TEST_F(StackLifecycleWithDefaultModulesUnitTest, client_using_stack_manager_when
 
   client_group.Quiesce();
   client_group.Stop();
-  log::info("Execution stack availability counters up:{} down:{}", counters.up.cnt,
-            counters.down.cnt);
+  log::info("Execution stack availability counters up:{} down:{}",
+            counters.up.cnt, counters.down.cnt);
 
   ASSERT_EQ(client_group.NumClients() * kNumIters * kNumTestModules,
-            client_group.GetCallablePostCnt().success + client_group.GetCallablePostCnt().misses);
+            client_group.GetCallablePostCnt().success +
+                client_group.GetCallablePostCnt().misses);
 }

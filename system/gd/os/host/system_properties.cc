@@ -26,7 +26,7 @@ namespace os {
 namespace {
 std::mutex properties_mutex;
 std::unordered_map<std::string, std::string> properties;
-} // namespace
+}  // namespace
 
 std::optional<std::string> GetSystemProperty(const std::string& property) {
   std::lock_guard<std::mutex> lock(properties_mutex);
@@ -49,9 +49,13 @@ bool ClearSystemPropertiesForHost() {
   return true;
 }
 
-bool IsRootCanalEnabled() { return false; }
+bool IsRootCanalEnabled() {
+  return false;
+}
 
-int GetAndroidVendorReleaseVersion() { return 0; }
+int GetAndroidVendorReleaseVersion() {
+  return 0;
+}
 
-} // namespace os
-} // namespace bluetooth
+}  // namespace os
+}  // namespace bluetooth

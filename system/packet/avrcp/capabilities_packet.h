@@ -24,24 +24,27 @@ namespace bluetooth {
 namespace avrcp {
 
 class GetCapabilitiesRequestBuilder : public VendorPacketBuilder {
-public:
+ public:
   virtual ~GetCapabilitiesRequestBuilder() = default;
 
-  static std::unique_ptr<GetCapabilitiesRequestBuilder> MakeBuilder(Capability capability);
+  static std::unique_ptr<GetCapabilitiesRequestBuilder> MakeBuilder(
+      Capability capability);
 
   virtual size_t size() const override;
-  virtual bool Serialize(const std::shared_ptr<::bluetooth::Packet>& pkt) override;
+  virtual bool Serialize(
+      const std::shared_ptr<::bluetooth::Packet>& pkt) override;
 
-protected:
+ protected:
   Capability capability_;
 
   GetCapabilitiesRequestBuilder(Capability capability)
-      : VendorPacketBuilder(CType::STATUS, CommandPdu::GET_CAPABILITIES, PacketType::SINGLE),
-        capability_(capability) {}
+      : VendorPacketBuilder(CType::STATUS, CommandPdu::GET_CAPABILITIES,
+                            PacketType::SINGLE),
+        capability_(capability){};
 };
 
 class GetCapabilitiesRequest : public VendorPacket {
-public:
+ public:
   virtual ~GetCapabilitiesRequest() = default;
 
   /**
@@ -59,7 +62,7 @@ public:
    *   GetCapabilitiesRequestPacket:
    *     uint8_t capability_requested:
    */
-  static constexpr size_t kMinSize() { return VendorPacket::kMinSize() + 1; }
+  static constexpr size_t kMinSize() { return VendorPacket::kMinSize() + 1; };
 
   // Getter Functions
   Capability GetCapabilityRequested() const;
@@ -68,36 +71,39 @@ public:
   virtual bool IsValid() const override;
   virtual std::string ToString() const override;
 
-protected:
+ protected:
   using VendorPacket::VendorPacket;
 };
 
 class GetCapabilitiesResponseBuilder : public VendorPacketBuilder {
-public:
+ public:
   virtual ~GetCapabilitiesResponseBuilder() = default;
 
   static std::unique_ptr<GetCapabilitiesResponseBuilder> MakeCompanyIdBuilder(
-          uint32_t company_id_element);
+      uint32_t company_id_element);
 
-  static std::unique_ptr<GetCapabilitiesResponseBuilder> MakeEventsSupportedBuilder(Event event);
+  static std::unique_ptr<GetCapabilitiesResponseBuilder>
+  MakeEventsSupportedBuilder(Event event);
 
   GetCapabilitiesResponseBuilder* AddCompanyId(uint32_t company_id);
   GetCapabilitiesResponseBuilder* AddEvent(Event event);
 
   virtual size_t size() const override;
-  virtual bool Serialize(const std::shared_ptr<::bluetooth::Packet>& pkt) override;
+  virtual bool Serialize(
+      const std::shared_ptr<::bluetooth::Packet>& pkt) override;
 
-private:
+ private:
   Capability capability_;
   std::set<uint32_t> elements_;
 
   GetCapabilitiesResponseBuilder(Capability capability)
-      : VendorPacketBuilder(CType::STABLE, CommandPdu::GET_CAPABILITIES, PacketType::SINGLE),
-        capability_(capability) {}
+      : VendorPacketBuilder(CType::STABLE, CommandPdu::GET_CAPABILITIES,
+                            PacketType::SINGLE),
+        capability_(capability){};
 };
 
 class GetCapabilitiesResponse : public VendorPacket {
-public:
+ public:
   /**
    * Get Capabilities Response Packet Layout
    *   AvrcpPacket:
@@ -118,7 +124,7 @@ public:
    *        uint8_t company_id[3];
    *     } capability_array[];
    */
-  static constexpr size_t kMinSize() { return VendorPacket::kMinSize() + 2; }
+  static constexpr size_t kMinSize() { return VendorPacket::kMinSize() + 2; };
 
   // TODO: Implement these for AVRCP Controller
   // virtual uint8_t GetCapabilityReturned() const;
@@ -129,5 +135,5 @@ public:
   virtual std::string ToString() const override;
 };
 
-} // namespace avrcp
-} // namespace bluetooth
+}  // namespace avrcp
+}  // namespace bluetooth

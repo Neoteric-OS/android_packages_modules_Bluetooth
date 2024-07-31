@@ -15,7 +15,6 @@
  */
 
 #include "fields/fixed_field.h"
-
 #include "util.h"
 
 int FixedField::unique_id_ = 0;
@@ -29,14 +28,18 @@ void FixedField::GenGetter(std::ostream& s, Size start_offset, Size end_offset) 
   s << "public:\n";
 }
 
-std::string FixedField::GetBuilderParameterType() const { return ""; }
+std::string FixedField::GetBuilderParameterType() const {
+  return "";
+}
 
 bool FixedField::GenBuilderParameter(std::ostream&) const {
   // No parameter needed for a fixed field.
   return false;
 }
 
-bool FixedField::HasParameterValidator() const { return false; }
+bool FixedField::HasParameterValidator() const {
+  return false;
+}
 
 void FixedField::GenParameterValidator(std::ostream&) const {
   // No parameter validator needed for a fixed field.

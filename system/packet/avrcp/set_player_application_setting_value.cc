@@ -22,7 +22,7 @@ namespace avrcp {
 std::unique_ptr<SetPlayerApplicationSettingValueResponseBuilder>
 SetPlayerApplicationSettingValueResponseBuilder::MakeBuilder() {
   std::unique_ptr<SetPlayerApplicationSettingValueResponseBuilder> builder(
-          new SetPlayerApplicationSettingValueResponseBuilder());
+      new SetPlayerApplicationSettingValueResponseBuilder());
 
   return builder;
 }
@@ -32,7 +32,7 @@ size_t SetPlayerApplicationSettingValueResponseBuilder::size() const {
 }
 
 bool SetPlayerApplicationSettingValueResponseBuilder::Serialize(
-        const std::shared_ptr<::bluetooth::Packet>& pkt) {
+    const std::shared_ptr<::bluetooth::Packet>& pkt) {
   ReserveSpace(pkt, size());
 
   PacketBuilder::PushHeader(pkt);
@@ -42,32 +42,35 @@ bool SetPlayerApplicationSettingValueResponseBuilder::Serialize(
   return true;
 }
 
-uint8_t SetPlayerApplicationSettingValueRequest::GetNumberOfRequestedAttributes() const {
+uint8_t
+SetPlayerApplicationSettingValueRequest::GetNumberOfRequestedAttributes()
+    const {
   auto it = begin() + VendorPacket::kMinSize();
   return *it;
 }
 
-std::vector<PlayerAttribute> SetPlayerApplicationSettingValueRequest::GetRequestedAttributes()
-        const {
+std::vector<PlayerAttribute>
+SetPlayerApplicationSettingValueRequest::GetRequestedAttributes() const {
   auto it = begin() + VendorPacket::kMinSize() +
-            static_cast<size_t>(1); // Point to the first attribute
+            static_cast<size_t>(1);  // Point to the first attribute
   std::vector<PlayerAttribute> attribute_list;
 
   for (; it < end(); it++) {
     attribute_list.push_back(static_cast<PlayerAttribute>(*it));
-    it++; // Skip value
+    it++;  // Skip value
   }
 
   return attribute_list;
 }
 
-std::vector<uint8_t> SetPlayerApplicationSettingValueRequest::GetRequestedValues() const {
+std::vector<uint8_t>
+SetPlayerApplicationSettingValueRequest::GetRequestedValues() const {
   auto it = begin() + VendorPacket::kMinSize() +
-            static_cast<size_t>(1); // Point to the first attribute
+            static_cast<size_t>(1);  // Point to the first attribute
   std::vector<uint8_t> values_list;
 
   for (; it < end(); it++) {
-    it++; // Skip attribute
+    it++;  // Skip attribute
     values_list.push_back(static_cast<uint8_t>(*it));
   }
 
@@ -75,12 +78,8 @@ std::vector<uint8_t> SetPlayerApplicationSettingValueRequest::GetRequestedValues
 }
 
 bool SetPlayerApplicationSettingValueRequest::IsValid() const {
-  if (!VendorPacket::IsValid()) {
-    return false;
-  }
-  if (size() < kMinSize()) {
-    return false;
-  }
+  if (!VendorPacket::IsValid()) return false;
+  if (size() < kMinSize()) return false;
 
   size_t num_of_attrs = GetNumberOfRequestedAttributes();
   auto attr_start = begin() + VendorPacket::kMinSize() + static_cast<size_t>(1);
@@ -99,19 +98,21 @@ std::string SetPlayerApplicationSettingValueRequest::ToString() const {
   ss << "  └ Command PDU = " << GetCommandPdu() << std::endl;
   ss << "  └ PacketType = " << GetPacketType() << std::endl;
   ss << "  └ Parameter Length = " << loghex(GetParameterLength()) << std::endl;
-  ss << "  └ Num Attributes = " << loghex(GetNumberOfRequestedAttributes()) << std::endl;
+  ss << "  └ Num Attributes = " << loghex(GetNumberOfRequestedAttributes())
+     << std::endl;
 
   auto attribute_list_ = GetRequestedAttributes();
   auto values_list_ = GetRequestedValues();
-  ss << "  └ Player Attributes and Values List: Size: " << attribute_list_.size() << std::endl;
+  ss << "  └ Player Attributes and Values List: Size: "
+     << attribute_list_.size() << std::endl;
   for (size_t i = 0; i < attribute_list_.size(); i++) {
-    ss << "      └ " << static_cast<PlayerAttribute>(attribute_list_.at(i)) << ": "
-       << std::to_string(values_list_.at(i)) << std::endl;
+    ss << "      └ " << static_cast<PlayerAttribute>(attribute_list_.at(i))
+       << ": " << std::to_string(values_list_.at(i)) << std::endl;
   }
   ss << std::endl;
 
   return ss.str();
 }
 
-} // namespace avrcp
-} // namespace bluetooth
+}  // namespace avrcp
+}  // namespace bluetooth

@@ -28,10 +28,11 @@
 // The current A2DP codec config is in |a2dp_codec_config|.
 // |read_callback| is the callback for reading the input audio data.
 // |enqueue_callback| is the callback for enqueueing the encoded audio data.
-void a2dp_vendor_opus_encoder_init(const tA2DP_ENCODER_INIT_PEER_PARAMS* p_peer_params,
-                                   A2dpCodecConfig* a2dp_codec_config,
-                                   a2dp_source_read_callback_t read_callback,
-                                   a2dp_source_enqueue_callback_t enqueue_callback);
+void a2dp_vendor_opus_encoder_init(
+    const tA2DP_ENCODER_INIT_PEER_PARAMS* p_peer_params,
+    A2dpCodecConfig* a2dp_codec_config,
+    a2dp_source_read_callback_t read_callback,
+    a2dp_source_enqueue_callback_t enqueue_callback);
 
 // Cleanup the A2DP Opus encoder.
 void a2dp_vendor_opus_encoder_cleanup(void);
@@ -55,4 +56,4 @@ void a2dp_vendor_opus_set_transmit_queue_length(size_t transmit_queue_length);
 // Get the A2DP Opus encoded maximum frame size
 int a2dp_vendor_opus_get_effective_frame_size();
 
-#endif // A2DP_VENDOR_OPUS_ENCODER_H
+#endif  // A2DP_VENDOR_OPUS_ENCODER_H

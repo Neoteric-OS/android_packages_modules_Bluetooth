@@ -15,7 +15,6 @@
  */
 
 #include "l2cap/classic/dynamic_channel_service.h"
-
 #include "common/bind.h"
 #include "l2cap/classic/internal/dynamic_channel_service_manager_impl.h"
 
@@ -25,12 +24,14 @@ namespace classic {
 
 void DynamicChannelService::Unregister(OnUnregisteredCallback on_unregistered) {
   log::assert_that(manager_ != nullptr, "this service is invalid");
-  l2cap_layer_handler_->CallOn(manager_, &internal::DynamicChannelServiceManagerImpl::Unregister,
-                               psm_, std::move(on_unregistered));
+  l2cap_layer_handler_->CallOn(
+      manager_, &internal::DynamicChannelServiceManagerImpl::Unregister, psm_, std::move(on_unregistered));
 }
 
-Psm DynamicChannelService::GetPsm() const { return psm_; }
+Psm DynamicChannelService::GetPsm() const {
+  return psm_;
+}
 
-} // namespace classic
-} // namespace l2cap
-} // namespace bluetooth
+}  // namespace classic
+}  // namespace l2cap
+}  // namespace bluetooth

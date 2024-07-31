@@ -32,5 +32,5 @@ core::AddressWithType ResolveRawAddress(RawAddress /* bd_addr */) {
   return {};
 }
 
-} // namespace connection
-} // namespace bluetooth
+}  // namespace connection
+}  // namespace bluetooth

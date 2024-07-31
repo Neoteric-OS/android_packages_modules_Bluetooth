@@ -31,13 +31,15 @@ namespace bluetooth::hal {
 template <class VecType>
 std::string GetTimerText(const char* func_name, VecType vec) {
   return common::StringFormat(
-          "%s: len %zu, 1st 5 bytes '%s'", func_name, vec.size(),
-          common::ToHexString(vec.begin(), std::min(vec.end(), vec.begin() + 5)).c_str());
+      "%s: len %zu, 1st 5 bytes '%s'",
+      func_name,
+      vec.size(),
+      common::ToHexString(vec.begin(), std::min(vec.end(), vec.begin() + 5)).c_str());
 }
 
 class HciCallbacksImpl : public HciBackendCallbacks {
   class : public HciHalCallbacks {
-  public:
+   public:
     void hciEventReceived(HciPacket) override {
       log::warn("Dropping HCI Event, since callback is not set");
     }
@@ -52,7 +54,7 @@ class HciCallbacksImpl : public HciBackendCallbacks {
     }
   } kNullCallbacks;
 
-public:
+ public:
   std::promise<void>* const init_promise = &init_promise_;
 
   HciCallbacksImpl(SnoopLogger* btsnoop_logger, LinkClocker* link_clocker)
@@ -79,8 +81,8 @@ public:
   void hciEventReceived(const std::vector<uint8_t>& packet) override {
     common::StopWatch stop_watch(GetTimerText(__func__, packet));
     link_clocker_->OnHciEvent(packet);
-    btsnoop_logger_->Capture(packet, SnoopLogger::Direction::INCOMING,
-                             SnoopLogger::PacketType::EVT);
+    btsnoop_logger_->Capture(
+        packet, SnoopLogger::Direction::INCOMING, SnoopLogger::PacketType::EVT);
     {
       std::lock_guard<std::mutex> lock(mutex_);
       callback_->hciEventReceived(packet);
@@ -89,8 +91,8 @@ public:
 
   void aclDataReceived(const std::vector<uint8_t>& packet) override {
     common::StopWatch stop_watch(GetTimerText(__func__, packet));
-    btsnoop_logger_->Capture(packet, SnoopLogger::Direction::INCOMING,
-                             SnoopLogger::PacketType::ACL);
+    btsnoop_logger_->Capture(
+        packet, SnoopLogger::Direction::INCOMING, SnoopLogger::PacketType::ACL);
     {
       std::lock_guard<std::mutex> lock(mutex_);
       callback_->aclDataReceived(packet);
@@ -99,8 +101,8 @@ public:
 
   void scoDataReceived(const std::vector<uint8_t>& packet) override {
     common::StopWatch stop_watch(GetTimerText(__func__, packet));
-    btsnoop_logger_->Capture(packet, SnoopLogger::Direction::INCOMING,
-                             SnoopLogger::PacketType::SCO);
+    btsnoop_logger_->Capture(
+        packet, SnoopLogger::Direction::INCOMING, SnoopLogger::PacketType::SCO);
     {
       std::lock_guard<std::mutex> lock(mutex_);
       callback_->scoDataReceived(packet);
@@ -109,15 +111,15 @@ public:
 
   void isoDataReceived(const std::vector<uint8_t>& packet) override {
     common::StopWatch stop_watch(GetTimerText(__func__, packet));
-    btsnoop_logger_->Capture(packet, SnoopLogger::Direction::INCOMING,
-                             SnoopLogger::PacketType::ISO);
+    btsnoop_logger_->Capture(
+        packet, SnoopLogger::Direction::INCOMING, SnoopLogger::PacketType::ISO);
     {
       std::lock_guard<std::mutex> lock(mutex_);
       callback_->isoDataReceived(packet);
     }
   }
 
-private:
+ private:
   std::mutex mutex_;
   std::promise<void> init_promise_;
   HciHalCallbacks* callback_ = &kNullCallbacks;
@@ -126,38 +128,40 @@ private:
 };
 
 class HciHalImpl : public HciHal {
-public:
+ public:
   void registerIncomingPacketCallback(HciHalCallbacks* callback) override {
     callbacks_->SetCallback(callback);
   }
 
-  void unregisterIncomingPacketCallback() override { callbacks_->ResetCallback(); }
+  void unregisterIncomingPacketCallback() override {
+    callbacks_->ResetCallback();
+  }
 
   void sendHciCommand(HciPacket packet) override {
-    btsnoop_logger_->Capture(packet, SnoopLogger::Direction::OUTGOING,
-                             SnoopLogger::PacketType::CMD);
+    btsnoop_logger_->Capture(
+        packet, SnoopLogger::Direction::OUTGOING, SnoopLogger::PacketType::CMD);
     backend_->sendHciCommand(packet);
   }
 
   void sendAclData(HciPacket packet) override {
-    btsnoop_logger_->Capture(packet, SnoopLogger::Direction::OUTGOING,
-                             SnoopLogger::PacketType::ACL);
+    btsnoop_logger_->Capture(
+        packet, SnoopLogger::Direction::OUTGOING, SnoopLogger::PacketType::ACL);
     backend_->sendAclData(packet);
   }
 
   void sendScoData(HciPacket packet) override {
-    btsnoop_logger_->Capture(packet, SnoopLogger::Direction::OUTGOING,
-                             SnoopLogger::PacketType::SCO);
+    btsnoop_logger_->Capture(
+        packet, SnoopLogger::Direction::OUTGOING, SnoopLogger::PacketType::SCO);
     backend_->sendScoData(packet);
   }
 
   void sendIsoData(HciPacket packet) override {
-    btsnoop_logger_->Capture(packet, SnoopLogger::Direction::OUTGOING,
-                             SnoopLogger::PacketType::ISO);
+    btsnoop_logger_->Capture(
+        packet, SnoopLogger::Direction::OUTGOING, SnoopLogger::PacketType::ISO);
     backend_->sendIsoData(packet);
   }
 
-protected:
+ protected:
   void ListDependencies(ModuleList* list) const override {
     list->add<LinkClocker>();
     list->add<SnoopLogger>();
@@ -165,16 +169,14 @@ protected:
 
   void Start() override {
     common::StopWatch stop_watch(__func__);
-    log::assert_that(backend_ == nullptr,
-                     "Start can't be called more than once before Stop is called.");
+    log::assert_that(
+        backend_ == nullptr, "Start can't be called more than once before Stop is called.");
 
     link_clocker_ = GetDependency<LinkClocker>();
     btsnoop_logger_ = GetDependency<SnoopLogger>();
 
     backend_ = HciBackend::CreateAidl();
-    if (!backend_) {
-      backend_ = HciBackend::CreateHidl(GetHandler());
-    }
+    if (!backend_) backend_ = HciBackend::CreateHidl(GetHandler());
 
     log::assert_that(backend_ != nullptr, "No backend available");
 
@@ -191,9 +193,11 @@ protected:
     link_clocker_ = nullptr;
   }
 
-  std::string ToString() const override { return std::string("HciHal"); }
+  std::string ToString() const override {
+    return std::string("HciHal");
+  }
 
-private:
+ private:
   std::shared_ptr<HciCallbacksImpl> callbacks_;
   std::shared_ptr<HciBackend> backend_;
   SnoopLogger* btsnoop_logger_ = nullptr;
@@ -202,4 +206,4 @@ private:
 
 const ModuleFactory HciHal::Factory = ModuleFactory([]() { return new HciHalImpl(); });
 
-} // namespace bluetooth::hal
+}  // namespace bluetooth::hal

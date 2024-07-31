@@ -28,19 +28,18 @@
 namespace bluetooth {
 namespace os {
 
-// A message-queue style handler for reactor-based thread to handle incoming events from different
-// threads. When it's constructed, it will register a reactable on the specified thread; when it's
-// destroyed, it will unregister itself from the thread.
+// A message-queue style handler for reactor-based thread to handle incoming events from different threads. When it's
+// constructed, it will register a reactable on the specified thread; when it's destroyed, it will unregister itself
+// from the thread.
 class Handler : public common::PostableContext {
-public:
+ public:
   // Create and register a handler on given thread
   explicit Handler(Thread* thread);
 
   Handler(const Handler&) = delete;
   Handler& operator=(const Handler&) = delete;
 
-  // Unregister this handler from the thread and release resource. Unhandled events will be
-  // discarded and not executed.
+  // Unregister this handler from the thread and release resource. Unhandled events will be discarded and not executed.
   virtual ~Handler();
 
   // Enqueue a closure to the queue of this handler
@@ -59,8 +58,7 @@ public:
 
   template <typename T, typename Functor, typename... Args>
   void CallOn(T* obj, Functor&& functor, Args&&... args) {
-    Post(common::BindOnce(std::forward<Functor>(functor), common::Unretained(obj),
-                          std::forward<Args>(args)...));
+    Post(common::BindOnce(std::forward<Functor>(functor), common::Unretained(obj), std::forward<Args>(args)...));
   }
 
   template <typename T>
@@ -70,8 +68,10 @@ public:
 
   friend class RepeatingAlarm;
 
-private:
-  inline bool was_cleared() const { return tasks_ == nullptr; }
+ private:
+  inline bool was_cleared() const {
+    return tasks_ == nullptr;
+  };
   std::queue<common::OnceClosure>* tasks_;
   Thread* thread_;
   std::unique_ptr<Reactor::Event> event_;
@@ -80,5 +80,5 @@ private:
   void handle_next_event();
 };
 
-} // namespace os
-} // namespace bluetooth
+}  // namespace os
+}  // namespace bluetooth

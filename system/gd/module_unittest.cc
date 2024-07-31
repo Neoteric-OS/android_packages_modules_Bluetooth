@@ -35,7 +35,7 @@ namespace bluetooth {
 namespace {
 
 class ModuleTest : public ::testing::Test {
-protected:
+ protected:
   void SetUp() override {
     thread_ = new Thread("test_thread", Thread::Priority::NORMAL);
     registry_ = new ModuleRegistry();
@@ -53,10 +53,10 @@ protected:
 os::Handler* test_module_no_dependency_handler = nullptr;
 
 class TestModuleNoDependency : public Module {
-public:
+ public:
   static const ModuleFactory Factory;
 
-protected:
+ protected:
   void ListDependencies(ModuleList* /* list */) const {}
 
   void Start() override {
@@ -70,20 +70,25 @@ protected:
     EXPECT_TRUE(GetModuleRegistry()->IsStarted<TestModuleNoDependency>());
   }
 
-  std::string ToString() const override { return std::string("TestModuleNoDependency"); }
+  std::string ToString() const override {
+    return std::string("TestModuleNoDependency");
+  }
 };
 
-const ModuleFactory TestModuleNoDependency::Factory =
-        ModuleFactory([]() { return new TestModuleNoDependency(); });
+const ModuleFactory TestModuleNoDependency::Factory = ModuleFactory([]() {
+  return new TestModuleNoDependency();
+});
 
 os::Handler* test_module_one_dependency_handler = nullptr;
 
 class TestModuleOneDependency : public Module {
-public:
+ public:
   static const ModuleFactory Factory;
 
-protected:
-  void ListDependencies(ModuleList* list) const { list->add<TestModuleNoDependency>(); }
+ protected:
+  void ListDependencies(ModuleList* list) const {
+    list->add<TestModuleNoDependency>();
+  }
 
   void Start() override {
     EXPECT_TRUE(GetModuleRegistry()->IsStarted<TestModuleNoDependency>());
@@ -100,17 +105,21 @@ protected:
     EXPECT_TRUE(GetModuleRegistry()->IsStarted<TestModuleOneDependency>());
   }
 
-  std::string ToString() const override { return std::string("TestModuleOneDependency"); }
+  std::string ToString() const override {
+    return std::string("TestModuleOneDependency");
+  }
 };
 
-const ModuleFactory TestModuleOneDependency::Factory =
-        ModuleFactory([]() { return new TestModuleOneDependency(); });
+const ModuleFactory TestModuleOneDependency::Factory = ModuleFactory([]() {
+  return new TestModuleOneDependency();
+});
+
 
 class TestModuleNoDependencyTwo : public Module {
-public:
+ public:
   static const ModuleFactory Factory;
 
-protected:
+ protected:
   void ListDependencies(ModuleList* /* list */) const {}
 
   void Start() override {
@@ -123,17 +132,20 @@ protected:
     EXPECT_TRUE(GetModuleRegistry()->IsStarted<TestModuleNoDependencyTwo>());
   }
 
-  std::string ToString() const override { return std::string("TestModuleNoDependencyTwo"); }
+  std::string ToString() const override {
+    return std::string("TestModuleNoDependencyTwo");
+  }
 };
 
-const ModuleFactory TestModuleNoDependencyTwo::Factory =
-        ModuleFactory([]() { return new TestModuleNoDependencyTwo(); });
+const ModuleFactory TestModuleNoDependencyTwo::Factory = ModuleFactory([]() {
+  return new TestModuleNoDependencyTwo();
+});
 
 class TestModuleTwoDependencies : public Module {
-public:
+ public:
   static const ModuleFactory Factory;
 
-protected:
+ protected:
   void ListDependencies(ModuleList* list) const {
     list->add<TestModuleOneDependency>();
     list->add<TestModuleNoDependencyTwo>();
@@ -155,22 +167,27 @@ protected:
     EXPECT_TRUE(GetModuleRegistry()->IsStarted<TestModuleTwoDependencies>());
   }
 
-  std::string ToString() const override { return std::string("TestModuleTwoDependencies"); }
+  std::string ToString() const override {
+    return std::string("TestModuleTwoDependencies");
+  }
 };
 
-const ModuleFactory TestModuleTwoDependencies::Factory =
-        ModuleFactory([]() { return new TestModuleTwoDependencies(); });
+const ModuleFactory TestModuleTwoDependencies::Factory = ModuleFactory([]() {
+  return new TestModuleTwoDependencies();
+});
 
 // To generate module unittest flatbuffer headers:
 // $ flatc --cpp module_unittest.fbs
 class TestModuleDumpState : public Module {
-public:
+ public:
   static const ModuleFactory Factory;
 
   std::string test_string_{"Initial Test String"};
 
-protected:
-  void ListDependencies(ModuleList* list) const { list->add<TestModuleNoDependency>(); }
+ protected:
+  void ListDependencies(ModuleList* list) const {
+    list->add<TestModuleNoDependency>();
+  }
 
   void Start() override {
     EXPECT_TRUE(GetModuleRegistry()->IsStarted<TestModuleNoDependency>());
@@ -187,7 +204,9 @@ protected:
     EXPECT_TRUE(GetModuleRegistry()->IsStarted<TestModuleDumpState>());
   }
 
-  std::string ToString() const override { return std::string("TestModuleDumpState"); }
+  std::string ToString() const override {
+    return std::string("TestModuleDumpState");
+  }
 
   DumpsysDataFinisher GetDumpsysData(flatbuffers::FlatBufferBuilder* fb_builder) const override {
     auto string = fb_builder->CreateString(test_string_.c_str());
@@ -200,8 +219,7 @@ protected:
   }
 };
 
-const ModuleFactory TestModuleDumpState::Factory =
-        ModuleFactory([]() { return new TestModuleDumpState(); });
+const ModuleFactory TestModuleDumpState::Factory = ModuleFactory([]() { return new TestModuleDumpState(); });
 
 TEST_F(ModuleTest, no_dependency) {
   ModuleList list;
@@ -288,8 +306,8 @@ TEST_F(ModuleTest, dump_state) {
   auto test_data = data->module_unittest_data();
   EXPECT_STREQ("Initial Test String", test_data->title()->c_str());
 
-  TestModuleDumpState* test_module = static_cast<TestModuleDumpState*>(
-          registry_->Start(&TestModuleDumpState::Factory, nullptr));
+  TestModuleDumpState* test_module =
+      static_cast<TestModuleDumpState*>(registry_->Start(&TestModuleDumpState::Factory, nullptr));
   test_module->test_string_ = "A Second Test String";
 
   oss.clear();
@@ -303,5 +321,5 @@ TEST_F(ModuleTest, dump_state) {
   registry_->StopAll();
 }
 
-} // namespace
-} // namespace bluetooth
+}  // namespace
+}  // namespace bluetooth

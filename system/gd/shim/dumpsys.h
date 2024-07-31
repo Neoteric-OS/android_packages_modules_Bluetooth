@@ -28,7 +28,7 @@ namespace shim {
 constexpr char kArgumentDeveloper[] = "--dev";
 
 class Dumpsys : public bluetooth::Module {
-public:
+ public:
   void Dump(int fd, const char** args);
   void Dump(int fd, const char** args, std::promise<void> promise);
 
@@ -44,19 +44,18 @@ public:
 
   static const ModuleFactory Factory;
 
-protected:
-  void ListDependencies(ModuleList* list) const override; // Module
-  void Start() override;                                  // Module
-  void Stop() override;                                   // Module
-  std::string ToString() const override;                  // Module
-  DumpsysDataFinisher GetDumpsysData(
-          flatbuffers::FlatBufferBuilder* builder) const override; // Module
+ protected:
+  void ListDependencies(ModuleList* list) const override;  // Module
+  void Start() override;                             // Module
+  void Stop() override;                              // Module
+  std::string ToString() const override;             // Module
+  DumpsysDataFinisher GetDumpsysData(flatbuffers::FlatBufferBuilder* builder) const override;  // Module
 
-private:
+ private:
   struct impl;
   std::unique_ptr<impl> pimpl_;
   const dumpsys::ReflectionSchema reflection_schema_;
 };
 
-} // namespace shim
-} // namespace bluetooth
+}  // namespace shim
+}  // namespace bluetooth

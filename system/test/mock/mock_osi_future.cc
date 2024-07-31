@@ -38,9 +38,9 @@ struct future_new_named future_new_named;
 struct future_new_immediate future_new_immediate;
 struct future_ready future_ready;
 
-} // namespace osi_future
-} // namespace mock
-} // namespace test
+}  // namespace osi_future
+}  // namespace mock
+}  // namespace test
 
 // Mocked functions, if any
 void* future_await(future_t* future) {

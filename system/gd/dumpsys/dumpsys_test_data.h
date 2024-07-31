@@ -19,4 +19,4 @@
 
 namespace testing {
 const std::string& GetBundledSchemaData();
-} // namespace testing
+}  // namespace testing

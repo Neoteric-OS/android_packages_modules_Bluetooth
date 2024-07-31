@@ -94,8 +94,9 @@ tBTM_STATUS BTM_SetEventFilterConnectionSetupAllDevices(void);
  * Parameters      std::vector of RawAddress
  *
  *******************************************************************************/
-tBTM_STATUS BTM_AllowWakeByHid(std::vector<RawAddress> classic_hid_devices,
-                               std::vector<std::pair<RawAddress, uint8_t>> le_hid_devices);
+tBTM_STATUS BTM_AllowWakeByHid(
+    std::vector<RawAddress> classic_hid_devices,
+    std::vector<std::pair<RawAddress, uint8_t>> le_hid_devices);
 
 /*******************************************************************************
  *
@@ -106,7 +107,8 @@ tBTM_STATUS BTM_AllowWakeByHid(std::vector<RawAddress> classic_hid_devices,
  * Parameters
  *
  *******************************************************************************/
-tBTM_STATUS BTM_RestoreFilterAcceptList(std::vector<std::pair<RawAddress, uint8_t>> le_devices);
+tBTM_STATUS BTM_RestoreFilterAcceptList(
+    std::vector<std::pair<RawAddress, uint8_t>> le_devices);
 
 /*******************************************************************************
  *
@@ -152,5 +154,5 @@ tBTM_STATUS BTM_BleResetId(void);
  *******************************************************************************/
 size_t BTM_BleGetNumberOfAdvertisingInstancesInUse(void);
 
-} // namespace shim
-} // namespace bluetooth
+}  // namespace shim
+}  // namespace bluetooth

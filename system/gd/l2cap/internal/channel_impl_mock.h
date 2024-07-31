@@ -16,9 +16,9 @@
 
 #pragma once
 
-#include <gmock/gmock.h>
-
 #include "l2cap/internal/channel_impl.h"
+
+#include <gmock/gmock.h>
 
 // Unit test interfaces
 namespace bluetooth {
@@ -27,18 +27,16 @@ namespace internal {
 namespace testing {
 
 class MockChannelImpl : public ChannelImpl {
-public:
-  MOCK_METHOD((common::BidiQueueEnd<packet::BasePacketBuilder,
-                                    packet::PacketView<packet::kLittleEndian>>*),
+ public:
+  MOCK_METHOD((common::BidiQueueEnd<packet::BasePacketBuilder, packet::PacketView<packet::kLittleEndian>>*),
               GetQueueUpEnd, (), (override));
-  MOCK_METHOD((common::BidiQueueEnd<packet::PacketView<packet::kLittleEndian>,
-                                    packet::BasePacketBuilder>*),
+  MOCK_METHOD((common::BidiQueueEnd<packet::PacketView<packet::kLittleEndian>, packet::BasePacketBuilder>*),
               GetQueueDownEnd, (), (override));
   MOCK_METHOD(Cid, GetCid, (), (const, override));
   MOCK_METHOD(Cid, GetRemoteCid, (), (const, override));
 };
 
-} // namespace testing
-} // namespace internal
-} // namespace l2cap
-} // namespace bluetooth
+}  // namespace testing
+}  // namespace internal
+}  // namespace l2cap
+}  // namespace bluetooth

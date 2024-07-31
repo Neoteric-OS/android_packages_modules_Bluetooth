@@ -27,7 +27,7 @@ namespace bluetooth {
 namespace storage {
 
 class LeDevice {
-public:
+ public:
   LeDevice(ConfigCache* config, ConfigCache* memory_only_config, std::string section);
 
   // for move
@@ -40,10 +40,11 @@ public:
 
   // operators
   bool operator==(const LeDevice& other) const {
-    return config_ == other.config_ && memory_only_config_ == other.memory_only_config_ &&
-           section_ == other.section_;
+    return config_ == other.config_ && memory_only_config_ == other.memory_only_config_ && section_ == other.section_;
   }
-  bool operator!=(const LeDevice& other) const { return !(*this == other); }
+  bool operator!=(const LeDevice& other) const {
+    return !(*this == other);
+  }
   bool operator<(const LeDevice& other) const {
     if (config_ != other.config_) {
       return config_ < other.config_;
@@ -53,9 +54,15 @@ public:
     }
     return section_ < other.section_;
   }
-  bool operator>(const LeDevice& rhs) const { return rhs < *this; }
-  bool operator<=(const LeDevice& rhs) const { return !(*this > rhs); }
-  bool operator>=(const LeDevice& rhs) const { return !(*this < rhs); }
+  bool operator>(const LeDevice& rhs) const {
+    return (rhs < *this);
+  }
+  bool operator<=(const LeDevice& rhs) const {
+    return !(*this > rhs);
+  }
+  bool operator>=(const LeDevice& rhs) const {
+    return !(*this < rhs);
+  }
 
   // Get the parent device
   Device Parent();
@@ -69,30 +76,30 @@ public:
   // Property names that correspond to a link key used in Bluetooth LE device
   static const std::unordered_set<std::string_view> kLinkKeyProperties;
 
-private:
+ private:
   ConfigCache* config_;
   ConfigCache* memory_only_config_;
   std::string section_;
   friend std::hash<LeDevice>;
 
-public:
+ public:
   // Get LE address type of the key address
-  GENERATE_PROPERTY_GETTER_SETTER_REMOVER(AddressType, hci::AddressType,
-                                          BTIF_STORAGE_KEY_ADDR_TYPE);
+  GENERATE_PROPERTY_GETTER_SETTER_REMOVER(
+      AddressType, hci::AddressType, BTIF_STORAGE_KEY_ADDR_TYPE);
   // IRK + Identity Address Type + Identity Address
   GENERATE_PROPERTY_GETTER_SETTER_REMOVER(PeerId, std::string, BTIF_STORAGE_KEY_LE_KEY_PID);
   // LTK + RAND + EDIV + Security Level + Key Length
-  GENERATE_PROPERTY_GETTER_SETTER_REMOVER(PeerEncryptionKeys, std::string,
-                                          BTIF_STORAGE_KEY_LE_KEY_PENC);
+  GENERATE_PROPERTY_GETTER_SETTER_REMOVER(
+      PeerEncryptionKeys, std::string, BTIF_STORAGE_KEY_LE_KEY_PENC);
   // counter + CSRK (connection signature resolving key) + security level
-  GENERATE_PROPERTY_GETTER_SETTER_REMOVER(PeerSignatureResolvingKeys, std::string,
-                                          BTIF_STORAGE_KEY_LE_KEY_PCSRK);
+  GENERATE_PROPERTY_GETTER_SETTER_REMOVER(
+      PeerSignatureResolvingKeys, std::string, BTIF_STORAGE_KEY_LE_KEY_PCSRK);
 
   GENERATE_PROPERTY_GETTER_SETTER_REMOVER(LegacyPseudoAddress, hci::Address, "LeLegacyPseudoAddr");
 };
 
-} // namespace storage
-} // namespace bluetooth
+}  // namespace storage
+}  // namespace bluetooth
 
 namespace std {
 template <>
@@ -104,4 +111,4 @@ struct hash<bluetooth::storage::LeDevice> {
     return addr_hash ^ (pointer_hash_1 << 1) ^ (pointer_hash_2 << 2);
   }
 };
-} // namespace std
+}  // namespace std

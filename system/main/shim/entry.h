@@ -48,7 +48,7 @@ class LeScanningManager;
 #if TARGET_FLOSS
 class MsftExtensionManager;
 #endif
-} // namespace hci
+}
 
 namespace metrics {
 class CounterMetrics;
@@ -79,5 +79,5 @@ metrics::CounterMetrics* GetCounterMetrics();
 hci::MsftExtensionManager* GetMsftExtensionManager();
 #endif
 
-} // namespace shim
-} // namespace bluetooth
+}  // namespace shim
+}  // namespace bluetooth

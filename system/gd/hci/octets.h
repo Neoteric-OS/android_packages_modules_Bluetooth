@@ -26,4 +26,4 @@ using Octet16 = std::array<uint8_t, kOctet16Length>;
 
 constexpr int kOctet32Length = 32;
 using Octet32 = std::array<uint8_t, kOctet32Length>;
-} // namespace bluetooth::hci
+}  // namespace bluetooth::hci

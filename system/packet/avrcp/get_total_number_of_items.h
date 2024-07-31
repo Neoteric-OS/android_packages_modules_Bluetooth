@@ -22,16 +22,17 @@ namespace bluetooth {
 namespace avrcp {
 
 class GetTotalNumberOfItemsResponseBuilder : public BrowsePacketBuilder {
-public:
+ public:
   virtual ~GetTotalNumberOfItemsResponseBuilder() = default;
 
   static std::unique_ptr<GetTotalNumberOfItemsResponseBuilder> MakeBuilder(
-          Status status, uint16_t uid_counter, uint32_t num_items_in_folder);
+      Status status, uint16_t uid_counter, uint32_t num_items_in_folder);
 
   virtual size_t size() const override;
-  virtual bool Serialize(const std::shared_ptr<::bluetooth::Packet>& pkt) override;
+  virtual bool Serialize(
+      const std::shared_ptr<::bluetooth::Packet>& pkt) override;
 
-protected:
+ protected:
   Status status_;
   uint16_t uid_counter_;
   uint32_t num_items_in_folder_;
@@ -41,11 +42,11 @@ protected:
       : BrowsePacketBuilder(BrowsePdu::GET_TOTAL_NUMBER_OF_ITEMS),
         status_(status),
         uid_counter_(uid_counter),
-        num_items_in_folder_(num_items_in_folder) {}
+        num_items_in_folder_(num_items_in_folder){};
 };
 
 class GetTotalNumberOfItemsRequest : public BrowsePacket {
-public:
+ public:
   virtual ~GetTotalNumberOfItemsRequest() = default;
 
   /**
@@ -63,9 +64,9 @@ public:
   virtual bool IsValid() const override;
   virtual std::string ToString() const override;
 
-protected:
+ protected:
   using BrowsePacket::BrowsePacket;
 };
 
-} // namespace avrcp
-} // namespace bluetooth
+}  // namespace avrcp
+}  // namespace bluetooth

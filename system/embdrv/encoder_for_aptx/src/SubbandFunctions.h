@@ -30,8 +30,9 @@
 
 #include "AptxParameters.h"
 
-XBT_INLINE_ void updatePredictorPoleCoefficients(const int32_t invQ, const int32_t prevZfiltOutput,
-                                                 PoleCoeff_data* PoleCoeffDataPt) {
+XBT_INLINE_ void updatePredictorPoleCoefficients(
+    const int32_t invQ, const int32_t prevZfiltOutput,
+    PoleCoeff_data* PoleCoeffDataPt) {
   int32_t adaptSum;
   int32_t sgnP[3];
   int32_t newCoeffs[2];
@@ -67,19 +68,22 @@ XBT_INLINE_ void updatePredictorPoleCoefficients(const int32_t invQ, const int32
     sgnP[k] = minusOneQ22;
     sgnP[k_1] = -(((int32_t)PoleCoeffDataPt->m_poleAdaptDelayLine.s16.l) << 22);
     sgnP[k_2] = -(((int32_t)PoleCoeffDataPt->m_poleAdaptDelayLine.s16.h) << 22);
-    PoleCoeffDataPt->m_poleAdaptDelayLine.s16.h = PoleCoeffDataPt->m_poleAdaptDelayLine.s16.l;
+    PoleCoeffDataPt->m_poleAdaptDelayLine.s16.h =
+        PoleCoeffDataPt->m_poleAdaptDelayLine.s16.l;
     PoleCoeffDataPt->m_poleAdaptDelayLine.s16.l = -1;
   } else if (adaptSum == 0L) {
     sgnP[k] = 0L;
     sgnP[k_1] = 0L;
     sgnP[k_2] = 0L;
-    PoleCoeffDataPt->m_poleAdaptDelayLine.s16.h = PoleCoeffDataPt->m_poleAdaptDelayLine.s16.l;
+    PoleCoeffDataPt->m_poleAdaptDelayLine.s16.h =
+        PoleCoeffDataPt->m_poleAdaptDelayLine.s16.l;
     PoleCoeffDataPt->m_poleAdaptDelayLine.s16.l = 1;
-  } else { // adaptSum > 0L
+  } else {  // adaptSum > 0L
     sgnP[k] = oneQ22;
     sgnP[k_1] = ((int32_t)PoleCoeffDataPt->m_poleAdaptDelayLine.s16.l) << 22;
     sgnP[k_2] = ((int32_t)PoleCoeffDataPt->m_poleAdaptDelayLine.s16.h) << 22;
-    PoleCoeffDataPt->m_poleAdaptDelayLine.s16.h = PoleCoeffDataPt->m_poleAdaptDelayLine.s16.l;
+    PoleCoeffDataPt->m_poleAdaptDelayLine.s16.h =
+        PoleCoeffDataPt->m_poleAdaptDelayLine.s16.l;
     PoleCoeffDataPt->m_poleAdaptDelayLine.s16.l = 1;
   }
 
@@ -179,4 +183,4 @@ XBT_INLINE_ void updatePredictorPoleCoefficients(const int32_t invQ, const int32
 #ifdef _GCC
 #pragma GCC visibility pop
 #endif
-#endif // SUBBANDFUNCTIONS_H
+#endif  // SUBBANDFUNCTIONS_H

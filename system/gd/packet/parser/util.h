@@ -32,17 +32,11 @@ inline std::string GetTypeForSize(int size) {
     ERROR() << __func__ << ": Cannot use a type larger than 64 bits. (" << size << ")\n";
   }
 
-  if (size <= 8) {
-    return "uint8_t";
-  }
+  if (size <= 8) return "uint8_t";
 
-  if (size <= 16) {
-    return "uint16_t";
-  }
+  if (size <= 16) return "uint16_t";
 
-  if (size <= 32) {
-    return "uint32_t";
-  }
+  if (size <= 32) return "uint32_t";
 
   return "uint64_t";
 }
@@ -52,15 +46,9 @@ inline int RoundSizeUp(int size) {
     ERROR() << __func__ << ": Cannot use a type larger than 64 bits. (" << size << ")\n";
   }
 
-  if (size <= 8) {
-    return 8;
-  }
-  if (size <= 16) {
-    return 16;
-  }
-  if (size <= 32) {
-    return 32;
-  }
+  if (size <= 8) return 8;
+  if (size <= 16) return 16;
+  if (size <= 32) return 32;
   return 64;
 }
 
@@ -89,8 +77,7 @@ inline std::string CamelCaseToUnderScore(std::string value) {
   value.pop_back();
 
   // Convert all characters to lowercase.
-  std::transform(value.begin(), value.end(), value.begin(),
-                 [](unsigned char c) { return std::tolower(c); });
+  std::transform(value.begin(), value.end(), value.begin(), [](unsigned char c) { return std::tolower(c); });
 
   return value;
 }
@@ -165,8 +152,7 @@ inline std::string StringJoin(const std::string& delimiter, const std::vector<st
   return ss.str();
 }
 
-inline std::string StringFindAndReplaceAll(std::string text, const std::string& old,
-                                           const std::string& replacement) {
+inline std::string StringFindAndReplaceAll(std::string text, const std::string& old, const std::string& replacement) {
   auto pos = text.find(old);
   while (pos != std::string::npos) {
     text.replace(pos, old.size(), replacement);
@@ -190,4 +176,4 @@ inline std::string ToLowerCase(std::string value) {
   return lower_case.str();
 }
 
-} // namespace util
+}  // namespace util

@@ -21,12 +21,13 @@
 
 namespace bluetooth::log_internal {
 
-static constexpr std::string_view kAndroidRepoLocation = "packages/modules/Bluetooth/";
+static constexpr std::string_view kAndroidRepoLocation =
+    "packages/modules/Bluetooth/";
 
 static constexpr size_t kBufferSize = 1024;
 
-void vlog(Level level, char const* tag, source_location location, fmt::string_view fmt,
-          fmt::format_args vargs) {
+void vlog(Level level, char const* tag, source_location location,
+          fmt::string_view fmt, fmt::format_args vargs) {
   // Check if log is enabled.
   if (!__android_log_is_loggable(level, "bluetooth", ANDROID_LOG_INFO)) {
     return;
@@ -34,7 +35,8 @@ void vlog(Level level, char const* tag, source_location location, fmt::string_vi
 
   // Strip prefix of file_name to remove kAndroidRepoLocation if present
   const char* file_name = location.file_name;
-  if (strncmp(kAndroidRepoLocation.data(), location.file_name, kAndroidRepoLocation.size()) == 0) {
+  if (strncmp(kAndroidRepoLocation.data(), location.file_name,
+              kAndroidRepoLocation.size()) == 0) {
     file_name = location.file_name + kAndroidRepoLocation.size();
   }
 
@@ -44,19 +46,19 @@ void vlog(Level level, char const* tag, source_location location, fmt::string_vi
   // In order to have consistent logs we include it manually in the log
   // message.
   truncating_buffer<kBufferSize> buffer;
-  fmt::format_to(std::back_insert_iterator(buffer), "{}:{} {}: ", file_name, location.line,
-                 location.function_name);
+  fmt::format_to(std::back_insert_iterator(buffer), "{}:{} {}: ", file_name,
+                 location.line, location.function_name);
   fmt::vformat_to(std::back_insert_iterator(buffer), fmt, vargs);
 
   // Send message to liblog.
   struct __android_log_message message = {
-          .struct_size = sizeof(__android_log_message),
-          .buffer_id = LOG_ID_MAIN,
-          .priority = static_cast<android_LogPriority>(level),
-          .tag = tag,
-          .file = nullptr,
-          .line = 0,
-          .message = buffer.c_str(),
+      .struct_size = sizeof(__android_log_message),
+      .buffer_id = LOG_ID_MAIN,
+      .priority = static_cast<android_LogPriority>(level),
+      .tag = tag,
+      .file = nullptr,
+      .line = 0,
+      .message = buffer.c_str(),
   };
   __android_log_write_log_message(&message);
 
@@ -70,4 +72,4 @@ void vlog(Level level, char const* tag, source_location location, fmt::string_vi
   }
 }
 
-} // namespace bluetooth::log_internal
+}  // namespace bluetooth::log_internal

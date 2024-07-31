@@ -35,7 +35,6 @@
 #include <stdlib.h>
 #include <sys/resource.h>
 #include <unistd.h>
-
 #include <mutex>
 
 #define A2DP_RT_PRIORITY 1
@@ -70,7 +69,9 @@ static future_t* init(void) {
   return NULL;
 }
 
-static future_t* clean_up(void) { return NULL; }
+static future_t* clean_up(void) {
+  return NULL;
+}
 
 EXPORT_SYMBOL extern const module_t bt_utils_module = {.name = BT_UTILS_MODULE,
                                                        .init = init,
@@ -122,13 +123,14 @@ void raise_priority_a2dp(tHIGH_PRIORITY_TASK high_task) {
 // for system/core on non-Android platforms.
 #ifndef OS_ANDROID
     rc = -1;
-#else  // defined(OS_ANDROID)
-    pthread_once(&g_DoSchedulingGroupOnce[g_TaskIdx], check_do_scheduling_group);
+#else   // defined(OS_ANDROID)
+    pthread_once(&g_DoSchedulingGroupOnce[g_TaskIdx],
+                 check_do_scheduling_group);
     if (g_DoSchedulingGroup[g_TaskIdx]) {
       // set_sched_policy does not support tid == 0
       rc = set_sched_policy(tid, SP_AUDIO_SYS);
     }
-#endif // ifndef(OS_ANDROID)
+#endif  // ifndef(OS_ANDROID)
 
     g_TaskIDs[high_task] = tid;
   }
@@ -145,8 +147,7 @@ void raise_priority_a2dp(tHIGH_PRIORITY_TASK high_task) {
 
     const int rc = sched_setscheduler(tid, SCHED_FIFO, &rt_params);
     if (rc != 0) {
-      log::error("unable to set SCHED_FIFO priority {} for tid {}, error {}", A2DP_RT_PRIORITY, tid,
-                 strerror(errno));
+      log::error("unable to set SCHED_FIFO priority {} for tid {}, error {}", A2DP_RT_PRIORITY, tid, strerror(errno));
     }
   }
 }

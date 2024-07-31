@@ -31,7 +31,9 @@ PacketField* StructDef::GetNewField(const std::string& name, ParseLocation loc) 
   }
 }
 
-TypeDef::Type StructDef::GetDefinitionType() const { return TypeDef::Type::STRUCT; }
+TypeDef::Type StructDef::GetDefinitionType() const {
+  return TypeDef::Type::STRUCT;
+}
 
 void StructDef::GenSpecialize(std::ostream& s) const {
   if (parent_ == nullptr) {
@@ -54,11 +56,9 @@ void StructDef::GenToString(std::ostream& s) const {
     for (const auto& field : fields_) {
       if (field->GetFieldType() == ReservedField::kFieldType ||
           field->GetFieldType() == ChecksumStartField::kFieldType ||
-          field->GetFieldType() == FixedScalarField::kFieldType ||
-          field->GetFieldType() == CountField::kFieldType ||
-          field->GetFieldType() == SizeField::kFieldType) {
+          field->GetFieldType() == FixedScalarField::kFieldType || field->GetFieldType() == CountField::kFieldType ||
+          field->GetFieldType() == SizeField::kFieldType)
         continue;
-      }
 
       s << (firstfield ? " << \"" : " << \", ") << field->GetName() << " = \" << ";
 
@@ -77,8 +77,7 @@ void StructDef::GenToString(std::ostream& s) const {
 }
 
 void StructDef::GenParse(std::ostream& s) const {
-  std::string iterator =
-          (is_little_endian_ ? "Iterator<kLittleEndian>" : "Iterator<!kLittleEndian>");
+  std::string iterator = (is_little_endian_ ? "Iterator<kLittleEndian>" : "Iterator<!kLittleEndian>");
 
   if (fields_.HasBody()) {
     s << "static std::optional<" << iterator << ">";
@@ -99,8 +98,7 @@ void StructDef::GenParse(std::ostream& s) const {
     s << "if (fill_parent) {";
     std::string parent_param = (parent_->parent_ == nullptr ? "" : ", true");
     if (parent_->fields_.HasBody()) {
-      s << "auto parent_optional_it = " << parent_->name_ << "::Parse(to_fill, to_bound"
-        << parent_param << ");";
+      s << "auto parent_optional_it = " << parent_->name_ << "::Parse(to_fill, to_bound" << parent_param << ");";
       if (fields_.HasBody()) {
         s << "if (!parent_optional_it) { return {}; }";
       } else {
@@ -120,11 +118,9 @@ void StructDef::GenParse(std::ostream& s) const {
 
   Size total_bits{0};
   for (const auto& field : fields_) {
-    if (field->GetFieldType() != ReservedField::kFieldType &&
-        field->GetFieldType() != BodyField::kFieldType &&
+    if (field->GetFieldType() != ReservedField::kFieldType && field->GetFieldType() != BodyField::kFieldType &&
         field->GetFieldType() != FixedScalarField::kFieldType &&
-        field->GetFieldType() != ChecksumStartField::kFieldType &&
-        field->GetFieldType() != ChecksumField::kFieldType &&
+        field->GetFieldType() != ChecksumStartField::kFieldType && field->GetFieldType() != ChecksumField::kFieldType &&
         field->GetFieldType() != CountField::kFieldType) {
       total_bits += field->GetSize().bits();
     }
@@ -138,25 +134,21 @@ void StructDef::GenParse(std::ostream& s) const {
   }
   s << "}";
   for (const auto& field : fields_) {
-    if (field->GetFieldType() != ReservedField::kFieldType &&
-        field->GetFieldType() != BodyField::kFieldType &&
-        field->GetFieldType() != FixedScalarField::kFieldType &&
-        field->GetFieldType() != SizeField::kFieldType &&
-        field->GetFieldType() != ChecksumStartField::kFieldType &&
-        field->GetFieldType() != ChecksumField::kFieldType &&
+    if (field->GetFieldType() != ReservedField::kFieldType && field->GetFieldType() != BodyField::kFieldType &&
+        field->GetFieldType() != FixedScalarField::kFieldType && field->GetFieldType() != SizeField::kFieldType &&
+        field->GetFieldType() != ChecksumStartField::kFieldType && field->GetFieldType() != ChecksumField::kFieldType &&
         field->GetFieldType() != CountField::kFieldType) {
       s << "{";
-      int num_leading_bits = field->GenBounds(s, GetStructOffsetForField(field->GetName()), Size(),
-                                              field->GetStructSize());
+      int num_leading_bits =
+          field->GenBounds(s, GetStructOffsetForField(field->GetName()), Size(), field->GetStructSize());
       s << "auto " << field->GetName() << "_ptr = &to_fill->" << field->GetName() << "_;";
       field->GenExtractor(s, num_leading_bits, true);
       s << "}";
     }
-    if (field->GetFieldType() == CountField::kFieldType ||
-        field->GetFieldType() == SizeField::kFieldType) {
+    if (field->GetFieldType() == CountField::kFieldType || field->GetFieldType() == SizeField::kFieldType) {
       s << "{";
-      int num_leading_bits = field->GenBounds(s, GetStructOffsetForField(field->GetName()), Size(),
-                                              field->GetStructSize());
+      int num_leading_bits =
+          field->GenBounds(s, GetStructOffsetForField(field->GetName()), Size(), field->GetStructSize());
       s << "auto " << field->GetName() << "_ptr = &to_fill->" << field->GetName() << "_extracted_;";
       field->GenExtractor(s, num_leading_bits, true);
       s << "}";
@@ -216,8 +208,7 @@ void StructDef::GenDefinition(std::ostream& s) const {
 
   GenMembers(s);
   for (const auto& field : fields_) {
-    if (field->GetFieldType() == CountField::kFieldType ||
-        field->GetFieldType() == SizeField::kFieldType) {
+    if (field->GetFieldType() == CountField::kFieldType || field->GetFieldType() == SizeField::kFieldType) {
       s << "\n private:\n";
       s << " mutable " << field->GetDataType() << " " << field->GetName() << "_extracted_{0};";
     }
@@ -255,8 +246,7 @@ void StructDef::GenDefinitionPybind11(std::ostream& s) const {
     if (field->GetBuilderParameterType().empty()) {
       continue;
     }
-    s << ".def_readwrite(\"" << field->GetName() << "\", &" << name_ << "::" << field->GetName()
-      << "_)";
+    s << ".def_readwrite(\"" << field->GetName() << "\", &" << name_ << "::" << field->GetName() << "_)";
   }
   s << ";\n";
 }
@@ -274,8 +264,8 @@ void StructDef::GenDefaultConstructor(std::ostream& s) const {
   FieldList parent_params;
   if (parent_ != nullptr) {
     parent_params = parent_->GetParamList().GetFieldsWithoutTypes({
-            PayloadField::kFieldType,
-            BodyField::kFieldType,
+        PayloadField::kFieldType,
+        BodyField::kFieldType,
     });
 
     // Set constrained parent fields to their correct values.
@@ -304,14 +294,14 @@ void StructDef::GenConstructor(std::ostream& s) const {
   // have a constrained value.
   FieldList parent_params;
   FieldList params = GetParamList().GetFieldsWithoutTypes({
-          PayloadField::kFieldType,
-          BodyField::kFieldType,
+      PayloadField::kFieldType,
+      BodyField::kFieldType,
   });
 
   if (parent_ != nullptr) {
     parent_params = parent_->GetParamList().GetFieldsWithoutTypes({
-            PayloadField::kFieldType,
-            BodyField::kFieldType,
+        PayloadField::kFieldType,
+        BodyField::kFieldType,
     });
   }
 
@@ -391,14 +381,11 @@ Size StructDef::GetStructOffsetForField(std::string field_name) const {
   auto size = Size(0);
   for (auto it = fields_.begin(); it != fields_.end(); it++) {
     // We've reached the field, end the loop.
-    if ((*it)->GetName() == field_name) {
-      break;
-    }
+    if ((*it)->GetName() == field_name) break;
     const auto& field = *it;
     // When we need to parse this field, all previous fields should already be parsed.
     if (field->GetStructSize().empty()) {
-      ERROR() << "Empty size for field " << (*it)->GetName()
-              << " finding the offset for field: " << field_name;
+      ERROR() << "Empty size for field " << (*it)->GetName() << " finding the offset for field: " << field_name;
     }
     size += field->GetStructSize();
   }
@@ -407,8 +394,7 @@ Size StructDef::GetStructOffsetForField(std::string field_name) const {
   if (parent_ != nullptr) {
     auto parent_body_offset = static_cast<StructDef*>(parent_)->GetStructOffsetForField("body");
     if (parent_body_offset.empty()) {
-      ERROR() << "Empty offset for body in " << parent_->name_
-              << " finding the offset for field: " << field_name;
+      ERROR() << "Empty offset for body in " << parent_->name_ << " finding the offset for field: " << field_name;
     }
     size += parent_body_offset;
   }

@@ -31,7 +31,7 @@ constexpr uint8_t kIsoCodingFormatVendorSpecific = 0xFF;
 namespace qcom {
 constexpr uint16_t kIsoCodingFormatAptxLe = 0x0001;
 constexpr uint16_t kIsoCodingFormatAptxLeX = 0x01AD;
-} // namespace qcom
+}  // namespace qcom
 
 constexpr uint8_t kIsoCigPackingSequential = 0x00;
 constexpr uint8_t kIsoCigPackingInterleaved = 0x01;
@@ -180,6 +180,6 @@ struct iso_data_path_params {
   std::vector<uint8_t> codec_conf;
 };
 
-} // namespace iso_manager
-} // namespace hci
-} // namespace bluetooth
+}  // namespace iso_manager
+}  // namespace hci
+}  // namespace bluetooth

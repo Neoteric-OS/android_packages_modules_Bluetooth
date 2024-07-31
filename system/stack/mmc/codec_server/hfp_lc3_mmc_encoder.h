@@ -27,7 +27,7 @@ namespace mmc {
 // Implementation of MmcInterface.
 // HfpLc3Encoder wraps lc3 encode libraries.
 class HfpLc3Encoder : public MmcInterface {
-public:
+ public:
   explicit HfpLc3Encoder();
   ~HfpLc3Encoder();
 
@@ -52,12 +52,12 @@ public:
   //   Negative errno on error, otherwise.
   int transcode(uint8_t* i_buf, int i_len, uint8_t* o_buf, int o_len) override;
 
-private:
+ private:
   void* hfp_lc3_encoder_mem_;
   lc3_encoder_t hfp_lc3_encoder_;
   Lc3Param param_;
 };
 
-} // namespace mmc
+}  // namespace mmc
 
-#endif // MMC_CODEC_SERVER_HFP_LC3_MMC_ENCODER_H_
+#endif  // MMC_CODEC_SERVER_HFP_LC3_MMC_ENCODER_H_

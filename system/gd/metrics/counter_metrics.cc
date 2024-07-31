@@ -35,8 +35,9 @@ void CounterMetrics::ListDependencies(ModuleList* /* list */) const {}
 void CounterMetrics::Start() {
   alarm_ = std::make_unique<os::RepeatingAlarm>(GetHandler());
   alarm_->Schedule(
-          common::Bind(&CounterMetrics::DrainBufferedCounters, bluetooth::common::Unretained(this)),
-          std::chrono::minutes(COUNTER_METRICS_PERDIOD_MINUTES));
+      common::Bind(&CounterMetrics::DrainBufferedCounters,
+           bluetooth::common::Unretained(this)),
+      std::chrono::minutes(COUNTER_METRICS_PERDIOD_MINUTES));
   log::info("Counter metrics initialized");
   initialized_ = true;
 }
@@ -88,7 +89,7 @@ bool CounterMetrics::Count(int32_t key, int64_t count) {
 void CounterMetrics::DrainBufferedCounters() {
   if (!IsInitialized()) {
     log::warn("Counter metrics isn't initialized");
-    return;
+    return ;
   }
   std::lock_guard<std::mutex> lock(mutex_);
   log::info("Draining buffered counters");
@@ -98,5 +99,5 @@ void CounterMetrics::DrainBufferedCounters() {
   counters_.clear();
 }
 
-} // namespace metrics
-} // namespace bluetooth
+}  // namespace metrics
+}  // namespace bluetooth

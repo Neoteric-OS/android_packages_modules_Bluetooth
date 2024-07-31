@@ -15,7 +15,6 @@
  */
 
 #include <fuzzer/FuzzedDataProvider.h>
-
 #include "fuzzers/common/commonFuzzHelpers.h"
 #include "fuzzers/sdp/sdpFuzzFunctions.h"
 

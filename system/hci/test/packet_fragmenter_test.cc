@@ -38,25 +38,28 @@ DECLARE_TEST_MODES(init, iso_no_reassembly, iso_reassembly, iso_fragmentation,
 #define LOCAL_BLE_CONTROLLER_ID 1
 
 static const char* sample_data =
-        "At this point they came in sight of thirty forty windmills that there are "
-        "on plain, and "
-        "as soon as Don Quixote saw them he said to his squire, \"Fortune is "
-        "arranging matters "
-        "for us better than we could have shaped our desires ourselves, for look "
-        "there, friend "
-        "Sancho Panza, where thirty or more monstrous giants present themselves, "
-        "all of whom I "
-        "mean to engage in battle and slay, and with whose spoils we shall begin "
-        "to make our "
-        "fortunes; for this is righteous warfare, and it is God's good service to "
-        "sweep so evil "
-        "a breed from off the face of the earth.\"";
+    "At this point they came in sight of thirty forty windmills that there are "
+    "on plain, and "
+    "as soon as Don Quixote saw them he said to his squire, \"Fortune is "
+    "arranging matters "
+    "for us better than we could have shaped our desires ourselves, for look "
+    "there, friend "
+    "Sancho Panza, where thirty or more monstrous giants present themselves, "
+    "all of whom I "
+    "mean to engage in battle and slay, and with whose spoils we shall begin "
+    "to make our "
+    "fortunes; for this is righteous warfare, and it is God's good service to "
+    "sweep so evil "
+    "a breed from off the face of the earth.\"";
 
 static const char* small_sample_data = "\"What giants?\" said Sancho Panza.";
-static const uint16_t test_iso_handle_complete_with_ts = (0x0666 | (0x0002 << 12) | (0x0001 << 14));
-static const uint16_t test_iso_handle_complete_without_ts = (0x0666 | (0x0002 << 12));
+static const uint16_t test_iso_handle_complete_with_ts =
+    (0x0666 | (0x0002 << 12) | (0x0001 << 14));
+static const uint16_t test_iso_handle_complete_without_ts =
+    (0x0666 | (0x0002 << 12));
 static const uint16_t test_iso_handle_start_with_ts = (0x0666 | (0x0001 << 14));
-static const uint16_t test_iso_handle_start_without_ts = (0x0666); // Also base handle
+static const uint16_t test_iso_handle_start_without_ts =
+    (0x0666);  // Also base handle
 static const uint16_t test_iso_handle_continuation = (0x0666 | (0x0001 << 12));
 static const uint16_t test_iso_handle_end = (0x0666 | (0x0003 << 12));
 
@@ -69,11 +72,12 @@ static uint32_t iso_timestamp = 0x32122321;
 static uint16_t iso_packet_seq = 0x1291;
 static bool iso_has_ts = true;
 
-static BT_HDR* manufacture_packet_for_fragmentation(uint16_t event, const char* data) {
+static BT_HDR* manufacture_packet_for_fragmentation(uint16_t event,
+                                                    const char* data) {
   uint16_t data_length = strlen(data);
   uint16_t size = data_length;
   if (event == MSG_STACK_TO_HC_HCI_ISO) {
-    size += 8; // handle (2), length (2), packet_seq (2), sdu_len(2)
+    size += 8;  // handle (2), length (2), packet_seq (2), sdu_len(2)
     if (iso_has_ts) {
       size += 4;
     }
@@ -104,8 +108,9 @@ static BT_HDR* manufacture_packet_for_fragmentation(uint16_t event, const char* 
   return packet;
 }
 
-static void expect_packet_fragmented(uint16_t event, int max_acl_data_size, BT_HDR* packet,
-                                     const char* expected_data, bool send_complete) {
+static void expect_packet_fragmented(uint16_t event, int max_acl_data_size,
+                                     BT_HDR* packet, const char* expected_data,
+                                     bool send_complete) {
   uint8_t* data = packet->data + packet->offset;
   int expected_data_offset;
   int length_to_check;
@@ -121,24 +126,22 @@ static void expect_packet_fragmented(uint16_t event, int max_acl_data_size, BT_H
     int packet_data_length = packet->len - HCI_ISO_PREAMBLE_SIZE;
 
     if (packet_index == 0) {
-      uint8_t hdr_size = 8; // ts, packet_seq, len
+      uint8_t hdr_size = 8;  // ts, packet_seq, len
 
       if (iso_has_ts) {
         uint32_t timestamp;
         STREAM_TO_UINT32(timestamp, data);
         ASSERT_EQ(timestamp, iso_timestamp);
 
-        if (send_complete) {
+        if (send_complete)
           ASSERT_EQ(test_iso_handle_complete_with_ts, handle);
-        } else {
+        else
           ASSERT_EQ(test_iso_handle_start_with_ts, handle);
-        }
       } else {
-        if (send_complete) {
+        if (send_complete)
           ASSERT_EQ(test_iso_handle_complete_without_ts, handle);
-        } else {
+        else
           ASSERT_EQ(test_iso_handle_start_without_ts, handle);
-        }
         hdr_size -= 4;
       }
 
@@ -153,18 +156,16 @@ static void expect_packet_fragmented(uint16_t event, int max_acl_data_size, BT_H
 
       length_to_check = packet_data_length - hdr_size;
     } else {
-      if (!send_complete) {
+      if (!send_complete)
         ASSERT_EQ(test_iso_handle_continuation, handle);
-      } else {
+      else
         ASSERT_EQ(test_iso_handle_end, handle);
-      }
 
       length_to_check = packet_data_length;
     }
 
-    if (length_remaining > max_acl_data_size) {
+    if (length_remaining > max_acl_data_size)
       ASSERT_EQ(max_acl_data_size, packet_data_length);
-    }
 
     expected_data_offset = packet_index * max_acl_data_size;
     if (expected_data_offset > 0) {
@@ -185,16 +186,14 @@ static void expect_packet_fragmented(uint16_t event, int max_acl_data_size, BT_H
     data_size_sum++;
   }
 
-  if (event == MSG_STACK_TO_HC_HCI_ISO) {
+  if (event == MSG_STACK_TO_HC_HCI_ISO)
     EXPECT_TRUE(send_complete == (data_size_sum == strlen(expected_data)));
-  }
 
-  if (send_complete) {
-    osi_free(packet);
-  }
+  if (send_complete) osi_free(packet);
 }
 
-static void manufacture_iso_packet_and_then_reassemble(uint16_t event, uint16_t iso_size,
+static void manufacture_iso_packet_and_then_reassemble(uint16_t event,
+                                                       uint16_t iso_size,
                                                        const char* data) {
   uint16_t data_length = strlen(data);
   uint16_t total_length;
@@ -202,18 +201,16 @@ static void manufacture_iso_packet_and_then_reassemble(uint16_t event, uint16_t 
   uint16_t iso_length = data_length;
   BT_HDR* packet;
   uint8_t* packet_data;
-  uint8_t hdr_size = 4; // packet seq, sdu len
+  uint8_t hdr_size = 4;  // packet seq, sdu len
 
   // ISO length (2), packet seq (2), optional timestamp (4)
   total_length = data_length + 4;
-  if (iso_has_ts) {
-    total_length += 4;
-  }
+  if (iso_has_ts) total_length += 4;
 
   do {
     int length_to_send = (length_sent + (iso_size - 4) < total_length)
-                                 ? (iso_size - 4)
-                                 : (total_length - length_sent);
+                             ? (iso_size - 4)
+                             : (total_length - length_sent);
 
     packet = (BT_HDR*)osi_malloc(length_to_send + 4 + sizeof(BT_HDR));
     packet_data = packet->data;
@@ -224,7 +221,7 @@ static void manufacture_iso_packet_and_then_reassemble(uint16_t event, uint16_t 
 
     bool is_complete = length_to_send == total_length;
 
-    if (length_sent == 0) { // first packet
+    if (length_sent == 0) {  // first packet
       if (iso_has_ts) {
         hdr_size += 4;
         if (is_complete) {
@@ -264,7 +261,8 @@ static void manufacture_iso_packet_and_then_reassemble(uint16_t event, uint16_t 
   } while (length_sent < total_length);
 }
 
-static void manufacture_packet_and_then_reassemble(uint16_t event, uint16_t packet_size,
+static void manufacture_packet_and_then_reassemble(uint16_t event,
+                                                   uint16_t packet_size,
                                                    const char* data) {
   uint16_t data_length = strlen(data);
 
@@ -282,8 +280,10 @@ static void manufacture_packet_and_then_reassemble(uint16_t event, uint16_t pack
   }
 }
 
-static void expect_packet_reassembled_iso(uint16_t event, BT_HDR* packet, const char* expected_data,
-                                          uint32_t expected_timestamp, uint16_t expected_packet_seq,
+static void expect_packet_reassembled_iso(uint16_t event, BT_HDR* packet,
+                                          const char* expected_data,
+                                          uint32_t expected_timestamp,
+                                          uint16_t expected_packet_seq,
                                           bool is_complete = false) {
   uint16_t expected_data_length = strlen(expected_data);
   uint8_t* data = packet->data;
@@ -302,11 +302,13 @@ static void expect_packet_reassembled_iso(uint16_t event, BT_HDR* packet, const 
     STREAM_TO_UINT32(timestamp, data);
     ASSERT_TRUE((packet->layer_specific & BT_ISO_HDR_CONTAINS_TS) != 0);
     ASSERT_EQ(timestamp, expected_timestamp);
-    ASSERT_EQ(is_complete ? test_iso_handle_complete_with_ts : test_iso_handle_start_with_ts,
+    ASSERT_EQ(is_complete ? test_iso_handle_complete_with_ts
+                          : test_iso_handle_start_with_ts,
               handle);
   } else {
     ASSERT_TRUE((packet->layer_specific & BT_ISO_HDR_CONTAINS_TS) == 0);
-    ASSERT_EQ(is_complete ? test_iso_handle_complete_without_ts : test_iso_handle_start_without_ts,
+    ASSERT_EQ(is_complete ? test_iso_handle_complete_without_ts
+                          : test_iso_handle_start_without_ts,
               handle);
     hdr_size -= 4;
   }
@@ -329,12 +331,14 @@ static void expect_packet_reassembled_iso(uint16_t event, BT_HDR* packet, const 
 
 STUB_FUNCTION(void, fragmented_callback, (BT_HDR * packet, bool send_complete))
 DURING(iso_fragmentation) {
-  expect_packet_fragmented(MSG_STACK_TO_HC_HCI_ISO, 10, packet, sample_data, send_complete);
+  expect_packet_fragmented(MSG_STACK_TO_HC_HCI_ISO, 10, packet, sample_data,
+                           send_complete);
   return;
 }
 
 DURING(iso_no_fragmentation) {
-  expect_packet_fragmented(MSG_STACK_TO_HC_HCI_ISO, 42, packet, small_sample_data, send_complete);
+  expect_packet_fragmented(MSG_STACK_TO_HC_HCI_ISO, 42, packet,
+                           small_sample_data, send_complete);
   return;
 }
 
@@ -343,13 +347,14 @@ UNEXPECTED_CALL;
 
 STUB_FUNCTION(void, reassembled_callback, (BT_HDR * packet))
 DURING(iso_reassembly) AT_CALL(0) {
-  expect_packet_reassembled_iso(MSG_HC_TO_STACK_HCI_ISO, packet, sample_data, iso_timestamp,
-                                iso_packet_seq);
+  expect_packet_reassembled_iso(MSG_HC_TO_STACK_HCI_ISO, packet, sample_data,
+                                iso_timestamp, iso_packet_seq);
   return;
 }
 
 DURING(iso_no_reassembly) AT_CALL(0) {
-  expect_packet_reassembled_iso(MSG_HC_TO_STACK_HCI_ISO, packet, small_sample_data, iso_timestamp,
+  expect_packet_reassembled_iso(MSG_HC_TO_STACK_HCI_ISO, packet,
+                                small_sample_data, iso_timestamp,
                                 iso_packet_seq, true);
   return;
 }
@@ -372,7 +377,7 @@ static void reset_for(TEST_MODES_T next) {
 }
 
 class PacketFragmenterTest : public ::testing::Test {
-protected:
+ protected:
   void SetUp() override {
     fragmenter = packet_fragmenter_get_interface();
 
@@ -394,7 +399,8 @@ TEST_F(PacketFragmenterTest, test_iso_fragment_necessary) {
   reset_for(iso_fragmentation);
   iso_has_ts = true;
 
-  BT_HDR* packet = manufacture_packet_for_fragmentation(MSG_STACK_TO_HC_HCI_ISO, sample_data);
+  BT_HDR* packet = manufacture_packet_for_fragmentation(MSG_STACK_TO_HC_HCI_ISO,
+                                                        sample_data);
   packet->event |= LOCAL_BLE_CONTROLLER_ID;
   fragmenter->fragment_and_dispatch(packet, get_iso_data_size());
 
@@ -405,7 +411,8 @@ TEST_F(PacketFragmenterTest, test_iso_no_fragment_necessary) {
   reset_for(iso_no_fragmentation);
   iso_has_ts = true;
 
-  BT_HDR* packet = manufacture_packet_for_fragmentation(MSG_STACK_TO_HC_HCI_ISO, small_sample_data);
+  BT_HDR* packet = manufacture_packet_for_fragmentation(MSG_STACK_TO_HC_HCI_ISO,
+                                                        small_sample_data);
   packet->event |= LOCAL_BLE_CONTROLLER_ID;
   fragmenter->fragment_and_dispatch(packet, get_iso_data_size());
 
@@ -415,7 +422,8 @@ TEST_F(PacketFragmenterTest, test_iso_no_fragment_necessary) {
 TEST_F(PacketFragmenterTest, test_iso_fragment_necessary_no_ts) {
   reset_for(iso_fragmentation);
   iso_has_ts = false;
-  BT_HDR* packet = manufacture_packet_for_fragmentation(MSG_STACK_TO_HC_HCI_ISO, sample_data);
+  BT_HDR* packet = manufacture_packet_for_fragmentation(MSG_STACK_TO_HC_HCI_ISO,
+                                                        sample_data);
   packet->event |= LOCAL_BLE_CONTROLLER_ID;
   fragmenter->fragment_and_dispatch(packet, get_iso_data_size());
 
@@ -425,7 +433,8 @@ TEST_F(PacketFragmenterTest, test_iso_fragment_necessary_no_ts) {
 TEST_F(PacketFragmenterTest, test_iso_no_fragment_necessary_no_ts) {
   reset_for(iso_no_fragmentation);
   iso_has_ts = false;
-  BT_HDR* packet = manufacture_packet_for_fragmentation(MSG_STACK_TO_HC_HCI_ISO, small_sample_data);
+  BT_HDR* packet = manufacture_packet_for_fragmentation(MSG_STACK_TO_HC_HCI_ISO,
+                                                        small_sample_data);
   packet->event |= LOCAL_BLE_CONTROLLER_ID;
   fragmenter->fragment_and_dispatch(packet, get_iso_data_size());
 
@@ -435,7 +444,8 @@ TEST_F(PacketFragmenterTest, test_iso_no_fragment_necessary_no_ts) {
 TEST_F(PacketFragmenterTest, test_iso_no_reassembly_necessary) {
   reset_for(iso_no_reassembly);
   iso_has_ts = true;
-  manufacture_packet_and_then_reassemble(MSG_HC_TO_STACK_HCI_ISO, 50, small_sample_data);
+  manufacture_packet_and_then_reassemble(MSG_HC_TO_STACK_HCI_ISO, 50,
+                                         small_sample_data);
 
   ASSERT_EQ(strlen(small_sample_data), data_size_sum);
   EXPECT_CALL_COUNT(reassembled_callback, 1);
@@ -444,7 +454,8 @@ TEST_F(PacketFragmenterTest, test_iso_no_reassembly_necessary) {
 TEST_F(PacketFragmenterTest, test_iso_reassembly_necessary) {
   reset_for(iso_reassembly);
   iso_has_ts = true;
-  manufacture_packet_and_then_reassemble(MSG_HC_TO_STACK_HCI_ISO, 42, sample_data);
+  manufacture_packet_and_then_reassemble(MSG_HC_TO_STACK_HCI_ISO, 42,
+                                         sample_data);
 
   ASSERT_EQ(strlen(sample_data), data_size_sum);
   EXPECT_CALL_COUNT(reassembled_callback, 1);
@@ -453,7 +464,8 @@ TEST_F(PacketFragmenterTest, test_iso_reassembly_necessary) {
 TEST_F(PacketFragmenterTest, test_iso_no_reassembly_necessary_no_ts) {
   reset_for(iso_no_reassembly);
   iso_has_ts = false;
-  manufacture_packet_and_then_reassemble(MSG_HC_TO_STACK_HCI_ISO, (42 + 4), small_sample_data);
+  manufacture_packet_and_then_reassemble(MSG_HC_TO_STACK_HCI_ISO, (42 + 4),
+                                         small_sample_data);
 
   ASSERT_EQ(strlen(small_sample_data), data_size_sum);
   EXPECT_CALL_COUNT(reassembled_callback, 1);
@@ -462,7 +474,8 @@ TEST_F(PacketFragmenterTest, test_iso_no_reassembly_necessary_no_ts) {
 TEST_F(PacketFragmenterTest, test_iso_reassembly_necessary_no_ts) {
   reset_for(iso_reassembly);
   iso_has_ts = false;
-  manufacture_packet_and_then_reassemble(MSG_HC_TO_STACK_HCI_ISO, 42, sample_data);
+  manufacture_packet_and_then_reassemble(MSG_HC_TO_STACK_HCI_ISO, 42,
+                                         sample_data);
 
   ASSERT_EQ(strlen(sample_data), data_size_sum);
   EXPECT_CALL_COUNT(reassembled_callback, 1);

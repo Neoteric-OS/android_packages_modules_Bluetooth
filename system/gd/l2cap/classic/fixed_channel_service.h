@@ -27,10 +27,10 @@ namespace classic {
 
 namespace internal {
 class FixedChannelServiceManagerImpl;
-} // namespace internal
+}  // namespace internal
 
 class FixedChannelService {
-public:
+ public:
   FixedChannelService() = default;
   FixedChannelService(const FixedChannelService&) = delete;
   FixedChannelService& operator=(const FixedChannelService&) = delete;
@@ -47,15 +47,14 @@ public:
 
   friend internal::FixedChannelServiceManagerImpl;
 
-private:
-  FixedChannelService(Cid cid, internal::FixedChannelServiceManagerImpl* manager,
-                      os::Handler* handler)
+ private:
+  FixedChannelService(Cid cid, internal::FixedChannelServiceManagerImpl* manager, os::Handler* handler)
       : cid_(cid), manager_(manager), l2cap_layer_handler_(handler) {}
   Cid cid_ = kInvalidCid;
   internal::FixedChannelServiceManagerImpl* manager_ = nullptr;
   os::Handler* l2cap_layer_handler_;
 };
 
-} // namespace classic
-} // namespace l2cap
-} // namespace bluetooth
+}  // namespace classic
+}  // namespace l2cap
+}  // namespace bluetooth

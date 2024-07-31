@@ -30,8 +30,8 @@ namespace channel {
  */
 SecurityManagerChannel::SecurityManagerChannel(os::Handler* handler, hci::HciLayer* hci_layer)
     : listener_(nullptr),
-      hci_security_interface_(hci_layer->GetSecurityInterface(
-              handler->BindOn(this, &SecurityManagerChannel::OnHciEventReceived))),
+      hci_security_interface_(
+          hci_layer->GetSecurityInterface(handler->BindOn(this, &SecurityManagerChannel::OnHciEventReceived))),
       handler_(handler),
       l2cap_security_interface_(nullptr) {}
 
@@ -77,15 +77,13 @@ void SecurityManagerChannel::OnCommandComplete(hci::CommandCompleteView packet) 
 }
 
 void SecurityManagerChannel::SendCommand(std::unique_ptr<hci::SecurityCommandBuilder> command) {
-  hci_security_interface_->EnqueueCommand(
-          std::move(command),
-          handler_->BindOnceOn(this, &SecurityManagerChannel::OnCommandComplete));
+  hci_security_interface_->EnqueueCommand(std::move(command),
+                                          handler_->BindOnceOn(this, &SecurityManagerChannel::OnCommandComplete));
 }
 
-void SecurityManagerChannel::SendCommand(std::unique_ptr<hci::SecurityCommandBuilder> command,
-                                         SecurityCommandStatusCallback callback) {
-  hci_security_interface_->EnqueueCommand(std::move(command),
-                                          std::forward<SecurityCommandStatusCallback>(callback));
+void SecurityManagerChannel::SendCommand(
+    std::unique_ptr<hci::SecurityCommandBuilder> command, SecurityCommandStatusCallback callback) {
+  hci_security_interface_->EnqueueCommand(std::move(command), std::forward<SecurityCommandStatusCallback>(callback));
 }
 
 void SecurityManagerChannel::OnHciEventReceived(hci::EventView packet) {
@@ -94,8 +92,7 @@ void SecurityManagerChannel::OnHciEventReceived(hci::EventView packet) {
   listener_->OnHciEventReceived(packet);
 }
 
-void SecurityManagerChannel::OnLinkConnected(
-        std::unique_ptr<l2cap::classic::LinkSecurityInterface> link) {
+void SecurityManagerChannel::OnLinkConnected(std::unique_ptr<l2cap::classic::LinkSecurityInterface> link) {
   // Multiple links possible?
   auto remote = link->GetRemoteAddress();
   if (outgoing_pairing_remote_devices_.count(remote) == 1) {
@@ -118,8 +115,8 @@ void SecurityManagerChannel::OnLinkDisconnected(hci::Address address) {
   listener_->OnConnectionClosed(address);
 }
 
-void SecurityManagerChannel::OnAuthenticationComplete(hci::ErrorCode /* hci_status */,
-                                                      hci::Address remote) {
+void SecurityManagerChannel::OnAuthenticationComplete(
+    hci::ErrorCode /* hci_status */, hci::Address remote) {
   log::assert_that(l2cap_security_interface_ != nullptr, "L2cap Security Interface is null!");
   auto entry = link_map_.find(remote);
   if (entry != link_map_.end()) {
@@ -130,6 +127,6 @@ void SecurityManagerChannel::OnAuthenticationComplete(hci::ErrorCode /* hci_stat
 
 void SecurityManagerChannel::OnEncryptionChange(hci::Address /* remote */, bool /* encrypted */) {}
 
-} // namespace channel
-} // namespace security
-} // namespace bluetooth
+}  // namespace channel
+}  // namespace security
+}  // namespace bluetooth

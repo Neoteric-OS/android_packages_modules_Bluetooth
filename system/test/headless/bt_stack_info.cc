@@ -18,22 +18,23 @@
 
 #include <unistd.h>
 
-#include "btif/include/btif_common.h" // do_in_jni_thread
-#include "btif/include/btif_hh.h"     // DumpsysHid
+#include "btif/include/btif_common.h"  // do_in_jni_thread
+#include "btif/include/btif_hh.h"      // DumpsysHid
 #include "main/shim/dumpsys.h"
 #include "stack/gatt/connection_manager.h"
 #include "stack/include/main_thread.h"
-#include "stack/include/pan_api.h" // PAN_Dumpsys
+#include "stack/include/pan_api.h"  // PAN_Dumpsys
 #include "test/headless/log.h"
 
 BtStackInfo::BtStackInfo() {
   {
     std::promise<pid_t> promise;
     auto future = promise.get_future();
-    do_in_main_thread(
-            FROM_HERE,
-            base::BindOnce([](std::promise<pid_t> promise) { promise.set_value(getpid()); },
-                           std::move(promise)));
+    do_in_main_thread(FROM_HERE, base::BindOnce(
+                                     [](std::promise<pid_t> promise) {
+                                       promise.set_value(getpid());
+                                     },
+                                     std::move(promise)));
     main_pid_ = future.get();
   }
 
@@ -41,7 +42,8 @@ BtStackInfo::BtStackInfo() {
     std::promise<pid_t> promise;
     auto future = promise.get_future();
     do_in_jni_thread(base::BindOnce(
-            [](std::promise<pid_t> promise) { promise.set_value(getpid()); }, std::move(promise)));
+        [](std::promise<pid_t> promise) { promise.set_value(getpid()); },
+        std::move(promise)));
     jni_pid_ = future.get();
   }
 }

@@ -17,7 +17,7 @@ using namespace std::chrono_literals;
 namespace bluetooth::hci {
 
 class LeScanningDecrypterTest : public ::testing::Test {
-public:
+ public:
   LeScanningDecrypter leScanningDecrypter_;
 };
 
@@ -32,13 +32,13 @@ TEST_F(LeScanningDecrypterTest, decrypt_encrypted_data) {
                                                  0xD2, 0x6C, 0xC7, 0x96, 0xE3, 0xF4, 0x9F, 0x50};
   std::vector<uint8_t> adv_data_decrypted;
   bool has_encrypted_data =
-          leScanningDecrypter_.ContainsEncryptedData(adv_data.data(), adv_data.size());
+      leScanningDecrypter_.ContainsEncryptedData(adv_data.data(), adv_data.size());
   ASSERT_TRUE(has_encrypted_data);
   leScanningDecrypter_.ExtractEncryptedData(adv_data, enc_key_material, &adv_data_decrypted);
   ASSERT_EQ(
-          adv_data_decrypted,
-          std::vector<uint8_t>({0x02, 0x01, 0x02, 0x02, 0x0A, 0xF9, 0x0F, 0x09, 0x50, 0x69, 0x6E,
-                                0x65, 0x61, 0x70, 0x70, 0x6C, 0x65, 0x5F, 0x34, 0x38, 0x38, 0x30}));
+      adv_data_decrypted,
+      std::vector<uint8_t>({0x02, 0x01, 0x02, 0x02, 0x0A, 0xF9, 0x0F, 0x09, 0x50, 0x69, 0x6E,
+                            0x65, 0x61, 0x70, 0x70, 0x6C, 0x65, 0x5F, 0x34, 0x38, 0x38, 0x30}));
 }
 
-} // namespace bluetooth::hci
+}  // namespace bluetooth::hci

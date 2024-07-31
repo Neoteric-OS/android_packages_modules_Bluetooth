@@ -25,18 +25,21 @@ namespace metrics {
 namespace {
 
 class CounterMetricsTest : public ::testing::Test {
-public:
+ public:
   class TestableCounterMetrics : public CounterMetrics {
-  public:
-    void DrainBuffer() { DrainBufferedCounters(); }
+   public:
+    void DrainBuffer() {
+      DrainBufferedCounters();
+    }
     std::unordered_map<int32_t, int64_t> test_counters_;
-
-  private:
+   private:
     bool Count(int32_t key, int64_t count) override {
       test_counters_[key] = count;
       return true;
     }
-    bool IsInitialized() override { return true; }
+    bool IsInitialized() override {
+      return true;
+    }
   };
   TestableCounterMetrics testable_counter_metrics_;
 };
@@ -84,6 +87,6 @@ TEST_F(CounterMetricsTest, non_positive) {
   ASSERT_EQ(testable_counter_metrics_.test_counters_[1], 5);
 }
 
-} // namespace
-} // namespace metrics
-} // namespace bluetooth
+}  // namespace
+}  // namespace metrics
+}  // namespace bluetooth

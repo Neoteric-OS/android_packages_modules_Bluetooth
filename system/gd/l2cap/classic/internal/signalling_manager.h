@@ -53,13 +53,12 @@ struct PendingCommand {
 class Link;
 
 class ClassicSignallingManager {
-public:
-  ClassicSignallingManager(
-          os::Handler* handler, Link* link,
-          l2cap::internal::DataPipelineManager* data_pipeline_manager,
-          classic::internal::DynamicChannelServiceManagerImpl* dynamic_service_manager,
-          l2cap::internal::DynamicChannelAllocator* channel_allocator,
-          classic::internal::FixedChannelServiceManagerImpl* fixed_service_manager);
+ public:
+  ClassicSignallingManager(os::Handler* handler, Link* link,
+                           l2cap::internal::DataPipelineManager* data_pipeline_manager,
+                           classic::internal::DynamicChannelServiceManagerImpl* dynamic_service_manager,
+                           l2cap::internal::DynamicChannelAllocator* channel_allocator,
+                           classic::internal::FixedChannelServiceManagerImpl* fixed_service_manager);
 
   virtual ~ClassicSignallingManager();
 
@@ -79,8 +78,8 @@ public:
 
   void OnConnectionRequest(SignalId signal_id, Psm psm, Cid remote_cid);
 
-  void OnConnectionResponse(SignalId signal_id, Cid remote_cid, Cid cid,
-                            ConnectionResponseResult result, ConnectionResponseStatus status);
+  void OnConnectionResponse(SignalId signal_id, Cid remote_cid, Cid cid, ConnectionResponseResult result,
+                            ConnectionResponseStatus status);
 
   void OnDisconnectionRequest(SignalId signal_id, Cid cid, Cid remote_cid);
 
@@ -90,8 +89,7 @@ public:
                               std::vector<std::unique_ptr<ConfigurationOption>>);
 
   void OnConfigurationResponse(SignalId signal_id, Cid cid, Continuation is_continuation,
-                               ConfigurationResponseResult result,
-                               std::vector<std::unique_ptr<ConfigurationOption>>);
+                               ConfigurationResponseResult result, std::vector<std::unique_ptr<ConfigurationOption>>);
 
   void OnEchoRequest(SignalId signal_id, const PacketView<kLittleEndian>& packet);
 
@@ -105,22 +103,20 @@ public:
     LINK_KEY,
     ENCRYPTION,
   };
-  void on_security_result_for_outgoing(SecurityEnforcementType type, Psm psm, Cid local_cid,
-                                       bool result);
+  void on_security_result_for_outgoing(SecurityEnforcementType type, Psm psm, Cid local_cid, bool result);
 
-private:
+ private:
   void on_incoming_packet();
   void handle_one_command(ControlView control_view);
-  void send_connection_response(SignalId signal_id, Cid remote_cid, Cid local_cid,
-                                ConnectionResponseResult result, ConnectionResponseStatus status);
+  void send_connection_response(SignalId signal_id, Cid remote_cid, Cid local_cid, ConnectionResponseResult result,
+                                ConnectionResponseStatus status);
   void on_command_timeout();
   void handle_send_next_command();
 
   void negotiate_configuration(Cid cid, Continuation is_continuation,
                                std::vector<std::unique_ptr<ConfigurationOption>>);
 
-  void send_configuration_request(Cid remote_cid,
-                                  std::vector<std::unique_ptr<ConfigurationOption>> config);
+  void send_configuration_request(Cid remote_cid, std::vector<std::unique_ptr<ConfigurationOption>> config);
   void on_security_result_for_incoming(Psm psm, Cid remote_cid, SignalId signal_id, bool result);
 
   os::Handler* handler_;
@@ -138,7 +134,7 @@ private:
   std::unordered_map<Cid, ChannelConfigurationState> channel_configuration_;
 };
 
-} // namespace internal
-} // namespace classic
-} // namespace l2cap
-} // namespace bluetooth
+}  // namespace internal
+}  // namespace classic
+}  // namespace l2cap
+}  // namespace bluetooth

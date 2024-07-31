@@ -28,7 +28,9 @@ void FuzzHciHal::registerIncomingPacketCallback(HciHalCallbacks* callbacks) {
   callbacks_ = callbacks;
 }
 
-void FuzzHciHal::unregisterIncomingPacketCallback() { callbacks_ = nullptr; }
+void FuzzHciHal::unregisterIncomingPacketCallback() {
+  callbacks_ = nullptr;
+}
 
 void FuzzHciHal::injectArbitrary(FuzzedDataProvider& fdp) {
   const uint8_t action = fdp.ConsumeIntegralInRange(0, 4);
@@ -113,6 +115,6 @@ void FuzzHciHal::injectIsoData(std::vector<uint8_t> data) {
 
 const ModuleFactory FuzzHciHal::Factory = ModuleFactory([]() { return new FuzzHciHal(); });
 
-} // namespace fuzz
-} // namespace hal
-} // namespace bluetooth
+}  // namespace fuzz
+}  // namespace hal
+}  // namespace bluetooth

@@ -16,7 +16,8 @@
 
 #include "Quantiser.h"
 
-XBT_INLINE_ int32_t BsearchLL(const int32_t absDiffSignalShifted, const int32_t delta,
+XBT_INLINE_ int32_t BsearchLL(const int32_t absDiffSignalShifted,
+                              const int32_t delta,
                               const int32_t* dqbitTablePrt) {
   int32_t qCode = 0;
   reg64_t tmp_acc;
@@ -78,10 +79,11 @@ XBT_INLINE_ int32_t BsearchLL(const int32_t absDiffSignalShifted, const int32_t 
     qCode++;
   }
 
-  return qCode;
+  return (qCode);
 }
 
-XBT_INLINE_ int32_t BsearchHL(const int32_t absDiffSignalShifted, const int32_t delta,
+XBT_INLINE_ int32_t BsearchHL(const int32_t absDiffSignalShifted,
+                              const int32_t delta,
                               const int32_t* dqbitTablePrt) {
   int32_t qCode = 0;
   reg64_t tmp_acc;
@@ -109,10 +111,11 @@ XBT_INLINE_ int32_t BsearchHL(const int32_t absDiffSignalShifted, const int32_t 
     qCode++;
   }
 
-  return qCode;
+  return (qCode);
 }
 
-XBT_INLINE_ int32_t BsearchHH(const int32_t absDiffSignalShifted, const int32_t delta,
+XBT_INLINE_ int32_t BsearchHH(const int32_t absDiffSignalShifted,
+                              const int32_t delta,
                               const int32_t* dqbitTablePrt) {
   int32_t qCode = 0;
   reg64_t tmp_acc;
@@ -147,11 +150,11 @@ XBT_INLINE_ int32_t BsearchHH(const int32_t absDiffSignalShifted, const int32_t 
     qCode++;
   }
 
-  return qCode;
+  return (qCode);
 }
 
-void quantiseDifference_HDHL(const int32_t diffSignal, const int32_t ditherVal, const int32_t delta,
-                             Quantiser_data* qdata_pt) {
+void quantiseDifference_HDHL(const int32_t diffSignal, const int32_t ditherVal,
+                             const int32_t delta, Quantiser_data* qdata_pt) {
   int32_t absDiffSignal = 0;
   int32_t absDiffSignalShifted = 0;
   int32_t index = 0;
@@ -180,7 +183,8 @@ void quantiseDifference_HDHL(const int32_t diffSignal, const int32_t ditherVal, 
    * table index of the LARGEST threshold table value for which
    * absDiffSignalShifted >= (delta * threshold)
    */
-  index = BsearchHL(absDiffSignalShifted, delta, qdata_pt->thresholdTablePtr_sl1);
+  index =
+      BsearchHL(absDiffSignalShifted, delta, qdata_pt->thresholdTablePtr_sl1);
 
   /* We actually wanted the SMALLEST magnitude quantised code for which
    * absDiffSignalShifted < (delta * threshold)
@@ -238,7 +242,8 @@ void quantiseDifference_HDHL(const int32_t diffSignal, const int32_t ditherVal, 
 
   /* Form the threshold table difference at index and index-1. Ensure
    * saturation is applied to the difference calculation. */
-  threshDiff = qdata_pt->thresholdTablePtr_sl1[index + 1] - qdata_pt->thresholdTablePtr_sl1[index];
+  threshDiff = qdata_pt->thresholdTablePtr_sl1[index + 1] -
+               qdata_pt->thresholdTablePtr_sl1[index];
 
   /* Based on the sign of the difference signal, either add or subtract the
    * threshold table difference from the accumulated value. Recover the final
@@ -303,8 +308,8 @@ void quantiseDifference_HDHL(const int32_t diffSignal, const int32_t ditherVal, 
   qdata_pt->qCode = tmp_qCode;
 }
 
-void quantiseDifference_HDHH(const int32_t diffSignal, const int32_t ditherVal, const int32_t delta,
-                             Quantiser_data* qdata_pt) {
+void quantiseDifference_HDHH(const int32_t diffSignal, const int32_t ditherVal,
+                             const int32_t delta, Quantiser_data* qdata_pt) {
   int32_t absDiffSignal;
   int32_t absDiffSignalShifted;
   int32_t index;
@@ -333,7 +338,8 @@ void quantiseDifference_HDHH(const int32_t diffSignal, const int32_t ditherVal, 
    * table index of the LARGEST threshold table value for which
    * absDiffSignalShifted >= (delta * threshold)
    */
-  index = BsearchHH(absDiffSignalShifted, delta, qdata_pt->thresholdTablePtr_sl1);
+  index =
+      BsearchHH(absDiffSignalShifted, delta, qdata_pt->thresholdTablePtr_sl1);
 
   /* We actually wanted the SMALLEST magnitude quantised code for which
    * absDiffSignalShifted < (delta * threshold)
@@ -392,7 +398,8 @@ void quantiseDifference_HDHH(const int32_t diffSignal, const int32_t ditherVal, 
 
   /* Form the threshold table difference at index and index-1. Ensure
    * saturation is applied to the difference calculation. */
-  threshDiff = qdata_pt->thresholdTablePtr_sl1[index + 1] - qdata_pt->thresholdTablePtr_sl1[index];
+  threshDiff = qdata_pt->thresholdTablePtr_sl1[index + 1] -
+               qdata_pt->thresholdTablePtr_sl1[index];
 
   /* Based on the sign of the difference signal, either add or subtract the
    * threshold table difference from the accumulated value. Recover the final
@@ -456,8 +463,8 @@ void quantiseDifference_HDHH(const int32_t diffSignal, const int32_t ditherVal, 
   qdata_pt->qCode = tmp_qCode;
 }
 
-void quantiseDifference_HDLL(const int32_t diffSignal, const int32_t ditherVal, const int32_t delta,
-                             Quantiser_data* qdata_pt) {
+void quantiseDifference_HDLL(const int32_t diffSignal, const int32_t ditherVal,
+                             const int32_t delta, Quantiser_data* qdata_pt) {
   int32_t absDiffSignal;
   int32_t absDiffSignalShifted;
   int32_t index;
@@ -486,7 +493,8 @@ void quantiseDifference_HDLL(const int32_t diffSignal, const int32_t ditherVal, 
    * table index of the LARGEST threshold table value for which
    * absDiffSignalShifted >= (delta * threshold)
    */
-  index = BsearchLL(absDiffSignalShifted, delta, qdata_pt->thresholdTablePtr_sl1);
+  index =
+      BsearchLL(absDiffSignalShifted, delta, qdata_pt->thresholdTablePtr_sl1);
 
   /* We actually wanted the SMALLEST magnitude quantised code for which
    * absDiffSignalShifted < (delta * threshold)
@@ -546,7 +554,8 @@ void quantiseDifference_HDLL(const int32_t diffSignal, const int32_t ditherVal, 
 
   /* Form the threshold table difference at index and index-1. Ensure
    * saturation is applied to the difference calculation. */
-  threshDiff = qdata_pt->thresholdTablePtr_sl1[index + 1] - qdata_pt->thresholdTablePtr_sl1[index];
+  threshDiff = qdata_pt->thresholdTablePtr_sl1[index + 1] -
+               qdata_pt->thresholdTablePtr_sl1[index];
 
   /* Based on the sign of the difference signal, either add or subtract the
    * threshold table difference from the accumulated value. Recover the final
@@ -613,8 +622,8 @@ void quantiseDifference_HDLL(const int32_t diffSignal, const int32_t ditherVal, 
   qdata_pt->qCode = tmp_qCode;
 }
 
-static int32_t BsearchLH(const int32_t absDiffSignalShifted, const int32_t delta,
-                         const int32_t* dqbitTablePrt) {
+static int32_t BsearchLH(const int32_t absDiffSignalShifted,
+                         const int32_t delta, const int32_t* dqbitTablePrt) {
   int32_t qCode;
   reg64_t tmp_acc;
   int32_t tmp;
@@ -657,11 +666,11 @@ static int32_t BsearchLH(const int32_t absDiffSignalShifted, const int32_t delta
     qCode++;
   }
 
-  return qCode;
+  return (qCode);
 }
 
-void quantiseDifference_HDLH(const int32_t diffSignal, const int32_t ditherVal, const int32_t delta,
-                             Quantiser_data* qdata_pt) {
+void quantiseDifference_HDLH(const int32_t diffSignal, const int32_t ditherVal,
+                             const int32_t delta, Quantiser_data* qdata_pt) {
   int32_t absDiffSignal = 0;
   int32_t absDiffSignalShifted = 0;
   int32_t index = 0;
@@ -693,7 +702,8 @@ void quantiseDifference_HDLH(const int32_t diffSignal, const int32_t ditherVal, 
    */
 
   /* first iteration */
-  index = BsearchLH(absDiffSignalShifted, delta, qdata_pt->thresholdTablePtr_sl1);
+  index =
+      BsearchLH(absDiffSignalShifted, delta, qdata_pt->thresholdTablePtr_sl1);
 
   /* We actually wanted the SMALLEST magnitude quantised code for which
    * absDiffSignalShifted < (delta * threshold)
@@ -754,7 +764,8 @@ void quantiseDifference_HDLH(const int32_t diffSignal, const int32_t ditherVal, 
 
   /* Form the threshold table difference at index and index-1. Ensure
    * saturation is applied to the difference calculation. */
-  threshDiff = qdata_pt->thresholdTablePtr_sl1[index + 1] - qdata_pt->thresholdTablePtr_sl1[index];
+  threshDiff = qdata_pt->thresholdTablePtr_sl1[index + 1] -
+               qdata_pt->thresholdTablePtr_sl1[index];
 
   /* Based on the sign of the difference signal, either add or subtract the
    * threshold table difference from the accumulated value. Recover the final

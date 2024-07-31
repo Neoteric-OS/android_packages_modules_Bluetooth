@@ -27,7 +27,7 @@ namespace parser {
 // C and CRET are the substituted types for T and TRET
 template <typename T, typename TRET>
 class ChecksumTypeChecker {
-public:
+ public:
   template <class C, void (C::*)()>
   struct InitializeChecker {};
 
@@ -39,8 +39,10 @@ public:
 
   // If all the methods are defined, this one matches
   template <class C, typename CRET>
-  static int Test(InitializeChecker<C, &C::Initialize>*, AddByteChecker<C, &C::AddByte>*,
-                  GetChecksumChecker<C, CRET, &C::GetChecksum>*);
+  static int Test(
+      InitializeChecker<C, &C::Initialize>*,
+      AddByteChecker<C, &C::AddByte>*,
+      GetChecksumChecker<C, CRET, &C::GetChecksum>*);
 
   // This one matches everything else
   template <class C, typename CRET>
@@ -49,6 +51,6 @@ public:
   // This checks which template was matched
   static constexpr bool value = (sizeof(Test<T, TRET>(0, 0, 0)) == sizeof(int));
 };
-} // namespace parser
-} // namespace packet
-} // namespace bluetooth
+}  // namespace parser
+}  // namespace packet
+}  // namespace bluetooth

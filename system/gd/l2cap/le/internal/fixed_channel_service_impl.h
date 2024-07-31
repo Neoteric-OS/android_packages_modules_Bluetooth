@@ -26,7 +26,7 @@ namespace le {
 namespace internal {
 
 class FixedChannelServiceImpl {
-public:
+ public:
   virtual ~FixedChannelServiceImpl() = default;
 
   struct PendingRegistration {
@@ -41,19 +41,18 @@ public:
 
   friend class FixedChannelServiceManagerImpl;
 
-protected:
+ protected:
   // protected access for mocking
   FixedChannelServiceImpl(os::Handler* user_handler,
                           FixedChannelManager::OnConnectionOpenCallback on_connection_open_callback)
-      : user_handler_(user_handler),
-        on_connection_open_callback_(std::move(on_connection_open_callback)) {}
+      : user_handler_(user_handler), on_connection_open_callback_(std::move(on_connection_open_callback)) {}
 
-private:
+ private:
   os::Handler* user_handler_ = nullptr;
   FixedChannelManager::OnConnectionOpenCallback on_connection_open_callback_;
 };
 
-} // namespace internal
-} // namespace le
-} // namespace l2cap
-} // namespace bluetooth
+}  // namespace internal
+}  // namespace le
+}  // namespace l2cap
+}  // namespace bluetooth

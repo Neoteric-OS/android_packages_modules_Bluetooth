@@ -29,7 +29,8 @@
 namespace rootcanal {
 
 // Duration type for slots (increments of 625us).
-using slots = std::chrono::duration<unsigned long long, std::ratio<625, 1000000>>;
+using slots =
+    std::chrono::duration<unsigned long long, std::ratio<625, 1000000>>;
 
 // User defined literal for slots, e.g. `0x800_slots`
 slots operator"" _slots(unsigned long long count);
@@ -38,7 +39,7 @@ using namespace bluetooth::hci;
 
 // Advertising interface common to legacy and extended advertisers.
 class Advertiser {
-public:
+ public:
   Advertiser() = default;
   ~Advertiser() = default;
 
@@ -50,8 +51,10 @@ public:
 
   // HCI properties.
   bool advertising_enable{false};
-  AddressWithType advertising_address{Address::kEmpty, AddressType::PUBLIC_DEVICE_ADDRESS};
-  AddressWithType target_address{Address::kEmpty, AddressType::PUBLIC_DEVICE_ADDRESS};
+  AddressWithType advertising_address{Address::kEmpty,
+                                      AddressType::PUBLIC_DEVICE_ADDRESS};
+  AddressWithType target_address{Address::kEmpty,
+                                 AddressType::PUBLIC_DEVICE_ADDRESS};
 
   // Time keeping.
   std::chrono::steady_clock::time_point next_event{};
@@ -61,7 +64,7 @@ public:
 // Implement the unique legacy advertising instance.
 // For extended advertising check the ExtendedAdvertiser class.
 class LegacyAdvertiser : public Advertiser {
-public:
+ public:
   LegacyAdvertiser() = default;
   ~LegacyAdvertiser() = default;
 
@@ -88,10 +91,12 @@ public:
   slots advertising_interval{0x0800};
   AdvertisingType advertising_type{AdvertisingType::ADV_IND};
   OwnAddressType own_address_type{OwnAddressType::PUBLIC_DEVICE_ADDRESS};
-  PeerAddressType peer_address_type{PeerAddressType::PUBLIC_DEVICE_OR_IDENTITY_ADDRESS};
+  PeerAddressType peer_address_type{
+      PeerAddressType::PUBLIC_DEVICE_OR_IDENTITY_ADDRESS};
   Address peer_address{};
   uint8_t advertising_channel_map{0x07};
-  AdvertisingFilterPolicy advertising_filter_policy{AdvertisingFilterPolicy::ALL_DEVICES};
+  AdvertisingFilterPolicy advertising_filter_policy{
+      AdvertisingFilterPolicy::ALL_DEVICES};
   std::vector<uint8_t> advertising_data{};
   std::vector<uint8_t> scan_response_data{};
 };
@@ -100,8 +105,9 @@ public:
 // The configuration is set by the extended advertising commands;
 // for the legacy advertiser check the LegacyAdvertiser class.
 class ExtendedAdvertiser : public Advertiser {
-public:
-  ExtendedAdvertiser(uint8_t advertising_handle = 0) : advertising_handle(advertising_handle) {}
+ public:
+  ExtendedAdvertiser(uint8_t advertising_handle = 0)
+      : advertising_handle(advertising_handle) {}
   ~ExtendedAdvertiser() = default;
 
   void Enable() {
@@ -124,7 +130,9 @@ public:
   bool IsPeriodicEnabled() const { return periodic_advertising_enable_latch; }
   bool IsScannable() const { return advertising_event_properties.scannable_; }
 
-  bool IsConnectable() const { return advertising_event_properties.connectable_; }
+  bool IsConnectable() const {
+    return advertising_event_properties.connectable_;
+  }
 
   bool IsDirected() const { return advertising_event_properties.directed_; }
 
@@ -184,19 +192,23 @@ public:
   // Compute the maximum advertising data payload size for the selected
   // advertising event properties. The advertising data is not present if
   // 0 is returned.
-  static uint16_t GetMaxAdvertisingDataLength(const AdvertisingEventProperties& properties);
+  static uint16_t GetMaxAdvertisingDataLength(
+      const AdvertisingEventProperties& properties);
 
   // Compute the maximum scan response data payload size for the selected
   // advertising event properties. The scan response data is not present if
   // 0 is returned.
-  static uint16_t GetMaxScanResponseDataLength(const AdvertisingEventProperties& properties);
+  static uint16_t GetMaxScanResponseDataLength(
+      const AdvertisingEventProperties& properties);
 
   // Reconstitute the raw Advertising_Event_Properties bitmask.
-  static uint16_t GetRawAdvertisingEventProperties(const AdvertisingEventProperties& properties);
+  static uint16_t GetRawAdvertisingEventProperties(
+      const AdvertisingEventProperties& properties);
 
   // Compute the maximum periodic advertising data payload size for the
   // selected periodic advertising interval.
-  static uint16_t GetMaxPeriodicAdvertisingDataLength(slots periodic_advertising_interval);
+  static uint16_t GetMaxPeriodicAdvertisingDataLength(
+      slots periodic_advertising_interval);
 };
 
-} // namespace rootcanal
+}  // namespace rootcanal

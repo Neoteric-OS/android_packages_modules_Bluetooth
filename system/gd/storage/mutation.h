@@ -25,18 +25,18 @@ namespace bluetooth {
 namespace storage {
 
 class Mutation {
-public:
+ public:
   Mutation(ConfigCache* config, ConfigCache* memory_only_config);
   void Add(MutationEntry entry);
   void Commit();
   friend ConfigCache;
 
-private:
+ private:
   ConfigCache* config_;
   ConfigCache* memory_only_config_;
   std::queue<MutationEntry> normal_config_entries_;
   std::queue<MutationEntry> memory_only_config_entries_;
 };
 
-} // namespace storage
-} // namespace bluetooth
+}  // namespace storage
+}  // namespace bluetooth

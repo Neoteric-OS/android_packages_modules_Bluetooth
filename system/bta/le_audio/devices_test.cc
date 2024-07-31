@@ -36,7 +36,9 @@
 #include "stack/btm/btm_int_types.h"
 #include "test/mock/mock_main_shim_entry.h"
 
-tACL_CONN* btm_bda_to_acl(const RawAddress& bda, tBT_TRANSPORT transport) { return nullptr; }
+tACL_CONN* btm_bda_to_acl(const RawAddress& bda, tBT_TRANSPORT transport) {
+  return nullptr;
+}
 
 namespace bluetooth {
 namespace le_audio {
@@ -60,44 +62,45 @@ using testing::Return;
 using testing::Test;
 
 auto constexpr kVendorCodecIdOne = bluetooth::le_audio::types::LeAudioCodecId(
-        {.coding_format = types::kLeAudioCodingFormatVendorSpecific,
-         .vendor_company_id = 0xF00D,
-         .vendor_codec_id = 0x0001});
+    {.coding_format = types::kLeAudioCodingFormatVendorSpecific,
+     .vendor_company_id = 0xF00D,
+     .vendor_codec_id = 0x0001});
 
 set_configurations::CodecConfigSetting kVendorCodecOne = {
-        .id = kVendorCodecIdOne,
-        .params = types::LeAudioLtvMap({
-                // Add the Sampling Freq and AudioChannelAllocation which are
-                // mandatory even for the Vendor codec provider (multicodec AIDL)
-                {codec_spec_conf::kLeAudioLtvTypeSamplingFreq,
-                 UINT8_TO_VEC_UINT8(codec_spec_conf::kLeAudioSamplingFreq16000Hz)},
-        }),
-        // Some opaque data buffer
-        .vendor_params = std::vector<uint8_t>({0x01, 0xC0, 0xDE, 0xF0, 0x0D}),
-        .channel_count_per_iso_stream = 1,
+    .id = kVendorCodecIdOne,
+    .params = types::LeAudioLtvMap({
+        // Add the Sampling Freq and AudioChannelAllocation which are
+        // mandatory even for the Vendor codec provider (multicodec AIDL)
+        {codec_spec_conf::kLeAudioLtvTypeSamplingFreq,
+         UINT8_TO_VEC_UINT8(codec_spec_conf::kLeAudioSamplingFreq16000Hz)},
+    }),
+    // Some opaque data buffer
+    .vendor_params = std::vector<uint8_t>({0x01, 0xC0, 0xDE, 0xF0, 0x0D}),
+    .channel_count_per_iso_stream = 1,
 };
 
 set_configurations::CodecConfigSetting kVendorCodecOneSwb = {
-        .id = kVendorCodecIdOne,
-        .params = types::LeAudioLtvMap({
-                // Add the Sampling Freq and AudioChannelAllocation which are
-                // mandatory even for the Vendor codec provider (multicodec AIDL)
-                {codec_spec_conf::kLeAudioLtvTypeSamplingFreq,
-                 UINT8_TO_VEC_UINT8(codec_spec_conf::kLeAudioSamplingFreq32000Hz)},
-        }),
-        // Some opaque data buffer
-        .vendor_params = std::vector<uint8_t>({0x01, 0xC0, 0xDE, 0xF0, 0x0F}),
-        .channel_count_per_iso_stream = 1,
+    .id = kVendorCodecIdOne,
+    .params = types::LeAudioLtvMap({
+        // Add the Sampling Freq and AudioChannelAllocation which are
+        // mandatory even for the Vendor codec provider (multicodec AIDL)
+        {codec_spec_conf::kLeAudioLtvTypeSamplingFreq,
+         UINT8_TO_VEC_UINT8(codec_spec_conf::kLeAudioSamplingFreq32000Hz)},
+    }),
+    // Some opaque data buffer
+    .vendor_params = std::vector<uint8_t>({0x01, 0xC0, 0xDE, 0xF0, 0x0F}),
+    .channel_count_per_iso_stream = 1,
 };
 
 RawAddress GetTestAddress(int index) {
   EXPECT_LT(index, UINT8_MAX);
-  RawAddress result = {{0xC0, 0xDE, 0xC0, 0xDE, 0x00, static_cast<uint8_t>(index)}};
+  RawAddress result = {
+      {0xC0, 0xDE, 0xC0, 0xDE, 0x00, static_cast<uint8_t>(index)}};
   return result;
 }
 
 class LeAudioDevicesTest : public Test {
-protected:
+ protected:
   void SetUp() override {
     __android_log_set_minimum_priority(ANDROID_LOG_VERBOSE);
     devices_ = new LeAudioDevices();
@@ -173,7 +176,8 @@ TEST_F(LeAudioDevicesTest, test_get_by_address_success) {
   devices_->Add(test_address_1, DeviceConnectState::DISCONNECTED);
   RawAddress test_address_2 = GetTestAddress(2);
   devices_->Add(test_address_2, DeviceConnectState::CONNECTING_BY_USER);
-  std::shared_ptr<LeAudioDevice> device = devices_->GetByAddress(test_address_1);
+  std::shared_ptr<LeAudioDevice> device =
+      devices_->GetByAddress(test_address_1);
   ASSERT_NE(nullptr, device);
   ASSERT_EQ(test_address_1, device->address_);
 }
@@ -183,7 +187,8 @@ TEST_F(LeAudioDevicesTest, test_get_by_address_failed) {
   devices_->Add(test_address_0, DeviceConnectState::CONNECTING_BY_USER);
   RawAddress test_address_2 = GetTestAddress(2);
   devices_->Add(test_address_2, DeviceConnectState::CONNECTING_BY_USER);
-  std::shared_ptr<LeAudioDevice> device = devices_->GetByAddress(GetTestAddress(1));
+  std::shared_ptr<LeAudioDevice> device =
+      devices_->GetByAddress(GetTestAddress(1));
   ASSERT_EQ(nullptr, device);
 }
 
@@ -207,11 +212,12 @@ TEST_F(LeAudioDevicesTest, test_find_by_conn_id_failed) {
 TEST_F(LeAudioDevicesTest, test_get_device_model_name_success) {
   RawAddress test_address_0 = GetTestAddress(0);
   devices_->Add(test_address_0, DeviceConnectState::CONNECTING_BY_USER);
-  std::shared_ptr<LeAudioDevice> device = devices_->GetByAddress(test_address_0);
+  std::shared_ptr<LeAudioDevice> device =
+      devices_->GetByAddress(test_address_0);
   ASSERT_NE(nullptr, device);
   device->model_name_ = "Test";
   ON_CALL(mock_btif_storage_, GetRemoteDeviceProperty(_, _))
-          .WillByDefault(Return(BT_STATUS_SUCCESS));
+      .WillByDefault(Return(BT_STATUS_SUCCESS));
   device->GetDeviceModelName();
   ASSERT_EQ("", device->model_name_);
 }
@@ -219,17 +225,19 @@ TEST_F(LeAudioDevicesTest, test_get_device_model_name_success) {
 TEST_F(LeAudioDevicesTest, test_get_device_model_name_failed) {
   RawAddress test_address_0 = GetTestAddress(0);
   devices_->Add(test_address_0, DeviceConnectState::CONNECTING_BY_USER);
-  std::shared_ptr<LeAudioDevice> device = devices_->GetByAddress(test_address_0);
+  std::shared_ptr<LeAudioDevice> device =
+      devices_->GetByAddress(test_address_0);
   ASSERT_NE(nullptr, device);
   device->model_name_ = "Test";
-  ON_CALL(mock_btif_storage_, GetRemoteDeviceProperty(_, _)).WillByDefault(Return(BT_STATUS_FAIL));
+  ON_CALL(mock_btif_storage_, GetRemoteDeviceProperty(_, _))
+      .WillByDefault(Return(BT_STATUS_FAIL));
   device->GetDeviceModelName();
   ASSERT_EQ("Test", device->model_name_);
 }
 
 /* TODO: Add FindByCisConnHdl test cases (ASE) */
 
-} // namespace
+}  // namespace
 
 namespace {
 using namespace ::bluetooth::le_audio::codec_spec_caps;
@@ -273,9 +281,8 @@ bool IsLc3SettingSupported(LeAudioContextType context_type, Lc3SettingId id) {
           id == Lc3SettingId::LC3_32_1 || id == Lc3SettingId::LC3_32_2 ||
           id == Lc3SettingId::LC3_48_1 || id == Lc3SettingId::LC3_48_2 ||
           id == Lc3SettingId::LC3_48_3 || id == Lc3SettingId::LC3_48_4 ||
-          id == Lc3SettingId::LC3_VND_1) {
+          id == Lc3SettingId::LC3_VND_1)
         return true;
-      }
 
       break;
 
@@ -288,16 +295,13 @@ bool IsLc3SettingSupported(LeAudioContextType context_type, Lc3SettingId id) {
       if (id == Lc3SettingId::LC3_16_1 || id == Lc3SettingId::LC3_16_2 ||
           id == Lc3SettingId::LC3_48_4 || id == Lc3SettingId::LC3_48_1 ||
           id == Lc3SettingId::LC3_48_2 || id == Lc3SettingId::LC3_VND_1 ||
-          id == Lc3SettingId::LC3_24_2) {
+          id == Lc3SettingId::LC3_24_2)
         return true;
-      }
 
       break;
 
     default:
-      if (id == Lc3SettingId::LC3_16_2) {
-        return true;
-      }
+      if (id == Lc3SettingId::LC3_16_2) return true;
 
       break;
   };
@@ -313,16 +317,20 @@ uint8_t GetSamplingFrequency(Lc3SettingId id) {
       return ::bluetooth::le_audio::codec_spec_conf::kLeAudioSamplingFreq8000Hz;
     case Lc3SettingId::LC3_16_1:
     case Lc3SettingId::LC3_16_2:
-      return ::bluetooth::le_audio::codec_spec_conf::kLeAudioSamplingFreq16000Hz;
+      return ::bluetooth::le_audio::codec_spec_conf::
+          kLeAudioSamplingFreq16000Hz;
     case Lc3SettingId::LC3_24_1:
     case Lc3SettingId::LC3_24_2:
-      return ::bluetooth::le_audio::codec_spec_conf::kLeAudioSamplingFreq24000Hz;
+      return ::bluetooth::le_audio::codec_spec_conf::
+          kLeAudioSamplingFreq24000Hz;
     case Lc3SettingId::LC3_32_1:
     case Lc3SettingId::LC3_32_2:
-      return ::bluetooth::le_audio::codec_spec_conf::kLeAudioSamplingFreq32000Hz;
+      return ::bluetooth::le_audio::codec_spec_conf::
+          kLeAudioSamplingFreq32000Hz;
     case Lc3SettingId::LC3_441_1:
     case Lc3SettingId::LC3_441_2:
-      return ::bluetooth::le_audio::codec_spec_conf::kLeAudioSamplingFreq44100Hz;
+      return ::bluetooth::le_audio::codec_spec_conf::
+          kLeAudioSamplingFreq44100Hz;
     case Lc3SettingId::LC3_48_1:
     case Lc3SettingId::LC3_48_2:
     case Lc3SettingId::LC3_48_3:
@@ -330,7 +338,8 @@ uint8_t GetSamplingFrequency(Lc3SettingId id) {
     case Lc3SettingId::LC3_48_5:
     case Lc3SettingId::LC3_48_6:
     case Lc3SettingId::LC3_VND_1:
-      return ::bluetooth::le_audio::codec_spec_conf::kLeAudioSamplingFreq48000Hz;
+      return ::bluetooth::le_audio::codec_spec_conf::
+          kLeAudioSamplingFreq48000Hz;
     case Lc3SettingId::UNSUPPORTED:
       return kLeAudioSamplingFreqRfu;
   }
@@ -347,7 +356,8 @@ uint8_t GetFrameDuration(Lc3SettingId id) {
     case Lc3SettingId::LC3_48_1:
     case Lc3SettingId::LC3_48_3:
     case Lc3SettingId::LC3_48_5:
-      return ::bluetooth::le_audio::codec_spec_conf::kLeAudioCodecFrameDur7500us;
+      return ::bluetooth::le_audio::codec_spec_conf::
+          kLeAudioCodecFrameDur7500us;
     case Lc3SettingId::LC3_8_2:
     case Lc3SettingId::LC3_16_2:
     case Lc3SettingId::LC3_24_2:
@@ -357,7 +367,8 @@ uint8_t GetFrameDuration(Lc3SettingId id) {
     case Lc3SettingId::LC3_48_4:
     case Lc3SettingId::LC3_48_6:
     case Lc3SettingId::LC3_VND_1:
-      return ::bluetooth::le_audio::codec_spec_conf::kLeAudioCodecFrameDur10000us;
+      return ::bluetooth::le_audio::codec_spec_conf::
+          kLeAudioCodecFrameDur10000us;
     case Lc3SettingId::UNSUPPORTED:
       return kLeAudioCodecFrameDurRfu;
   }
@@ -403,71 +414,84 @@ uint16_t GetOctetsPerCodecFrame(Lc3SettingId id) {
 }
 
 class PublishedAudioCapabilitiesBuilder {
-public:
+ public:
   PublishedAudioCapabilitiesBuilder() {}
 
   void Add(bluetooth::le_audio::types::LeAudioCodecId codec_id, uint8_t conf_sampling_frequency,
-           uint8_t conf_frame_duration, uint8_t audio_channel_counts, uint16_t octets_per_frame,
-           uint8_t codec_frames_per_sdu = 0) {
-    uint16_t sampling_frequencies = SamplingFreqConfig2Capability(conf_sampling_frequency);
-    uint8_t frame_durations = FrameDurationConfig2Capability(conf_frame_duration);
+           uint8_t conf_frame_duration, uint8_t audio_channel_counts,
+           uint16_t octets_per_frame, uint8_t codec_frames_per_sdu = 0) {
+    uint16_t sampling_frequencies =
+        SamplingFreqConfig2Capability(conf_sampling_frequency);
+    uint8_t frame_durations =
+        FrameDurationConfig2Capability(conf_frame_duration);
     uint8_t max_codec_frames_per_sdu = codec_frames_per_sdu;
-    uint32_t octets_per_frame_range = octets_per_frame | (octets_per_frame << 16);
+    uint32_t octets_per_frame_range =
+        octets_per_frame | (octets_per_frame << 16);
 
     auto ltv_map = LeAudioLtvMap();
-    ltv_map.Add(kLeAudioLtvTypeSupportedSamplingFrequencies, (uint16_t)sampling_frequencies)
-            .Add(kLeAudioLtvTypeSupportedFrameDurations, (uint8_t)frame_durations)
-            .Add(kLeAudioLtvTypeSupportedAudioChannelCounts, (uint8_t)audio_channel_counts)
-            .Add(kLeAudioLtvTypeSupportedOctetsPerCodecFrame, (uint32_t)octets_per_frame_range)
-            .Add(kLeAudioLtvTypeSupportedMaxCodecFramesPerSdu, (uint8_t)max_codec_frames_per_sdu);
+    ltv_map
+        .Add(kLeAudioLtvTypeSupportedSamplingFrequencies,
+             (uint16_t)sampling_frequencies)
+        .Add(kLeAudioLtvTypeSupportedFrameDurations, (uint8_t)frame_durations)
+        .Add(kLeAudioLtvTypeSupportedAudioChannelCounts,
+             (uint8_t)audio_channel_counts)
+        .Add(kLeAudioLtvTypeSupportedOctetsPerCodecFrame,
+             (uint32_t)octets_per_frame_range)
+        .Add(kLeAudioLtvTypeSupportedMaxCodecFramesPerSdu,
+             (uint8_t)max_codec_frames_per_sdu);
 
     auto record = acs_ac_record(
-            {.codec_id = codec_id,
-             .codec_spec_caps = (codec_id.coding_format != kLeAudioCodingFormatVendorSpecific
-                                         ? ltv_map
-                                         : LeAudioLtvMap()),
-             .codec_spec_caps_raw = ltv_map.RawPacket(),
-             .metadata = LeAudioLtvMap()});
+        {.codec_id = codec_id,
+         .codec_spec_caps =
+             (codec_id.coding_format != kLeAudioCodingFormatVendorSpecific
+                  ? ltv_map
+                  : LeAudioLtvMap()),
+         .codec_spec_caps_raw = ltv_map.RawPacket(),
+         .metadata = LeAudioLtvMap()});
     pac_records_.push_back(record);
   }
 
   void Add(bluetooth::le_audio::types::LeAudioCodecId codec_id, uint16_t capa_sampling_frequency,
-           uint8_t capa_frame_duration, uint8_t audio_channel_counts, uint16_t octets_per_frame_min,
-           uint16_t ocets_per_frame_max, uint8_t codec_frames_per_sdu = 1) {
-    uint32_t octets_per_frame_range = octets_per_frame_min | (ocets_per_frame_max << 16);
+           uint8_t capa_frame_duration, uint8_t audio_channel_counts,
+           uint16_t octets_per_frame_min, uint16_t ocets_per_frame_max,
+           uint8_t codec_frames_per_sdu = 1) {
+    uint32_t octets_per_frame_range =
+        octets_per_frame_min | (ocets_per_frame_max << 16);
 
     auto ltv_map = LeAudioLtvMap({
-            {kLeAudioLtvTypeSupportedSamplingFrequencies,
-             UINT16_TO_VEC_UINT8(capa_sampling_frequency)},
-            {kLeAudioLtvTypeSupportedFrameDurations, UINT8_TO_VEC_UINT8(capa_frame_duration)},
-            {kLeAudioLtvTypeSupportedAudioChannelCounts, UINT8_TO_VEC_UINT8(audio_channel_counts)},
-            {kLeAudioLtvTypeSupportedOctetsPerCodecFrame,
-             UINT32_TO_VEC_UINT8(octets_per_frame_range)},
-            {kLeAudioLtvTypeSupportedMaxCodecFramesPerSdu,
-             UINT8_TO_VEC_UINT8(codec_frames_per_sdu)},
+        {kLeAudioLtvTypeSupportedSamplingFrequencies,
+         UINT16_TO_VEC_UINT8(capa_sampling_frequency)},
+        {kLeAudioLtvTypeSupportedFrameDurations,
+         UINT8_TO_VEC_UINT8(capa_frame_duration)},
+        {kLeAudioLtvTypeSupportedAudioChannelCounts,
+         UINT8_TO_VEC_UINT8(audio_channel_counts)},
+        {kLeAudioLtvTypeSupportedOctetsPerCodecFrame,
+         UINT32_TO_VEC_UINT8(octets_per_frame_range)},
+        {kLeAudioLtvTypeSupportedMaxCodecFramesPerSdu,
+         UINT8_TO_VEC_UINT8(codec_frames_per_sdu)},
     });
-    pac_records_.push_back(
-            acs_ac_record({.codec_id = codec_id,
-                           // Transparent LTV map capabilities only for the LC3 codec
-                           .codec_spec_caps = (codec_id.coding_format == kLeAudioCodingFormatLC3)
-                                                      ? ltv_map
-                                                      : LeAudioLtvMap(),
-                           .codec_spec_caps_raw = ltv_map.RawPacket(),
-                           .metadata = LeAudioLtvMap()}));
+    pac_records_.push_back(acs_ac_record(
+        {.codec_id = codec_id,
+         // Transparent LTV map capabilities only for the LC3 codec
+         .codec_spec_caps = (codec_id.coding_format == kLeAudioCodingFormatLC3)
+                                ? ltv_map
+                                : LeAudioLtvMap(),
+         .codec_spec_caps_raw = ltv_map.RawPacket(),
+         .metadata = LeAudioLtvMap()}));
   }
 
   void Add(LeAudioCodecId codec_id, const std::vector<uint8_t>& vendor_data,
            uint8_t audio_channel_counts) {
-    pac_records_.push_back(
-            acs_ac_record({.codec_id = codec_id,
-                           .codec_spec_caps = LeAudioLtvMap({
-                                   {kLeAudioLtvTypeSupportedAudioChannelCounts,
-                                    UINT8_TO_VEC_UINT8(audio_channel_counts)},
-                           }),
-                           // For now assume that vendor representation of codec capabilities
-                           // equals the representation of codec settings
-                           .codec_spec_caps_raw = vendor_data,
-                           .metadata = LeAudioLtvMap()}));
+    pac_records_.push_back(acs_ac_record(
+        {.codec_id = codec_id,
+         .codec_spec_caps = LeAudioLtvMap({
+             {kLeAudioLtvTypeSupportedAudioChannelCounts,
+              UINT8_TO_VEC_UINT8(audio_channel_counts)},
+         }),
+         // For now assume that vendor representation of codec capabilities
+         // equals the representation of codec settings
+         .codec_spec_caps_raw = vendor_data,
+         .metadata = LeAudioLtvMap()}));
   }
 
   void Add(const CodecConfigSetting& setting, uint8_t audio_channel_counts) {
@@ -476,9 +500,11 @@ public:
       return;
     }
 
-    const LeAudioCoreCodecConfig core_config = setting.params.GetAsCoreCodecConfig();
-    Add(setting.id, *core_config.sampling_frequency, *core_config.frame_duration,
-        audio_channel_counts, *core_config.octets_per_codec_frame);
+    const LeAudioCoreCodecConfig core_config =
+        setting.params.GetAsCoreCodecConfig();
+    Add(setting.id, *core_config.sampling_frequency,
+        *core_config.frame_duration, audio_channel_counts,
+        *core_config.octets_per_codec_frame);
   }
 
   void Reset() { pac_records_.clear(); }
@@ -487,7 +513,7 @@ public:
     return PublishedAudioCapabilities({{hdl_pair_nil, pac_records_}});
   }
 
-private:
+ private:
   std::vector<acs_ac_record> pac_records_;
 };
 
@@ -501,8 +527,10 @@ struct TestGroupAseConfigurationData {
   uint8_t expected_active_channel_num_src;
 };
 
-class LeAudioAseConfigurationTest : public Test, public ::testing::WithParamInterface<uint16_t> {
-protected:
+class LeAudioAseConfigurationTest
+    : public Test,
+      public ::testing::WithParamInterface<uint16_t> {
+ protected:
   uint16_t codec_coding_format_ = 0x0000;
 
   void SetUp() override {
@@ -516,32 +544,40 @@ protected:
     bluetooth::hci::testing::mock_controller_ = &controller_interface_;
 
     auto codec_location = ::bluetooth::le_audio::types::CodecLocation::HOST;
-    bluetooth::le_audio::AudioSetConfigurationProvider::Initialize(codec_location);
+    bluetooth::le_audio::AudioSetConfigurationProvider::Initialize(
+        codec_location);
     MockCsisClient::SetMockInstanceForTesting(&mock_csis_client_module_);
-    ON_CALL(mock_csis_client_module_, Get()).WillByDefault(Return(&mock_csis_client_module_));
-    ON_CALL(mock_csis_client_module_, IsCsisClientRunning()).WillByDefault(Return(true));
-    ON_CALL(mock_csis_client_module_, GetDeviceList(_)).WillByDefault(Invoke([this](int group_id) {
-      return addresses_;
-    }));
-    ON_CALL(mock_csis_client_module_, GetDesiredSize(_)).WillByDefault(Invoke([this](int group_id) {
-      return desired_group_size_ > 0 ? desired_group_size_ : (int)(addresses_.size());
-    }));
+    ON_CALL(mock_csis_client_module_, Get())
+        .WillByDefault(Return(&mock_csis_client_module_));
+    ON_CALL(mock_csis_client_module_, IsCsisClientRunning())
+        .WillByDefault(Return(true));
+    ON_CALL(mock_csis_client_module_, GetDeviceList(_))
+        .WillByDefault(Invoke([this](int group_id) { return addresses_; }));
+    ON_CALL(mock_csis_client_module_, GetDesiredSize(_))
+        .WillByDefault(Invoke([this](int group_id) {
+          return desired_group_size_ > 0 ? desired_group_size_
+                                         : (int)(addresses_.size());
+        }));
     SetUpMockCodecManager(codec_location);
   }
 
-  static std::vector<AseConfiguration> GetVendorAseConfigurationsForRequirements(
-          const bluetooth::le_audio::CodecManager::UnicastConfigurationRequirements& requirements,
-          const CodecConfigSetting& codec, uint8_t direction) {
+  static std::vector<AseConfiguration>
+  GetVendorAseConfigurationsForRequirements(
+      const bluetooth::le_audio::CodecManager::UnicastConfigurationRequirements&
+          requirements,
+      const CodecConfigSetting& codec, uint8_t direction) {
     std::vector<AseConfiguration> ase_confs;
 
-    auto const& required_pacs = (direction == kLeAudioDirectionSink) ? requirements.sink_pacs
-                                                                     : requirements.source_pacs;
+    auto const& required_pacs = (direction == kLeAudioDirectionSink)
+                                    ? requirements.sink_pacs
+                                    : requirements.source_pacs;
     auto direction_requirements = (direction == kLeAudioDirectionSink)
-                                          ? requirements.sink_requirements
-                                          : requirements.source_requirements;
+                                      ? requirements.sink_requirements
+                                      : requirements.source_requirements;
 
-    if (std::count_if(required_pacs->begin(), required_pacs->end(),
-                      [](auto const& pac) { return pac.codec_spec_caps_raw.empty(); })) {
+    if (std::count_if(
+            required_pacs->begin(), required_pacs->end(),
+            [](auto const& pac) { return pac.codec_spec_caps_raw.empty(); })) {
       return ase_confs;
     }
 
@@ -549,12 +585,14 @@ protected:
       return ase_confs;
     }
 
-    AseConfiguration endpoint_cfg(codec, {.target_latency = kTargetLatencyLower,
-                                          .retransmission_number = 3,
-                                          .max_transport_latency = kMaxTransportLatencyMin});
+    AseConfiguration endpoint_cfg(
+        codec, {.target_latency = kTargetLatencyLower,
+                .retransmission_number = 3,
+                .max_transport_latency = kMaxTransportLatencyMin});
 
     // Finding the max channel count
-    uint32_t target_max_channel_counts_per_ase_bitmap = 0b1; // bit 0 - one channel
+    uint32_t target_max_channel_counts_per_ase_bitmap =
+        0b1;  // bit 0 - one channel
     for (auto const& pac : *required_pacs) {
       auto caps = pac.codec_spec_caps.GetAsCoreCodecCapabilities();
       if (caps.HasSupportedAudioChannelCounts()) {
@@ -568,22 +606,25 @@ protected:
     uint8_t target_max_channel_counts_per_ase = 0;
     while (target_max_channel_counts_per_ase_bitmap) {
       ++target_max_channel_counts_per_ase;
-      target_max_channel_counts_per_ase_bitmap = target_max_channel_counts_per_ase_bitmap >> 1;
+      target_max_channel_counts_per_ase_bitmap =
+          target_max_channel_counts_per_ase_bitmap >> 1;
     }
 
     // For sink we always put a requirement here, but for source there are
     // some conditions
     auto sourceAsesNeeded =
-            (!kLeAudioContextAllRemoteSinkOnly.test(requirements.audio_context_type) ||
-             (requirements.audio_context_type == LeAudioContextType::RINGTONE)) &&
-            (requirements.audio_context_type != types::LeAudioContextType::UNSPECIFIED);
+        (!kLeAudioContextAllRemoteSinkOnly.test(
+             requirements.audio_context_type) ||
+         (requirements.audio_context_type == LeAudioContextType::RINGTONE)) &&
+        (requirements.audio_context_type !=
+         types::LeAudioContextType::UNSPECIFIED);
     if ((direction == kLeAudioDirectionSink) || sourceAsesNeeded) {
       // Create ASE configurations with the proper audio channel allocation
       uint8_t count = 0;
       uint32_t allocations = 0;
       for (auto const& req : *direction_requirements) {
-        auto req_allocations = VEC_UINT8_TO_UINT32(
-                req.params.At(codec_spec_conf::kLeAudioLtvTypeAudioChannelAllocation));
+        auto req_allocations = VEC_UINT8_TO_UINT32(req.params.At(
+            codec_spec_conf::kLeAudioLtvTypeAudioChannelAllocation));
 
         // Create the list of requested audio allocations
         std::list<uint32_t> split_allocations;
@@ -600,10 +641,12 @@ protected:
         // channel counts per ASE) and create an ASE configuration.
         while (split_allocations.size()) {
           auto num_of_allocations_per_ase =
-                  std::min(target_max_channel_counts_per_ase, (uint8_t)split_allocations.size());
+              std::min(target_max_channel_counts_per_ase,
+                       (uint8_t)split_allocations.size());
           // Note: This is very important to set for the unit test
           // Configuration verifier
-          endpoint_cfg.codec.channel_count_per_iso_stream = num_of_allocations_per_ase;
+          endpoint_cfg.codec.channel_count_per_iso_stream =
+              num_of_allocations_per_ase;
 
           // Consume the `num_of_allocations_per_ase` amount of allocations for
           // this particular ASE
@@ -613,8 +656,9 @@ protected:
             split_allocations.pop_front();
             --num_of_allocations_per_ase;
           }
-          endpoint_cfg.codec.params.Add(codec_spec_conf::kLeAudioLtvTypeAudioChannelAllocation,
-                                        ase_allocations);
+          endpoint_cfg.codec.params.Add(
+              codec_spec_conf::kLeAudioLtvTypeAudioChannelAllocation,
+              ase_allocations);
 
           // Add the ASE configuration
           ase_confs.push_back(endpoint_cfg);
@@ -626,98 +670,101 @@ protected:
   }
 
   static auto MockVendorCodecProvider(
-          const bluetooth::le_audio::CodecManager::UnicastConfigurationRequirements& requirements) {
+      const bluetooth::le_audio::CodecManager::UnicastConfigurationRequirements&
+          requirements) {
     AudioSetConfiguration cfg = {
-            .name = "Example Vendor Codec Configuration",
-            .packing = bluetooth::hci::kIsoCigPackingSequential,
-            .confs = {.sink = {}, .source = {}},
+        .name = "Example Vendor Codec Configuration",
+        .packing = bluetooth::hci::kIsoCigPackingSequential,
+        .confs = {.sink = {}, .source = {}},
     };
 
-    CodecConfigSetting codec =
-            bluetooth::le_audio::CodecManager::GetInstance()->IsDualBiDirSwbSupported()
-                    ? kVendorCodecOneSwb
-                    : kVendorCodecOne;
+    CodecConfigSetting codec = bluetooth::le_audio::CodecManager::GetInstance()
+                                       ->IsDualBiDirSwbSupported()
+                                   ? kVendorCodecOneSwb
+                                   : kVendorCodecOne;
     if (requirements.sink_requirements) {
-      cfg.confs.sink =
-              GetVendorAseConfigurationsForRequirements(requirements, codec, kLeAudioDirectionSink);
+      cfg.confs.sink = GetVendorAseConfigurationsForRequirements(
+          requirements, codec, kLeAudioDirectionSink);
     }
 
     if (requirements.source_requirements) {
-      cfg.confs.source = GetVendorAseConfigurationsForRequirements(requirements, codec,
-                                                                   kLeAudioDirectionSource);
+      cfg.confs.source = GetVendorAseConfigurationsForRequirements(
+          requirements, codec, kLeAudioDirectionSource);
     }
 
     log::debug("snk confs size: {}", cfg.confs.sink.size());
     log::debug("src confs size: {}", cfg.confs.source.size());
     return (!cfg.confs.sink.empty() || !cfg.confs.source.empty())
-                   ? std::make_unique<AudioSetConfiguration>(cfg)
-                   : nullptr;
+               ? std::make_unique<AudioSetConfiguration>(cfg)
+               : nullptr;
   }
 
-  void SetUpMockCodecManager(bluetooth::le_audio::types::CodecLocation location) {
+  void SetUpMockCodecManager(
+      bluetooth::le_audio::types::CodecLocation location) {
     codec_manager_ = bluetooth::le_audio::CodecManager::GetInstance();
     ASSERT_NE(codec_manager_, nullptr);
-    std::vector<bluetooth::le_audio::btle_audio_codec_config_t> mock_offloading_preference(0);
+    std::vector<bluetooth::le_audio::btle_audio_codec_config_t>
+        mock_offloading_preference(0);
     codec_manager_->Start(mock_offloading_preference);
     mock_codec_manager_ = MockCodecManager::GetInstance();
     ASSERT_NE((void*)mock_codec_manager_, (void*)codec_manager_);
     ASSERT_NE(mock_codec_manager_, nullptr);
-    ON_CALL(*mock_codec_manager_, GetCodecLocation()).WillByDefault(Return(location));
+    ON_CALL(*mock_codec_manager_, GetCodecLocation())
+        .WillByDefault(Return(location));
 
     // Set up the config provider for the Lc3 codec
     if (codec_coding_format_ == kLeAudioCodingFormatLC3) {
       // Regardless of the codec location, return all the possible
       // configurations
-      ON_CALL(*mock_codec_manager_, IsDualBiDirSwbSupported).WillByDefault(Return(true));
+      ON_CALL(*mock_codec_manager_, IsDualBiDirSwbSupported)
+          .WillByDefault(Return(true));
     }
 
     ON_CALL(*mock_codec_manager_, GetCodecConfig)
-            .WillByDefault(Invoke(
-                    [&](const bluetooth::le_audio::CodecManager::UnicastConfigurationRequirements&
-                                requirements,
-                        bluetooth::le_audio::CodecManager::UnicastConfigurationVerifier verifier) {
-                      if (codec_coding_format_ == kLeAudioCodingFormatLC3) {
-                        auto filtered =
-                                *bluetooth::le_audio::AudioSetConfigurationProvider::Get()
-                                         ->GetConfigurations(requirements.audio_context_type);
-                        // Filter out the dual bidir SWB configurations
-                        if (!bluetooth::le_audio::CodecManager::GetInstance()
-                                     ->IsDualBiDirSwbSupported()) {
-                          filtered.erase(
-                                  std::remove_if(filtered.begin(), filtered.end(),
-                                                 [](auto const& el) {
-                                                   if (el->confs.source.empty()) {
-                                                     return false;
-                                                   }
-                                                   return AudioSetConfigurationProvider::Get()
-                                                           ->CheckConfigurationIsDualBiDirSwb(*el);
-                                                 }),
-                                  filtered.end());
-                        }
-                        auto cfg = verifier(requirements, &filtered);
-                        if (cfg == nullptr) {
-                          return std::unique_ptr<AudioSetConfiguration>(nullptr);
-                        }
-                        return std::make_unique<AudioSetConfiguration>(*cfg);
-                      } else {
-                        return MockVendorCodecProvider(requirements);
-                      }
-                    }));
+        .WillByDefault(Invoke(
+            [&](const bluetooth::le_audio::CodecManager::
+                    UnicastConfigurationRequirements& requirements,
+                bluetooth::le_audio::CodecManager::UnicastConfigurationVerifier
+                    verifier) {
+              if (codec_coding_format_ == kLeAudioCodingFormatLC3) {
+                auto filtered =
+                    *bluetooth::le_audio::AudioSetConfigurationProvider::Get()
+                         ->GetConfigurations(requirements.audio_context_type);
+                // Filter out the dual bidir SWB configurations
+                if (!bluetooth::le_audio::CodecManager::GetInstance()
+                         ->IsDualBiDirSwbSupported()) {
+                  filtered.erase(
+                      std::remove_if(
+                          filtered.begin(), filtered.end(),
+                          [](auto const& el) {
+                            if (el->confs.source.empty()) return false;
+                            return AudioSetConfigurationProvider::Get()
+                                ->CheckConfigurationIsDualBiDirSwb(*el);
+                          }),
+                      filtered.end());
+                }
+                auto cfg = verifier(requirements, &filtered);
+                if (cfg == nullptr) {
+                  return std::unique_ptr<AudioSetConfiguration>(nullptr);
+                }
+                return std::make_unique<AudioSetConfiguration>(*cfg);
+              } else {
+                return MockVendorCodecProvider(requirements);
+              }
+            }));
 
     ON_CALL(*mock_codec_manager_, CheckCodecConfigIsBiDirSwb)
-            .WillByDefault(
-                    Invoke([](const bluetooth::le_audio::set_configurations::AudioSetConfiguration&
-                                      config) {
-                      return AudioSetConfigurationProvider::Get()->CheckConfigurationIsBiDirSwb(
-                              config);
-                    }));
+        .WillByDefault(Invoke([](const bluetooth::le_audio::set_configurations::
+                                     AudioSetConfiguration& config) {
+          return AudioSetConfigurationProvider::Get()
+              ->CheckConfigurationIsBiDirSwb(config);
+        }));
     ON_CALL(*mock_codec_manager_, CheckCodecConfigIsDualBiDirSwb)
-            .WillByDefault(
-                    Invoke([](const bluetooth::le_audio::set_configurations::AudioSetConfiguration&
-                                      config) {
-                      return AudioSetConfigurationProvider::Get()->CheckConfigurationIsDualBiDirSwb(
-                              config);
-                    }));
+        .WillByDefault(Invoke([](const bluetooth::le_audio::set_configurations::
+                                     AudioSetConfiguration& config) {
+          return AudioSetConfigurationProvider::Get()
+              ->CheckConfigurationIsDualBiDirSwb(config);
+        }));
   }
 
   void TearDown() override {
@@ -736,15 +783,16 @@ protected:
   }
 
   LeAudioDevice* AddTestDevice(
-          int snk_ase_num, int src_ase_num, int snk_ase_num_cached = 0, int src_ase_num_cached = 0,
-          bool invert_ases_emplacement = false, bool out_of_range_device = false,
-          uint8_t snk_allocation = codec_spec_conf::kLeAudioLocationFrontLeft |
-                                   codec_spec_conf::kLeAudioLocationFrontRight,
-          uint8_t src_allocation = codec_spec_conf::kLeAudioLocationFrontLeft |
-                                   codec_spec_conf::kLeAudioLocationFrontRight) {
+      int snk_ase_num, int src_ase_num, int snk_ase_num_cached = 0,
+      int src_ase_num_cached = 0, bool invert_ases_emplacement = false,
+      bool out_of_range_device = false,
+      uint8_t snk_allocation = codec_spec_conf::kLeAudioLocationFrontLeft |
+                               codec_spec_conf::kLeAudioLocationFrontRight,
+      uint8_t src_allocation = codec_spec_conf::kLeAudioLocationFrontLeft |
+                               codec_spec_conf::kLeAudioLocationFrontRight) {
     int index = group_->Size() + 1;
-    auto device = (std::make_shared<LeAudioDevice>(GetTestAddress(index),
-                                                   DeviceConnectState::DISCONNECTED));
+    auto device = (std::make_shared<LeAudioDevice>(
+        GetTestAddress(index), DeviceConnectState::DISCONNECTED));
     devices_.push_back(device);
     addresses_.push_back(device->address_);
     log::info("Number of devices {}", (int)(addresses_.size()));
@@ -754,59 +802,70 @@ protected:
     }
 
     int ase_id = 1;
-    for (int i = 0; i < (invert_ases_emplacement ? snk_ase_num : src_ase_num); i++) {
-      device->ases_.emplace_back(
-              0x0000, 0x0000,
-              invert_ases_emplacement ? kLeAudioDirectionSink : kLeAudioDirectionSource, ase_id++);
+    for (int i = 0; i < (invert_ases_emplacement ? snk_ase_num : src_ase_num);
+         i++) {
+      device->ases_.emplace_back(0x0000, 0x0000,
+                                 invert_ases_emplacement
+                                     ? kLeAudioDirectionSink
+                                     : kLeAudioDirectionSource,
+                                 ase_id++);
     }
 
-    for (int i = 0; i < (invert_ases_emplacement ? src_ase_num : snk_ase_num); i++) {
-      device->ases_.emplace_back(
-              0x0000, 0x0000,
-              invert_ases_emplacement ? kLeAudioDirectionSource : kLeAudioDirectionSink, ase_id++);
+    for (int i = 0; i < (invert_ases_emplacement ? src_ase_num : snk_ase_num);
+         i++) {
+      device->ases_.emplace_back(0x0000, 0x0000,
+                                 invert_ases_emplacement
+                                     ? kLeAudioDirectionSource
+                                     : kLeAudioDirectionSink,
+                                 ase_id++);
     }
 
-    for (int i = 0; i < (invert_ases_emplacement ? snk_ase_num_cached : src_ase_num_cached); i++) {
+    for (int i = 0; i < (invert_ases_emplacement ? snk_ase_num_cached
+                                                 : src_ase_num_cached);
+         i++) {
       struct ase ase(0x0000, 0x0000,
-                     invert_ases_emplacement ? kLeAudioDirectionSink : kLeAudioDirectionSource,
+                     invert_ases_emplacement ? kLeAudioDirectionSink
+                                             : kLeAudioDirectionSource,
                      ase_id++);
       ase.state = AseState::BTA_LE_AUDIO_ASE_STATE_CODEC_CONFIGURED;
       device->ases_.push_back(ase);
     }
 
-    for (int i = 0; i < (invert_ases_emplacement ? src_ase_num_cached : snk_ase_num_cached); i++) {
+    for (int i = 0; i < (invert_ases_emplacement ? src_ase_num_cached
+                                                 : snk_ase_num_cached);
+         i++) {
       struct ase ase(0x0000, 0x0000,
-                     invert_ases_emplacement ? kLeAudioDirectionSource : kLeAudioDirectionSink,
+                     invert_ases_emplacement ? kLeAudioDirectionSource
+                                             : kLeAudioDirectionSink,
                      ase_id++);
       ase.state = AseState::BTA_LE_AUDIO_ASE_STATE_CODEC_CONFIGURED;
       device->ases_.push_back(ase);
     }
 
-    device->SetSupportedContexts({.sink = AudioContexts(kLeAudioContextAllTypes),
-                                  .source = AudioContexts(kLeAudioContextAllTypes)});
-    device->SetAvailableContexts({.sink = AudioContexts(kLeAudioContextAllTypes),
-                                  .source = AudioContexts(kLeAudioContextAllTypes)});
+    device->SetSupportedContexts(
+        {.sink = AudioContexts(kLeAudioContextAllTypes),
+         .source = AudioContexts(kLeAudioContextAllTypes)});
+    device->SetAvailableContexts(
+        {.sink = AudioContexts(kLeAudioContextAllTypes),
+         .source = AudioContexts(kLeAudioContextAllTypes)});
     device->snk_audio_locations_ = snk_allocation;
     device->src_audio_locations_ = src_allocation;
 
     device->conn_id_ = index;
-    device->SetConnectionState(out_of_range_device ? DeviceConnectState::DISCONNECTED
-                                                   : DeviceConnectState::CONNECTED);
+    device->SetConnectionState(out_of_range_device
+                                   ? DeviceConnectState::DISCONNECTED
+                                   : DeviceConnectState::CONNECTED);
     group_->ReloadAudioDirections();
     group_->ReloadAudioLocations();
     return device.get();
   }
 
-  bool TestGroupAseConfigurationVerdict(const TestGroupAseConfigurationData& data,
-                                        uint8_t directions_to_verify) {
+  bool TestGroupAseConfigurationVerdict(
+      const TestGroupAseConfigurationData& data, uint8_t directions_to_verify) {
     BidirectionalPair<uint8_t> active_channel_num = {0, 0};
 
-    if (directions_to_verify == 0) {
-      return false;
-    }
-    if (data.device->HaveActiveAse() == 0) {
-      return false;
-    }
+    if (directions_to_verify == 0) return false;
+    if (data.device->HaveActiveAse() == 0) return false;
 
     for (ase* ase = data.device->GetFirstActiveAse(); ase;
          ase = data.device->GetNextActiveAse(ase)) {
@@ -840,7 +899,8 @@ protected:
   }
 
   void TestSingleAseConfiguration(LeAudioContextType context_type,
-                                  TestGroupAseConfigurationData* data, uint8_t data_size,
+                                  TestGroupAseConfigurationData* data,
+                                  uint8_t data_size,
                                   const AudioSetConfiguration* audio_set_conf,
                                   uint8_t directions_to_verify) {
     // the configuration should fail if there are no active ases expected
@@ -867,30 +927,34 @@ protected:
     }
 
     BidirectionalPair<AudioContexts> group_audio_locations = {
-            .sink = AudioContexts(context_type), .source = AudioContexts(context_type)};
+        .sink = AudioContexts(context_type),
+        .source = AudioContexts(context_type)};
 
     /* Stimulate update of available context map */
     group_->UpdateAudioContextAvailability();
 
-    ASSERT_EQ(success_expected, group_->Configure(context_type, group_audio_locations));
+    ASSERT_EQ(success_expected,
+              group_->Configure(context_type, group_audio_locations));
 
     bool result = true;
     for (int i = 0; i < data_size; i++) {
-      result &= TestGroupAseConfigurationVerdict(data[i],
-                                                 directions_to_verify & configuration_directions);
+      result &= TestGroupAseConfigurationVerdict(
+          data[i], directions_to_verify & configuration_directions);
     }
     ASSERT_TRUE(result);
   }
 
   int getNumOfAses(LeAudioDevice* device, uint8_t direction) {
-    return std::count_if(device->ases_.begin(), device->ases_.end(),
-                         [direction](auto& a) { return a.direction == direction; });
+    return std::count_if(
+        device->ases_.begin(), device->ases_.end(),
+        [direction](auto& a) { return a.direction == direction; });
   }
 
-  void TestGroupAseVendorConfiguration(LeAudioContextType context_type,
-                                       TestGroupAseConfigurationData* data, uint8_t data_size,
-                                       uint8_t directions_to_verify = kLeAudioDirectionSink |
-                                                                      kLeAudioDirectionSource) {
+  void TestGroupAseVendorConfiguration(
+      LeAudioContextType context_type, TestGroupAseConfigurationData* data,
+      uint8_t data_size,
+      uint8_t directions_to_verify = kLeAudioDirectionSink |
+                                     kLeAudioDirectionSource) {
     for (int i = 0; i < data_size; i++) {
       /* Add PACs and check if each of the devices has activated ASEs as
        * expected */
@@ -898,9 +962,10 @@ protected:
 
       // Prepare the PACs
       for (auto direction : {kLeAudioDirectionSink, kLeAudioDirectionSource}) {
-        auto const& data_channel_counts = (direction == kLeAudioDirectionSink)
-                                                  ? data[i].audio_channel_counts_snk
-                                                  : data[i].audio_channel_counts_src;
+        auto const& data_channel_counts =
+            (direction == kLeAudioDirectionSink)
+                ? data[i].audio_channel_counts_snk
+                : data[i].audio_channel_counts_src;
 
         PublishedAudioCapabilitiesBuilder pac_builder;
         for (auto codec : {kVendorCodecOne, kVendorCodecOneSwb}) {
@@ -909,36 +974,41 @@ protected:
         }
 
         // Set the PACs
-        auto& dest_pacs = (direction == kLeAudioDirectionSink) ? data[i].device->snk_pacs_
-                                                               : data[i].device->src_pacs_;
+        auto& dest_pacs = (direction == kLeAudioDirectionSink)
+                              ? data[i].device->snk_pacs_
+                              : data[i].device->src_pacs_;
         dest_pacs = pac_builder.Get();
       }
     }
 
     // Verify if ASEs are configured
-    BidirectionalPair<AudioContexts> metadata = {.sink = AudioContexts(context_type),
-                                                 .source = AudioContexts(context_type)};
+    BidirectionalPair<AudioContexts> metadata = {
+        .sink = AudioContexts(context_type),
+        .source = AudioContexts(context_type)};
     ASSERT_EQ(true, group_->Configure(context_type, metadata));
 
     for (int i = 0; i < data_size; i++) {
-      ASSERT_TRUE(TestGroupAseConfigurationVerdict(data[i], directions_to_verify));
+      ASSERT_TRUE(
+          TestGroupAseConfigurationVerdict(data[i], directions_to_verify));
     }
 
     group_->Deactivate();
     TestAsesInactive();
   }
 
-  void TestGroupAseConfiguration(LeAudioContextType context_type,
-                                 TestGroupAseConfigurationData* data, uint8_t data_size,
-                                 uint8_t directions_to_verify = kLeAudioDirectionSink |
-                                                                kLeAudioDirectionSource) {
+  void TestGroupAseConfiguration(
+      LeAudioContextType context_type, TestGroupAseConfigurationData* data,
+      uint8_t data_size,
+      uint8_t directions_to_verify = kLeAudioDirectionSink |
+                                     kLeAudioDirectionSource) {
     if (codec_coding_format_ != kLeAudioCodingFormatLC3) {
-      return TestGroupAseVendorConfiguration(context_type, data, data_size, directions_to_verify);
+      return TestGroupAseVendorConfiguration(context_type, data, data_size,
+                                             directions_to_verify);
     }
 
     const auto* configurations =
-            ::bluetooth::le_audio::AudioSetConfigurationProvider::Get()->GetConfigurations(
-                    context_type);
+        ::bluetooth::le_audio::AudioSetConfigurationProvider::Get()
+            ->GetConfigurations(context_type);
 
     bool success_expected = directions_to_verify != 0;
     int num_of_matching_configurations = 0;
@@ -957,9 +1027,11 @@ protected:
 
         /* Prepare PAC's for each device. Also make sure configuration is in our
          * interest to test */
-        for (auto direction : {kLeAudioDirectionSink, kLeAudioDirectionSource}) {
+        for (auto direction :
+             {kLeAudioDirectionSink, kLeAudioDirectionSource}) {
           auto const& ase_confs = audio_set_conf->confs.get(direction);
-          auto strategy = bluetooth::le_audio::utils::GetStrategyForAseConfig(ase_confs, data_size);
+          auto strategy = bluetooth::le_audio::utils::GetStrategyForAseConfig(
+              ase_confs, data_size);
           auto const ase_cnt = ase_confs.size();
 
           if (ase_cnt == 0) {
@@ -968,7 +1040,8 @@ protected:
           }
 
           /* Make sure the strategy is the expected one */
-          if (direction == kLeAudioDirectionSink && group_->GetGroupSinkStrategy() != strategy) {
+          if (direction == kLeAudioDirectionSink &&
+              group_->GetGroupSinkStrategy() != strategy) {
             log::debug("Sink strategy mismatch group!=cfg.entry ({}!={})",
                        static_cast<int>(group_->GetGroupSinkStrategy()),
                        static_cast<int>(strategy));
@@ -977,13 +1050,16 @@ protected:
 
           configuration_directions |= direction;
 
-          auto& pac_builder =
-                  (direction == kLeAudioDirectionSink) ? snk_pac_builder : src_pac_builder;
-          auto& dest_pacs = (direction == kLeAudioDirectionSink) ? data[i].device->snk_pacs_
-                                                                 : data[i].device->src_pacs_;
-          auto const& data_channel_counts = (direction == kLeAudioDirectionSink)
-                                                    ? data[i].audio_channel_counts_snk
-                                                    : data[i].audio_channel_counts_src;
+          auto& pac_builder = (direction == kLeAudioDirectionSink)
+                                  ? snk_pac_builder
+                                  : src_pac_builder;
+          auto& dest_pacs = (direction == kLeAudioDirectionSink)
+                                ? data[i].device->snk_pacs_
+                                : data[i].device->src_pacs_;
+          auto const& data_channel_counts =
+              (direction == kLeAudioDirectionSink)
+                  ? data[i].audio_channel_counts_snk
+                  : data[i].audio_channel_counts_src;
 
           for (const auto& entry : ase_confs) {
             num_of_ase.get(direction)++;
@@ -994,38 +1070,42 @@ protected:
         }
 
         /* Make sure configuration can satisfy number of expected active ASEs*/
-        if (num_of_ase.sink > data[i].device->GetAseCount(kLeAudioDirectionSink)) {
+        if (num_of_ase.sink >
+            data[i].device->GetAseCount(kLeAudioDirectionSink)) {
           interesting_configuration = false;
         }
 
-        if (num_of_ase.source > data[i].device->GetAseCount(kLeAudioDirectionSource)) {
+        if (num_of_ase.source >
+            data[i].device->GetAseCount(kLeAudioDirectionSource)) {
           interesting_configuration = false;
         }
       }
 
       BidirectionalPair<AudioContexts> group_audio_locations = {
-              .sink = AudioContexts(context_type), .source = AudioContexts(context_type)};
+          .sink = AudioContexts(context_type),
+          .source = AudioContexts(context_type)};
 
       /* Stimulate update of available context map */
       group_->UpdateAudioContextAvailability();
       group_->UpdateAudioSetConfigurationCache(context_type);
 
-      auto configuration_result = group_->Configure(context_type, group_audio_locations);
+      auto configuration_result =
+          group_->Configure(context_type, group_audio_locations);
 
       /* In case of configuration #ase is same as the one we expected to be
        * activated verify, ASEs are actually active */
-      if (interesting_configuration && (directions_to_verify == configuration_directions)) {
+      if (interesting_configuration &&
+          (directions_to_verify == configuration_directions)) {
         ASSERT_TRUE(configuration_result);
 
         bool matching_conf = true;
         /* Check if each of the devices has activated ASEs as expected */
         for (int i = 0; i < data_size; i++) {
-          matching_conf &= TestGroupAseConfigurationVerdict(data[i], configuration_directions);
+          matching_conf &= TestGroupAseConfigurationVerdict(
+              data[i], configuration_directions);
         }
 
-        if (matching_conf) {
-          num_of_matching_configurations++;
-        }
+        if (matching_conf) num_of_matching_configurations++;
       }
       group_->Deactivate();
 
@@ -1033,27 +1113,23 @@ protected:
     }
 
     if (success_expected) {
-      ASSERT_TRUE(num_of_matching_configurations > 0);
+      ASSERT_TRUE((num_of_matching_configurations > 0));
     } else {
       ASSERT_TRUE(num_of_matching_configurations == 0);
     }
   }
 
-  void TestAsesActive(bluetooth::le_audio::types::LeAudioCodecId codec_id,
-                      uint8_t sampling_frequency, uint8_t frame_duration, uint16_t octets_per_frame,
+  void TestAsesActive(bluetooth::le_audio::types::LeAudioCodecId codec_id, uint8_t sampling_frequency,
+                      uint8_t frame_duration, uint16_t octets_per_frame,
                       uint8_t codec_frame_blocks_per_sdu = 1) {
     bool active_ase = false;
 
     for (const auto& device : devices_) {
       for (const auto& ase : device->ases_) {
-        if (!ase.active) {
-          continue;
-        }
+        if (!ase.active) continue;
 
         /* Configure may request only partial ases to be activated */
-        if (!active_ase && ase.active) {
-          active_ase = true;
-        }
+        if (!active_ase && ase.active) active_ase = true;
 
         ASSERT_EQ(ase.codec_id, codec_id);
 
@@ -1099,14 +1175,15 @@ protected:
     }
   }
 
-  void TestLc3CodecConfig(LeAudioContextType context_type, uint8_t max_codec_frames_per_sdu = 1) {
+  void TestLc3CodecConfig(LeAudioContextType context_type,
+                          uint8_t max_codec_frames_per_sdu = 1) {
     for (int i = Lc3SettingIdBegin; i < Lc3SettingIdEnd; i++) {
       // test each configuration parameter against valid and invalid value
       std::array<Lc3SettingId, 2> test_variants = {static_cast<Lc3SettingId>(i),
                                                    Lc3SettingId::UNSUPPORTED};
 
       const bool is_lc3_setting_supported =
-              IsLc3SettingSupported(context_type, static_cast<Lc3SettingId>(i));
+          IsLc3SettingSupported(context_type, static_cast<Lc3SettingId>(i));
 
       for (const auto sf_variant : test_variants) {
         uint8_t sampling_frequency = GetSamplingFrequency(sf_variant);
@@ -1116,10 +1193,11 @@ protected:
             uint16_t octets_per_frame = GetOctetsPerCodecFrame(opcf_variant);
 
             PublishedAudioCapabilitiesBuilder pac_builder;
-            pac_builder.Add(
-                    LeAudioCodecIdLc3, sampling_frequency, frame_duration,
-                    kLeAudioCodecChannelCountSingleChannel | kLeAudioCodecChannelCountTwoChannel,
-                    octets_per_frame, max_codec_frames_per_sdu);
+            pac_builder.Add(LeAudioCodecIdLc3, sampling_frequency,
+                            frame_duration,
+                            kLeAudioCodecChannelCountSingleChannel |
+                                kLeAudioCodecChannelCountTwoChannel,
+                            octets_per_frame, max_codec_frames_per_sdu);
             for (auto& device : devices_) {
               /* For simplicity configure both PACs with the same
               parameters*/
@@ -1128,9 +1206,10 @@ protected:
             }
 
             bool success_expected = is_lc3_setting_supported;
-            if (is_lc3_setting_supported && (sf_variant == Lc3SettingId::UNSUPPORTED ||
-                                             fd_variant == Lc3SettingId::UNSUPPORTED ||
-                                             opcf_variant == Lc3SettingId::UNSUPPORTED)) {
+            if (is_lc3_setting_supported &&
+                (sf_variant == Lc3SettingId::UNSUPPORTED ||
+                 fd_variant == Lc3SettingId::UNSUPPORTED ||
+                 opcf_variant == Lc3SettingId::UNSUPPORTED)) {
               success_expected = false;
             }
 
@@ -1138,11 +1217,14 @@ protected:
             group_->UpdateAudioContextAvailability();
             group_->UpdateAudioSetConfigurationCache(context_type);
             BidirectionalPair<AudioContexts> group_audio_locations = {
-                    .sink = AudioContexts(context_type), .source = AudioContexts(context_type)};
-            ASSERT_EQ(success_expected, group_->Configure(context_type, group_audio_locations));
+                .sink = AudioContexts(context_type),
+                .source = AudioContexts(context_type)};
+            ASSERT_EQ(success_expected,
+                      group_->Configure(context_type, group_audio_locations));
             if (success_expected) {
-              TestAsesActive(LeAudioCodecIdLc3, sampling_frequency, frame_duration,
-                             octets_per_frame, max_codec_frames_per_sdu);
+              TestAsesActive(LeAudioCodecIdLc3, sampling_frequency,
+                             frame_duration, octets_per_frame,
+                             max_codec_frames_per_sdu);
               group_->Deactivate();
             }
 
@@ -1153,7 +1235,8 @@ protected:
     }
   }
 
-  void TestSingleDevDualBidir(LeAudioDevice* device, LeAudioContextType context_type) {
+  void TestSingleDevDualBidir(LeAudioDevice* device,
+                              LeAudioContextType context_type) {
     // Build PACs for device
     PublishedAudioCapabilitiesBuilder snk_pac_builder, src_pac_builder;
     snk_pac_builder.Reset();
@@ -1163,93 +1246,105 @@ protected:
     const uint32_t supported_octets_per_codec_frame_40 = 40;
     const uint32_t supported_codec_frames_per_sdu = 1;
     CodecConfigSetting swb = {
-            .id = LeAudioCodecIdLc3,
-            .params = LeAudioLtvMap({
-                    {codec_spec_conf::kLeAudioLtvTypeSamplingFreq,
-                     UINT8_TO_VEC_UINT8(codec_spec_conf::kLeAudioSamplingFreq32000Hz)},
-                    {codec_spec_conf::kLeAudioLtvTypeFrameDuration,
-                     UINT8_TO_VEC_UINT8(codec_spec_conf::kLeAudioCodecFrameDur10000us)},
-                    {codec_spec_conf::kLeAudioLtvTypeOctetsPerCodecFrame,
-                     UINT16_TO_VEC_UINT8(supported_octets_per_codec_frame_80)},
-                    {codec_spec_conf::kLeAudioLtvTypeCodecFrameBlocksPerSdu,
-                     UINT8_TO_VEC_UINT8(supported_codec_frames_per_sdu)},
-            }),
-            .channel_count_per_iso_stream = 1};
+        .id = LeAudioCodecIdLc3,
+        .params = LeAudioLtvMap({
+            {codec_spec_conf::kLeAudioLtvTypeSamplingFreq,
+             UINT8_TO_VEC_UINT8(codec_spec_conf::kLeAudioSamplingFreq32000Hz)},
+            {codec_spec_conf::kLeAudioLtvTypeFrameDuration,
+             UINT8_TO_VEC_UINT8(codec_spec_conf::kLeAudioCodecFrameDur10000us)},
+            {codec_spec_conf::kLeAudioLtvTypeOctetsPerCodecFrame,
+             UINT16_TO_VEC_UINT8(supported_octets_per_codec_frame_80)},
+            {codec_spec_conf::kLeAudioLtvTypeCodecFrameBlocksPerSdu,
+             UINT8_TO_VEC_UINT8(supported_codec_frames_per_sdu)},
+        }),
+        .channel_count_per_iso_stream = 1};
 
     auto swb_config = AudioSetConfiguration({
-            .name = "Two-OneChan-SnkAse-Lc3_32_2-Two-OneChan-SrcAse-Lc3_32_2_SWB",
-            .confs = {.sink = {AseConfiguration(swb), AseConfiguration(swb)},
-                      .source = {AseConfiguration(swb), AseConfiguration(swb)}},
+        .name = "Two-OneChan-SnkAse-Lc3_32_2-Two-OneChan-SrcAse-Lc3_32_2_SWB",
+        .confs = {.sink = {AseConfiguration(swb), AseConfiguration(swb)},
+                  .source = {AseConfiguration(swb), AseConfiguration(swb)}},
     });
 
     auto swb_config_single = AudioSetConfiguration({
-            .name = "One-OneChan-SnkAse-Lc3_32_2-One-OneChan-SrcAse-Lc3_32_2_SWB",
-            .confs = {.sink =
-                              {
-                                      AseConfiguration(swb),
-                              },
-                      .source =
-                              {
-                                      AseConfiguration(swb),
-                              }},
+        .name = "One-OneChan-SnkAse-Lc3_32_2-One-OneChan-SrcAse-Lc3_32_2_SWB",
+        .confs = {.sink =
+                      {
+                          AseConfiguration(swb),
+                      },
+                  .source =
+                      {
+                          AseConfiguration(swb),
+                      }},
     });
 
     ASSERT_FALSE(swb.params.IsEmpty());
-    ASSERT_TRUE(swb.params.Find(codec_spec_conf::kLeAudioLtvTypeSamplingFreq).has_value());
+    ASSERT_TRUE(swb.params.Find(codec_spec_conf::kLeAudioLtvTypeSamplingFreq)
+                    .has_value());
 
     CodecConfigSetting non_swb = {
-            .id = LeAudioCodecIdLc3,
-            .params = LeAudioLtvMap({
-                    {codec_spec_conf::kLeAudioLtvTypeSamplingFreq,
-                     UINT8_TO_VEC_UINT8(codec_spec_conf::kLeAudioSamplingFreq16000Hz)},
-                    {codec_spec_conf::kLeAudioLtvTypeFrameDuration,
-                     UINT8_TO_VEC_UINT8(codec_spec_conf::kLeAudioCodecFrameDur10000us)},
-                    {codec_spec_conf::kLeAudioLtvTypeOctetsPerCodecFrame,
-                     UINT16_TO_VEC_UINT8(supported_octets_per_codec_frame_40)},
-                    {codec_spec_conf::kLeAudioLtvTypeCodecFrameBlocksPerSdu,
-                     UINT8_TO_VEC_UINT8(supported_codec_frames_per_sdu)},
-            }),
-            .channel_count_per_iso_stream = 1};
+        .id = LeAudioCodecIdLc3,
+        .params = LeAudioLtvMap({
+            {codec_spec_conf::kLeAudioLtvTypeSamplingFreq,
+             UINT8_TO_VEC_UINT8(codec_spec_conf::kLeAudioSamplingFreq16000Hz)},
+            {codec_spec_conf::kLeAudioLtvTypeFrameDuration,
+             UINT8_TO_VEC_UINT8(codec_spec_conf::kLeAudioCodecFrameDur10000us)},
+            {codec_spec_conf::kLeAudioLtvTypeOctetsPerCodecFrame,
+             UINT16_TO_VEC_UINT8(supported_octets_per_codec_frame_40)},
+            {codec_spec_conf::kLeAudioLtvTypeCodecFrameBlocksPerSdu,
+             UINT8_TO_VEC_UINT8(supported_codec_frames_per_sdu)},
+        }),
+        .channel_count_per_iso_stream = 1};
     auto non_swb_config = AudioSetConfiguration({
-            .name = "Two-OneChan-SnkAse-Lc3_16_2-Two-OneChan-SrcAse-Lc3_16_2_NON_SWB",
-            .confs = {.sink = {AseConfiguration(non_swb), AseConfiguration(non_swb)},
-                      .source = {AseConfiguration(non_swb), AseConfiguration(non_swb)}},
+        .name =
+            "Two-OneChan-SnkAse-Lc3_16_2-Two-OneChan-SrcAse-Lc3_16_2_NON_SWB",
+        .confs = {.sink = {AseConfiguration(non_swb),
+                           AseConfiguration(non_swb)},
+                  .source = {AseConfiguration(non_swb),
+                             AseConfiguration(non_swb)}},
     });
     auto non_swb_config_single = AudioSetConfiguration({
-            .name = "One-OneChan-SnkAse-Lc3_16_2-One-OneChan-SrcAse-Lc3_16_2_NON_SWB",
-            .confs = {.sink = {AseConfiguration(non_swb)}, .source = {AseConfiguration(non_swb)}},
+        .name =
+            "One-OneChan-SnkAse-Lc3_16_2-One-OneChan-SrcAse-Lc3_16_2_NON_SWB",
+        .confs = {.sink = {AseConfiguration(non_swb)},
+                  .source = {AseConfiguration(non_swb)}},
     });
-    AudioSetConfigurations configs = {
-            {&swb_config, &swb_config_single, &non_swb_config, &non_swb_config_single}};
+    AudioSetConfigurations configs = {{&swb_config, &swb_config_single,
+                                       &non_swb_config,
+                                       &non_swb_config_single}};
 
     // Support single channel per ASE to activate two ASES on both direction
     for (auto config : configs) {
       for (const auto& entry : config->confs.sink) {
-        snk_pac_builder.Add(entry.codec, kLeAudioCodecChannelCountSingleChannel);
+        snk_pac_builder.Add(entry.codec,
+                            kLeAudioCodecChannelCountSingleChannel);
       }
       for (const auto& entry : config->confs.source) {
-        src_pac_builder.Add(entry.codec, kLeAudioCodecChannelCountSingleChannel);
+        src_pac_builder.Add(entry.codec,
+                            kLeAudioCodecChannelCountSingleChannel);
       }
     }
 
     // Inject `configs` as there's no such config in the json file
     ON_CALL(*mock_codec_manager_, GetCodecConfig)
-            .WillByDefault(Invoke([&configs](const bluetooth::le_audio::CodecManager::
-                                                     UnicastConfigurationRequirements& requirements,
-                                             bluetooth::le_audio::CodecManager::
-                                                     UnicastConfigurationVerifier verifier) {
+        .WillByDefault(Invoke(
+            [&configs](
+                const bluetooth::le_audio::CodecManager::
+                    UnicastConfigurationRequirements& requirements,
+                bluetooth::le_audio::CodecManager::UnicastConfigurationVerifier
+                    verifier) {
               auto filtered = configs;
               // Filter out the dual bidir SWB configurations
-              if (!bluetooth::le_audio::CodecManager::GetInstance()->IsDualBiDirSwbSupported()) {
-                filtered.erase(std::remove_if(filtered.begin(), filtered.end(),
-                                              [](auto const& el) {
-                                                if (el->confs.source.empty()) {
-                                                  return false;
-                                                }
-                                                return AudioSetConfigurationProvider::Get()
-                                                        ->CheckConfigurationIsDualBiDirSwb(*el);
-                                              }),
-                               filtered.end());
+              if (!bluetooth::le_audio::CodecManager::GetInstance()
+                       ->IsDualBiDirSwbSupported()) {
+                filtered.erase(
+                    std::remove_if(filtered.begin(), filtered.end(),
+                                   [](auto const& el) {
+                                     if (el->confs.source.empty()) return false;
+                                     return AudioSetConfigurationProvider::Get()
+                                         ->CheckConfigurationIsDualBiDirSwb(
+                                             *el);
+                                   }),
+                    filtered.end());
               }
               auto cfg = verifier(requirements, &filtered);
               if (cfg == nullptr) {
@@ -1262,34 +1357,35 @@ protected:
     device->snk_pacs_ = snk_pac_builder.Get();
     device->src_pacs_ = src_pac_builder.Get();
 
-    ASSERT_TRUE(group_->Configure(context_type, {.sink = AudioContexts(context_type),
-                                                 .source = AudioContexts(context_type)}));
+    ASSERT_TRUE(group_->Configure(context_type,
+                                  {.sink = AudioContexts(context_type),
+                                   .source = AudioContexts(context_type)}));
 
     // Verify Dual-Bidir - the amount of ASES configured
-    TestGroupAseConfigurationData data[] = {{device, kLeAudioCodecChannelCountSingleChannel,
-                                             kLeAudioCodecChannelCountSingleChannel, 2, 2}};
-    TestGroupAseConfigurationVerdict(data[0], kLeAudioDirectionSink | kLeAudioDirectionSource);
+    TestGroupAseConfigurationData data[] = {
+        {device, kLeAudioCodecChannelCountSingleChannel,
+         kLeAudioCodecChannelCountSingleChannel, 2, 2}};
+    TestGroupAseConfigurationVerdict(
+        data[0], kLeAudioDirectionSink | kLeAudioDirectionSource);
   }
 
   /* Helper */
-  static const AudioSetConfiguration* getSpecificConfiguration(const char* config_name,
-                                                               LeAudioContextType context) {
+  static const AudioSetConfiguration* getSpecificConfiguration(
+      const char* config_name, LeAudioContextType context) {
     auto all_configurations =
-            ::bluetooth::le_audio::AudioSetConfigurationProvider::Get()->GetConfigurations(context);
+        ::bluetooth::le_audio::AudioSetConfigurationProvider::Get()
+            ->GetConfigurations(context);
 
-    if (all_configurations == nullptr) {
+    if (all_configurations == nullptr) return nullptr;
+    if (all_configurations->end() == all_configurations->begin())
       return nullptr;
-    }
-    if (all_configurations->end() == all_configurations->begin()) {
-      return nullptr;
-    }
 
-    auto iter = std::find_if(
-            all_configurations->begin(), all_configurations->end(),
-            [config_name](auto& configuration) { return configuration->name == config_name; });
-    if (iter == all_configurations->end()) {
-      return nullptr;
-    }
+    auto iter =
+        std::find_if(all_configurations->begin(), all_configurations->end(),
+                     [config_name](auto& configuration) {
+                       return configuration->name == config_name;
+                     });
+    if (iter == all_configurations->end()) return nullptr;
     return *iter;
   }
 
@@ -1302,16 +1398,20 @@ protected:
 
     /* Create PACs for conversational scenario, SWB and non SWB */
     for (auto config :
-         {getSpecificConfiguration("Two-OneChan-SnkAse-Lc3_16_2-Two-OneChan-SrcAse-Lc3_16_2_1",
-                                   context_type),
-          getSpecificConfiguration("Two-OneChan-SnkAse-Lc3_32_2-Two-OneChan-SrcAse-Lc3_32_2_1",
-                                   context_type)}) {
+         {getSpecificConfiguration(
+              "Two-OneChan-SnkAse-Lc3_16_2-Two-OneChan-SrcAse-Lc3_16_2_1",
+              context_type),
+          getSpecificConfiguration(
+              "Two-OneChan-SnkAse-Lc3_32_2-Two-OneChan-SrcAse-Lc3_32_2_1",
+              context_type)}) {
       ASSERT_NE(nullptr, config);
       for (const auto& entry : (*config).confs.sink) {
-        snk_pac_builder.Add(entry.codec, kLeAudioCodecChannelCountSingleChannel);
+        snk_pac_builder.Add(entry.codec,
+                            kLeAudioCodecChannelCountSingleChannel);
       }
       for (const auto& entry : (*config).confs.source) {
-        src_pac_builder.Add(entry.codec, kLeAudioCodecChannelCountSingleChannel);
+        src_pac_builder.Add(entry.codec,
+                            kLeAudioCodecChannelCountSingleChannel);
       }
     }
 
@@ -1322,27 +1422,34 @@ protected:
     }
 
     /* Change location as by default it is stereo */
-    left->snk_audio_locations_ = ::bluetooth::le_audio::codec_spec_conf::kLeAudioLocationFrontLeft;
-    left->src_audio_locations_ = ::bluetooth::le_audio::codec_spec_conf::kLeAudioLocationFrontLeft;
+    left->snk_audio_locations_ =
+        ::bluetooth::le_audio::codec_spec_conf::kLeAudioLocationFrontLeft;
+    left->src_audio_locations_ =
+        ::bluetooth::le_audio::codec_spec_conf::kLeAudioLocationFrontLeft;
     right->snk_audio_locations_ =
-            ::bluetooth::le_audio::codec_spec_conf::kLeAudioLocationFrontRight;
+        ::bluetooth::le_audio::codec_spec_conf::kLeAudioLocationFrontRight;
     right->src_audio_locations_ =
-            ::bluetooth::le_audio::codec_spec_conf::kLeAudioLocationFrontRight;
+        ::bluetooth::le_audio::codec_spec_conf::kLeAudioLocationFrontRight;
     group_->ReloadAudioLocations();
 
-    ASSERT_TRUE(group_->Configure(context_type, {.sink = AudioContexts(context_type),
-                                                 .source = AudioContexts(context_type)}));
+    ASSERT_TRUE(group_->Configure(context_type,
+                                  {.sink = AudioContexts(context_type),
+                                   .source = AudioContexts(context_type)}));
 
     // Verify the amount of ASES configured
-    TestGroupAseConfigurationData data[] = {{left, kLeAudioCodecChannelCountSingleChannel,
-                                             kLeAudioCodecChannelCountSingleChannel, 1, 1},
-                                            {right, kLeAudioCodecChannelCountSingleChannel,
-                                             kLeAudioCodecChannelCountSingleChannel, 1, 1}};
-    TestGroupAseConfigurationVerdict(data[0], kLeAudioDirectionSink | kLeAudioDirectionSource);
-    TestGroupAseConfigurationVerdict(data[1], kLeAudioDirectionSink | kLeAudioDirectionSource);
+    TestGroupAseConfigurationData data[] = {
+        {left, kLeAudioCodecChannelCountSingleChannel,
+         kLeAudioCodecChannelCountSingleChannel, 1, 1},
+        {right, kLeAudioCodecChannelCountSingleChannel,
+         kLeAudioCodecChannelCountSingleChannel, 1, 1}};
+    TestGroupAseConfigurationVerdict(
+        data[0], kLeAudioDirectionSink | kLeAudioDirectionSource);
+    TestGroupAseConfigurationVerdict(
+        data[1], kLeAudioDirectionSink | kLeAudioDirectionSource);
   }
 
-  void SetAsesToCachedConfiguration(LeAudioDevice* device, LeAudioContextType context_type,
+  void SetAsesToCachedConfiguration(LeAudioDevice* device,
+                                    LeAudioContextType context_type,
                                     uint8_t directions) {
     for (struct ase& ase : device->ases_) {
       if (ase.direction & directions) {
@@ -1361,7 +1468,8 @@ protected:
   LeAudioDeviceGroup* group_ = nullptr;
   bluetooth::manager::MockBtmInterface btm_interface_;
   MockCsisClient mock_csis_client_module_;
-  NiceMock<bluetooth::hci::testing::MockControllerInterface> controller_interface_;
+  NiceMock<bluetooth::hci::testing::MockControllerInterface>
+      controller_interface_;
 
   bluetooth::le_audio::CodecManager* codec_manager_;
   MockCodecManager* mock_codec_manager_;
@@ -1373,18 +1481,23 @@ TEST_P(LeAudioAseConfigurationTest, test_context_update) {
   ASSERT_EQ(2, group_->Size());
 
   /* Change locations */
-  left->snk_audio_locations_ = ::bluetooth::le_audio::codec_spec_conf::kLeAudioLocationFrontLeft;
-  left->src_audio_locations_ = ::bluetooth::le_audio::codec_spec_conf::kLeAudioLocationFrontLeft;
-  right->snk_audio_locations_ = ::bluetooth::le_audio::codec_spec_conf::kLeAudioLocationFrontRight;
-  right->src_audio_locations_ = ::bluetooth::le_audio::codec_spec_conf::kLeAudioLocationFrontRight;
+  left->snk_audio_locations_ =
+      ::bluetooth::le_audio::codec_spec_conf::kLeAudioLocationFrontLeft;
+  left->src_audio_locations_ =
+      ::bluetooth::le_audio::codec_spec_conf::kLeAudioLocationFrontLeft;
+  right->snk_audio_locations_ =
+      ::bluetooth::le_audio::codec_spec_conf::kLeAudioLocationFrontRight;
+  right->src_audio_locations_ =
+      ::bluetooth::le_audio::codec_spec_conf::kLeAudioLocationFrontRight;
   group_->ReloadAudioLocations();
 
   /* Put the PACS */
   auto conversational_configuration = getSpecificConfiguration(
-          "Two-OneChan-SnkAse-Lc3_16_2-One-OneChan-SrcAse-Lc3_16_2_Low_Latency",
-          LeAudioContextType::CONVERSATIONAL);
-  auto media_configuration = getSpecificConfiguration(
-          "One-TwoChan-SnkAse-Lc3_48_4_High_Reliability", LeAudioContextType::MEDIA);
+      "Two-OneChan-SnkAse-Lc3_16_2-One-OneChan-SrcAse-Lc3_16_2_Low_Latency",
+      LeAudioContextType::CONVERSATIONAL);
+  auto media_configuration =
+      getSpecificConfiguration("One-TwoChan-SnkAse-Lc3_48_4_High_Reliability",
+                               LeAudioContextType::MEDIA);
   ASSERT_NE(nullptr, conversational_configuration);
   ASSERT_NE(nullptr, media_configuration);
 
@@ -1404,33 +1517,38 @@ TEST_P(LeAudioAseConfigurationTest, test_context_update) {
   right->src_pacs_ = src_pac_builder.Get();
 
   /* UNSPECIFIED must be supported, MEDIA is on the remote sink only... */
-  auto remote_snk_supp_contexts =
-          AudioContexts(LeAudioContextType::MEDIA | LeAudioContextType::CONVERSATIONAL |
-                        LeAudioContextType::SOUNDEFFECTS | LeAudioContextType::UNSPECIFIED);
-  auto remote_src_supp_contexts =
-          AudioContexts(LeAudioContextType::CONVERSATIONAL | LeAudioContextType::UNSPECIFIED);
+  auto remote_snk_supp_contexts = AudioContexts(
+      LeAudioContextType::MEDIA | LeAudioContextType::CONVERSATIONAL |
+      LeAudioContextType::SOUNDEFFECTS | LeAudioContextType::UNSPECIFIED);
+  auto remote_src_supp_contexts = AudioContexts(
+      LeAudioContextType::CONVERSATIONAL | LeAudioContextType::UNSPECIFIED);
 
   left->SetSupportedContexts(
-          {.sink = remote_snk_supp_contexts, .source = remote_src_supp_contexts});
+      {.sink = remote_snk_supp_contexts, .source = remote_src_supp_contexts});
 
   auto right_bud_only_context = LeAudioContextType::ALERTS;
-  right->SetSupportedContexts({.sink = remote_snk_supp_contexts | right_bud_only_context,
-                               .source = remote_src_supp_contexts | right_bud_only_context});
+  right->SetSupportedContexts(
+      {.sink = remote_snk_supp_contexts | right_bud_only_context,
+       .source = remote_src_supp_contexts | right_bud_only_context});
 
   /* ...but UNSPECIFIED and SOUNDEFFECTS are unavailable */
-  auto remote_snk_avail_contexts =
-          AudioContexts(LeAudioContextType::MEDIA | LeAudioContextType::CONVERSATIONAL);
-  auto remote_src_avail_contexts = AudioContexts(LeAudioContextType::CONVERSATIONAL);
+  auto remote_snk_avail_contexts = AudioContexts(
+      LeAudioContextType::MEDIA | LeAudioContextType::CONVERSATIONAL);
+  auto remote_src_avail_contexts =
+      AudioContexts(LeAudioContextType::CONVERSATIONAL);
 
   left->SetAvailableContexts(
-          {.sink = remote_snk_avail_contexts, .source = remote_src_avail_contexts});
-  ASSERT_EQ(left->GetAvailableContexts(), remote_snk_avail_contexts | remote_src_avail_contexts);
+      {.sink = remote_snk_avail_contexts, .source = remote_src_avail_contexts});
+  ASSERT_EQ(left->GetAvailableContexts(),
+            remote_snk_avail_contexts | remote_src_avail_contexts);
 
   // Make an additional context available on the right earbud sink
-  right->SetAvailableContexts({.sink = remote_snk_avail_contexts | right_bud_only_context,
-                               .source = remote_src_avail_contexts});
-  ASSERT_EQ(right->GetAvailableContexts(),
-            remote_snk_avail_contexts | remote_src_avail_contexts | right_bud_only_context);
+  right->SetAvailableContexts(
+      {.sink = remote_snk_avail_contexts | right_bud_only_context,
+       .source = remote_src_avail_contexts});
+  ASSERT_EQ(right->GetAvailableContexts(), remote_snk_avail_contexts |
+                                               remote_src_avail_contexts |
+                                               right_bud_only_context);
 
   /* Now add the right earbud contexts - mind the extra context on that bud */
   group_->UpdateAudioContextAvailability();
@@ -1448,59 +1566,86 @@ TEST_P(LeAudioAseConfigurationTest, test_context_update) {
   /* MEDIA Available on remote sink direction only */
   auto config = group_->GetConfiguration(LeAudioContextType::MEDIA);
   ASSERT_NE(nullptr, config);
-  ASSERT_TRUE(config->confs.get(bluetooth::le_audio::types::kLeAudioDirectionSink).size());
-  ASSERT_FALSE(config->confs.get(bluetooth::le_audio::types::kLeAudioDirectionSource).size());
-  ASSERT_EQ(config->confs.get(bluetooth::le_audio::types::kLeAudioDirectionSink)
-                    .at(0)
-                    .codec.GetChannelCountPerIsoStream(),
-            ::bluetooth::le_audio::LeAudioCodecConfiguration::kChannelNumberMono);
+  ASSERT_TRUE(
+      config->confs.get(bluetooth::le_audio::types::kLeAudioDirectionSink)
+          .size());
+  ASSERT_FALSE(
+      config->confs.get(bluetooth::le_audio::types::kLeAudioDirectionSource)
+          .size());
+  ASSERT_EQ(
+      config->confs.get(bluetooth::le_audio::types::kLeAudioDirectionSink)
+          .at(0)
+          .codec.GetChannelCountPerIsoStream(),
+      ::bluetooth::le_audio::LeAudioCodecConfiguration::kChannelNumberMono);
 
   /* CONVERSATIONAL Available on both directions */
   config = group_->GetConfiguration(LeAudioContextType::CONVERSATIONAL);
   ASSERT_NE(nullptr, config);
-  ASSERT_TRUE(config->confs.get(bluetooth::le_audio::types::kLeAudioDirectionSink).size());
-  ASSERT_TRUE(config->confs.get(bluetooth::le_audio::types::kLeAudioDirectionSource).size());
+  ASSERT_TRUE(
+      config->confs.get(bluetooth::le_audio::types::kLeAudioDirectionSink)
+          .size());
+  ASSERT_TRUE(
+      config->confs.get(bluetooth::le_audio::types::kLeAudioDirectionSource)
+          .size());
 
   /* UNSPECIFIED Unavailable yet supported */
   config = group_->GetConfiguration(LeAudioContextType::UNSPECIFIED);
   ASSERT_NE(nullptr, config);
-  ASSERT_TRUE(config->confs.get(bluetooth::le_audio::types::kLeAudioDirectionSink).size());
-  ASSERT_FALSE(config->confs.get(bluetooth::le_audio::types::kLeAudioDirectionSource).size());
+  ASSERT_TRUE(
+      config->confs.get(bluetooth::le_audio::types::kLeAudioDirectionSink)
+          .size());
+  ASSERT_FALSE(
+      config->confs.get(bluetooth::le_audio::types::kLeAudioDirectionSource)
+          .size());
 
   /* SOUNDEFFECTS Unavailable yet supported on sink only */
   config = group_->GetConfiguration(LeAudioContextType::SOUNDEFFECTS);
   ASSERT_NE(nullptr, config);
-  ASSERT_TRUE(config->confs.get(bluetooth::le_audio::types::kLeAudioDirectionSink).size());
-  ASSERT_FALSE(config->confs.get(bluetooth::le_audio::types::kLeAudioDirectionSource).size());
+  ASSERT_TRUE(
+      config->confs.get(bluetooth::le_audio::types::kLeAudioDirectionSink)
+          .size());
+  ASSERT_FALSE(
+      config->confs.get(bluetooth::le_audio::types::kLeAudioDirectionSource)
+          .size());
 
   /* INSTRUCTIONAL Unavailable and not supported, while UNSPECIFIED not
    * available */
   config = group_->GetConfiguration(LeAudioContextType::INSTRUCTIONAL);
   ASSERT_NE(nullptr, config);
-  ASSERT_TRUE(config->confs.get(bluetooth::le_audio::types::kLeAudioDirectionSink).size());
-  ASSERT_FALSE(config->confs.get(bluetooth::le_audio::types::kLeAudioDirectionSource).size());
+  ASSERT_TRUE(
+      config->confs.get(bluetooth::le_audio::types::kLeAudioDirectionSink)
+          .size());
+  ASSERT_FALSE(
+      config->confs.get(bluetooth::le_audio::types::kLeAudioDirectionSource)
+          .size());
 
   /* ALERTS on sink only */
   config = group_->GetConfiguration(LeAudioContextType::ALERTS);
   ASSERT_NE(nullptr, config);
-  ASSERT_TRUE(config->confs.get(bluetooth::le_audio::types::kLeAudioDirectionSink).size());
-  ASSERT_FALSE(config->confs.get(bluetooth::le_audio::types::kLeAudioDirectionSource).size());
+  ASSERT_TRUE(
+      config->confs.get(bluetooth::le_audio::types::kLeAudioDirectionSink)
+          .size());
+  ASSERT_FALSE(
+      config->confs.get(bluetooth::le_audio::types::kLeAudioDirectionSource)
+          .size());
 
   /* We should get the config for ALERTS for both channels as the other has
    * UNSPECIFIED context supported.
    */
-  auto sink_configs = group_->GetConfiguration(LeAudioContextType::ALERTS)
-                              ->confs.get(bluetooth::le_audio::types::kLeAudioDirectionSink);
+  auto sink_configs =
+      group_->GetConfiguration(LeAudioContextType::ALERTS)
+          ->confs.get(bluetooth::le_audio::types::kLeAudioDirectionSink);
   ASSERT_EQ(2lu, sink_configs.size());
-  ASSERT_TRUE(group_->IsAudioSetConfigurationAvailable(LeAudioContextType::ALERTS));
+  ASSERT_TRUE(
+      group_->IsAudioSetConfigurationAvailable(LeAudioContextType::ALERTS));
 
   /* Turn off the ALERTS context */
   right->SetAvailableContexts(
-          {.sink = right->GetAvailableContexts(
-                           ::bluetooth::le_audio::types::kLeAudioDirectionSink) &
-                   ~AudioContexts(LeAudioContextType::ALERTS),
-           .source = right->GetAvailableContexts(
-                   ::bluetooth::le_audio::types::kLeAudioDirectionSource)});
+      {.sink = right->GetAvailableContexts(
+                   ::bluetooth::le_audio::types::kLeAudioDirectionSink) &
+               ~AudioContexts(LeAudioContextType::ALERTS),
+       .source = right->GetAvailableContexts(
+           ::bluetooth::le_audio::types::kLeAudioDirectionSource)});
 
   /* Right one was changed but the config exist, just not available */
   group_->UpdateAudioContextAvailability();
@@ -1508,110 +1653,130 @@ TEST_P(LeAudioAseConfigurationTest, test_context_update) {
             left->GetAvailableContexts() | right->GetAvailableContexts());
   ASSERT_FALSE(group_->GetAvailableContexts().test(LeAudioContextType::ALERTS));
   ASSERT_TRUE(group_->GetConfiguration(LeAudioContextType::ALERTS)
-                      ->confs.get(bluetooth::le_audio::types::kLeAudioDirectionSink)
-                      .size());
-  ASSERT_TRUE(group_->IsAudioSetConfigurationAvailable(LeAudioContextType::ALERTS));
+                  ->confs.get(bluetooth::le_audio::types::kLeAudioDirectionSink)
+                  .size());
+  ASSERT_TRUE(
+      group_->IsAudioSetConfigurationAvailable(LeAudioContextType::ALERTS));
 }
 
 TEST_P(LeAudioAseConfigurationTest, test_mono_speaker_ringtone) {
   LeAudioDevice* mono_speaker = AddTestDevice(1, 0);
-  TestGroupAseConfigurationData data({mono_speaker, kLeAudioCodecChannelCountSingleChannel,
-                                      kLeAudioCodecChannelCountSingleChannel, 1, 0});
+  TestGroupAseConfigurationData data(
+      {mono_speaker, kLeAudioCodecChannelCountSingleChannel,
+       kLeAudioCodecChannelCountSingleChannel, 1, 0});
 
   /* mono, change location as by default it is stereo */
   mono_speaker->snk_audio_locations_ =
-          ::bluetooth::le_audio::codec_spec_conf::kLeAudioLocationFrontLeft;
+      ::bluetooth::le_audio::codec_spec_conf::kLeAudioLocationFrontLeft;
   group_->ReloadAudioLocations();
 
   uint8_t direction_to_verify = kLeAudioDirectionSink;
 
-  TestGroupAseConfiguration(LeAudioContextType::RINGTONE, &data, 1, direction_to_verify);
+  TestGroupAseConfiguration(LeAudioContextType::RINGTONE, &data, 1,
+                            direction_to_verify);
 }
 
 TEST_P(LeAudioAseConfigurationTest, test_mono_speaker_conversational) {
   LeAudioDevice* mono_speaker = AddTestDevice(1, 0);
-  TestGroupAseConfigurationData data({mono_speaker, kLeAudioCodecChannelCountSingleChannel,
+  TestGroupAseConfigurationData data({mono_speaker,
+                                      kLeAudioCodecChannelCountSingleChannel,
                                       kLeAudioCodecChannelCountNone, 1, 0});
 
   /* mono, change location as by default it is stereo */
   mono_speaker->snk_audio_locations_ =
-          ::bluetooth::le_audio::codec_spec_conf::kLeAudioLocationFrontLeft;
+      ::bluetooth::le_audio::codec_spec_conf::kLeAudioLocationFrontLeft;
   group_->ReloadAudioLocations();
 
   /* Microphone should be used on the phone */
   uint8_t direction_to_verify = kLeAudioDirectionSink;
-  TestGroupAseConfiguration(LeAudioContextType::CONVERSATIONAL, &data, 1, direction_to_verify);
+  TestGroupAseConfiguration(LeAudioContextType::CONVERSATIONAL, &data, 1,
+                            direction_to_verify);
 }
 
 TEST_P(LeAudioAseConfigurationTest, test_mono_speaker_media) {
   LeAudioDevice* mono_speaker = AddTestDevice(1, 0);
-  TestGroupAseConfigurationData data({mono_speaker, kLeAudioCodecChannelCountSingleChannel,
+  TestGroupAseConfigurationData data({mono_speaker,
+                                      kLeAudioCodecChannelCountSingleChannel,
                                       kLeAudioCodecChannelCountNone, 1, 0});
 
   /* mono, change location as by default it is stereo */
   mono_speaker->snk_audio_locations_ =
-          ::bluetooth::le_audio::codec_spec_conf::kLeAudioLocationFrontLeft;
+      ::bluetooth::le_audio::codec_spec_conf::kLeAudioLocationFrontLeft;
   group_->ReloadAudioLocations();
 
   uint8_t direction_to_verify = kLeAudioDirectionSink;
-  TestGroupAseConfiguration(LeAudioContextType::MEDIA, &data, 1, direction_to_verify);
+  TestGroupAseConfiguration(LeAudioContextType::MEDIA, &data, 1,
+                            direction_to_verify);
 }
 
 TEST_P(LeAudioAseConfigurationTest, test_banded_headphones_ringtone) {
   LeAudioDevice* banded_headphones = AddTestDevice(2, 0);
-  TestGroupAseConfigurationData data({banded_headphones, kLeAudioCodecChannelCountTwoChannel,
-                                      kLeAudioCodecChannelCountSingleChannel, 2, 0});
+  TestGroupAseConfigurationData data(
+      {banded_headphones, kLeAudioCodecChannelCountTwoChannel,
+       kLeAudioCodecChannelCountSingleChannel, 2, 0});
 
   uint8_t direction_to_verify = kLeAudioDirectionSink;
-  TestGroupAseConfiguration(LeAudioContextType::RINGTONE, &data, 1, direction_to_verify);
+  TestGroupAseConfiguration(LeAudioContextType::RINGTONE, &data, 1,
+                            direction_to_verify);
 }
 
 TEST_P(LeAudioAseConfigurationTest, test_banded_headphones_conversational) {
   LeAudioDevice* banded_headphones = AddTestDevice(2, 0);
-  TestGroupAseConfigurationData data({banded_headphones, kLeAudioCodecChannelCountTwoChannel,
+  TestGroupAseConfigurationData data({banded_headphones,
+                                      kLeAudioCodecChannelCountTwoChannel,
                                       kLeAudioCodecChannelCountNone, 2, 0});
 
   uint8_t direction_to_verify = kLeAudioDirectionSink;
-  TestGroupAseConfiguration(LeAudioContextType::CONVERSATIONAL, &data, 1, direction_to_verify);
+  TestGroupAseConfiguration(LeAudioContextType::CONVERSATIONAL, &data, 1,
+                            direction_to_verify);
 }
 
 TEST_P(LeAudioAseConfigurationTest, test_banded_headphones_media) {
   LeAudioDevice* banded_headphones = AddTestDevice(2, 0);
-  TestGroupAseConfigurationData data({banded_headphones, kLeAudioCodecChannelCountTwoChannel,
+  TestGroupAseConfigurationData data({banded_headphones,
+                                      kLeAudioCodecChannelCountTwoChannel,
                                       kLeAudioCodecChannelCountNone, 2, 0});
 
   uint8_t direction_to_verify = kLeAudioDirectionSink;
-  TestGroupAseConfiguration(LeAudioContextType::MEDIA, &data, 1, direction_to_verify);
+  TestGroupAseConfiguration(LeAudioContextType::MEDIA, &data, 1,
+                            direction_to_verify);
 }
 
-TEST_P(LeAudioAseConfigurationTest, test_banded_headset_ringtone_mono_microphone) {
-  LeAudioDevice* banded_headset =
-          AddTestDevice(2, 1, 0, 0, false, false, codec_spec_conf::kLeAudioLocationStereo,
-                        codec_spec_conf::kLeAudioLocationFrontLeft);
-  TestGroupAseConfigurationData data({banded_headset, kLeAudioCodecChannelCountTwoChannel,
-                                      kLeAudioCodecChannelCountSingleChannel, 2, 1});
+TEST_P(LeAudioAseConfigurationTest,
+       test_banded_headset_ringtone_mono_microphone) {
+  LeAudioDevice* banded_headset = AddTestDevice(
+      2, 1, 0, 0, false, false, codec_spec_conf::kLeAudioLocationStereo,
+      codec_spec_conf::kLeAudioLocationFrontLeft);
+  TestGroupAseConfigurationData data(
+      {banded_headset, kLeAudioCodecChannelCountTwoChannel,
+       kLeAudioCodecChannelCountSingleChannel, 2, 1});
 
   /* mono, change location as by default it is stereo */
   banded_headset->src_audio_locations_ =
-          ::bluetooth::le_audio::codec_spec_conf::kLeAudioLocationFrontLeft;
+      ::bluetooth::le_audio::codec_spec_conf::kLeAudioLocationFrontLeft;
   group_->ReloadAudioLocations();
 
   TestGroupAseConfiguration(LeAudioContextType::RINGTONE, &data, 1);
 }
 
-TEST_P(LeAudioAseConfigurationTest, test_banded_headset_ringtone_stereo_microphone) {
+TEST_P(LeAudioAseConfigurationTest,
+       test_banded_headset_ringtone_stereo_microphone) {
   LeAudioDevice* banded_headset = AddTestDevice(2, 2);
-  TestGroupAseConfigurationData data(
-          {banded_headset,
-           kLeAudioCodecChannelCountSingleChannel | kLeAudioCodecChannelCountTwoChannel,
-           kLeAudioCodecChannelCountSingleChannel | kLeAudioCodecChannelCountTwoChannel, 2, 2});
+  TestGroupAseConfigurationData data({banded_headset,
+                                      kLeAudioCodecChannelCountSingleChannel |
+                                          kLeAudioCodecChannelCountTwoChannel,
+                                      kLeAudioCodecChannelCountSingleChannel |
+                                          kLeAudioCodecChannelCountTwoChannel,
+                                      2, 2});
 
   TestGroupAseConfiguration(LeAudioContextType::RINGTONE, &data, 1);
 }
 
-TEST_P(LeAudioAseConfigurationTest, test_earbuds_conversational_stereo_microphone_no_swb) {
+TEST_P(LeAudioAseConfigurationTest,
+       test_earbuds_conversational_stereo_microphone_no_swb) {
   // Turn off the dual bidir SWB support
-  ON_CALL(*mock_codec_manager_, IsDualBiDirSwbSupported).WillByDefault(Return(false));
+  ON_CALL(*mock_codec_manager_, IsDualBiDirSwbSupported)
+      .WillByDefault(Return(false));
   ASSERT_FALSE(CodecManager::GetInstance()->IsDualBiDirSwbSupported());
 
   const auto context_type = LeAudioContextType::CONVERSATIONAL;
@@ -1620,7 +1785,8 @@ TEST_P(LeAudioAseConfigurationTest, test_earbuds_conversational_stereo_microphon
   // Verify non-SWB config was selected
   auto config = group_->GetCachedConfiguration(context_type).get();
   ASSERT_NE(nullptr, config);
-  ASSERT_FALSE(CodecManager::GetInstance()->CheckCodecConfigIsDualBiDirSwb(*config));
+  ASSERT_FALSE(
+      CodecManager::GetInstance()->CheckCodecConfigIsDualBiDirSwb(*config));
 }
 
 TEST_P(LeAudioAseConfigurationTest,
@@ -1629,25 +1795,31 @@ TEST_P(LeAudioAseConfigurationTest,
    * Turn off the dual bidir SWB support
    */
   desired_group_size_ = 2;
-  ON_CALL(*mock_codec_manager_, IsDualBiDirSwbSupported).WillByDefault(Return(false));
+  ON_CALL(*mock_codec_manager_, IsDualBiDirSwbSupported)
+      .WillByDefault(Return(false));
   ASSERT_FALSE(CodecManager::GetInstance()->IsDualBiDirSwbSupported());
 
   const auto context_type = LeAudioContextType::CONVERSATIONAL;
   TestSingleDevDualBidir(
-          AddTestDevice(1, 1, 0, 0, false, false, codec_spec_conf::kLeAudioLocationFrontLeft,
-                        codec_spec_conf::kLeAudioLocationFrontLeft),
-          context_type);
+      AddTestDevice(1, 1, 0, 0, false, false,
+                    codec_spec_conf::kLeAudioLocationFrontLeft,
+                    codec_spec_conf::kLeAudioLocationFrontLeft),
+      context_type);
 
   // Verify non-SWB config was selected
   auto config = group_->GetCachedConfiguration(context_type).get();
   ASSERT_NE(nullptr, config);
-  ASSERT_FALSE(CodecManager::GetInstance()->CheckCodecConfigIsDualBiDirSwb(*config));
-  ASSERT_FALSE(CodecManager::GetInstance()->CheckCodecConfigIsBiDirSwb(*config));
+  ASSERT_FALSE(
+      CodecManager::GetInstance()->CheckCodecConfigIsDualBiDirSwb(*config));
+  ASSERT_FALSE(
+      CodecManager::GetInstance()->CheckCodecConfigIsBiDirSwb(*config));
 }
 
-TEST_P(LeAudioAseConfigurationTest, test_earbuds_conversational_stereo_microphone_swb) {
+TEST_P(LeAudioAseConfigurationTest,
+       test_earbuds_conversational_stereo_microphone_swb) {
   // Turn on the dual bidir SWB support
-  ON_CALL(*mock_codec_manager_, IsDualBiDirSwbSupported).WillByDefault(Return(true));
+  ON_CALL(*mock_codec_manager_, IsDualBiDirSwbSupported)
+      .WillByDefault(Return(true));
   ASSERT_TRUE(CodecManager::GetInstance()->IsDualBiDirSwbSupported());
 
   const auto context_type = LeAudioContextType::CONVERSATIONAL;
@@ -1656,12 +1828,15 @@ TEST_P(LeAudioAseConfigurationTest, test_earbuds_conversational_stereo_microphon
   // Verify SWB config was selected
   auto config = group_->GetCachedConfiguration(context_type).get();
   ASSERT_NE(nullptr, config);
-  ASSERT_TRUE(CodecManager::GetInstance()->CheckCodecConfigIsDualBiDirSwb(*config));
+  ASSERT_TRUE(
+      CodecManager::GetInstance()->CheckCodecConfigIsDualBiDirSwb(*config));
 }
 
-TEST_P(LeAudioAseConfigurationTest, test_banded_headset_ringtone_stereo_microphone_no_swb) {
+TEST_P(LeAudioAseConfigurationTest,
+       test_banded_headset_ringtone_stereo_microphone_no_swb) {
   // Turn off the dual bidir SWB support
-  ON_CALL(*mock_codec_manager_, IsDualBiDirSwbSupported).WillByDefault(Return(false));
+  ON_CALL(*mock_codec_manager_, IsDualBiDirSwbSupported)
+      .WillByDefault(Return(false));
   ASSERT_FALSE(CodecManager::GetInstance()->IsDualBiDirSwbSupported());
 
   // Verify non-SWB config was selected
@@ -1669,12 +1844,15 @@ TEST_P(LeAudioAseConfigurationTest, test_banded_headset_ringtone_stereo_micropho
   TestSingleDevDualBidir(AddTestDevice(2, 2), context_type);
   auto config = group_->GetCachedConfiguration(context_type).get();
   ASSERT_NE(nullptr, config);
-  ASSERT_FALSE(CodecManager::GetInstance()->CheckCodecConfigIsDualBiDirSwb(*config));
+  ASSERT_FALSE(
+      CodecManager::GetInstance()->CheckCodecConfigIsDualBiDirSwb(*config));
 }
 
-TEST_P(LeAudioAseConfigurationTest, test_banded_headset_ringtone_stereo_microphone_swb) {
+TEST_P(LeAudioAseConfigurationTest,
+       test_banded_headset_ringtone_stereo_microphone_swb) {
   // Turn on the dual bidir SWB support
-  ON_CALL(*mock_codec_manager_, IsDualBiDirSwbSupported).WillByDefault(Return(true));
+  ON_CALL(*mock_codec_manager_, IsDualBiDirSwbSupported)
+      .WillByDefault(Return(true));
   ASSERT_TRUE(CodecManager::GetInstance()->IsDualBiDirSwbSupported());
 
   // Verify SWB config was selected
@@ -1682,39 +1860,48 @@ TEST_P(LeAudioAseConfigurationTest, test_banded_headset_ringtone_stereo_micropho
   TestSingleDevDualBidir(AddTestDevice(2, 2), context_type);
   auto config = group_->GetCachedConfiguration(context_type).get();
   ASSERT_NE(nullptr, config);
-  ASSERT_TRUE(CodecManager::GetInstance()->CheckCodecConfigIsDualBiDirSwb(*config));
+  ASSERT_TRUE(
+      CodecManager::GetInstance()->CheckCodecConfigIsDualBiDirSwb(*config));
 }
 
 TEST_P(LeAudioAseConfigurationTest, test_banded_headset_conversational) {
   LeAudioDevice* banded_headset = AddTestDevice(2, 1);
-  TestGroupAseConfigurationData data({banded_headset, kLeAudioCodecChannelCountTwoChannel,
-                                      kLeAudioCodecChannelCountSingleChannel, 2, 1});
+  TestGroupAseConfigurationData data(
+      {banded_headset, kLeAudioCodecChannelCountTwoChannel,
+       kLeAudioCodecChannelCountSingleChannel, 2, 1});
 
   TestGroupAseConfiguration(LeAudioContextType::CONVERSATIONAL, &data, 1);
 }
 
 TEST_P(LeAudioAseConfigurationTest, test_banded_headset_media) {
   LeAudioDevice* banded_headset = AddTestDevice(2, 1);
-  TestGroupAseConfigurationData data({banded_headset, kLeAudioCodecChannelCountTwoChannel,
-                                      kLeAudioCodecChannelCountSingleChannel, 2, 0});
+  TestGroupAseConfigurationData data(
+      {banded_headset, kLeAudioCodecChannelCountTwoChannel,
+       kLeAudioCodecChannelCountSingleChannel, 2, 0});
 
   uint8_t directions_to_verify = kLeAudioDirectionSink;
-  TestGroupAseConfiguration(LeAudioContextType::MEDIA, &data, 1, directions_to_verify);
+  TestGroupAseConfiguration(LeAudioContextType::MEDIA, &data, 1,
+                            directions_to_verify);
 }
 
 TEST_P(LeAudioAseConfigurationTest, test_earbuds_ringtone) {
   LeAudioDevice* left = AddTestDevice(1, 1);
   LeAudioDevice* right = AddTestDevice(1, 1);
-  TestGroupAseConfigurationData data[] = {{left, kLeAudioCodecChannelCountSingleChannel,
-                                           kLeAudioCodecChannelCountSingleChannel, 1, 1},
-                                          {right, kLeAudioCodecChannelCountSingleChannel,
-                                           kLeAudioCodecChannelCountSingleChannel, 1, 1}};
+  TestGroupAseConfigurationData data[] = {
+      {left, kLeAudioCodecChannelCountSingleChannel,
+       kLeAudioCodecChannelCountSingleChannel, 1, 1},
+      {right, kLeAudioCodecChannelCountSingleChannel,
+       kLeAudioCodecChannelCountSingleChannel, 1, 1}};
 
   /* Change location as by default it is stereo */
-  left->snk_audio_locations_ = ::bluetooth::le_audio::codec_spec_conf::kLeAudioLocationFrontLeft;
-  left->src_audio_locations_ = ::bluetooth::le_audio::codec_spec_conf::kLeAudioLocationFrontLeft;
-  right->snk_audio_locations_ = ::bluetooth::le_audio::codec_spec_conf::kLeAudioLocationFrontRight;
-  right->src_audio_locations_ = ::bluetooth::le_audio::codec_spec_conf::kLeAudioLocationFrontRight;
+  left->snk_audio_locations_ =
+      ::bluetooth::le_audio::codec_spec_conf::kLeAudioLocationFrontLeft;
+  left->src_audio_locations_ =
+      ::bluetooth::le_audio::codec_spec_conf::kLeAudioLocationFrontLeft;
+  right->snk_audio_locations_ =
+      ::bluetooth::le_audio::codec_spec_conf::kLeAudioLocationFrontRight;
+  right->src_audio_locations_ =
+      ::bluetooth::le_audio::codec_spec_conf::kLeAudioLocationFrontRight;
   group_->ReloadAudioLocations();
 
   TestGroupAseConfiguration(LeAudioContextType::RINGTONE, data, 2);
@@ -1723,16 +1910,21 @@ TEST_P(LeAudioAseConfigurationTest, test_earbuds_ringtone) {
 TEST_P(LeAudioAseConfigurationTest, test_earbuds_conversational) {
   LeAudioDevice* left = AddTestDevice(1, 1);
   LeAudioDevice* right = AddTestDevice(1, 1);
-  TestGroupAseConfigurationData data[] = {{left, kLeAudioCodecChannelCountSingleChannel,
-                                           kLeAudioCodecChannelCountSingleChannel, 1, 1},
-                                          {right, kLeAudioCodecChannelCountSingleChannel,
-                                           kLeAudioCodecChannelCountSingleChannel, 1, 1}};
+  TestGroupAseConfigurationData data[] = {
+      {left, kLeAudioCodecChannelCountSingleChannel,
+       kLeAudioCodecChannelCountSingleChannel, 1, 1},
+      {right, kLeAudioCodecChannelCountSingleChannel,
+       kLeAudioCodecChannelCountSingleChannel, 1, 1}};
 
   /* Change location as by default it is stereo */
-  left->snk_audio_locations_ = ::bluetooth::le_audio::codec_spec_conf::kLeAudioLocationFrontLeft;
-  left->src_audio_locations_ = ::bluetooth::le_audio::codec_spec_conf::kLeAudioLocationFrontLeft;
-  right->snk_audio_locations_ = ::bluetooth::le_audio::codec_spec_conf::kLeAudioLocationFrontRight;
-  right->src_audio_locations_ = ::bluetooth::le_audio::codec_spec_conf::kLeAudioLocationFrontRight;
+  left->snk_audio_locations_ =
+      ::bluetooth::le_audio::codec_spec_conf::kLeAudioLocationFrontLeft;
+  left->src_audio_locations_ =
+      ::bluetooth::le_audio::codec_spec_conf::kLeAudioLocationFrontLeft;
+  right->snk_audio_locations_ =
+      ::bluetooth::le_audio::codec_spec_conf::kLeAudioLocationFrontRight;
+  right->src_audio_locations_ =
+      ::bluetooth::le_audio::codec_spec_conf::kLeAudioLocationFrontRight;
   group_->ReloadAudioLocations();
 
   TestGroupAseConfiguration(LeAudioContextType::CONVERSATIONAL, data, 2);
@@ -1741,57 +1933,68 @@ TEST_P(LeAudioAseConfigurationTest, test_earbuds_conversational) {
 TEST_P(LeAudioAseConfigurationTest, test_earbuds_media) {
   LeAudioDevice* left = AddTestDevice(1, 1);
   LeAudioDevice* right = AddTestDevice(1, 1);
-  TestGroupAseConfigurationData data[] = {{left, kLeAudioCodecChannelCountSingleChannel,
-                                           kLeAudioCodecChannelCountSingleChannel, 1, 0},
-                                          {right, kLeAudioCodecChannelCountSingleChannel,
-                                           kLeAudioCodecChannelCountSingleChannel, 1, 0}};
+  TestGroupAseConfigurationData data[] = {
+      {left, kLeAudioCodecChannelCountSingleChannel,
+       kLeAudioCodecChannelCountSingleChannel, 1, 0},
+      {right, kLeAudioCodecChannelCountSingleChannel,
+       kLeAudioCodecChannelCountSingleChannel, 1, 0}};
 
   /* Change location as by default it is stereo */
-  left->snk_audio_locations_ = ::bluetooth::le_audio::codec_spec_conf::kLeAudioLocationFrontLeft;
-  left->src_audio_locations_ = ::bluetooth::le_audio::codec_spec_conf::kLeAudioLocationFrontLeft;
-  right->snk_audio_locations_ = ::bluetooth::le_audio::codec_spec_conf::kLeAudioLocationFrontRight;
-  right->src_audio_locations_ = ::bluetooth::le_audio::codec_spec_conf::kLeAudioLocationFrontRight;
+  left->snk_audio_locations_ =
+      ::bluetooth::le_audio::codec_spec_conf::kLeAudioLocationFrontLeft;
+  left->src_audio_locations_ =
+      ::bluetooth::le_audio::codec_spec_conf::kLeAudioLocationFrontLeft;
+  right->snk_audio_locations_ =
+      ::bluetooth::le_audio::codec_spec_conf::kLeAudioLocationFrontRight;
+  right->src_audio_locations_ =
+      ::bluetooth::le_audio::codec_spec_conf::kLeAudioLocationFrontRight;
   group_->ReloadAudioLocations();
 
   uint8_t directions_to_verify = kLeAudioDirectionSink;
-  TestGroupAseConfiguration(LeAudioContextType::MEDIA, data, 2, directions_to_verify);
+  TestGroupAseConfiguration(LeAudioContextType::MEDIA, data, 2,
+                            directions_to_verify);
 }
 
 TEST_P(LeAudioAseConfigurationTest, test_handsfree_mono_ringtone) {
   LeAudioDevice* handsfree = AddTestDevice(1, 1);
-  TestGroupAseConfigurationData data({handsfree, kLeAudioCodecChannelCountSingleChannel,
-                                      kLeAudioCodecChannelCountSingleChannel, 1, 1});
+  TestGroupAseConfigurationData data(
+      {handsfree, kLeAudioCodecChannelCountSingleChannel,
+       kLeAudioCodecChannelCountSingleChannel, 1, 1});
 
   handsfree->snk_audio_locations_ =
-          ::bluetooth::le_audio::codec_spec_conf::kLeAudioLocationFrontLeft;
+      ::bluetooth::le_audio::codec_spec_conf::kLeAudioLocationFrontLeft;
   handsfree->src_audio_locations_ =
-          ::bluetooth::le_audio::codec_spec_conf::kLeAudioLocationFrontLeft;
+      ::bluetooth::le_audio::codec_spec_conf::kLeAudioLocationFrontLeft;
   group_->ReloadAudioLocations();
 
   TestGroupAseConfiguration(LeAudioContextType::RINGTONE, &data, 1);
 }
 
 TEST_P(LeAudioAseConfigurationTest, test_handsfree_stereo_ringtone) {
-  LeAudioDevice* handsfree = AddTestDevice(
-          1, 1, 0, 0, false, false,
-          codec_spec_conf::kLeAudioLocationFrontLeft | codec_spec_conf::kLeAudioLocationFrontRight,
-          codec_spec_conf::kLeAudioLocationFrontLeft);
-  TestGroupAseConfigurationData data(
-          {handsfree, kLeAudioCodecChannelCountSingleChannel | kLeAudioCodecChannelCountTwoChannel,
-           kLeAudioCodecChannelCountSingleChannel, 2, 1});
+  LeAudioDevice* handsfree =
+      AddTestDevice(1, 1, 0, 0, false, false,
+                    codec_spec_conf::kLeAudioLocationFrontLeft |
+                        codec_spec_conf::kLeAudioLocationFrontRight,
+                    codec_spec_conf::kLeAudioLocationFrontLeft);
+  TestGroupAseConfigurationData data({handsfree,
+                                      kLeAudioCodecChannelCountSingleChannel |
+                                          kLeAudioCodecChannelCountTwoChannel,
+                                      kLeAudioCodecChannelCountSingleChannel, 2,
+                                      1});
 
   TestGroupAseConfiguration(LeAudioContextType::RINGTONE, &data, 1);
 }
 
 TEST_P(LeAudioAseConfigurationTest, test_handsfree_mono_conversational) {
   LeAudioDevice* handsfree = AddTestDevice(1, 1);
-  TestGroupAseConfigurationData data({handsfree, kLeAudioCodecChannelCountSingleChannel,
-                                      kLeAudioCodecChannelCountSingleChannel, 1, 1});
+  TestGroupAseConfigurationData data(
+      {handsfree, kLeAudioCodecChannelCountSingleChannel,
+       kLeAudioCodecChannelCountSingleChannel, 1, 1});
 
   handsfree->snk_audio_locations_ =
-          ::bluetooth::le_audio::codec_spec_conf::kLeAudioLocationFrontLeft;
+      ::bluetooth::le_audio::codec_spec_conf::kLeAudioLocationFrontLeft;
   handsfree->src_audio_locations_ =
-          ::bluetooth::le_audio::codec_spec_conf::kLeAudioLocationFrontLeft;
+      ::bluetooth::le_audio::codec_spec_conf::kLeAudioLocationFrontLeft;
   group_->ReloadAudioLocations();
 
   TestGroupAseConfiguration(LeAudioContextType::CONVERSATIONAL, &data, 1);
@@ -1799,45 +2002,54 @@ TEST_P(LeAudioAseConfigurationTest, test_handsfree_mono_conversational) {
 
 TEST_P(LeAudioAseConfigurationTest, test_handsfree_stereo_conversational) {
   LeAudioDevice* handsfree = AddTestDevice(1, 1);
-  TestGroupAseConfigurationData data(
-          {handsfree, kLeAudioCodecChannelCountSingleChannel | kLeAudioCodecChannelCountTwoChannel,
-           kLeAudioCodecChannelCountSingleChannel, 2, 1});
+  TestGroupAseConfigurationData data({handsfree,
+                                      kLeAudioCodecChannelCountSingleChannel |
+                                          kLeAudioCodecChannelCountTwoChannel,
+                                      kLeAudioCodecChannelCountSingleChannel, 2,
+                                      1});
 
   TestGroupAseConfiguration(LeAudioContextType::CONVERSATIONAL, &data, 1);
 }
 
 TEST_P(LeAudioAseConfigurationTest, test_handsfree_full_cached_conversational) {
   LeAudioDevice* handsfree = AddTestDevice(0, 0, 1, 1);
-  TestGroupAseConfigurationData data(
-          {handsfree, kLeAudioCodecChannelCountSingleChannel | kLeAudioCodecChannelCountTwoChannel,
-           kLeAudioCodecChannelCountSingleChannel, 2, 1});
+  TestGroupAseConfigurationData data({handsfree,
+                                      kLeAudioCodecChannelCountSingleChannel |
+                                          kLeAudioCodecChannelCountTwoChannel,
+                                      kLeAudioCodecChannelCountSingleChannel, 2,
+                                      1});
 
   TestGroupAseConfiguration(LeAudioContextType::CONVERSATIONAL, &data, 1);
 }
 
-TEST_P(LeAudioAseConfigurationTest, test_handsfree_partial_cached_conversational) {
+TEST_P(LeAudioAseConfigurationTest,
+       test_handsfree_partial_cached_conversational) {
   LeAudioDevice* handsfree = AddTestDevice(1, 0, 0, 1);
-  TestGroupAseConfigurationData data(
-          {handsfree, kLeAudioCodecChannelCountSingleChannel | kLeAudioCodecChannelCountTwoChannel,
-           kLeAudioCodecChannelCountSingleChannel, 2, 1});
+  TestGroupAseConfigurationData data({handsfree,
+                                      kLeAudioCodecChannelCountSingleChannel |
+                                          kLeAudioCodecChannelCountTwoChannel,
+                                      kLeAudioCodecChannelCountSingleChannel, 2,
+                                      1});
 
   TestGroupAseConfiguration(LeAudioContextType::CONVERSATIONAL, &data, 1);
 }
 
-TEST_P(LeAudioAseConfigurationTest, test_handsfree_media_two_channels_allocation_stereo) {
+TEST_P(LeAudioAseConfigurationTest,
+       test_handsfree_media_two_channels_allocation_stereo) {
   LeAudioDevice* handsfree = AddTestDevice(1, 1);
-  TestGroupAseConfigurationData data(
-          {handsfree, kLeAudioCodecChannelCountSingleChannel | kLeAudioCodecChannelCountTwoChannel,
-           kLeAudioCodecChannelCountSingleChannel, 2, 0});
+  TestGroupAseConfigurationData data({handsfree,
+                                      kLeAudioCodecChannelCountSingleChannel |
+                                          kLeAudioCodecChannelCountTwoChannel,
+                                      kLeAudioCodecChannelCountSingleChannel, 2,
+                                      0});
 
   uint8_t directions_to_verify = kLeAudioDirectionSink;
-  TestGroupAseConfiguration(LeAudioContextType::MEDIA, &data, 1, directions_to_verify);
+  TestGroupAseConfiguration(LeAudioContextType::MEDIA, &data, 1,
+                            directions_to_verify);
 }
 
 TEST_P(LeAudioAseConfigurationTest, test_lc3_config_ringtone) {
-  if (codec_coding_format_ != kLeAudioCodingFormatLC3) {
-    GTEST_SKIP();
-  }
+  if (codec_coding_format_ != kLeAudioCodingFormatLC3) GTEST_SKIP();
 
   AddTestDevice(1, 1);
 
@@ -1845,9 +2057,7 @@ TEST_P(LeAudioAseConfigurationTest, test_lc3_config_ringtone) {
 }
 
 TEST_P(LeAudioAseConfigurationTest, test_lc3_config_conversational) {
-  if (codec_coding_format_ != kLeAudioCodingFormatLC3) {
-    GTEST_SKIP();
-  }
+  if (codec_coding_format_ != kLeAudioCodingFormatLC3) GTEST_SKIP();
 
   AddTestDevice(1, 1);
 
@@ -1855,19 +2065,16 @@ TEST_P(LeAudioAseConfigurationTest, test_lc3_config_conversational) {
 }
 
 TEST_P(LeAudioAseConfigurationTest, test_lc3_config_media) {
-  if (codec_coding_format_ != kLeAudioCodingFormatLC3) {
-    GTEST_SKIP();
-  }
+  if (codec_coding_format_ != kLeAudioCodingFormatLC3) GTEST_SKIP();
 
   AddTestDevice(1, 1);
 
   TestLc3CodecConfig(LeAudioContextType::MEDIA);
 }
 
-TEST_P(LeAudioAseConfigurationTest, test_lc3_config_media_codec_extensibility_fb2) {
-  if (codec_coding_format_ != kLeAudioCodingFormatLC3) {
-    GTEST_SKIP();
-  }
+TEST_P(LeAudioAseConfigurationTest,
+       test_lc3_config_media_codec_extensibility_fb2) {
+  if (codec_coding_format_ != kLeAudioCodingFormatLC3) GTEST_SKIP();
 
   bool is_fb2_passed_as_requirement = false;
   auto max_codec_frames_per_sdu = 2;
@@ -1877,53 +2084,53 @@ TEST_P(LeAudioAseConfigurationTest, test_lc3_config_media_codec_extensibility_fb
   // ON_CALL(*mock_codec_manager_, IsUsingCodecExtensibility)
   //       .WillByDefault(Return(true));
   ON_CALL(*mock_codec_manager_, GetCodecConfig)
-          .WillByDefault(Invoke(
-                  [&](const bluetooth::le_audio::CodecManager::UnicastConfigurationRequirements&
-                              requirements,
-                      bluetooth::le_audio::CodecManager::UnicastConfigurationVerifier verifier) {
-                    auto filtered = *bluetooth::le_audio::AudioSetConfigurationProvider::Get()
-                                             ->GetConfigurations(requirements.audio_context_type);
-                    // Filter out the dual bidir SWB configurations
-                    if (!bluetooth::le_audio::CodecManager::GetInstance()
-                                 ->IsDualBiDirSwbSupported()) {
-                      filtered.erase(
-                              std::remove_if(filtered.begin(), filtered.end(),
-                                             [](auto const& el) {
-                                               if (el->confs.source.empty()) {
-                                                 return false;
-                                               }
-                                               return AudioSetConfigurationProvider::Get()
-                                                       ->CheckConfigurationIsDualBiDirSwb(*el);
-                                             }),
-                              filtered.end());
-                    }
-                    auto cfg = verifier(requirements, &filtered);
-                    if (cfg == nullptr) {
-                      return std::unique_ptr<AudioSetConfiguration>(nullptr);
-                    }
+      .WillByDefault(Invoke([&](const bluetooth::le_audio::CodecManager::
+                                    UnicastConfigurationRequirements&
+                                        requirements,
+                                bluetooth::le_audio::CodecManager::
+                                    UnicastConfigurationVerifier verifier) {
+        auto filtered =
+            *bluetooth::le_audio::AudioSetConfigurationProvider::Get()
+                 ->GetConfigurations(requirements.audio_context_type);
+        // Filter out the dual bidir SWB configurations
+        if (!bluetooth::le_audio::CodecManager::GetInstance()
+                 ->IsDualBiDirSwbSupported()) {
+          filtered.erase(
+              std::remove_if(filtered.begin(), filtered.end(),
+                             [](auto const& el) {
+                               if (el->confs.source.empty()) return false;
+                               return AudioSetConfigurationProvider::Get()
+                                   ->CheckConfigurationIsDualBiDirSwb(*el);
+                             }),
+              filtered.end());
+        }
+        auto cfg = verifier(requirements, &filtered);
+        if (cfg == nullptr) {
+          return std::unique_ptr<AudioSetConfiguration>(nullptr);
+        }
 
-                    auto config = *cfg;
+        auto config = *cfg;
 
-                    if (requirements.sink_pacs.has_value()) {
-                      for (auto const& rec : requirements.sink_pacs.value()) {
-                        auto caps = rec.codec_spec_caps.GetAsCoreCodecCapabilities();
-                        if (caps.HasSupportedMaxCodecFramesPerSdu()) {
-                          if (caps.supported_max_codec_frames_per_sdu.value() ==
-                              max_codec_frames_per_sdu) {
-                            // Inject the proper Codec Frames Per SDU as the json
-                            // configs are conservative and will always give us 1
-                            for (auto& entry : config.confs.sink) {
-                              entry.codec.params.Add(
-                                      codec_spec_conf::kLeAudioLtvTypeCodecFrameBlocksPerSdu,
-                                      (uint8_t)max_codec_frames_per_sdu);
-                            }
-                            is_fb2_passed_as_requirement = true;
-                          }
-                        }
-                      }
-                    }
-                    return std::make_unique<AudioSetConfiguration>(config);
-                  }));
+        if (requirements.sink_pacs.has_value()) {
+          for (auto const& rec : requirements.sink_pacs.value()) {
+            auto caps = rec.codec_spec_caps.GetAsCoreCodecCapabilities();
+            if (caps.HasSupportedMaxCodecFramesPerSdu()) {
+              if (caps.supported_max_codec_frames_per_sdu.value() ==
+                  max_codec_frames_per_sdu) {
+                // Inject the proper Codec Frames Per SDU as the json
+                // configs are conservative and will always give us 1
+                for (auto& entry : config.confs.sink) {
+                  entry.codec.params.Add(
+                      codec_spec_conf::kLeAudioLtvTypeCodecFrameBlocksPerSdu,
+                      (uint8_t)max_codec_frames_per_sdu);
+                }
+                is_fb2_passed_as_requirement = true;
+              }
+            }
+          }
+        }
+        return std::make_unique<AudioSetConfiguration>(config);
+      }));
 
   AddTestDevice(1, 1);
 
@@ -1934,27 +2141,28 @@ TEST_P(LeAudioAseConfigurationTest, test_lc3_config_media_codec_extensibility_fb
 }
 
 TEST_P(LeAudioAseConfigurationTest, test_unsupported_codec) {
-  if (codec_coding_format_ == kLeAudioCodingFormatVendorSpecific) {
-    GTEST_SKIP();
-  }
+  if (codec_coding_format_ == kLeAudioCodingFormatVendorSpecific) GTEST_SKIP();
   const bluetooth::le_audio::types::LeAudioCodecId UnsupportedCodecId = {
-          .coding_format = kLeAudioCodingFormatVendorSpecific,
-          .vendor_company_id = 0xBAD,
-          .vendor_codec_id = 0xC0DE,
+      .coding_format = kLeAudioCodingFormatVendorSpecific,
+      .vendor_company_id = 0xBAD,
+      .vendor_codec_id = 0xC0DE,
   };
 
   LeAudioDevice* device = AddTestDevice(1, 0);
 
   PublishedAudioCapabilitiesBuilder pac_builder;
-  pac_builder.Add(UnsupportedCodecId, GetSamplingFrequency(Lc3SettingId::LC3_16_2),
-                  GetFrameDuration(Lc3SettingId::LC3_16_2), kLeAudioCodecChannelCountSingleChannel,
+  pac_builder.Add(UnsupportedCodecId,
+                  GetSamplingFrequency(Lc3SettingId::LC3_16_2),
+                  GetFrameDuration(Lc3SettingId::LC3_16_2),
+                  kLeAudioCodecChannelCountSingleChannel,
                   GetOctetsPerCodecFrame(Lc3SettingId::LC3_16_2));
   device->snk_pacs_ = pac_builder.Get();
   device->src_pacs_ = pac_builder.Get();
 
-  ASSERT_FALSE(group_->Configure(LeAudioContextType::RINGTONE,
-                                 {AudioContexts(LeAudioContextType::RINGTONE),
-                                  AudioContexts(LeAudioContextType::RINGTONE)}));
+  ASSERT_FALSE(
+      group_->Configure(LeAudioContextType::RINGTONE,
+                        {AudioContexts(LeAudioContextType::RINGTONE),
+                         AudioContexts(LeAudioContextType::RINGTONE)}));
   TestAsesInactive();
 }
 
@@ -1963,20 +2171,25 @@ TEST_P(LeAudioAseConfigurationTest, test_reconnection_media) {
   LeAudioDevice* right = AddTestDevice(2, 1);
 
   /* Change location as by default it is stereo */
-  left->snk_audio_locations_ = ::bluetooth::le_audio::codec_spec_conf::kLeAudioLocationFrontLeft;
-  left->src_audio_locations_ = ::bluetooth::le_audio::codec_spec_conf::kLeAudioLocationFrontLeft;
-  right->snk_audio_locations_ = ::bluetooth::le_audio::codec_spec_conf::kLeAudioLocationFrontRight;
-  right->src_audio_locations_ = ::bluetooth::le_audio::codec_spec_conf::kLeAudioLocationFrontRight;
+  left->snk_audio_locations_ =
+      ::bluetooth::le_audio::codec_spec_conf::kLeAudioLocationFrontLeft;
+  left->src_audio_locations_ =
+      ::bluetooth::le_audio::codec_spec_conf::kLeAudioLocationFrontLeft;
+  right->snk_audio_locations_ =
+      ::bluetooth::le_audio::codec_spec_conf::kLeAudioLocationFrontRight;
+  right->src_audio_locations_ =
+      ::bluetooth::le_audio::codec_spec_conf::kLeAudioLocationFrontRight;
   group_->ReloadAudioLocations();
 
-  TestGroupAseConfigurationData data[] = {{left, kLeAudioCodecChannelCountSingleChannel,
-                                           kLeAudioCodecChannelCountSingleChannel, 1, 0},
-                                          {right, kLeAudioCodecChannelCountSingleChannel,
-                                           kLeAudioCodecChannelCountSingleChannel, 1, 0}};
+  TestGroupAseConfigurationData data[] = {
+      {left, kLeAudioCodecChannelCountSingleChannel,
+       kLeAudioCodecChannelCountSingleChannel, 1, 0},
+      {right, kLeAudioCodecChannelCountSingleChannel,
+       kLeAudioCodecChannelCountSingleChannel, 1, 0}};
 
   auto all_configurations =
-          ::bluetooth::le_audio::AudioSetConfigurationProvider::Get()->GetConfigurations(
-                  LeAudioContextType::MEDIA);
+      ::bluetooth::le_audio::AudioSetConfigurationProvider::Get()
+          ->GetConfigurations(LeAudioContextType::MEDIA);
   ASSERT_NE(nullptr, all_configurations);
   ASSERT_NE(all_configurations->end(), all_configurations->begin());
   auto configuration = *all_configurations->begin();
@@ -2005,28 +2218,31 @@ TEST_P(LeAudioAseConfigurationTest, test_reconnection_media) {
   TestAsesInactivated(left);
 
   /* Prepare reconfiguration */
-  uint8_t number_of_active_ases = 1; // Right one
+  uint8_t number_of_active_ases = 1;  // Right one
   auto* ase = right->GetFirstActiveAseByDirection(kLeAudioDirectionSink);
   ASSERT_NE(nullptr, ase);
 
   auto core_config = ase->codec_config.GetAsCoreCodecConfig();
   BidirectionalPair<AudioLocations> group_audio_locations = {
-          .sink = *core_config.audio_channel_allocation,
-          .source = *core_config.audio_channel_allocation};
+      .sink = *core_config.audio_channel_allocation,
+      .source = *core_config.audio_channel_allocation};
 
   /* Get entry for the sink direction and use it to set configuration */
   BidirectionalPair<std::vector<uint8_t>> ccid_lists = {{}, {}};
-  BidirectionalPair<AudioContexts> audio_contexts = {AudioContexts(), AudioContexts()};
+  BidirectionalPair<AudioContexts> audio_contexts = {AudioContexts(),
+                                                     AudioContexts()};
   if (!configuration->confs.sink.empty()) {
     left->ConfigureAses(configuration, group_->Size(), kLeAudioDirectionSink,
-                        group_->GetConfigurationContextType(), &number_of_active_ases,
+                        group_->GetConfigurationContextType(),
+                        &number_of_active_ases,
                         group_audio_locations.get(kLeAudioDirectionSink),
                         audio_contexts.get(kLeAudioDirectionSink),
                         ccid_lists.get(kLeAudioDirectionSink), false);
   }
   if (!configuration->confs.source.empty()) {
     left->ConfigureAses(configuration, group_->Size(), kLeAudioDirectionSource,
-                        group_->GetConfigurationContextType(), &number_of_active_ases,
+                        group_->GetConfigurationContextType(),
+                        &number_of_active_ases,
                         group_audio_locations.get(kLeAudioDirectionSource),
                         audio_contexts.get(kLeAudioDirectionSource),
                         ccid_lists.get(kLeAudioDirectionSource), false);
@@ -2035,7 +2251,8 @@ TEST_P(LeAudioAseConfigurationTest, test_reconnection_media) {
   ASSERT_EQ(number_of_active_ases, 2);
   ASSERT_EQ(group_audio_locations.sink, kChannelAllocationStereo);
 
-  uint8_t directions_to_verify = ::bluetooth::le_audio::types::kLeAudioDirectionSink;
+  uint8_t directions_to_verify =
+      ::bluetooth::le_audio::types::kLeAudioDirectionSink;
   for (int i = 0; i < 2; i++) {
     TestGroupAseConfigurationVerdict(data[i], directions_to_verify);
   }
@@ -2073,12 +2290,12 @@ TEST_P(LeAudioAseConfigurationTest, test_reactivation_conversational) {
   /* Change location as by default it is stereo */
   tws_headset->snk_audio_locations_ = kChannelAllocationStereo;
   tws_headset->src_audio_locations_ =
-          ::bluetooth::le_audio::codec_spec_conf::kLeAudioLocationFrontLeft;
+      ::bluetooth::le_audio::codec_spec_conf::kLeAudioLocationFrontLeft;
   group_->ReloadAudioLocations();
 
   auto conversational_configuration = getSpecificConfiguration(
-          "Two-OneChan-SnkAse-Lc3_16_2-One-OneChan-SrcAse-Lc3_16_2_Low_Latency",
-          LeAudioContextType::CONVERSATIONAL);
+      "Two-OneChan-SnkAse-Lc3_16_2-One-OneChan-SrcAse-Lc3_16_2_Low_Latency",
+      LeAudioContextType::CONVERSATIONAL);
   ASSERT_NE(nullptr, conversational_configuration);
 
   // Build PACs for device
@@ -2103,29 +2320,32 @@ TEST_P(LeAudioAseConfigurationTest, test_reactivation_conversational) {
   ::bluetooth::le_audio::types::AudioLocations group_src_audio_locations = 0;
   BidirectionalPair<uint8_t> number_of_already_active_ases = {0, 0};
 
-  BidirectionalPair<AudioLocations> group_audio_locations = {.sink = group_snk_audio_locations,
-                                                             .source = group_src_audio_locations};
+  BidirectionalPair<AudioLocations> group_audio_locations = {
+      .sink = group_snk_audio_locations, .source = group_src_audio_locations};
 
   /* Get entry for the sink direction and use it to set configuration */
   BidirectionalPair<std::vector<uint8_t>> ccid_lists = {{}, {}};
-  BidirectionalPair<AudioContexts> audio_contexts = {AudioContexts(), AudioContexts()};
+  BidirectionalPair<AudioContexts> audio_contexts = {AudioContexts(),
+                                                     AudioContexts()};
 
   /* Get entry for the sink direction and use it to set configuration */
   if (!conversational_configuration->confs.sink.empty()) {
-    tws_headset->ConfigureAses(conversational_configuration, group_->Size(), kLeAudioDirectionSink,
-                               group_->GetConfigurationContextType(),
-                               &number_of_already_active_ases.get(kLeAudioDirectionSink),
-                               group_audio_locations.get(kLeAudioDirectionSink),
-                               audio_contexts.get(kLeAudioDirectionSink),
-                               ccid_lists.get(kLeAudioDirectionSink), false);
+    tws_headset->ConfigureAses(
+        conversational_configuration, group_->Size(), kLeAudioDirectionSink,
+        group_->GetConfigurationContextType(),
+        &number_of_already_active_ases.get(kLeAudioDirectionSink),
+        group_audio_locations.get(kLeAudioDirectionSink),
+        audio_contexts.get(kLeAudioDirectionSink),
+        ccid_lists.get(kLeAudioDirectionSink), false);
   }
   if (!conversational_configuration->confs.source.empty()) {
-    tws_headset->ConfigureAses(conversational_configuration, group_->Size(),
-                               kLeAudioDirectionSource, group_->GetConfigurationContextType(),
-                               &number_of_already_active_ases.get(kLeAudioDirectionSource),
-                               group_audio_locations.get(kLeAudioDirectionSource),
-                               audio_contexts.get(kLeAudioDirectionSource),
-                               ccid_lists.get(kLeAudioDirectionSource), false);
+    tws_headset->ConfigureAses(
+        conversational_configuration, group_->Size(), kLeAudioDirectionSource,
+        group_->GetConfigurationContextType(),
+        &number_of_already_active_ases.get(kLeAudioDirectionSource),
+        group_audio_locations.get(kLeAudioDirectionSource),
+        audio_contexts.get(kLeAudioDirectionSource),
+        ccid_lists.get(kLeAudioDirectionSource), false);
   }
 
   /* Generate CISes, simulate CIG creation and assign cis handles to ASEs.*/
@@ -2145,15 +2365,17 @@ TEST_P(LeAudioAseConfigurationTest, test_reactivation_conversational) {
    * the same CIS ID can be used. This would lead to only activating group
    * without reconfiguring CIG.
    */
-  group_->Activate(LeAudioContextType::CONVERSATIONAL, audio_contexts, ccid_lists);
+  group_->Activate(LeAudioContextType::CONVERSATIONAL, audio_contexts,
+                   ccid_lists);
 
   TestActiveAses();
 
   /* Verify ASEs assigned CISes by counting assigned to bi-directional CISes */
-  int bi_dir_ases_count =
-          std::count_if(tws_headset->ases_.begin(), tws_headset->ases_.end(), [this](auto& ase) {
-            return this->group_->cig.cises[ase.cis_id].type == CisType::CIS_TYPE_BIDIRECTIONAL;
-          });
+  int bi_dir_ases_count = std::count_if(
+      tws_headset->ases_.begin(), tws_headset->ases_.end(), [this](auto& ase) {
+        return this->group_->cig.cises[ase.cis_id].type ==
+               CisType::CIS_TYPE_BIDIRECTIONAL;
+      });
 
   /* Only two ASEs can be bonded to one bi-directional CIS */
   ASSERT_EQ(bi_dir_ases_count, 2);
@@ -2196,8 +2418,9 @@ TEST_P(LeAudioAseConfigurationTest, test_getting_cis_count) {
   right->snk_audio_locations_ = kChannelAllocationStereo;
   group_->ReloadAudioLocations();
 
-  auto media_configuration = getSpecificConfiguration(
-          "One-TwoChan-SnkAse-Lc3_48_4_High_Reliability", LeAudioContextType::MEDIA);
+  auto media_configuration =
+      getSpecificConfiguration("One-TwoChan-SnkAse-Lc3_48_4_High_Reliability",
+                               LeAudioContextType::MEDIA);
   ASSERT_NE(nullptr, media_configuration);
 
   // Build PACs for device
@@ -2207,7 +2430,8 @@ TEST_P(LeAudioAseConfigurationTest, test_getting_cis_count) {
   /* Create PACs for media. Single PAC for each direction is enough.
    */
   if (media_configuration->confs.sink.size()) {
-    snk_pac_builder.Add(LeAudioCodecIdLc3, 0x00b5, 0x03, 0x03, 0x001a, 0x00f0, 2);
+    snk_pac_builder.Add(LeAudioCodecIdLc3, 0x00b5, 0x03, 0x03, 0x001a, 0x00f0,
+                        2);
   }
 
   left->snk_pacs_ = snk_pac_builder.Get();
@@ -2217,20 +2441,22 @@ TEST_P(LeAudioAseConfigurationTest, test_getting_cis_count) {
   ::bluetooth::le_audio::types::AudioLocations group_src_audio_locations = 0;
   uint8_t number_of_already_active_ases = 0;
 
-  BidirectionalPair<AudioLocations> group_audio_locations = {.sink = group_snk_audio_locations,
-                                                             .source = group_src_audio_locations};
+  BidirectionalPair<AudioLocations> group_audio_locations = {
+      .sink = group_snk_audio_locations, .source = group_src_audio_locations};
 
   /* Get entry for the sink direction and use it to set configuration */
   BidirectionalPair<std::vector<uint8_t>> ccid_lists = {{}, {}};
-  BidirectionalPair<AudioContexts> audio_contexts = {AudioContexts(), AudioContexts()};
+  BidirectionalPair<AudioContexts> audio_contexts = {AudioContexts(),
+                                                     AudioContexts()};
 
   /* Get entry for the sink direction and use it to set configuration */
   if (!media_configuration->confs.sink.empty()) {
-    left->ConfigureAses(media_configuration, group_->Size(), kLeAudioDirectionSink,
-                        group_->GetConfigurationContextType(), &number_of_already_active_ases,
-                        group_audio_locations.get(kLeAudioDirectionSink),
-                        audio_contexts.get(kLeAudioDirectionSink),
-                        ccid_lists.get(kLeAudioDirectionSink), false);
+    left->ConfigureAses(
+        media_configuration, group_->Size(), kLeAudioDirectionSink,
+        group_->GetConfigurationContextType(), &number_of_already_active_ases,
+        group_audio_locations.get(kLeAudioDirectionSink),
+        audio_contexts.get(kLeAudioDirectionSink),
+        ccid_lists.get(kLeAudioDirectionSink), false);
   }
 
   /* Generate CIS, simulate CIG creation and assign cis handles to ASEs.*/
@@ -2238,9 +2464,11 @@ TEST_P(LeAudioAseConfigurationTest, test_getting_cis_count) {
   group_->cig.GenerateCisIds(LeAudioContextType::MEDIA);
 
   /* Verify prepared CISes by counting generated entries */
-  int snk_cis_count = std::count_if(
-          this->group_->cig.cises.begin(), this->group_->cig.cises.end(),
-          [](auto& cis) { return cis.type == CisType::CIS_TYPE_UNIDIRECTIONAL_SINK; });
+  int snk_cis_count =
+      std::count_if(this->group_->cig.cises.begin(),
+                    this->group_->cig.cises.end(), [](auto& cis) {
+                      return cis.type == CisType::CIS_TYPE_UNIDIRECTIONAL_SINK;
+                    });
 
   /* Two CIS should be prepared for dual dev expected set */
   ASSERT_EQ(snk_cis_count, 2);
@@ -2256,9 +2484,9 @@ TEST_P(LeAudioAseConfigurationTest, test_config_support) {
   group_->ReloadAudioLocations();
 
   auto test_config = getSpecificConfiguration(
-          "One-OneChan-SnkAse-Lc3_48_4-One-OneChan-SrcAse-Lc3_16_2_Balanced_"
-          "Reliability",
-          LeAudioContextType::VOICEASSISTANTS);
+      "One-OneChan-SnkAse-Lc3_48_4-One-OneChan-SrcAse-Lc3_16_2_Balanced_"
+      "Reliability",
+      LeAudioContextType::VOICEASSISTANTS);
   ASSERT_NE(nullptr, test_config);
 
   /* Create PACs for sink */
@@ -2286,16 +2514,21 @@ TEST_P(LeAudioAseConfigurationTest, test_config_support) {
   ASSERT_TRUE(right->IsAudioSetConfigurationSupported(test_config));
 }
 
-TEST_P(LeAudioAseConfigurationTest, test_vendor_codec_configure_incomplete_group) {
+TEST_P(LeAudioAseConfigurationTest,
+       test_vendor_codec_configure_incomplete_group) {
   // A group of two earbuds
   LeAudioDevice* left = AddTestDevice(2, 1);
   LeAudioDevice* right = AddTestDevice(2, 1);
 
   /* Change location as by default it is stereo */
-  left->snk_audio_locations_ = ::bluetooth::le_audio::codec_spec_conf::kLeAudioLocationFrontLeft;
-  left->src_audio_locations_ = ::bluetooth::le_audio::codec_spec_conf::kLeAudioLocationFrontLeft;
-  right->snk_audio_locations_ = ::bluetooth::le_audio::codec_spec_conf::kLeAudioLocationFrontRight;
-  right->src_audio_locations_ = ::bluetooth::le_audio::codec_spec_conf::kLeAudioLocationFrontRight;
+  left->snk_audio_locations_ =
+      ::bluetooth::le_audio::codec_spec_conf::kLeAudioLocationFrontLeft;
+  left->src_audio_locations_ =
+      ::bluetooth::le_audio::codec_spec_conf::kLeAudioLocationFrontLeft;
+  right->snk_audio_locations_ =
+      ::bluetooth::le_audio::codec_spec_conf::kLeAudioLocationFrontRight;
+  right->src_audio_locations_ =
+      ::bluetooth::le_audio::codec_spec_conf::kLeAudioLocationFrontRight;
   group_->ReloadAudioLocations();
 
   // The Right earbud is currently disconnected
@@ -2303,10 +2536,11 @@ TEST_P(LeAudioAseConfigurationTest, test_vendor_codec_configure_incomplete_group
 
   uint8_t direction_to_verify = kLeAudioDirectionSink;
   uint8_t devices_to_verify = 1;
-  TestGroupAseConfigurationData data[] = {{left, kLeAudioCodecChannelCountSingleChannel,
-                                           kLeAudioCodecChannelCountSingleChannel, 1, 0},
-                                          {right, kLeAudioCodecChannelCountSingleChannel,
-                                           kLeAudioCodecChannelCountSingleChannel, 0, 0}};
+  TestGroupAseConfigurationData data[] = {
+      {left, kLeAudioCodecChannelCountSingleChannel,
+       kLeAudioCodecChannelCountSingleChannel, 1, 0},
+      {right, kLeAudioCodecChannelCountSingleChannel,
+       kLeAudioCodecChannelCountSingleChannel, 0, 0}};
 
   TestGroupAseConfiguration(LeAudioContextType::MEDIA, data, devices_to_verify,
                             direction_to_verify);
@@ -2316,7 +2550,7 @@ INSTANTIATE_TEST_CASE_P(Test, LeAudioAseConfigurationTest,
                         ::testing::Values(kLeAudioCodingFormatLC3,
                                           kLeAudioCodingFormatVendorSpecific));
 
-} // namespace
-} // namespace internal
-} // namespace le_audio
-} // namespace bluetooth
+}  // namespace
+}  // namespace internal
+}  // namespace le_audio
+}  // namespace bluetooth

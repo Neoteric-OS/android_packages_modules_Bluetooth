@@ -35,18 +35,20 @@ namespace osi_thread_scheduler {
 struct thread_scheduler_enable_real_time thread_scheduler_enable_real_time;
 struct thread_scheduler_get_priority_range thread_scheduler_get_priority_range;
 
-} // namespace osi_thread_scheduler
-} // namespace mock
-} // namespace test
+}  // namespace osi_thread_scheduler
+}  // namespace mock
+}  // namespace test
 
 // Mocked functions, if any
 bool thread_scheduler_enable_real_time(pid_t linux_tid) {
   inc_func_call_count(__func__);
-  return test::mock::osi_thread_scheduler::thread_scheduler_enable_real_time(linux_tid);
+  return test::mock::osi_thread_scheduler::thread_scheduler_enable_real_time(
+      linux_tid);
 }
 bool thread_scheduler_get_priority_range(int& min, int& max) {
   inc_func_call_count(__func__);
-  return test::mock::osi_thread_scheduler::thread_scheduler_get_priority_range(min, max);
+  return test::mock::osi_thread_scheduler::thread_scheduler_get_priority_range(
+      min, max);
 }
 // Mocked functions complete
 // END mockcify generation

@@ -15,9 +15,10 @@
  */
 
 #define PACKET_FUZZ_TESTING
+#include "l2cap/l2cap_packets.h"
+
 #include <memory>
 
-#include "l2cap/l2cap_packets.h"
 #include "os/log.h"
 #include "packet/bit_inserter.h"
 #include "packet/raw_builder.h"
@@ -41,13 +42,11 @@ DEFINE_AND_REGISTER_GroupFrameReflectionFuzzTest(l2cap_packet_fuzz_tests);
 
 DEFINE_AND_REGISTER_ConfigurationRequestReflectionFuzzTest(l2cap_packet_fuzz_tests);
 
-} // namespace l2cap
-} // namespace bluetooth
+}  // namespace l2cap
+}  // namespace bluetooth
 
 void RunL2capPacketFuzzTest(const uint8_t* data, size_t size) {
-  if (data == nullptr || size > 65536 /* Max ACL packet size */) {
-    return;
-  }
+  if (data == nullptr || size > 65536 /* Max ACL packet size */) return;
   for (auto test_function : bluetooth::l2cap::l2cap_packet_fuzz_tests) {
     test_function(data, size);
   }

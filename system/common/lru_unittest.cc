@@ -16,13 +16,12 @@
  *
  ******************************************************************************/
 
-#include "common/lru.h"
-
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
-
 #include <chrono>
 #include <limits>
+
+#include "common/lru.h"
 
 namespace testing {
 
@@ -30,7 +29,7 @@ using bluetooth::common::LegacyLruCache;
 
 TEST(BluetoothLegacyLruCacheTest, LegacyLruCacheMainTest1) {
   int* value = new int(0);
-  LegacyLruCache<int, int> cache(3, "testing"); // capacity = 3;
+  LegacyLruCache<int, int> cache(3, "testing");  // capacity = 3;
   cache.Put(1, 10);
   EXPECT_EQ(cache.Size(), 1);
   EXPECT_FALSE(cache.Put(2, 20));
@@ -76,7 +75,7 @@ TEST(BluetoothLegacyLruCacheTest, LegacyLruCacheMainTest1) {
 
 TEST(BluetoothLegacyLruCacheTest, LegacyLruCacheMainTest2) {
   int* value = new int(0);
-  LegacyLruCache<int, int> cache(2, "testing"); // size = 2;
+  LegacyLruCache<int, int> cache(2, "testing");  // size = 2;
   EXPECT_FALSE(cache.Put(1, 10));
   EXPECT_FALSE(cache.Put(2, 20));
   EXPECT_THAT(cache.Put(3, 30), Optional(Pair(1, 10)));
@@ -198,7 +197,7 @@ TEST(BluetoothLegacyLruCacheTest, LegacyLruCacheClearTest) {
 }
 
 TEST(BluetoothLegacyLruCacheTest, LegacyLruCachePressureTest) {
-  int max_size = 0xFFFFF; // 2^20 = 1M
+  int max_size = 0xFFFFF;  // 2^20 = 1M
   LegacyLruCache<int, int> cache(static_cast<size_t>(max_size), "testing");
 
   // fill the cache
@@ -247,4 +246,4 @@ TEST(BluetoothLegacyLruCacheTest, BluetoothLruMultiThreadPressureTest) {
   EXPECT_EQ(cache.Size(), 0);
 }
 
-} // namespace testing
+}  // namespace testing

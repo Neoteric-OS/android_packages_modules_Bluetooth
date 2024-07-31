@@ -1,8 +1,7 @@
-#include "osi/include/ringbuffer.h"
-
 #include <gtest/gtest.h>
 
 #include "osi/include/osi.h"
+#include "osi/include/ringbuffer.h"
 
 TEST(RingbufferTest, test_new_simple) {
   ringbuffer_t* rb = ringbuffer_init(4096);
@@ -15,14 +14,15 @@ TEST(RingbufferTest, test_new_simple) {
 TEST(RingbufferTest, test_insert_basic) {
   ringbuffer_t* rb = ringbuffer_init(16);
 
-  uint8_t buffer[10] = {0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A};
+  uint8_t buffer[10] = {0x01, 0x02, 0x03, 0x04, 0x05,
+                        0x06, 0x07, 0x08, 0x09, 0x0A};
   ringbuffer_insert(rb, buffer, 10);
   EXPECT_EQ((size_t)10, ringbuffer_size(rb));
   EXPECT_EQ((size_t)6, ringbuffer_available(rb));
 
   uint8_t peek[10] = {0};
   size_t peeked = ringbuffer_peek(rb, 0, peek, 10);
-  EXPECT_EQ((size_t)10, ringbuffer_size(rb)); // Ensure size doesn't change
+  EXPECT_EQ((size_t)10, ringbuffer_size(rb));  // Ensure size doesn't change
   EXPECT_EQ((size_t)6, ringbuffer_available(rb));
   EXPECT_EQ((size_t)10, peeked);
   ASSERT_TRUE(0 == memcmp(buffer, peek, peeked));

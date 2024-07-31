@@ -33,4 +33,4 @@ void hfp_lc3_encoder_cleanup();
 // Returns number of PCM bytes consumed (should always be 480).
 uint32_t hfp_lc3_encode_frames(int16_t* input, uint8_t* output);
 
-#endif // HFP_LC3_ENCODER_H
+#endif  // HFP_LC3_ENCODER_H

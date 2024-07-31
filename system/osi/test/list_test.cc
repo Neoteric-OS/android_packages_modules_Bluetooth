@@ -68,9 +68,7 @@ TEST_F(ListTest, test_list_front) {
   int x[] = {1, 2, 3, 4, 5};
   list_t* list = list_new(NULL);
 
-  for (size_t i = 0; i < ARRAY_SIZE(x); ++i) {
-    list_append(list, &x[i]);
-  }
+  for (size_t i = 0; i < ARRAY_SIZE(x); ++i) list_append(list, &x[i]);
 
   EXPECT_EQ(list_front(list), &x[0]);
 
@@ -81,9 +79,7 @@ TEST_F(ListTest, test_list_back) {
   int x[] = {1, 2, 3, 4, 5};
   list_t* list = list_new(NULL);
 
-  for (size_t i = 0; i < ARRAY_SIZE(x); ++i) {
-    list_append(list, &x[i]);
-  }
+  for (size_t i = 0; i < ARRAY_SIZE(x); ++i) list_append(list, &x[i]);
 
   EXPECT_EQ(list_back(list), &x[ARRAY_SIZE(x) - 1]);
 
@@ -94,9 +90,7 @@ TEST_F(ListTest, test_list_clear) {
   int x[] = {1, 2, 3, 4, 5};
   list_t* list = list_new(NULL);
 
-  for (size_t i = 0; i < ARRAY_SIZE(x); ++i) {
-    list_append(list, &x[i]);
-  }
+  for (size_t i = 0; i < ARRAY_SIZE(x); ++i) list_append(list, &x[i]);
 
   list_clear(list);
   EXPECT_TRUE(list_is_empty(list));
@@ -109,15 +103,12 @@ TEST_F(ListTest, test_list_append_multiple) {
   int x[] = {1, 2, 3, 4, 5};
   list_t* list = list_new(NULL);
 
-  for (size_t i = 0; i < ARRAY_SIZE(x); ++i) {
-    list_append(list, &x[i]);
-  }
+  for (size_t i = 0; i < ARRAY_SIZE(x); ++i) list_append(list, &x[i]);
 
   int i = 0;
-  for (const list_node_t* node = list_begin(list); node != list_end(list);
-       node = list_next(node), ++i) {
+  for (const list_node_t *node = list_begin(list); node != list_end(list);
+       node = list_next(node), ++i)
     EXPECT_EQ(list_node(node), &x[i]);
-  }
 
   list_free(list);
 }
@@ -126,15 +117,12 @@ TEST_F(ListTest, test_list_prepend_multiple) {
   int x[] = {1, 2, 3, 4, 5};
   list_t* list = list_new(NULL);
 
-  for (size_t i = 0; i < ARRAY_SIZE(x); ++i) {
-    list_prepend(list, &x[i]);
-  }
+  for (size_t i = 0; i < ARRAY_SIZE(x); ++i) list_prepend(list, &x[i]);
 
   int i = ARRAY_SIZE(x) - 1;
-  for (const list_node_t* node = list_begin(list); node != list_end(list);
-       node = list_next(node), --i) {
+  for (const list_node_t *node = list_begin(list); node != list_end(list);
+       node = list_next(node), --i)
     EXPECT_EQ(list_node(node), &x[i]);
-  }
 
   list_free(list);
 }
@@ -165,7 +153,7 @@ static bool list_callback_sum(void* data, void* context) {
 static bool list_callback_find_int(void* data, void* context) {
   EXPECT_NE(data, nullptr);
   EXPECT_NE(context, nullptr);
-  return *(int*)data != *(int*)context;
+  return (*(int*)data != *(int*)context);
 }
 
 TEST_F(ListTest, test_list_foreach_full) {
@@ -173,9 +161,7 @@ TEST_F(ListTest, test_list_foreach_full) {
 
   // Fill in test data
   int x[] = {1, 2, 3, 4, 5};
-  for (size_t i = 0; i < ARRAY_SIZE(x); ++i) {
-    list_append(list, &x[i]);
-  }
+  for (size_t i = 0; i < ARRAY_SIZE(x); ++i) list_append(list, &x[i]);
   EXPECT_EQ(list_length(list), (size_t)5);
 
   // Test complete iteration
@@ -192,9 +178,7 @@ TEST_F(ListTest, test_list_foreach_partial) {
 
   // Fill in test data
   int x[] = {1, 2, 3, 4, 5};
-  for (size_t i = 0; i < ARRAY_SIZE(x); ++i) {
-    list_append(list, &x[i]);
-  }
+  for (size_t i = 0; i < ARRAY_SIZE(x); ++i) list_append(list, &x[i]);
   EXPECT_EQ(list_length(list), (size_t)5);
 
   // Test partial iteration

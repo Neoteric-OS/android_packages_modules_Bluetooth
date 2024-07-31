@@ -112,85 +112,85 @@ inline std::string smp_opcode_text(const tSMP_OPCODE opcode) {
 /* SMP events */
 typedef enum : uint8_t {
   SMP_NOP_EVT = 0,
-  SMP_CONFIRM_EVT = SMP_OPCODE_CONFIRM, // 0x03
-  SMP_RAND_EVT = SMP_OPCODE_RAND,       // 0x04
+  SMP_CONFIRM_EVT = SMP_OPCODE_CONFIRM,  // 0x03
+  SMP_RAND_EVT = SMP_OPCODE_RAND,        // 0x04
 
-  SMP_PAIR_COMMITM_EVT = SMP_OPCODE_PAIR_COMMITM,    // 0x0f
-  SMP_SELF_DEF_EVT = (SMP_PAIR_COMMITM_EVT + 1),     // 0x10
-  SMP_KEY_READY_EVT = (SMP_SELF_DEF_EVT),            // 0x04
-  SMP_ENCRYPTED_EVT = (SMP_SELF_DEF_EVT + 1),        // 0x05
-  SMP_L2CAP_CONN_EVT = (SMP_SELF_DEF_EVT + 2),       // 0x06
-  SMP_L2CAP_DISCONN_EVT = (SMP_SELF_DEF_EVT + 3),    // 0x07
-  SMP_IO_RSP_EVT = (SMP_SELF_DEF_EVT + 4),           // 0x08
-  SMP_API_SEC_GRANT_EVT = (SMP_SELF_DEF_EVT + 5),    // 0x09
-  SMP_TK_REQ_EVT = (SMP_SELF_DEF_EVT + 6),           // 0x0a
-  SMP_AUTH_CMPL_EVT = (SMP_SELF_DEF_EVT + 7),        // 0x0b
-  SMP_ENC_REQ_EVT = (SMP_SELF_DEF_EVT + 8),          // 0x0c
-  SMP_BOND_REQ_EVT = (SMP_SELF_DEF_EVT + 9),         // 0x0d
-  SMP_DISCARD_SEC_REQ_EVT = (SMP_SELF_DEF_EVT + 10), // 0x0e
+  SMP_PAIR_COMMITM_EVT = SMP_OPCODE_PAIR_COMMITM,     // 0x0f
+  SMP_SELF_DEF_EVT = (SMP_PAIR_COMMITM_EVT + 1),      // 0x10
+  SMP_KEY_READY_EVT = (SMP_SELF_DEF_EVT),             // 0x04
+  SMP_ENCRYPTED_EVT = (SMP_SELF_DEF_EVT + 1),         // 0x05
+  SMP_L2CAP_CONN_EVT = (SMP_SELF_DEF_EVT + 2),        // 0x06
+  SMP_L2CAP_DISCONN_EVT = (SMP_SELF_DEF_EVT + 3),     // 0x07
+  SMP_IO_RSP_EVT = (SMP_SELF_DEF_EVT + 4),            // 0x08
+  SMP_API_SEC_GRANT_EVT = (SMP_SELF_DEF_EVT + 5),     // 0x09
+  SMP_TK_REQ_EVT = (SMP_SELF_DEF_EVT + 6),            // 0x0a
+  SMP_AUTH_CMPL_EVT = (SMP_SELF_DEF_EVT + 7),         // 0x0b
+  SMP_ENC_REQ_EVT = (SMP_SELF_DEF_EVT + 8),           // 0x0c
+  SMP_BOND_REQ_EVT = (SMP_SELF_DEF_EVT + 9),          // 0x0d
+  SMP_DISCARD_SEC_REQ_EVT = (SMP_SELF_DEF_EVT + 10),  // 0x0e
 
   SMP_BR_PAIR_KEYPR_NOTIF_EVT = SMP_OPCODE_PAIR_KEYPR_NOTIF,
-  /* not over BR/EDR */                                    // 0x0e
-  SMP_BR_SELF_DEF_EVT = SMP_BR_PAIR_KEYPR_NOTIF_EVT,       // 0x0e
-  SMP_BR_KEY_READY_EVT = (SMP_BR_SELF_DEF_EVT + 1),        // 0x0f
-  SMP_BR_ENCRYPTED_EVT = (SMP_BR_SELF_DEF_EVT + 2),        // 0x10
-  SMP_BR_L2CAP_CONN_EVT = (SMP_BR_SELF_DEF_EVT + 3),       // 0x11
-  SMP_BR_L2CAP_DISCONN_EVT = (SMP_BR_SELF_DEF_EVT + 4),    // 0x12
-  SMP_BR_KEYS_RSP_EVT = (SMP_BR_SELF_DEF_EVT + 5),         // 0x13
-  SMP_BR_API_SEC_GRANT_EVT = (SMP_BR_SELF_DEF_EVT + 6),    // 0x14
-  SMP_BR_TK_REQ_EVT = (SMP_BR_SELF_DEF_EVT + 7),           // 0x15
-  SMP_BR_AUTH_CMPL_EVT = (SMP_BR_SELF_DEF_EVT + 8),        // 0x16
-  SMP_BR_ENC_REQ_EVT = (SMP_BR_SELF_DEF_EVT + 9),          // 0x17
-  SMP_BR_BOND_REQ_EVT = (SMP_BR_SELF_DEF_EVT + 10),        // 0x18
-  SMP_BR_DISCARD_SEC_REQ_EVT = (SMP_BR_SELF_DEF_EVT + 11), // 0x19
-  SMP_BR_MAX_EVT = (SMP_BR_SELF_DEF_EVT + 12),             // 0x1a
+  /* not over BR/EDR */                                     // 0x0e
+  SMP_BR_SELF_DEF_EVT = SMP_BR_PAIR_KEYPR_NOTIF_EVT,        // 0x0e
+  SMP_BR_KEY_READY_EVT = (SMP_BR_SELF_DEF_EVT + 1),         // 0x0f
+  SMP_BR_ENCRYPTED_EVT = (SMP_BR_SELF_DEF_EVT + 2),         // 0x10
+  SMP_BR_L2CAP_CONN_EVT = (SMP_BR_SELF_DEF_EVT + 3),        // 0x11
+  SMP_BR_L2CAP_DISCONN_EVT = (SMP_BR_SELF_DEF_EVT + 4),     // 0x12
+  SMP_BR_KEYS_RSP_EVT = (SMP_BR_SELF_DEF_EVT + 5),          // 0x13
+  SMP_BR_API_SEC_GRANT_EVT = (SMP_BR_SELF_DEF_EVT + 6),     // 0x14
+  SMP_BR_TK_REQ_EVT = (SMP_BR_SELF_DEF_EVT + 7),            // 0x15
+  SMP_BR_AUTH_CMPL_EVT = (SMP_BR_SELF_DEF_EVT + 8),         // 0x16
+  SMP_BR_ENC_REQ_EVT = (SMP_BR_SELF_DEF_EVT + 9),           // 0x17
+  SMP_BR_BOND_REQ_EVT = (SMP_BR_SELF_DEF_EVT + 10),         // 0x18
+  SMP_BR_DISCARD_SEC_REQ_EVT = (SMP_BR_SELF_DEF_EVT + 11),  // 0x19
+  SMP_BR_MAX_EVT = (SMP_BR_SELF_DEF_EVT + 12),              // 0x1a
 
-  SMP_PAIR_DHKEY_CHCK_EVT = SMP_OPCODE_PAIR_DHKEY_CHECK, // 0x0d
+  SMP_PAIR_DHKEY_CHCK_EVT = SMP_OPCODE_PAIR_DHKEY_CHECK,  // 0x0d
 
   /* request to start public  key exchange */
-  SMP_PUBL_KEY_EXCH_REQ_EVT = (SMP_SELF_DEF_EVT + 11), // 0x1b
+  SMP_PUBL_KEY_EXCH_REQ_EVT = (SMP_SELF_DEF_EVT + 11),  // 0x1b
 
   /* local public key created */
-  SMP_LOC_PUBL_KEY_CRTD_EVT = (SMP_SELF_DEF_EVT + 12), // 0x1c
+  SMP_LOC_PUBL_KEY_CRTD_EVT = (SMP_SELF_DEF_EVT + 12),  // 0x1c
 
   /* both local and peer public keys are saved in cb */
-  SMP_BOTH_PUBL_KEYS_RCVD_EVT = (SMP_SELF_DEF_EVT + 13), // 0x1d
+  SMP_BOTH_PUBL_KEYS_RCVD_EVT = (SMP_SELF_DEF_EVT + 13),  // 0x1d
 
   /* DHKey computation is completed, time to start SC phase1 */
-  SMP_SC_DHKEY_CMPLT_EVT = (SMP_SELF_DEF_EVT + 14), // 0x1d
+  SMP_SC_DHKEY_CMPLT_EVT = (SMP_SELF_DEF_EVT + 14),  // 0x1d
 
   /* new local nonce is generated and saved in p_cb->rand */
-  SMP_HAVE_LOC_NONCE_EVT = (SMP_SELF_DEF_EVT + 15), // 0x1f
+  SMP_HAVE_LOC_NONCE_EVT = (SMP_SELF_DEF_EVT + 15),  // 0x1f
 
   /* time to start SC phase2 */
-  SMP_SC_PHASE1_CMPLT_EVT = (SMP_SELF_DEF_EVT + 16), // 0x20
+  SMP_SC_PHASE1_CMPLT_EVT = (SMP_SELF_DEF_EVT + 16),  // 0x20
 
   /* request to calculate number for user check. Used only in the numeric
    * compare protocol */
-  SMP_SC_CALC_NC_EVT = (SMP_SELF_DEF_EVT + 17), // 0x21
+  SMP_SC_CALC_NC_EVT = (SMP_SELF_DEF_EVT + 17),  // 0x21
 
   /* Request to display the number for user check to the user.*/
   /* Used only in the numeric compare protocol */
-  SMP_SC_DSPL_NC_EVT = (SMP_SELF_DEF_EVT + 18), // 0x22
+  SMP_SC_DSPL_NC_EVT = (SMP_SELF_DEF_EVT + 18),  // 0x22
 
   /* user confirms 'OK' numeric comparison request */
-  SMP_SC_NC_OK_EVT = (SMP_SELF_DEF_EVT + 19), // 0x23
+  SMP_SC_NC_OK_EVT = (SMP_SELF_DEF_EVT + 19),  // 0x23
 
   /* both local and peer DHKey Checks are already present - it is used on
    * peripheral to prevent a race condition */
-  SMP_SC_2_DHCK_CHKS_PRES_EVT = (SMP_SELF_DEF_EVT + 20), // 0x24
+  SMP_SC_2_DHCK_CHKS_PRES_EVT = (SMP_SELF_DEF_EVT + 20),  // 0x24
 
   /* same meaning as SMP_KEY_READY_EVT to separate between SC and legacy actions
    */
-  SMP_SC_KEY_READY_EVT = (SMP_SELF_DEF_EVT + 21),            // 0x25
-  SMP_KEYPRESS_NOTIFICATION_EVENT = (SMP_SELF_DEF_EVT + 22), // 0x26
+  SMP_SC_KEY_READY_EVT = (SMP_SELF_DEF_EVT + 21),             // 0x25
+  SMP_KEYPRESS_NOTIFICATION_EVENT = (SMP_SELF_DEF_EVT + 22),  // 0x26
 
   /* SC OOB data from some repository is provided */
-  SMP_SC_OOB_DATA_EVT = (SMP_SELF_DEF_EVT + 23), // 0x27
+  SMP_SC_OOB_DATA_EVT = (SMP_SELF_DEF_EVT + 23),  // 0x27
 
-  SMP_CR_LOC_SC_OOB_DATA_EVT = (SMP_SELF_DEF_EVT + 24), // 0x28
-  SMP_SIRK_DEVICE_VALID_EVT = (SMP_SELF_DEF_EVT + 25),  // 0x29
-  SMP_MAX_EVT = SMP_SIRK_DEVICE_VALID_EVT,              // 0x29
+  SMP_CR_LOC_SC_OOB_DATA_EVT = (SMP_SELF_DEF_EVT + 24),  // 0x28
+  SMP_SIRK_DEVICE_VALID_EVT = (SMP_SELF_DEF_EVT + 25),   // 0x29
+  SMP_MAX_EVT = SMP_SIRK_DEVICE_VALID_EVT,               // 0x29
 } tSMP_EVENT;
 typedef tSMP_EVENT tSMP_BR_EVENT;
 
@@ -257,26 +257,27 @@ typedef union {
 #define SMP_PAIR_FLAGS_PEER_STARTED_DD (1 << 1)
 #define SMP_PAIR_FLAGS_CMD_CONFIRM_RCVD (1 << SMP_OPCODE_CONFIRM) /* 1 << 3 */
 #define SMP_PAIR_FLAG_ENC_AFTER_PAIR (1 << 4)
-#define SMP_PAIR_FLAG_HAVE_PEER_DHK_CHK (1 << 5)  /* used on peripheral to resolve race condition \
-                                                   */
-#define SMP_PAIR_FLAG_HAVE_PEER_PUBL_KEY (1 << 6) /* used on peripheral to resolve race condition \
-                                                   */
-#define SMP_PAIR_FLAG_HAVE_PEER_COMM (1 << 7)     /* used to resolve race condition */
+#define SMP_PAIR_FLAG_HAVE_PEER_DHK_CHK \
+  (1 << 5) /* used on peripheral to resolve race condition */
+#define SMP_PAIR_FLAG_HAVE_PEER_PUBL_KEY \
+  (1 << 6) /* used on peripheral to resolve race condition */
+#define SMP_PAIR_FLAG_HAVE_PEER_COMM \
+  (1 << 7) /* used to resolve race condition */
 #define SMP_PAIR_FLAG_HAVE_LOCAL_PUBL_KEY \
   (1 << 8) /* used on peripheral to resolve race condition */
 
 #define SMP_PAIR_FLAGS_CMD_CONFIRM_SENT (1 << 9)
 
 /* check if authentication requirement need MITM protection */
-#define SMP_NO_MITM_REQUIRED(x) (((x) & SMP_AUTH_YN_BIT) == 0)
+#define SMP_NO_MITM_REQUIRED(x) (((x)&SMP_AUTH_YN_BIT) == 0)
 
 /* SMP control block */
 class tSMP_CB {
-public:
+ public:
   void init(uint8_t security_mode);
   void reset();
 
-public:
+ public:
   uint8_t init_security_mode{0};
   tSMP_CALLBACK* p_callback;
   alarm_t* smp_rsp_timer_ent;
@@ -329,7 +330,8 @@ public:
   bool le_sc_kp_notif_is_used;
   tSMP_SC_KEY_TYPE local_keypress_notification;
   tSMP_SC_KEY_TYPE peer_keypress_notification;
-  uint8_t round; /* authentication stage 1 round for passkey association model */
+  uint8_t
+      round; /* authentication stage 1 round for passkey association model */
   uint32_t number_to_display;
   Octet16 mac_key;
   uint8_t peer_enc_size;
@@ -370,7 +372,8 @@ tSMP_STATE smp_get_state(void);
 void smp_set_state(tSMP_STATE state);
 
 /* smp_br_main */
-void smp_br_state_machine_event(tSMP_CB* p_cb, tSMP_BR_EVENT event, tSMP_INT_DATA* p_data);
+void smp_br_state_machine_event(tSMP_CB* p_cb, tSMP_BR_EVENT event,
+                                tSMP_INT_DATA* p_data);
 tSMP_BR_STATE smp_get_br_state(void);
 void smp_set_br_state(tSMP_BR_STATE state);
 
@@ -424,19 +427,23 @@ void smp_process_peer_nonce(tSMP_CB* p_cb, tSMP_INT_DATA* p_data);
 void smp_process_dhkey_check(tSMP_CB* p_cb, tSMP_INT_DATA* p_data);
 void smp_match_dhkey_checks(tSMP_CB* p_cb, tSMP_INT_DATA* p_data);
 void smp_process_keypress_notification(tSMP_CB* p_cb, tSMP_INT_DATA* p_data);
-void smp_move_to_secure_connections_phase2(tSMP_CB* p_cb, tSMP_INT_DATA* p_data);
+void smp_move_to_secure_connections_phase2(tSMP_CB* p_cb,
+                                           tSMP_INT_DATA* p_data);
 void smp_phase_2_dhkey_checks_are_present(tSMP_CB* p_cb, tSMP_INT_DATA* p_data);
 void smp_wait_for_both_public_keys(tSMP_CB* p_cb, tSMP_INT_DATA* p_data);
 void smp_start_passkey_verification(tSMP_CB* p_cb, tSMP_INT_DATA* p_data);
-void smp_process_secure_connection_oob_data(tSMP_CB* p_cb, tSMP_INT_DATA* p_data);
+void smp_process_secure_connection_oob_data(tSMP_CB* p_cb,
+                                            tSMP_INT_DATA* p_data);
 void smp_process_secure_connection_long_term_key(void);
 void smp_set_local_oob_keys(tSMP_CB* p_cb, tSMP_INT_DATA* p_data);
 void smp_set_local_oob_random_commitment(tSMP_CB* p_cb, tSMP_INT_DATA* p_data);
 void smp_set_derive_link_key(tSMP_CB* p_cb, tSMP_INT_DATA* p_data);
-void smp_derive_link_key_from_long_term_key(tSMP_CB* p_cb, tSMP_INT_DATA* p_data);
+void smp_derive_link_key_from_long_term_key(tSMP_CB* p_cb,
+                                            tSMP_INT_DATA* p_data);
 void smp_br_process_pairing_command(tSMP_CB* p_cb, tSMP_INT_DATA* p_data);
 void smp_br_process_security_grant(tSMP_CB* p_cb, tSMP_INT_DATA* p_data);
-void smp_br_process_peripheral_keys_response(tSMP_CB* p_cb, tSMP_INT_DATA* p_data);
+void smp_br_process_peripheral_keys_response(tSMP_CB* p_cb,
+                                             tSMP_INT_DATA* p_data);
 void smp_br_send_pair_response(tSMP_CB* p_cb, tSMP_INT_DATA* p_data);
 void smp_br_check_authorization_request(tSMP_CB* p_cb, tSMP_INT_DATA* p_data);
 void smp_br_select_next_key(tSMP_CB* p_cb, tSMP_INT_DATA* p_data);
@@ -448,8 +455,8 @@ void smp_l2cap_if_init(void);
 void smp_data_ind(const RawAddress& bd_addr, BT_HDR* p_buf);
 
 /* smp_util.cc */
-void smp_log_metrics(const RawAddress& bd_addr, bool is_outgoing, const uint8_t* p_buf,
-                     size_t buf_len, bool is_over_br);
+void smp_log_metrics(const RawAddress& bd_addr, bool is_outgoing,
+                     const uint8_t* p_buf, size_t buf_len, bool is_over_br);
 bool smp_send_cmd(uint8_t cmd_code, tSMP_CB* p_cb);
 void smp_reset_control_value(tSMP_CB* p_cb);
 void smp_proc_pairing_cmpl(tSMP_CB* p_cb);
@@ -484,7 +491,8 @@ void smp_use_oob_private_key(tSMP_CB* p_cb, tSMP_INT_DATA* p_data);
 void smp_compute_dhkey(tSMP_CB* p_cb);
 void smp_calculate_local_commitment(tSMP_CB* p_cb);
 Octet16 smp_calculate_peer_commitment(tSMP_CB* p_cb);
-void smp_calculate_numeric_comparison_display_number(tSMP_CB* p_cb, tSMP_INT_DATA* p_data);
+void smp_calculate_numeric_comparison_display_number(tSMP_CB* p_cb,
+                                                     tSMP_INT_DATA* p_data);
 void smp_calculate_local_dhkey_check(tSMP_CB* p_cb, tSMP_INT_DATA* p_data);
 void smp_calculate_peer_dhkey_check(tSMP_CB* p_cb, tSMP_INT_DATA* p_data);
 void smp_start_nonce_generation(tSMP_CB* p_cb);
@@ -507,6 +515,6 @@ template <>
 struct formatter<tSMP_OPCODE> : enum_formatter<tSMP_OPCODE> {};
 template <>
 struct formatter<tSMP_ASSO_MODEL> : enum_formatter<tSMP_ASSO_MODEL> {};
-} // namespace fmt
+}  // namespace fmt
 
 #endif /* SMP_INT_H */

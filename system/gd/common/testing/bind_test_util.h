@@ -24,6 +24,6 @@ namespace testing {
 
 using base::BindLambdaForTesting;
 
-} // namespace testing
-} // namespace common
-} // namespace bluetooth
+}  // namespace testing
+}  // namespace common
+}  // namespace bluetooth

@@ -46,7 +46,9 @@ inline std::string PduIdText(const PduId& id) {
   }
 }
 
-inline std::ostream& operator<<(std::ostream& os, const PduId& id) { return os << PduIdText(id); }
+inline std::ostream& operator<<(std::ostream& os, const PduId& id) {
+  return os << PduIdText(id);
+}
 
 inline std::string AttributeIdText(const AttributeId& id) {
   switch (id) {
@@ -114,8 +116,8 @@ inline std::ostream& operator<<(std::ostream& os, const DataElementSize& size) {
   return os << DataElementSizeText(size);
 }
 
-} // namespace sdp
-} // namespace bluetooth
+}  // namespace sdp
+}  // namespace bluetooth
 
 namespace fmt {
 template <>
@@ -126,4 +128,4 @@ template <>
 struct formatter<bluetooth::sdp::DataElementType> : ostream_formatter {};
 template <>
 struct formatter<bluetooth::sdp::DataElementSize> : ostream_formatter {};
-} // namespace fmt
+}  // namespace fmt

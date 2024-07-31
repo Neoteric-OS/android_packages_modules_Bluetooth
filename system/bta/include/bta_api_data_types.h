@@ -66,4 +66,4 @@ typedef struct {
 namespace fmt {
 template <>
 struct formatter<tBTA_STATUS> : enum_formatter<tBTA_STATUS> {};
-} // namespace fmt
+}  // namespace fmt

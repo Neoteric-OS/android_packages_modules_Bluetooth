@@ -27,10 +27,10 @@
 namespace {
 const RawAddress bdaddr1({0x11, 0x22, 0x33, 0x44, 0x55, 0x66});
 const RawAddress bdaddr2({0x66, 0x55, 0x44, 0x33, 0x22, 0x11});
-} // namespace
+}  // namespace
 
 class BtaHfClientTest : public testing::Test {
-protected:
+ protected:
   void SetUp() override {
     fake_osi_ = std::make_unique<test::fake::FakeOsi>();
     // Reset the memory block, this is the state on which the allocate handle

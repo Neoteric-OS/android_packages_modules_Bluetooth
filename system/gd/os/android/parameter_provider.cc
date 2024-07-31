@@ -33,7 +33,7 @@ std::string snooz_log_file_path;
 bluetooth_keystore::BluetoothKeystoreInterface* bt_keystore_interface = nullptr;
 bool is_common_criteria_mode = false;
 int common_criteria_config_compare_result = 0b11;
-} // namespace
+}  // namespace
 
 // On Android we always write a single default location
 std::string ParameterProvider::ConfigFilePath() {
@@ -83,15 +83,16 @@ void ParameterProvider::OverrideSnoozLogFilePath(const std::string& path) {
 }
 
 // Android doesn't have a need for the sysprops module
-std::string ParameterProvider::SyspropsFilePath() { return ""; }
+std::string ParameterProvider::SyspropsFilePath() {
+  return "";
+}
 
 bluetooth_keystore::BluetoothKeystoreInterface* ParameterProvider::GetBtKeystoreInterface() {
   std::lock_guard<std::mutex> lock(parameter_mutex);
   return bt_keystore_interface;
 }
 
-void ParameterProvider::SetBtKeystoreInterface(
-        bluetooth_keystore::BluetoothKeystoreInterface* bt_keystore) {
+void ParameterProvider::SetBtKeystoreInterface(bluetooth_keystore::BluetoothKeystoreInterface* bt_keystore) {
   std::lock_guard<std::mutex> lock(parameter_mutex);
   bt_keystore_interface = bt_keystore;
 }
@@ -116,5 +117,5 @@ void ParameterProvider::SetCommonCriteriaConfigCompareResult(int result) {
   common_criteria_config_compare_result = result;
 }
 
-} // namespace os
-} // namespace bluetooth
+}  // namespace os
+}  // namespace bluetooth

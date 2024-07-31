@@ -45,7 +45,7 @@ MATCHER(IsSet, "Future is set") {
 }
 
 class AclSchedulerTest : public ::testing::Test {
-protected:
+ protected:
   void SetUp() override {
     fake_registry_.Start<AclScheduler>(&thread_);
     ASSERT_TRUE(fake_registry_.IsStarted<AclScheduler>());
@@ -53,8 +53,7 @@ protected:
     client_handler_ = fake_registry_.GetTestModuleHandler(&AclScheduler::Factory);
     ASSERT_NE(client_handler_, nullptr);
 
-    acl_scheduler_ =
-            static_cast<AclScheduler*>(fake_registry_.GetModuleUnderTest(&AclScheduler::Factory));
+    acl_scheduler_ = static_cast<AclScheduler*>(fake_registry_.GetModuleUnderTest(&AclScheduler::Factory));
 
     ::testing::FLAGS_gtest_death_test_style = "threadsafe";
   }
@@ -72,11 +71,10 @@ protected:
     return client_handler_->BindOnce([](std::string /* _ */) {});
   }
 
-  common::ContextualOnceCallback<void(std::string)> promiseCallbackTakingString(
-          std::promise<void> promise) {
+  common::ContextualOnceCallback<void(std::string)> promiseCallbackTakingString(std::promise<void> promise) {
     return client_handler_->BindOnce(
-            [](std::promise<void> promise, std::string /* _ */) { promise.set_value(); },
-            std::move(promise));
+        [](std::promise<void> promise, std::string /* _ */) { promise.set_value(); },
+        std::move(promise));
   }
 
   common::ContextualOnceCallback<void()> impossibleCallback() {
@@ -88,8 +86,7 @@ protected:
   }
 
   common::ContextualOnceCallback<void()> promiseCallback(std::promise<void> promise) {
-    return client_handler_->BindOnce([](std::promise<void> promise) { promise.set_value(); },
-                                     std::move(promise));
+    return client_handler_->BindOnce([](std::promise<void> promise) { promise.set_value(); }, std::move(promise));
   }
 
   TestModuleRegistry fake_registry_;
@@ -147,9 +144,8 @@ TEST_F(AclSchedulerTest, SingleConnectionCompletionCallback) {
   acl_scheduler_->EnqueueOutgoingAclConnection(address1, emptyCallback());
 
   // the outgoing connection completes
-  acl_scheduler_->ReportAclConnectionCompletion(address1, promiseCallback(std::move(promise)),
-                                                impossibleCallback(),
-                                                impossibleCallbackTakingString());
+  acl_scheduler_->ReportAclConnectionCompletion(
+      address1, promiseCallback(std::move(promise)), impossibleCallback(), impossibleCallbackTakingString());
 
   // the outgoing_connection callback should have executed
   EXPECT_THAT(future, IsSet());
@@ -165,8 +161,8 @@ TEST_F(AclSchedulerTest, SingleConnectionCompletionDequeueNext) {
   acl_scheduler_->EnqueueOutgoingAclConnection(address2, promiseCallback(std::move(promise)));
 
   // complete the first connection
-  acl_scheduler_->ReportAclConnectionCompletion(address1, emptyCallback(), impossibleCallback(),
-                                                impossibleCallbackTakingString());
+  acl_scheduler_->ReportAclConnectionCompletion(
+      address1, emptyCallback(), impossibleCallback(), impossibleCallbackTakingString());
 
   // the next connection should dequeue now
   EXPECT_THAT(future, IsSet());
@@ -180,9 +176,8 @@ TEST_F(AclSchedulerTest, IncomingConnectionCallback) {
   acl_scheduler_->RegisterPendingIncomingConnection(address1);
 
   // and completes
-  acl_scheduler_->ReportAclConnectionCompletion(address1, impossibleCallback(),
-                                                promiseCallback(std::move(promise)),
-                                                impossibleCallbackTakingString());
+  acl_scheduler_->ReportAclConnectionCompletion(
+      address1, impossibleCallback(), promiseCallback(std::move(promise)), impossibleCallbackTakingString());
 
   // the incoming_connection callback should have executed
   EXPECT_THAT(future, IsSet());
@@ -199,9 +194,8 @@ TEST_F(AclSchedulerTest, UnknownConnectionCallback) {
   acl_scheduler_->RegisterPendingIncomingConnection(address2);
 
   // then an unknown connection completes
-  acl_scheduler_->ReportAclConnectionCompletion(address3, impossibleCallback(),
-                                                impossibleCallback(),
-                                                (promiseCallbackTakingString(std::move(promise))));
+  acl_scheduler_->ReportAclConnectionCompletion(
+      address3, impossibleCallback(), impossibleCallback(), (promiseCallbackTakingString(std::move(promise))));
 
   // the unknown_connection callback should have executed
   EXPECT_THAT(future, IsSet());
@@ -218,13 +212,12 @@ TEST_F(AclSchedulerTest, TiebreakForOutgoingConnection) {
   acl_scheduler_->RegisterPendingIncomingConnection(address1);
 
   // then the connection to that address completes
-  acl_scheduler_->ReportAclConnectionCompletion(address1, promiseCallback(std::move(promise)),
-                                                impossibleCallback(),
-                                                impossibleCallbackTakingString());
+  acl_scheduler_->ReportAclConnectionCompletion(
+      address1, promiseCallback(std::move(promise)), impossibleCallback(), impossibleCallbackTakingString());
 
   // the outgoing_connection callback should have executed, NOT the incoming_connection one
-  // this preserves working behavior, it is not based on any principled decision (so if you need to
-  // break this test, go for it)
+  // this preserves working behavior, it is not based on any principled decision (so if you need to break this test,
+  // go for it)
   EXPECT_THAT(future, IsSet());
 }
 
@@ -241,15 +234,15 @@ TEST_F(AclSchedulerTest, QueueWhileIncomingConnectionsPending) {
   acl_scheduler_->RegisterPendingIncomingConnection(address3);
 
   // then the first outgoing connection completes
-  acl_scheduler_->ReportAclConnectionCompletion(address1, emptyCallback(), impossibleCallback(),
-                                                impossibleCallbackTakingString());
+  acl_scheduler_->ReportAclConnectionCompletion(
+      address1, emptyCallback(), impossibleCallback(), impossibleCallbackTakingString());
 
   // the outgoing_connection callback should not have executed yet
   EXPECT_THAT(future.wait_for(timeout), std::future_status::timeout);
 
   // now the incoming connection completes
-  acl_scheduler_->ReportAclConnectionCompletion(address3, impossibleCallback(), emptyCallback(),
-                                                impossibleCallbackTakingString());
+  acl_scheduler_->ReportAclConnectionCompletion(
+      address3, impossibleCallback(), emptyCallback(), impossibleCallbackTakingString());
 
   // only now does the next outgoing connection start
   EXPECT_THAT(future, IsSet());
@@ -272,15 +265,15 @@ TEST_F(AclSchedulerTest, DoNothingWhileIncomingConnectionsExist) {
   acl_scheduler_->RegisterPendingIncomingConnection(address3);
 
   // the first incoming connection completes
-  acl_scheduler_->ReportAclConnectionCompletion(address1, impossibleCallback(), emptyCallback(),
-                                                impossibleCallbackTakingString());
+  acl_scheduler_->ReportAclConnectionCompletion(
+      address1, impossibleCallback(), emptyCallback(), impossibleCallbackTakingString());
 
   // the outgoing_connection callback should *still* not have executed yet
   EXPECT_THAT(future.wait_for(timeout), std::future_status::timeout);
 
   // the second incoming connection completes, so none are left
-  acl_scheduler_->ReportAclConnectionCompletion(address3, impossibleCallback(), emptyCallback(),
-                                                impossibleCallbackTakingString());
+  acl_scheduler_->ReportAclConnectionCompletion(
+      address3, impossibleCallback(), emptyCallback(), impossibleCallbackTakingString());
 
   // only now does the outgoing connection start
   EXPECT_THAT(future, IsSet());
@@ -302,8 +295,8 @@ TEST_F(AclSchedulerTest, CancelOutgoingConnection) {
   EXPECT_THAT(future.wait_for(timeout), std::future_status::timeout);
 
   // now the cancel completes (with a failed status, in reality, but the scheduler doesn't care)
-  acl_scheduler_->ReportAclConnectionCompletion(address1, emptyCallback(), impossibleCallback(),
-                                                impossibleCallbackTakingString());
+  acl_scheduler_->ReportAclConnectionCompletion(
+      address1, emptyCallback(), impossibleCallback(), impossibleCallbackTakingString());
 
   // so only now do we advance the queue
   EXPECT_THAT(future, IsSet());
@@ -317,11 +310,9 @@ TEST_F(AclSchedulerTest, CancelOutgoingConnectionCallback) {
   acl_scheduler_->EnqueueOutgoingAclConnection(address1, emptyCallback());
 
   // cancel the outgoing connection
-  acl_scheduler_->CancelAclConnection(address1, promiseCallback(std::move(promise)),
-                                      impossibleCallback());
+  acl_scheduler_->CancelAclConnection(address1, promiseCallback(std::move(promise)), impossibleCallback());
 
-  // we expect the cancel_connection callback to be invoked since we are cancelling an actually
-  // active connection
+  // we expect the cancel_connection callback to be invoked since we are cancelling an actually active connection
   EXPECT_THAT(future, IsSet());
 }
 
@@ -359,11 +350,9 @@ TEST_F(AclSchedulerTest, CancelQueuedConnectionCallback) {
   acl_scheduler_->EnqueueOutgoingAclConnection(address2, emptyCallback());
 
   // cancel the queued connection
-  acl_scheduler_->CancelAclConnection(address2, impossibleCallback(),
-                                      promiseCallback(std::move(promise)));
+  acl_scheduler_->CancelAclConnection(address2, impossibleCallback(), promiseCallback(std::move(promise)));
 
-  // we expect the cancel_connection_completed callback to be invoked since we are cancelling a
-  // connection in the queue
+  // we expect the cancel_connection_completed callback to be invoked since we are cancelling a connection in the queue
   EXPECT_THAT(future, IsSet());
 }
 
@@ -372,8 +361,7 @@ TEST_F(AclSchedulerTest, RemoteNameRequestImmediatelyExecuted) {
   auto future = promise.get_future();
 
   // start an outgoing request
-  acl_scheduler_->EnqueueRemoteNameRequest(address1, promiseCallback(std::move(promise)),
-                                           emptyCallback());
+  acl_scheduler_->EnqueueRemoteNameRequest(address1, promiseCallback(std::move(promise)), emptyCallback());
 
   // we expect the start callback to be invoked immediately
   EXPECT_THAT(future, IsSet());
@@ -386,8 +374,7 @@ TEST_F(AclSchedulerTest, RemoteNameRequestQueuing) {
   // start an outgoing request
   acl_scheduler_->EnqueueRemoteNameRequest(address1, emptyCallback(), impossibleCallback());
   // enqueue a second one
-  acl_scheduler_->EnqueueRemoteNameRequest(address2, promiseCallback(std::move(promise)),
-                                           impossibleCallback());
+  acl_scheduler_->EnqueueRemoteNameRequest(address2, promiseCallback(std::move(promise)), impossibleCallback());
 
   // we should still be queued
   EXPECT_THAT(future.wait_for(timeout), std::future_status::timeout);
@@ -420,8 +407,7 @@ TEST_F(AclSchedulerTest, RemoteNameRequestCancellationWhileQueuedCallback) {
   // start an outgoing request
   acl_scheduler_->EnqueueRemoteNameRequest(address1, emptyCallback(), impossibleCallback());
   // enqueue a second one
-  acl_scheduler_->EnqueueRemoteNameRequest(address2, impossibleCallback(),
-                                           promiseCallback(std::move(promise)));
+  acl_scheduler_->EnqueueRemoteNameRequest(address2, impossibleCallback(), promiseCallback(std::move(promise)));
 
   // cancel the second one
   acl_scheduler_->CancelRemoteNameRequest(address2, impossibleCallback());
@@ -445,8 +431,7 @@ TEST_F(AclSchedulerTest, CancelQueuedRemoteNameRequestRemoveFromQueue) {
   // start another connection that will queue
   acl_scheduler_->EnqueueRemoteNameRequest(address2, impossibleCallback(), emptyCallback());
   // start a third connection that will queue
-  acl_scheduler_->EnqueueRemoteNameRequest(address3, promiseCallback(std::move(promise)),
-                                           impossibleCallback());
+  acl_scheduler_->EnqueueRemoteNameRequest(address3, promiseCallback(std::move(promise)), impossibleCallback());
 
   // cancel the first queued connection
   acl_scheduler_->CancelRemoteNameRequest(address2, impossibleCallback());
@@ -468,8 +453,7 @@ TEST_F(AclSchedulerTest, RemoteNameRequestCancellationShouldDequeueNext) {
   // start an outgoing request
   acl_scheduler_->EnqueueRemoteNameRequest(address1, emptyCallback(), impossibleCallback());
   // enqueue a second one
-  acl_scheduler_->EnqueueRemoteNameRequest(address2, promiseCallback(std::move(promise)),
-                                           impossibleCallback());
+  acl_scheduler_->EnqueueRemoteNameRequest(address2, promiseCallback(std::move(promise)), impossibleCallback());
 
   // we should still be queued
   EXPECT_THAT(future.wait_for(timeout), std::future_status::timeout);
@@ -487,7 +471,7 @@ TEST_F(AclSchedulerTest, RemoteNameRequestCancellationShouldDequeueNext) {
   EXPECT_THAT(future, IsSet());
 }
 
-} // namespace
-} // namespace acl_manager
-} // namespace hci
-} // namespace bluetooth
+}  // namespace
+}  // namespace acl_manager
+}  // namespace hci
+}  // namespace bluetooth

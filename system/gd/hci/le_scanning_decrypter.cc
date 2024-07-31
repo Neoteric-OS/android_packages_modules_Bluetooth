@@ -25,17 +25,19 @@ namespace bluetooth::hci {
 /// Stores the completely decrypted data in adv_data_decrypted.
 /// Returns true if all encrypted data was successfully decrypted,
 /// false if any Encrypted Data could not be read.
-bool LeScanningDecrypter::ExtractEncryptedData(std::vector<uint8_t> const& adv_data,
-                                               std::vector<uint8_t> const& enc_key_material,
-                                               std::vector<uint8_t>* adv_data_decrypted) {
+bool LeScanningDecrypter::ExtractEncryptedData(
+    std::vector<uint8_t> const& adv_data,
+    std::vector<uint8_t> const& enc_key_material,
+    std::vector<uint8_t>* adv_data_decrypted) {
   bool is_decryption_success = true;
   bool enc_adv_data_map;
 
   log::debug("Encrypted Data: {}", base::HexEncode(adv_data.data(), adv_data.size()).c_str());
 
 #ifdef ENABLE_ENC_ADV_DEBUG_LOG
-  log::debug("ENC_KEY_MATERIAL {}",
-             base::HexEncode(enc_key_material.data(), enc_key_material.size()).c_str());
+  log::debug(
+      "ENC_KEY_MATERIAL {}",
+      base::HexEncode(enc_key_material.data(), enc_key_material.size()).c_str());
 #endif
 
   std::vector<std::pair<std::vector<uint8_t>, std::vector<uint8_t>>> key_and_ivs;
@@ -46,8 +48,8 @@ bool LeScanningDecrypter::ExtractEncryptedData(std::vector<uint8_t> const& adv_d
      key material char values and save it in enc_key_material_vec vector */
   for (size_t i = 0; i + ENC_KEY_MATERIAL_LEN <= enc_key_material.size();) {
     std::vector<uint8_t> key(enc_key_material.begin() + i, enc_key_material.begin() + i + 16);
-    std::vector<uint8_t> iv(enc_key_material.begin() + i + 16,
-                            enc_key_material.begin() + i + ENC_KEY_MATERIAL_LEN);
+    std::vector<uint8_t> iv(
+        enc_key_material.begin() + i + 16, enc_key_material.begin() + i + ENC_KEY_MATERIAL_LEN);
     key_and_ivs.push_back(std::pair(key, iv));
     i += ENC_KEY_MATERIAL_LEN;
   }
@@ -58,10 +60,10 @@ bool LeScanningDecrypter::ExtractEncryptedData(std::vector<uint8_t> const& adv_d
   for (auto enc_key_material : key_and_ivs) {
     enc_key_material_count++;
     log::debug(
-            "Enc Data Key Vector {}: {} , {}", enc_key_material_count,
-            base::HexEncode(enc_key_material.first.data(), enc_key_material.first.size()).c_str(),
-            base::HexEncode(enc_key_material.second.data(), enc_key_material.second.size())
-                    .c_str());
+        "Enc Data Key Vector {}: {} , {}",
+        enc_key_material_count,
+        base::HexEncode(enc_key_material.first.data(), enc_key_material.first.size()).c_str(),
+        base::HexEncode(enc_key_material.second.data(), enc_key_material.second.size()).c_str());
   }
 #endif
 
@@ -80,12 +82,14 @@ bool LeScanningDecrypter::ExtractEncryptedData(std::vector<uint8_t> const& adv_d
 
     // check for ad_type != 0x31
     if (ad_type != (uint8_t)GapDataType::ENCRYPTED_ADVERTISING_DATA) {
-      std::copy(adv_data.begin() + prev_position, adv_data.begin() + prev_position + ad_len + 1,
-                std::back_inserter(decrypted_adv_data));
+      std::copy(
+          adv_data.begin() + prev_position,
+          adv_data.begin() + prev_position + ad_len + 1,
+          std::back_inserter(decrypted_adv_data));
       continue;
     }
-    std::vector<uint8_t> encrypted_data(adv_data.begin() + prev_position,
-                                        adv_data.begin() + prev_position + ad_len + 1);
+    std::vector<uint8_t> encrypted_data(
+        adv_data.begin() + prev_position, adv_data.begin() + prev_position + ad_len + 1);
 
     // to store decrypted data temporary
     std::optional<std::vector<uint8_t>> decrypted_data = {};
@@ -98,19 +102,21 @@ bool LeScanningDecrypter::ExtractEncryptedData(std::vector<uint8_t> const& adv_d
       log::debug("IV: {}", base::HexEncode(iv.data(), iv.size()).c_str());
 #endif
       decrypted_data = DecryptEncryptedData(encrypted_data, key, iv);
-      if (decrypted_data.has_value()) {
-        break;
-      }
+      if (decrypted_data.has_value()) break;
     }
 
     if (decrypted_data.has_value()) {
-      std::copy(decrypted_data.value().begin(), decrypted_data.value().end(),
-                std::back_inserter(decrypted_adv_data));
+      std::copy(
+          decrypted_data.value().begin(),
+          decrypted_data.value().end(),
+          std::back_inserter(decrypted_adv_data));
 
     } else {
       is_decryption_success = false;
-      std::copy(adv_data.begin() + prev_position, adv_data.begin() + prev_position + ad_len + 1,
-                std::back_inserter(decrypted_adv_data));
+      std::copy(
+          adv_data.begin() + prev_position,
+          adv_data.begin() + prev_position + ad_len + 1,
+          std::back_inserter(decrypted_adv_data));
     }
   }
   *adv_data_decrypted = decrypted_adv_data;
@@ -128,12 +134,8 @@ bool LeScanningDecrypter::ContainsEncryptedData(const uint8_t* ad, size_t ad_len
   while (position < ad_len) {
     uint8_t len = ad[position];
 
-    if (len == 0) {
-      break;
-    }
-    if (position + len >= ad_len) {
-      break;
-    }
+    if (len == 0) break;
+    if (position + len >= ad_len) break;
 
     uint8_t adv_type = ad[position + 1];
 
@@ -145,9 +147,7 @@ bool LeScanningDecrypter::ContainsEncryptedData(const uint8_t* ad, size_t ad_len
     position += len + 1; /* skip the length of data */
   }
 
-  if (!is_enc_adv) {
-    log::verbose("enc_adv_data_map is empty");
-  }
+  if (!is_enc_adv) log::verbose("enc_adv_data_map is empty");
 
   return is_enc_adv;
 }
@@ -158,14 +158,13 @@ bool LeScanningDecrypter::ContainsEncryptedData(const uint8_t* ad, size_t ad_len
 /// that stores the decrypted data. This function initializes
 /// the decryption and algorithm and performs decryption
 std::optional<std::vector<uint8_t>> LeScanningDecrypter::DecryptEncryptedData(
-        std::vector<uint8_t> const& adv_data, std::vector<uint8_t> const& key,
-        std::vector<uint8_t> const& iv) {
+    std::vector<uint8_t> const& adv_data,
+    std::vector<uint8_t> const& key,
+    std::vector<uint8_t> const& iv) {
   static const std::vector<uint8_t> ad = {0xEA};
-  const EVP_AEAD_CTX* aeadCTX = EVP_AEAD_CTX_new(EVP_aead_aes_128_ccm_bluetooth(), key.data(),
-                                                 key.size(), EVP_AEAD_DEFAULT_TAG_LENGTH);
-  if (aeadCTX == nullptr) {
-    return std::nullopt;
-  }
+  const EVP_AEAD_CTX* aeadCTX = EVP_AEAD_CTX_new(
+      EVP_aead_aes_128_ccm_bluetooth(), key.data(), key.size(), EVP_AEAD_DEFAULT_TAG_LENGTH);
+  if (aeadCTX == nullptr) return std::nullopt;
   std::vector<uint8_t> nonce;
   std::vector<uint8_t> MIC;
   std::vector<uint8_t> payload;
@@ -200,8 +199,17 @@ std::optional<std::vector<uint8_t>> LeScanningDecrypter::DecryptEncryptedData(
     log::debug("MIC: {}", base::HexEncode(MIC.data(), MIC.size()).c_str());
   }
 #endif
-  EVP_AEAD_CTX_open_gather(aeadCTX, out.data(), nonce.data(), nonce.size(), payload.data(),
-                           payload.size(), MIC.data(), MIC.size(), ad.data(), ad.size());
+  EVP_AEAD_CTX_open_gather(
+      aeadCTX,
+      out.data(),
+      nonce.data(),
+      nonce.size(),
+      payload.data(),
+      payload.size(),
+      MIC.data(),
+      MIC.size(),
+      ad.data(),
+      ad.size());
 
   if (out.size() > 0 && (out[0] > 0)) {
     return std::make_optional(out);
@@ -211,4 +219,4 @@ std::optional<std::vector<uint8_t>> LeScanningDecrypter::DecryptEncryptedData(
   }
 }
 
-} // namespace bluetooth::hci
+}  // namespace bluetooth::hci

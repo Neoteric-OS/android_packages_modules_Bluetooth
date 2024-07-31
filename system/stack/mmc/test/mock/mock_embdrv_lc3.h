@@ -42,12 +42,13 @@ struct lc3_decode {
   static int return_value;
   std::function<int(struct lc3_decoder* decoder, const void* in, int nbytes,
                     enum lc3_pcm_format fmt, void* pcm, int stride)>
-          body{[](struct lc3_decoder* decoder, const void* in, int nbytes, enum lc3_pcm_format fmt,
-                  void* pcm, int stride) { return return_value; }};
-  int operator()(struct lc3_decoder* decoder, const void* in, int nbytes, enum lc3_pcm_format fmt,
-                 void* pcm, int stride) {
+      body{[](struct lc3_decoder* decoder, const void* in, int nbytes,
+              enum lc3_pcm_format fmt, void* pcm,
+              int stride) { return return_value; }};
+  int operator()(struct lc3_decoder* decoder, const void* in, int nbytes,
+                 enum lc3_pcm_format fmt, void* pcm, int stride) {
     return body(decoder, in, nbytes, fmt, pcm, stride);
-  }
+  };
 };
 extern struct lc3_decode lc3_decode;
 
@@ -57,8 +58,8 @@ extern struct lc3_decode lc3_decode;
 struct lc3_decoder_size {
   static unsigned return_value;
   std::function<unsigned(int dt_us, int sr_hz)> body{
-          [](int dt_us, int sr_hz) { return return_value; }};
-  unsigned operator()(int dt_us, int sr_hz) { return body(dt_us, sr_hz); }
+      [](int dt_us, int sr_hz) { return return_value; }};
+  unsigned operator()(int dt_us, int sr_hz) { return body(dt_us, sr_hz); };
 };
 extern struct lc3_decoder_size lc3_decoder_size;
 
@@ -67,8 +68,9 @@ extern struct lc3_decoder_size lc3_decoder_size;
 // Return: int
 struct lc3_delay_samples {
   static int return_value;
-  std::function<int(int dt_us, int sr_hz)> body{[](int dt_us, int sr_hz) { return return_value; }};
-  int operator()(int dt_us, int sr_hz) { return body(dt_us, sr_hz); }
+  std::function<int(int dt_us, int sr_hz)> body{
+      [](int dt_us, int sr_hz) { return return_value; }};
+  int operator()(int dt_us, int sr_hz) { return body(dt_us, sr_hz); };
 };
 extern struct lc3_delay_samples lc3_delay_samples;
 
@@ -77,14 +79,15 @@ extern struct lc3_delay_samples lc3_delay_samples;
 // pcm, int stride, int nbytes, void* out Return: int
 struct lc3_encode {
   static int return_value;
-  std::function<int(struct lc3_encoder* encoder, enum lc3_pcm_format fmt, const void* pcm,
-                    int stride, int nbytes, void* out)>
-          body{[](struct lc3_encoder* encoder, enum lc3_pcm_format fmt, const void* pcm, int stride,
-                  int nbytes, void* out) { return return_value; }};
-  int operator()(struct lc3_encoder* encoder, enum lc3_pcm_format fmt, const void* pcm, int stride,
-                 int nbytes, void* out) {
+  std::function<int(struct lc3_encoder* encoder, enum lc3_pcm_format fmt,
+                    const void* pcm, int stride, int nbytes, void* out)>
+      body{[](struct lc3_encoder* encoder, enum lc3_pcm_format fmt,
+              const void* pcm, int stride, int nbytes,
+              void* out) { return return_value; }};
+  int operator()(struct lc3_encoder* encoder, enum lc3_pcm_format fmt,
+                 const void* pcm, int stride, int nbytes, void* out) {
     return body(encoder, fmt, pcm, stride, nbytes, out);
-  }
+  };
 };
 extern struct lc3_encode lc3_encode;
 
@@ -94,8 +97,8 @@ extern struct lc3_encode lc3_encode;
 struct lc3_encoder_size {
   static unsigned return_value;
   std::function<unsigned(int dt_us, int sr_hz)> body{
-          [](int dt_us, int sr_hz) { return return_value; }};
-  unsigned operator()(int dt_us, int sr_hz) { return body(dt_us, sr_hz); }
+      [](int dt_us, int sr_hz) { return return_value; }};
+  unsigned operator()(int dt_us, int sr_hz) { return body(dt_us, sr_hz); };
 };
 extern struct lc3_encoder_size lc3_encoder_size;
 
@@ -105,8 +108,8 @@ extern struct lc3_encoder_size lc3_encoder_size;
 struct lc3_frame_bytes {
   static int return_value;
   std::function<int(int dt_us, int bitrate)> body{
-          [](int dt_us, int bitrate) { return return_value; }};
-  int operator()(int dt_us, int bitrate) { return body(dt_us, bitrate); }
+      [](int dt_us, int bitrate) { return return_value; }};
+  int operator()(int dt_us, int bitrate) { return body(dt_us, bitrate); };
 };
 extern struct lc3_frame_bytes lc3_frame_bytes;
 
@@ -115,8 +118,9 @@ extern struct lc3_frame_bytes lc3_frame_bytes;
 // Return: int
 struct lc3_frame_samples {
   static int return_value;
-  std::function<int(int dt_us, int sr_hz)> body{[](int dt_us, int sr_hz) { return return_value; }};
-  int operator()(int dt_us, int sr_hz) { return body(dt_us, sr_hz); }
+  std::function<int(int dt_us, int sr_hz)> body{
+      [](int dt_us, int sr_hz) { return return_value; }};
+  int operator()(int dt_us, int sr_hz) { return body(dt_us, sr_hz); };
 };
 extern struct lc3_frame_samples lc3_frame_samples;
 
@@ -126,8 +130,8 @@ extern struct lc3_frame_samples lc3_frame_samples;
 struct lc3_resolve_bitrate {
   static int return_value;
   std::function<int(int dt_us, int nbytes)> body{
-          [](int dt_us, int nbytes) { return return_value; }};
-  int operator()(int dt_us, int nbytes) { return body(dt_us, nbytes); }
+      [](int dt_us, int nbytes) { return return_value; }};
+  int operator()(int dt_us, int nbytes) { return body(dt_us, nbytes); };
 };
 extern struct lc3_resolve_bitrate lc3_resolve_bitrate;
 
@@ -136,11 +140,15 @@ extern struct lc3_resolve_bitrate lc3_resolve_bitrate;
 // Return: struct lc3_decoder*
 struct lc3_setup_decoder {
   static struct lc3_decoder* return_value;
-  std::function<struct lc3_decoder*(int dt_us, int sr_hz, int sr_pcm_hz, void* mem)> body{
-          [](int dt_us, int sr_hz, int sr_pcm_hz, void* mem) { return return_value; }};
-  struct lc3_decoder* operator()(int dt_us, int sr_hz, int sr_pcm_hz, void* mem) {
+  std::function<struct lc3_decoder*(int dt_us, int sr_hz, int sr_pcm_hz,
+                                    void* mem)>
+      body{[](int dt_us, int sr_hz, int sr_pcm_hz, void* mem) {
+        return return_value;
+      }};
+  struct lc3_decoder* operator()(int dt_us, int sr_hz, int sr_pcm_hz,
+                                 void* mem) {
     return body(dt_us, sr_hz, sr_pcm_hz, mem);
-  }
+  };
 };
 extern struct lc3_setup_decoder lc3_setup_decoder;
 
@@ -149,16 +157,20 @@ extern struct lc3_setup_decoder lc3_setup_decoder;
 // Return: struct lc3_encoder*
 struct lc3_setup_encoder {
   static struct lc3_encoder* return_value;
-  std::function<struct lc3_encoder*(int dt_us, int sr_hz, int sr_pcm_hz, void* mem)> body{
-          [](int dt_us, int sr_hz, int sr_pcm_hz, void* mem) { return return_value; }};
-  struct lc3_encoder* operator()(int dt_us, int sr_hz, int sr_pcm_hz, void* mem) {
+  std::function<struct lc3_encoder*(int dt_us, int sr_hz, int sr_pcm_hz,
+                                    void* mem)>
+      body{[](int dt_us, int sr_hz, int sr_pcm_hz, void* mem) {
+        return return_value;
+      }};
+  struct lc3_encoder* operator()(int dt_us, int sr_hz, int sr_pcm_hz,
+                                 void* mem) {
     return body(dt_us, sr_hz, sr_pcm_hz, mem);
-  }
+  };
 };
 extern struct lc3_setup_encoder lc3_setup_encoder;
 
-} // namespace embdrv_lc3
-} // namespace mock
-} // namespace test
+}  // namespace embdrv_lc3
+}  // namespace mock
+}  // namespace test
 
 // END mockcify generation

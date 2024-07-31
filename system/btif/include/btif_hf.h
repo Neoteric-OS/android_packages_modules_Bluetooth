@@ -46,5 +46,5 @@ bool IsCallIdle();
  */
 bt_status_t ExecuteService(bool b_enable);
 
-} // namespace headset
-} // namespace bluetooth
+}  // namespace headset
+}  // namespace bluetooth

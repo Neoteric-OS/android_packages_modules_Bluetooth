@@ -14,11 +14,10 @@
  * limitations under the License.
  */
 
-#include "general_reject_packet.h"
-
 #include <gtest/gtest.h>
 
 #include "avrcp_test_packets.h"
+#include "general_reject_packet.h"
 #include "packet_test_helper.h"
 
 namespace bluetooth {
@@ -36,5 +35,5 @@ TEST(GeneralRejectPacketBuilderTest, buildPacketTest) {
   ASSERT_EQ(test_packet->GetData(), general_reject_invalid_command_packet);
 }
 
-} // namespace avrcp
-} // namespace bluetooth
+}  // namespace avrcp
+}  // namespace bluetooth

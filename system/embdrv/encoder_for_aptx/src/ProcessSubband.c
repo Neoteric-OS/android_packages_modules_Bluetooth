@@ -19,13 +19,14 @@
 
 /*  This function carries out all subband processing (common to both encode and
  * decode). */
-void processSubband(const int32_t qCode, const int32_t ditherVal, Subband_data* SubbandDataPt,
-                    IQuantiser_data* iqDataPt) {
+void processSubband(const int32_t qCode, const int32_t ditherVal,
+                    Subband_data* SubbandDataPt, IQuantiser_data* iqDataPt) {
   /* Inverse quantisation */
   invertQuantisation(qCode, ditherVal, iqDataPt);
 
   /* Predictor pole coefficient update */
-  updatePredictorPoleCoefficients(iqDataPt->invQ, SubbandDataPt->m_predData.m_zeroVal,
+  updatePredictorPoleCoefficients(iqDataPt->invQ,
+                                  SubbandDataPt->m_predData.m_zeroVal,
                                   &SubbandDataPt->m_PoleCoeffData);
 
   /* Predictor filtering */
@@ -33,13 +34,14 @@ void processSubband(const int32_t qCode, const int32_t ditherVal, Subband_data* 
 }
 
 /* processSubbandLL is used for the LL subband only. */
-void processSubbandLL(const int32_t qCode, const int32_t ditherVal, Subband_data* SubbandDataPt,
-                      IQuantiser_data* iqDataPt) {
+void processSubbandLL(const int32_t qCode, const int32_t ditherVal,
+                      Subband_data* SubbandDataPt, IQuantiser_data* iqDataPt) {
   /* Inverse quantisation */
   invertQuantisation(qCode, ditherVal, iqDataPt);
 
   /* Predictor pole coefficient update */
-  updatePredictorPoleCoefficients(iqDataPt->invQ, SubbandDataPt->m_predData.m_zeroVal,
+  updatePredictorPoleCoefficients(iqDataPt->invQ,
+                                  SubbandDataPt->m_predData.m_zeroVal,
                                   &SubbandDataPt->m_PoleCoeffData);
 
   /* Predictor filtering */
@@ -47,13 +49,14 @@ void processSubbandLL(const int32_t qCode, const int32_t ditherVal, Subband_data
 }
 
 /* processSubbandHL is used for the HL subband only. */
-void processSubbandHL(const int32_t qCode, const int32_t ditherVal, Subband_data* SubbandDataPt,
-                      IQuantiser_data* iqDataPt) {
+void processSubbandHL(const int32_t qCode, const int32_t ditherVal,
+                      Subband_data* SubbandDataPt, IQuantiser_data* iqDataPt) {
   /* Inverse quantisation */
   invertQuantisationHL(qCode, ditherVal, iqDataPt);
 
   /* Predictor pole coefficient update */
-  updatePredictorPoleCoefficients(iqDataPt->invQ, SubbandDataPt->m_predData.m_zeroVal,
+  updatePredictorPoleCoefficients(iqDataPt->invQ,
+                                  SubbandDataPt->m_predData.m_zeroVal,
                                   &SubbandDataPt->m_PoleCoeffData);
 
   /* Predictor filtering */

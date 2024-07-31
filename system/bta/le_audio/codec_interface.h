@@ -39,7 +39,7 @@ namespace bluetooth::le_audio {
  *
  */
 class CodecInterface {
-public:
+ public:
   enum class Status {
     STATUS_ERR_CODEC_NOT_READY = -128,
     STATUS_ERR_INVALID_CODEC_ID = -127,
@@ -49,16 +49,19 @@ public:
 
   CodecInterface(const types::LeAudioCodecId& codec_id);
   virtual ~CodecInterface();
-  static std::unique_ptr<CodecInterface> CreateInstance(const types::LeAudioCodecId& codec_id) {
+  static std::unique_ptr<CodecInterface> CreateInstance(
+      const types::LeAudioCodecId& codec_id) {
     return std::make_unique<CodecInterface>(codec_id);
   }
-  virtual CodecInterface::Status InitEncoder(const LeAudioCodecConfiguration& pcm_config,
-                                             const LeAudioCodecConfiguration& codec_config);
-  virtual CodecInterface::Status InitDecoder(const LeAudioCodecConfiguration& codec_config,
-                                             const LeAudioCodecConfiguration& pcm_config);
-  virtual CodecInterface::Status Encode(const uint8_t* data, int stride, uint16_t out_size,
-                                        std::vector<int16_t>* out_buffer = nullptr,
-                                        uint16_t out_offset = 0);
+  virtual CodecInterface::Status InitEncoder(
+      const LeAudioCodecConfiguration& pcm_config,
+      const LeAudioCodecConfiguration& codec_config);
+  virtual CodecInterface::Status InitDecoder(
+      const LeAudioCodecConfiguration& codec_config,
+      const LeAudioCodecConfiguration& pcm_config);
+  virtual CodecInterface::Status Encode(
+      const uint8_t* data, int stride, uint16_t out_size,
+      std::vector<int16_t>* out_buffer = nullptr, uint16_t out_offset = 0);
   virtual CodecInterface::Status Decode(uint8_t* data, uint16_t size);
   virtual void Cleanup();
   virtual bool IsReady();
@@ -66,15 +69,15 @@ public:
   virtual uint8_t GetNumOfBytesPerSample();
   virtual std::vector<int16_t>& GetDecodedSamples();
 
-private:
+ private:
   struct Impl;
   Impl* impl;
 };
 
-} // namespace bluetooth::le_audio
+}  // namespace bluetooth::le_audio
 
 namespace fmt {
 template <>
 struct formatter<bluetooth::le_audio::CodecInterface::Status>
     : enum_formatter<bluetooth::le_audio::CodecInterface::Status> {};
-} // namespace fmt
+}  // namespace fmt

@@ -12,16 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 #pragma once
-#include <stdint.h>    // for uint64_t, uint8_t
-#include <sys/types.h> // for ssize_t
+#include <stdint.h>     // for uint64_t, uint8_t
+#include <sys/types.h>  // for ssize_t
 
-#include <atomic> // for atomic_bool
+#include <atomic>  // for atomic_bool
 
-#include "net/async_data_channel.h" // for AsyncDataChannel, ReadCallback
+#include "net/async_data_channel.h"  // for AsyncDataChannel, ReadCallback
 
 namespace rootcanal {
 class AsyncManager;
-} // namespace rootcanal
+}  // namespace rootcanal
 
 namespace android {
 namespace net {
@@ -32,7 +32,7 @@ using rootcanal::AsyncManager;
 //
 // Supports both Darwin and Linux.
 class PosixAsyncSocket : public AsyncDataChannel {
-public:
+ public:
   // The AsyncManager must support the following:
   //
   // - If a callback happens on thread t, and
@@ -69,21 +69,22 @@ public:
   // Registers the given callback to be invoked when a recv call can be made
   // to read data from this socket.
   // Only one callback can be registered per socket.
-  bool WatchForNonBlockingRead(const ReadCallback& on_read_ready_callback) override;
+  bool WatchForNonBlockingRead(
+      const ReadCallback& on_read_ready_callback) override;
 
   void StopWatching() override;
 
   int fd() const { return fd_; }
 
-private:
+ private:
   void OnReadCallback();
 
   int fd_;
   AsyncManager* am_;
   std::atomic_bool watching_;
 };
-} // namespace net
-} // namespace android
+}  // namespace net
+}  // namespace android
 
 // Re-run |fn| system call until the system call doesn't cause EINTR.
 #define REPEAT_UNTIL_NO_INTR(fn) \

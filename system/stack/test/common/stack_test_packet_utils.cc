@@ -28,7 +28,8 @@
 
 namespace bluetooth {
 
-std::vector<uint8_t> CreateL2capDataPacket(uint16_t lcid, const std::vector<uint8_t>& data) {
+std::vector<uint8_t> CreateL2capDataPacket(uint16_t lcid,
+                                           const std::vector<uint8_t>& data) {
   // Data in little endian order
   std::vector<uint8_t> result;
   auto data_size = static_cast<uint16_t>(data.size());
@@ -65,12 +66,13 @@ BT_HDR* AllocateWrappedIncomingL2capAclPacket(const uint8_t* acl_packet_bytes,
   packet->offset = 4 + L2CAP_PKT_OVERHEAD;
   packet->len = static_cast<uint16_t>(buffer_length - 4 - L2CAP_PKT_OVERHEAD);
   packet->layer_specific = 0;
-  packet->event = 0x1100; // MSG_HC_TO_STACK_HCI_ACL;
+  packet->event = 0x1100;  // MSG_HC_TO_STACK_HCI_ACL;
   memcpy(packet->data, acl_packet_bytes, buffer_length);
   return packet;
 }
 
-BT_HDR* AllocateWrappedIncomingL2capAclPacket(const std::vector<uint8_t>& buffer) {
+BT_HDR* AllocateWrappedIncomingL2capAclPacket(
+    const std::vector<uint8_t>& buffer) {
   return AllocateWrappedIncomingL2capAclPacket(buffer.data(), buffer.size());
 }
 
@@ -79,18 +81,21 @@ BT_HDR* AllocateWrappedOutgoingL2capAclPacket(const uint8_t* acl_packet_bytes,
   size_t acl_l2cap_header_size = 4 + L2CAP_PKT_OVERHEAD;
   log::assert_that(L2CAP_MIN_OFFSET >= static_cast<int>(acl_l2cap_header_size),
                    "invalid acl l2cap header size");
-  size_t packet_size = BT_HDR_SIZE + L2CAP_MIN_OFFSET + buffer_length - acl_l2cap_header_size;
+  size_t packet_size =
+      BT_HDR_SIZE + L2CAP_MIN_OFFSET + buffer_length - acl_l2cap_header_size;
   auto packet = reinterpret_cast<BT_HDR*>(osi_malloc(packet_size));
   packet->offset = L2CAP_MIN_OFFSET;
   packet->len = static_cast<uint16_t>(buffer_length - acl_l2cap_header_size);
   packet->layer_specific = 0;
   packet->event = 0;
-  memcpy(packet->data + packet->offset - acl_l2cap_header_size, acl_packet_bytes, buffer_length);
+  memcpy(packet->data + packet->offset - acl_l2cap_header_size,
+         acl_packet_bytes, buffer_length);
   return packet;
 }
 
-BT_HDR* AllocateWrappedOutgoingL2capAclPacket(const std::vector<uint8_t>& buffer) {
+BT_HDR* AllocateWrappedOutgoingL2capAclPacket(
+    const std::vector<uint8_t>& buffer) {
   return AllocateWrappedOutgoingL2capAclPacket(buffer.data(), buffer.size());
 }
 
-} // namespace bluetooth
+}  // namespace bluetooth

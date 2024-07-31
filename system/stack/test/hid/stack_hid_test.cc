@@ -28,7 +28,10 @@
 bluetooth::common::MessageLoopThread* get_main_thread() { return nullptr; }
 tHCI_REASON btm_get_acl_disc_reason_code(void) { return HCI_SUCCESS; }
 
-bool BTM_IsAclConnectionUp(const RawAddress& remote_bda, tBT_TRANSPORT transport) { return true; }
+bool BTM_IsAclConnectionUp(const RawAddress& remote_bda,
+                           tBT_TRANSPORT transport) {
+  return true;
+}
 namespace {
 
 using testing::_;
@@ -43,8 +46,8 @@ using testing::StrictMock;
 using testing::Test;
 
 class StackHidTest : public Test {
-public:
-protected:
+ public:
+ protected:
   void SetUp() override { reset_mock_function_count_map(); }
   void TearDown() override {}
 };
@@ -53,12 +56,13 @@ TEST_F(StackHidTest, disconnect_bad_cid) {
   tL2CAP_APPL_INFO l2cap_callbacks;
 
   test::mock::stack_l2cap_api::L2CA_RegisterWithSecurity.body =
-          [&l2cap_callbacks](uint16_t psm, const tL2CAP_APPL_INFO& p_cb_info, bool enable_snoop,
-                             tL2CAP_ERTM_INFO* p_ertm_info, uint16_t my_mtu,
-                             uint16_t required_remote_mtu, uint16_t sec_level) {
-            l2cap_callbacks = p_cb_info;
-            return psm;
-          };
+      [&l2cap_callbacks](uint16_t psm, const tL2CAP_APPL_INFO& p_cb_info,
+                         bool enable_snoop, tL2CAP_ERTM_INFO* p_ertm_info,
+                         uint16_t my_mtu, uint16_t required_remote_mtu,
+                         uint16_t sec_level) {
+        l2cap_callbacks = p_cb_info;
+        return psm;
+      };
 
   tHID_STATUS status = hidh_conn_reg();
   ASSERT_EQ(HID_SUCCESS, status);
@@ -66,4 +70,4 @@ TEST_F(StackHidTest, disconnect_bad_cid) {
   l2cap_callbacks.pL2CA_Error_Cb(123, 456);
 }
 
-} // namespace
+}  // namespace

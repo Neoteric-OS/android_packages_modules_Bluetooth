@@ -106,7 +106,7 @@ struct ApcfCommand {
   uint8_t ad_type;
   std::vector<uint8_t> data;
   std::vector<uint8_t> data_mask;
-  std::array<uint8_t, 16> irk; // 128 bit/16 octet IRK
+  std::array<uint8_t, 16> irk;  // 128 bit/16 octet IRK
   uint8_t org_id;
   uint8_t tds_flags;
   uint8_t tds_flags_mask;
@@ -154,8 +154,9 @@ struct MsftAdvMonitor {
 
 namespace fmt {
 template <>
-struct formatter<bt_gatt_db_attribute_type_t> : enum_formatter<bt_gatt_db_attribute_type_t> {};
-} // namespace fmt
-#endif // __has_include(<bluetooth/log.h>)
+struct formatter<bt_gatt_db_attribute_type_t>
+    : enum_formatter<bt_gatt_db_attribute_type_t> {};
+}  // namespace fmt
+#endif  // __has_include(<bluetooth/log.h>)
 
 #endif /* ANDROID_INCLUDE_BT_COMMON_TYPES_H */

@@ -74,4 +74,4 @@
 #define A2DP_SBC_HDR_L_MSK 0x20
 #define A2DP_SBC_HDR_NUM_MSK 0x0F
 
-#endif // A2DP_SBC_CONSTANTS_H
+#endif  // A2DP_SBC_CONSTANTS_H

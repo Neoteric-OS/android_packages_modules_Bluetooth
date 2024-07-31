@@ -39,18 +39,22 @@ constexpr size_t kL2capBasicFrameHeaderSize = 4;
 namespace {
 // This is a helper class to keep the state of the assembler and expose PacketView<>::Append.
 class PacketViewForRecombination : public packet::PacketView<packet::kLittleEndian> {
-public:
+ public:
   PacketViewForRecombination(const PacketView& packetView)
       : PacketView(packetView), received_first_(true) {}
 
   PacketViewForRecombination()
       : PacketView(PacketView<packet::kLittleEndian>(std::make_shared<std::vector<uint8_t>>())) {}
 
-  void AppendPacketView(packet::PacketView<packet::kLittleEndian> to_append) { Append(to_append); }
+  void AppendPacketView(packet::PacketView<packet::kLittleEndian> to_append) {
+    Append(to_append);
+  }
 
-  bool ReceivedFirstPacket() { return received_first_; }
+  bool ReceivedFirstPacket() {
+    return received_first_;
+  }
 
-private:
+ private:
   bool received_first_{};
 };
 
@@ -59,16 +63,15 @@ private:
 // kL2capBasicFrameHeaderSize if it's invalid.
 size_t GetL2capPduSize(packet::PacketView<packet::kLittleEndian> pdu) {
   if (pdu.size() < 2) {
-    return kL2capBasicFrameHeaderSize; // We need at least 4 bytes to send it to L2CAP
+    return kL2capBasicFrameHeaderSize;  // We need at least 4 bytes to send it to L2CAP
   }
   return (static_cast<size_t>(pdu[1]) << 8u) + pdu[0];
 }
 
-} // namespace
+}  // namespace
 
 struct assembler {
-  assembler(AddressWithType address_with_type, AclConnection::QueueDownEnd* down_end,
-            os::Handler* handler)
+  assembler(AddressWithType address_with_type, AclConnection::QueueDownEnd* down_end, os::Handler* handler)
       : address_with_type_(address_with_type), down_end_(down_end), handler_(handler) {}
   AddressWithType address_with_type_;
   AclConnection::QueueDownEnd* down_end_;
@@ -103,8 +106,8 @@ struct assembler {
     auto packet_boundary_flag = packet.GetPacketBoundaryFlag();
     if (packet_boundary_flag == PacketBoundaryFlag::FIRST_NON_AUTOMATICALLY_FLUSHABLE) {
       log::error(
-              "Controller is not allowed to send FIRST_NON_AUTOMATICALLY_FLUSHABLE to host except "
-              "loopback mode");
+          "Controller is not allowed to send FIRST_NON_AUTOMATICALLY_FLUSHABLE to host except "
+          "loopback mode");
       return;
     }
     if (packet_boundary_flag == PacketBoundaryFlag::CONTINUING_FRAGMENT) {
@@ -116,9 +119,8 @@ struct assembler {
     } else if (packet_boundary_flag == PacketBoundaryFlag::FIRST_AUTOMATICALLY_FLUSHABLE) {
       if (recombination_stage_.ReceivedFirstPacket()) {
         log::error(
-                "Controller sent a starting packet without finishing previous packet. Drop "
-                "previous "
-                "one.");
+            "Controller sent a starting packet without finishing previous packet. Drop previous "
+            "one.");
       }
       recombination_stage_ = payload;
     }
@@ -141,12 +143,12 @@ struct assembler {
     incoming_queue_.push(recombination_stage_);
     recombination_stage_ = PacketViewForRecombination();
     if (!enqueue_registered_->exchange(true)) {
-      down_end_->RegisterEnqueue(handler_,
-                                 common::Bind(&assembler::on_data_ready, common::Unretained(this)));
+      down_end_->RegisterEnqueue(
+          handler_, common::Bind(&assembler::on_data_ready, common::Unretained(this)));
     }
   }
 };
 
-} // namespace acl_manager
-} // namespace hci
-} // namespace bluetooth
+}  // namespace acl_manager
+}  // namespace hci
+}  // namespace bluetooth

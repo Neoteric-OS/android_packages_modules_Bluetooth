@@ -33,6 +33,6 @@ std::vector<std::unique_ptr<packet::RawBuilder>> AclFragmenter::GetFragments() {
   return to_return;
 }
 
-} // namespace acl_manager
-} // namespace hci
-} // namespace bluetooth
+}  // namespace acl_manager
+}  // namespace hci
+}  // namespace bluetooth

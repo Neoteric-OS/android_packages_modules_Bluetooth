@@ -22,7 +22,7 @@ namespace bluetooth {
 namespace testing {
 
 class A2DPRegressionTests : public ::testing::Test {
-protected:
+ protected:
   void SetUp() override {}
   void TearDown() override {}
 };
@@ -34,5 +34,5 @@ TEST_F(A2DPRegressionTests, OOB_In_A2DP_BuildCodecHeaderSbc) {
   A2DP_BuildCodecHeaderSbc(nullptr, &hdr, 0);
 }
 
-} // namespace testing
-} // namespace bluetooth
+}  // namespace testing
+}  // namespace bluetooth

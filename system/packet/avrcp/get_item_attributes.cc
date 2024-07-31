@@ -19,16 +19,18 @@
 namespace bluetooth {
 namespace avrcp {
 
-std::unique_ptr<GetItemAttributesResponseBuilder> GetItemAttributesResponseBuilder::MakeBuilder(
-        Status status, size_t mtu) {
+std::unique_ptr<GetItemAttributesResponseBuilder>
+GetItemAttributesResponseBuilder::MakeBuilder(Status status, size_t mtu) {
   std::unique_ptr<GetItemAttributesResponseBuilder> builder(
-          new GetItemAttributesResponseBuilder(status, mtu));
+      new GetItemAttributesResponseBuilder(status, mtu));
 
   return builder;
 }
 
-size_t GetItemAttributesResponseBuilder::AddAttributeEntry(AttributeEntry entry) {
-  log::assert_that(entries_.size() < 0xFF, "assert failed: entries_.size() < 0xFF");
+size_t GetItemAttributesResponseBuilder::AddAttributeEntry(
+    AttributeEntry entry) {
+  log::assert_that(entries_.size() < 0xFF,
+                   "assert failed: entries_.size() < 0xFF");
 
   size_t remaining_space = mtu_ - size();
   if (entry.size() > remaining_space) {
@@ -43,16 +45,14 @@ size_t GetItemAttributesResponseBuilder::AddAttributeEntry(AttributeEntry entry)
   return entry.size();
 }
 
-size_t GetItemAttributesResponseBuilder::AddAttributeEntry(Attribute attribute,
-                                                           const std::string& value) {
+size_t GetItemAttributesResponseBuilder::AddAttributeEntry(
+    Attribute attribute, const std::string& value) {
   return AddAttributeEntry(AttributeEntry(attribute, value));
 }
 
 size_t GetItemAttributesResponseBuilder::size() const {
   size_t len = kHeaderSize();
-  if (status_ != Status::NO_ERROR) {
-    return kErrorHeaderSize();
-  }
+  if (status_ != Status::NO_ERROR) return kErrorHeaderSize();
 
   for (const auto& entry : entries_) {
     len += entry.size();
@@ -60,20 +60,19 @@ size_t GetItemAttributesResponseBuilder::size() const {
   return len;
 }
 
-bool GetItemAttributesResponseBuilder::Serialize(const std::shared_ptr<::bluetooth::Packet>& pkt) {
+bool GetItemAttributesResponseBuilder::Serialize(
+    const std::shared_ptr<::bluetooth::Packet>& pkt) {
   ReserveSpace(pkt, size());
 
   BrowsePacketBuilder::PushHeader(pkt, size() - BrowsePacket::kMinSize());
 
   AddPayloadOctets1(pkt, (uint8_t)status_);
-  if (status_ != Status::NO_ERROR) {
-    return true;
-  }
+  if (status_ != Status::NO_ERROR) return true;
 
   AddPayloadOctets1(pkt, entries_.size());
   for (const auto& entry : entries_) {
     AddPayloadOctets4(pkt, base::ByteSwap((uint32_t)entry.attribute()));
-    uint16_t character_set = 0x006a; // UTF-8
+    uint16_t character_set = 0x006a;  // UTF-8
     AddPayloadOctets2(pkt, base::ByteSwap(character_set));
     uint16_t value_length = entry.value().length();
     AddPayloadOctets2(pkt, base::ByteSwap(value_length));
@@ -105,7 +104,8 @@ uint8_t GetItemAttributesRequest::GetNumAttributes() const {
   return *it;
 }
 
-std::vector<Attribute> GetItemAttributesRequest::GetAttributesRequested() const {
+std::vector<Attribute> GetItemAttributesRequest::GetAttributesRequested()
+    const {
   auto it = begin() + BrowsePacket::kMinSize() + static_cast<size_t>(11);
   size_t number_of_attributes = it.extract<uint8_t>();
 
@@ -118,12 +118,8 @@ std::vector<Attribute> GetItemAttributesRequest::GetAttributesRequested() const 
 }
 
 bool GetItemAttributesRequest::IsValid() const {
-  if (!BrowsePacket::IsValid()) {
-    return false;
-  }
-  if (size() < kMinSize()) {
-    return false;
-  }
+  if (!BrowsePacket::IsValid()) return false;
+  if (size() < kMinSize()) return false;
 
   // Casting the int returned from end - attr_start should be fine. If an
   // overflow occurs we can definitly say the packet is invalid
@@ -150,5 +146,5 @@ std::string GetItemAttributesRequest::ToString() const {
   return ss.str();
 }
 
-} // namespace avrcp
-} // namespace bluetooth
+}  // namespace avrcp
+}  // namespace bluetooth

@@ -48,13 +48,15 @@ namespace main_shim_acl_api {
 // Return: bool
 struct ACL_AcceptLeConnectionFrom {
   static bool return_value;
-  std::function<bool(const tBLE_BD_ADDR& legacy_address_with_type, bool is_direct)> body{
-          [](const tBLE_BD_ADDR& legacy_address_with_type, bool is_direct) {
-            return return_value;
-          }};
-  bool operator()(const tBLE_BD_ADDR& legacy_address_with_type, bool is_direct) {
+  std::function<bool(const tBLE_BD_ADDR& legacy_address_with_type,
+                     bool is_direct)>
+      body{[](const tBLE_BD_ADDR& legacy_address_with_type, bool is_direct) {
+        return return_value;
+      }};
+  bool operator()(const tBLE_BD_ADDR& legacy_address_with_type,
+                  bool is_direct) {
     return body(legacy_address_with_type, is_direct);
-  }
+  };
 };
 extern struct ACL_AcceptLeConnectionFrom ACL_AcceptLeConnectionFrom;
 
@@ -62,14 +64,14 @@ extern struct ACL_AcceptLeConnectionFrom ACL_AcceptLeConnectionFrom;
 // Params: const tBLE_BD_ADDR& legacy_address_with_type, const Octet16&
 // peer_irk, const Octet16& local_irk Return: void
 struct ACL_AddToAddressResolution {
-  std::function<void(const tBLE_BD_ADDR& legacy_address_with_type, const Octet16& peer_irk,
-                     const Octet16& local_irk)>
-          body{[](const tBLE_BD_ADDR& legacy_address_with_type, const Octet16& peer_irk,
-                  const Octet16& local_irk) {}};
-  void operator()(const tBLE_BD_ADDR& legacy_address_with_type, const Octet16& peer_irk,
-                  const Octet16& local_irk) {
+  std::function<void(const tBLE_BD_ADDR& legacy_address_with_type,
+                     const Octet16& peer_irk, const Octet16& local_irk)>
+      body{[](const tBLE_BD_ADDR& legacy_address_with_type,
+              const Octet16& peer_irk, const Octet16& local_irk) {}};
+  void operator()(const tBLE_BD_ADDR& legacy_address_with_type,
+                  const Octet16& peer_irk, const Octet16& local_irk) {
     body(legacy_address_with_type, peer_irk, local_irk);
-  }
+  };
 };
 extern struct ACL_AddToAddressResolution ACL_AddToAddressResolution;
 
@@ -77,8 +79,9 @@ extern struct ACL_AddToAddressResolution ACL_AddToAddressResolution;
 // Params: const RawAddress& raw_address
 // Return: void
 struct ACL_CancelClassicConnection {
-  std::function<void(const RawAddress& raw_address)> body{[](const RawAddress& raw_address) {}};
-  void operator()(const RawAddress& raw_address) { body(raw_address); }
+  std::function<void(const RawAddress& raw_address)> body{
+      [](const RawAddress& raw_address) {}};
+  void operator()(const RawAddress& raw_address) { body(raw_address); };
 };
 extern struct ACL_CancelClassicConnection ACL_CancelClassicConnection;
 
@@ -87,7 +90,7 @@ extern struct ACL_CancelClassicConnection ACL_CancelClassicConnection;
 // Return: void
 struct ACL_ClearAddressResolution {
   std::function<void()> body{[]() {}};
-  void operator()() { body(); }
+  void operator()() { body(); };
 };
 extern struct ACL_ClearAddressResolution ACL_ClearAddressResolution;
 
@@ -96,7 +99,7 @@ extern struct ACL_ClearAddressResolution ACL_ClearAddressResolution;
 // Return: void
 struct ACL_ClearFilterAcceptList {
   std::function<void()> body{[]() {}};
-  void operator()() { body(); }
+  void operator()() { body(); };
 };
 extern struct ACL_ClearFilterAcceptList ACL_ClearFilterAcceptList;
 
@@ -104,14 +107,15 @@ extern struct ACL_ClearFilterAcceptList ACL_ClearFilterAcceptList;
 // Params:
 // Return: void
 struct ACL_LeSetDefaultSubrate {
-  std::function<void(uint16_t subrate_min, uint16_t subrate_max, uint16_t max_latency,
-                     uint16_t cont_num, uint16_t sup_tout)>
-          body{[](uint16_t subrate_min, uint16_t subrate_max, uint16_t max_latency,
-                  uint16_t cont_num, uint16_t sup_tout) {}};
-  void operator()(uint16_t subrate_min, uint16_t subrate_max, uint16_t max_latency,
-                  uint16_t cont_num, uint16_t sup_tout) {
+  std::function<void(uint16_t subrate_min, uint16_t subrate_max,
+                     uint16_t max_latency, uint16_t cont_num,
+                     uint16_t sup_tout)>
+      body{[](uint16_t subrate_min, uint16_t subrate_max, uint16_t max_latency,
+              uint16_t cont_num, uint16_t sup_tout) {}};
+  void operator()(uint16_t subrate_min, uint16_t subrate_max,
+                  uint16_t max_latency, uint16_t cont_num, uint16_t sup_tout) {
     body(subrate_min, subrate_max, max_latency, cont_num, sup_tout);
-  }
+  };
 };
 extern struct ACL_LeSetDefaultSubrate ACL_LeSetDefaultSubrate;
 
@@ -119,14 +123,16 @@ extern struct ACL_LeSetDefaultSubrate ACL_LeSetDefaultSubrate;
 // Params:
 // Return: void
 struct ACL_LeSubrateRequest {
-  std::function<void(uint16_t hci_handle, uint16_t subrate_min, uint16_t subrate_max,
-                     uint16_t max_latency, uint16_t cont_num, uint16_t sup_tout)>
-          body{[](uint16_t hci_handle, uint16_t subrate_min, uint16_t subrate_max,
-                  uint16_t max_latency, uint16_t cont_num, uint16_t sup_tout) {}};
-  void operator()(uint16_t hci_handle, uint16_t subrate_min, uint16_t subrate_max,
-                  uint16_t max_latency, uint16_t cont_num, uint16_t sup_tout) {
+  std::function<void(uint16_t hci_handle, uint16_t subrate_min,
+                     uint16_t subrate_max, uint16_t max_latency,
+                     uint16_t cont_num, uint16_t sup_tout)>
+      body{[](uint16_t hci_handle, uint16_t subrate_min, uint16_t subrate_max,
+              uint16_t max_latency, uint16_t cont_num, uint16_t sup_tout) {}};
+  void operator()(uint16_t hci_handle, uint16_t subrate_min,
+                  uint16_t subrate_max, uint16_t max_latency, uint16_t cont_num,
+                  uint16_t sup_tout) {
     body(hci_handle, subrate_min, subrate_max, max_latency, cont_num, sup_tout);
-  }
+  };
 };
 extern struct ACL_LeSubrateRequest ACL_LeSubrateRequest;
 
@@ -134,8 +140,9 @@ extern struct ACL_LeSubrateRequest ACL_LeSubrateRequest;
 // Params: bool is_le_privacy_enabled
 // Return: void
 struct ACL_ConfigureLePrivacy {
-  std::function<void(bool is_le_privacy_enabled)> body{[](bool is_le_privacy_enabled) {}};
-  void operator()(bool is_le_privacy_enabled) { body(is_le_privacy_enabled); }
+  std::function<void(bool is_le_privacy_enabled)> body{
+      [](bool is_le_privacy_enabled) {}};
+  void operator()(bool is_le_privacy_enabled) { body(is_le_privacy_enabled); };
 };
 extern struct ACL_ConfigureLePrivacy ACL_ConfigureLePrivacy;
 
@@ -143,8 +150,9 @@ extern struct ACL_ConfigureLePrivacy ACL_ConfigureLePrivacy;
 // Params: const RawAddress& raw_address
 // Return: void
 struct ACL_CreateClassicConnection {
-  std::function<void(const RawAddress& raw_address)> body{[](const RawAddress& raw_address) {}};
-  void operator()(const RawAddress& raw_address) { body(raw_address); }
+  std::function<void(const RawAddress& raw_address)> body{
+      [](const RawAddress& raw_address) {}};
+  void operator()(const RawAddress& raw_address) { body(raw_address); };
 };
 extern struct ACL_CreateClassicConnection ACL_CreateClassicConnection;
 
@@ -152,11 +160,14 @@ extern struct ACL_CreateClassicConnection ACL_CreateClassicConnection;
 // Params: uint16_t handle, bool is_classic, tHCI_STATUS reason, std::string
 // comment Return: void
 struct ACL_Disconnect {
-  std::function<void(uint16_t handle, bool is_classic, tHCI_STATUS reason, std::string comment)>
-          body{[](uint16_t handle, bool is_classic, tHCI_STATUS reason, std::string comment) {}};
-  void operator()(uint16_t handle, bool is_classic, tHCI_STATUS reason, std::string comment) {
+  std::function<void(uint16_t handle, bool is_classic, tHCI_STATUS reason,
+                     std::string comment)>
+      body{[](uint16_t handle, bool is_classic, tHCI_STATUS reason,
+              std::string comment) {}};
+  void operator()(uint16_t handle, bool is_classic, tHCI_STATUS reason,
+                  std::string comment) {
     body(handle, is_classic, reason, comment);
-  }
+  };
 };
 extern struct ACL_Disconnect ACL_Disconnect;
 
@@ -165,7 +176,7 @@ extern struct ACL_Disconnect ACL_Disconnect;
 // Return: void
 struct ACL_IgnoreAllLeConnections {
   std::function<void()> body{[]() {}};
-  void operator()() { body(); }
+  void operator()() { body(); };
 };
 extern struct ACL_IgnoreAllLeConnections ACL_IgnoreAllLeConnections;
 
@@ -174,8 +185,10 @@ extern struct ACL_IgnoreAllLeConnections ACL_IgnoreAllLeConnections;
 // Return: void
 struct ACL_IgnoreLeConnectionFrom {
   std::function<void(const tBLE_BD_ADDR& legacy_address_with_type)> body{
-          [](const tBLE_BD_ADDR& legacy_address_with_type) {}};
-  void operator()(const tBLE_BD_ADDR& legacy_address_with_type) { body(legacy_address_with_type); }
+      [](const tBLE_BD_ADDR& legacy_address_with_type) {}};
+  void operator()(const tBLE_BD_ADDR& legacy_address_with_type) {
+    body(legacy_address_with_type);
+  };
 };
 extern struct ACL_IgnoreLeConnectionFrom ACL_IgnoreLeConnectionFrom;
 
@@ -183,14 +196,14 @@ extern struct ACL_IgnoreLeConnectionFrom ACL_IgnoreLeConnectionFrom;
 // Params: uint16_t handle, RawAddress& conn_addr, tBLE_ADDR_TYPE*, bool
 // p_addr_type Return: void
 struct ACL_ReadConnectionAddress {
-  std::function<void(uint16_t handle, RawAddress& conn_addr, tBLE_ADDR_TYPE* p_addr_type,
-                     bool ota_address)>
-          body{[](uint16_t handle, RawAddress& conn_addr, tBLE_ADDR_TYPE* p_addr_type,
-                  bool ota_address) {}};
-  void operator()(uint16_t handle, RawAddress& conn_addr, tBLE_ADDR_TYPE* p_addr_type,
-                  bool ota_address) {
+  std::function<void(uint16_t handle, RawAddress& conn_addr,
+                     tBLE_ADDR_TYPE* p_addr_type, bool ota_address)>
+      body{[](uint16_t handle, RawAddress& conn_addr,
+              tBLE_ADDR_TYPE* p_addr_type, bool ota_address) {}};
+  void operator()(uint16_t handle, RawAddress& conn_addr,
+                  tBLE_ADDR_TYPE* p_addr_type, bool ota_address) {
     body(handle, conn_addr, p_addr_type, ota_address);
-  }
+  };
 };
 extern struct ACL_ReadConnectionAddress ACL_ReadConnectionAddress;
 
@@ -198,14 +211,14 @@ extern struct ACL_ReadConnectionAddress ACL_ReadConnectionAddress;
 // Params: uint16_t handle, RawAddress& conn_addr, tBLE_ADDR_TYPE*, bool
 // p_addr_type Return: void
 struct ACL_ReadPeerConnectionAddress {
-  std::function<void(uint16_t handle, RawAddress& conn_addr, tBLE_ADDR_TYPE* p_addr_type,
-                     bool ota_address)>
-          body{[](uint16_t handle, RawAddress& conn_addr, tBLE_ADDR_TYPE* p_addr_type,
-                  bool ota_address) {}};
-  void operator()(uint16_t handle, RawAddress& conn_addr, tBLE_ADDR_TYPE* p_addr_type,
-                  bool ota_address) {
+  std::function<void(uint16_t handle, RawAddress& conn_addr,
+                     tBLE_ADDR_TYPE* p_addr_type, bool ota_address)>
+      body{[](uint16_t handle, RawAddress& conn_addr,
+              tBLE_ADDR_TYPE* p_addr_type, bool ota_address) {}};
+  void operator()(uint16_t handle, RawAddress& conn_addr,
+                  tBLE_ADDR_TYPE* p_addr_type, bool ota_address) {
     body(handle, conn_addr, p_addr_type, ota_address);
-  }
+  };
 };
 extern struct ACL_ReadPeerConnectionAddress ACL_ReadPeerConnectionAddress;
 
@@ -215,8 +228,10 @@ extern struct ACL_ReadPeerConnectionAddress ACL_ReadPeerConnectionAddress;
 struct ACL_GetAdvertisingSetConnectedTo {
   static std::optional<uint8_t> return_value;
   std::function<std::optional<uint8_t>(const RawAddress& addr)> body{
-          [](const RawAddress& addr) { return return_value; }};
-  std::optional<uint8_t> operator()(const RawAddress& addr) { return body(addr); }
+      [](const RawAddress& addr) { return return_value; }};
+  std::optional<uint8_t> operator()(const RawAddress& addr) {
+    return body(addr);
+  };
 };
 extern struct ACL_GetAdvertisingSetConnectedTo ACL_GetAdvertisingSetConnectedTo;
 
@@ -225,8 +240,10 @@ extern struct ACL_GetAdvertisingSetConnectedTo ACL_GetAdvertisingSetConnectedTo;
 // Return: void
 struct ACL_RemoveFromAddressResolution {
   std::function<void(const tBLE_BD_ADDR& legacy_address_with_type)> body{
-          [](const tBLE_BD_ADDR& legacy_address_with_type) {}};
-  void operator()(const tBLE_BD_ADDR& legacy_address_with_type) { body(legacy_address_with_type); }
+      [](const tBLE_BD_ADDR& legacy_address_with_type) {}};
+  void operator()(const tBLE_BD_ADDR& legacy_address_with_type) {
+    body(legacy_address_with_type);
+  };
 };
 extern struct ACL_RemoveFromAddressResolution ACL_RemoveFromAddressResolution;
 
@@ -235,7 +252,7 @@ extern struct ACL_RemoveFromAddressResolution ACL_RemoveFromAddressResolution;
 // Return: void
 struct ACL_Shutdown {
   std::function<void()> body{[]() {}};
-  void operator()() { body(); }
+  void operator()() { body(); };
 };
 extern struct ACL_Shutdown ACL_Shutdown;
 
@@ -243,8 +260,9 @@ extern struct ACL_Shutdown ACL_Shutdown;
 // Params: uint16_t handle, BT_HDR* p_buf
 // Return: void
 struct ACL_WriteData {
-  std::function<void(uint16_t handle, BT_HDR* p_buf)> body{[](uint16_t handle, BT_HDR* p_buf) {}};
-  void operator()(uint16_t handle, BT_HDR* p_buf) { body(handle, p_buf); }
+  std::function<void(uint16_t handle, BT_HDR* p_buf)> body{
+      [](uint16_t handle, BT_HDR* p_buf) {}};
+  void operator()(uint16_t handle, BT_HDR* p_buf) { body(handle, p_buf); };
 };
 extern struct ACL_WriteData ACL_WriteData;
 
@@ -253,7 +271,7 @@ extern struct ACL_WriteData ACL_WriteData;
 // Return: void
 struct ACL_Flush {
   std::function<void(uint16_t handle)> body{[](uint16_t /* handle */) {}};
-  void operator()(uint16_t handle) { body(handle); }
+  void operator()(uint16_t handle) { body(handle); };
 };
 extern struct ACL_Flush ACL_Flush;
 
@@ -267,21 +285,25 @@ extern struct ACL_Flush ACL_Flush;
 // Params: uint16_t max_ce_len
 // Return: void
 struct ACL_SendConnectionParameterUpdateRequest {
-  std::function<void(uint16_t handle, uint16_t conn_int_min, uint16_t conn_int_max,
-                     uint16_t conn_latency, uint16_t conn_timeout, uint16_t min_ce_len,
+  std::function<void(uint16_t handle, uint16_t conn_int_min,
+                     uint16_t conn_int_max, uint16_t conn_latency,
+                     uint16_t conn_timeout, uint16_t min_ce_len,
                      uint16_t max_ce_len)>
-          body{[](uint16_t /* handle */, uint16_t /* conn_int_min */, uint16_t /* conn_int_max */,
-                  uint16_t /* conn_latency */, uint16_t /* conn_timeout */,
-                  uint16_t /* min_ce_len */, uint16_t /* max_ce_len */) {}};
+      body{[](uint16_t /* handle */, uint16_t /* conn_int_min */,
+              uint16_t /* conn_int_max */, uint16_t /* conn_latency */,
+              uint16_t /* conn_timeout */, uint16_t /* min_ce_len */,
+              uint16_t /* max_ce_len */) {}};
   void operator()(uint16_t handle, uint16_t conn_int_min, uint16_t conn_int_max,
-                  uint16_t conn_latency, uint16_t conn_timeout, uint16_t min_ce_len,
-                  uint16_t max_ce_len) {
-    body(handle, conn_int_min, conn_int_max, conn_latency, conn_timeout, min_ce_len, max_ce_len);
-  }
+                  uint16_t conn_latency, uint16_t conn_timeout,
+                  uint16_t min_ce_len, uint16_t max_ce_len) {
+    body(handle, conn_int_min, conn_int_max, conn_latency, conn_timeout,
+         min_ce_len, max_ce_len);
+  };
 };
-extern struct ACL_SendConnectionParameterUpdateRequest ACL_SendConnectionParameterUpdateRequest;
-} // namespace main_shim_acl_api
-} // namespace mock
-} // namespace test
+extern struct ACL_SendConnectionParameterUpdateRequest
+    ACL_SendConnectionParameterUpdateRequest;
+}  // namespace main_shim_acl_api
+}  // namespace mock
+}  // namespace test
 
 // END mockcify generation

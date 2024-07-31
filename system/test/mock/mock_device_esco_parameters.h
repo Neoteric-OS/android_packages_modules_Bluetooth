@@ -39,13 +39,13 @@ namespace device_esco_parameters {
 struct esco_parameters_for_codec {
   enh_esco_params_t return_value{};
   std::function<enh_esco_params_t(esco_codec_t codec)> body{
-          [this](esco_codec_t /* codec */) { return return_value; }};
-  enh_esco_params_t operator()(esco_codec_t codec) { return body(codec); }
+      [this](esco_codec_t /* codec */) { return return_value; }};
+  enh_esco_params_t operator()(esco_codec_t codec) { return body(codec); };
 };
 extern struct esco_parameters_for_codec esco_parameters_for_codec;
 
-} // namespace device_esco_parameters
-} // namespace mock
-} // namespace test
+}  // namespace device_esco_parameters
+}  // namespace mock
+}  // namespace test
 
 // END mockcify generation

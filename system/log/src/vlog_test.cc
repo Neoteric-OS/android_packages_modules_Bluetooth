@@ -27,12 +27,14 @@
 static std::optional<__android_log_message> androidLogMessage;
 
 /// Mask the implementation from liblog.
-int __android_log_is_loggable(int /*prio*/, const char* /*tag*/, int /*default_prio*/) {
+int __android_log_is_loggable(int /*prio*/, const char* /*tag*/,
+                              int /*default_prio*/) {
   return true;
 }
 
 /// Mask the implementation from liblog.
-void __android_log_write_log_message(struct __android_log_message* log_message) {
+void __android_log_write_log_message(
+    struct __android_log_message* log_message) {
   if (log_message != nullptr) {
     log_message->message = strdup(log_message->message);
     androidLogMessage.emplace(*log_message);
@@ -51,7 +53,8 @@ TEST(BluetoothLogTest, verbose) {
   EXPECT_STREQ(androidLogMessage->tag, LOG_TAG);
   EXPECT_EQ(androidLogMessage->file, nullptr);
   EXPECT_EQ(androidLogMessage->line, 0);
-  EXPECT_STREQ(androidLogMessage->message, "system/log/src/vlog_test.cc:49 TestBody: verbose test");
+  EXPECT_STREQ(androidLogMessage->message,
+               "system/log/src/vlog_test.cc:49 TestBody: verbose test");
 }
 
 TEST(BluetoothLogTest, debug) {
@@ -64,7 +67,8 @@ TEST(BluetoothLogTest, debug) {
   EXPECT_STREQ(androidLogMessage->tag, LOG_TAG);
   EXPECT_STREQ(androidLogMessage->file, nullptr);
   EXPECT_EQ(androidLogMessage->line, 0);
-  EXPECT_STREQ(androidLogMessage->message, "system/log/src/vlog_test.cc:63 TestBody: debug test");
+  EXPECT_STREQ(androidLogMessage->message,
+               "system/log/src/vlog_test.cc:63 TestBody: debug test");
 }
 
 TEST(BluetoothLogTest, info) {
@@ -77,7 +81,8 @@ TEST(BluetoothLogTest, info) {
   EXPECT_STREQ(androidLogMessage->tag, LOG_TAG);
   EXPECT_STREQ(androidLogMessage->file, nullptr);
   EXPECT_EQ(androidLogMessage->line, 0);
-  EXPECT_STREQ(androidLogMessage->message, "system/log/src/vlog_test.cc:77 TestBody: info test");
+  EXPECT_STREQ(androidLogMessage->message,
+               "system/log/src/vlog_test.cc:77 TestBody: info test");
 }
 
 TEST(BluetoothLogTest, warn) {
@@ -90,7 +95,8 @@ TEST(BluetoothLogTest, warn) {
   EXPECT_STREQ(androidLogMessage->tag, LOG_TAG);
   EXPECT_STREQ(androidLogMessage->file, nullptr);
   EXPECT_EQ(androidLogMessage->line, 0);
-  EXPECT_STREQ(androidLogMessage->message, "system/log/src/vlog_test.cc:91 TestBody: warn test");
+  EXPECT_STREQ(androidLogMessage->message,
+               "system/log/src/vlog_test.cc:91 TestBody: warn test");
 }
 
 TEST(BluetoothLogTest, error) {
@@ -103,38 +109,39 @@ TEST(BluetoothLogTest, error) {
   EXPECT_STREQ(androidLogMessage->tag, LOG_TAG);
   EXPECT_STREQ(androidLogMessage->file, nullptr);
   EXPECT_EQ(androidLogMessage->line, 0);
-  EXPECT_STREQ(androidLogMessage->message, "system/log/src/vlog_test.cc:105 TestBody: error test");
+  EXPECT_STREQ(androidLogMessage->message,
+               "system/log/src/vlog_test.cc:105 TestBody: error test");
 }
 
 TEST(BluetoothLogDeathTest, fatal) {
   androidLogMessage.reset();
 
   ASSERT_DEATH(
-          {
-            log::fatal("fatal test");
-            // Validate that the compiler is correctly handling log::fatal as
-            // [[noreturn]] by attempting to invoke an undefined function.
-            // This test will fail linking if this check fails.
-            void undefined_function();
-            undefined_function();
-          },
-          "fatal test");
+      {
+        log::fatal("fatal test");
+        // Validate that the compiler is correctly handling log::fatal as
+        // [[noreturn]] by attempting to invoke an undefined function.
+        // This test will fail linking if this check fails.
+        void undefined_function();
+        undefined_function();
+      },
+      "fatal test");
 
   ASSERT_DEATH(
-          {
-            log::fatal("fatal test {}", "2");
-            void undefined_function();
-            undefined_function();
-          },
-          "fatal test 2");
+      {
+        log::fatal("fatal test {}", "2");
+        void undefined_function();
+        undefined_function();
+      },
+      "fatal test 2");
 
   ASSERT_DEATH(
-          {
-            log::fatal("fatal test {}, {}", 2, 3);
-            void undefined_function();
-            undefined_function();
-          },
-          "fatal test 2, 3");
+      {
+        log::fatal("fatal test {}, {}", 2, 3);
+        void undefined_function();
+        undefined_function();
+      },
+      "fatal test 2, 3");
 }
 
 TEST(BluetoothLogDeathTest, assert_that) {
@@ -143,7 +150,9 @@ TEST(BluetoothLogDeathTest, assert_that) {
   log::assert_that(true, "assert_that test true");
   log::assert_that(true, "assert_that test {}", "true");
 
-  ASSERT_DEATH({ log::assert_that(false, "assert_that test false"); }, "assert_that test false");
+  ASSERT_DEATH(
+      { log::assert_that(false, "assert_that test false"); },
+      "assert_that test false");
 }
 
 TEST(BluetoothLogTest, null_string_parameter) {

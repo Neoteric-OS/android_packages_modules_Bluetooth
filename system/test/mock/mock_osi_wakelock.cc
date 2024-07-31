@@ -39,9 +39,9 @@ struct wakelock_release wakelock_release;
 struct wakelock_set_os_callouts wakelock_set_os_callouts;
 struct wakelock_set_paths wakelock_set_paths;
 
-} // namespace osi_wakelock
-} // namespace mock
-} // namespace test
+}  // namespace osi_wakelock
+}  // namespace mock
+}  // namespace test
 
 // Mocked functions, if any
 bool wakelock_acquire(void) {

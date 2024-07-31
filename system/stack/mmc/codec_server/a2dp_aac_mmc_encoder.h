@@ -29,7 +29,7 @@ namespace mmc {
 // Implementation of MmcInterface.
 // A2dpAacEncoder wraps FFmpeg encode libraries.
 class A2dpAacEncoder : public MmcInterface {
-public:
+ public:
   explicit A2dpAacEncoder();
   ~A2dpAacEncoder();
 
@@ -54,11 +54,11 @@ public:
   //   Negative errno on error, otherwise.
   int transcode(uint8_t* i_buf, int i_len, uint8_t* o_buf, int o_len) override;
 
-private:
+ private:
   AVCodecContext* avctx_;
   AacEncoderParam param_;
 };
 
-} // namespace mmc
+}  // namespace mmc
 
-#endif // MMC_CODEC_SERVER_A2DP_AAC_MMC_ENCODER_LINUX_H_
+#endif  // MMC_CODEC_SERVER_A2DP_AAC_MMC_ENCODER_LINUX_H_

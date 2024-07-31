@@ -36,17 +36,18 @@ template <typename T>
 using ExecutionUnit = std::function<T()>;
 
 constexpr char kHeadlessInitialSentinel[] =
-        " INITIAL HEADLESS HEADLESS HEADLESS HEADLESS HEADLESS HEADLESS HEADLESS";
+    " INITIAL HEADLESS HEADLESS HEADLESS HEADLESS HEADLESS HEADLESS HEADLESS";
 constexpr char kHeadlessStartSentinel[] =
-        " START HEADLESS HEADLESS HEADLESS HEADLESS HEADLESS HEADLESS HEADLESS";
+    " START HEADLESS HEADLESS HEADLESS HEADLESS HEADLESS HEADLESS HEADLESS";
 constexpr char kHeadlessStopSentinel[] =
-        " STOP HEADLESS HEADLESS HEADLESS HEADLESS HEADLESS HEADLESS HEADLESS";
+    " STOP HEADLESS HEADLESS HEADLESS HEADLESS HEADLESS HEADLESS HEADLESS";
 constexpr char kHeadlessFinalSentinel[] =
-        " FINAL HEADLESS HEADLESS HEADLESS HEADLESS HEADLESS HEADLESS HEADLESS";
+    " FINAL HEADLESS HEADLESS HEADLESS HEADLESS HEADLESS HEADLESS HEADLESS";
 
 class HeadlessStack {
-protected:
-  HeadlessStack(const char** stack_init_flags) : stack_init_flags_(stack_init_flags) {}
+ protected:
+  HeadlessStack(const char** stack_init_flags)
+      : stack_init_flags_(stack_init_flags) {}
   virtual ~HeadlessStack() = default;
 
   void SetUp();
@@ -54,13 +55,13 @@ protected:
 
   const char** StackInitFlags() const { return stack_init_flags_; }
 
-private:
+ private:
   const char** stack_init_flags_;
   std::unique_ptr<BtStackInfo> bt_stack_info_;
 };
 
 class HeadlessRun : public HeadlessStack {
-protected:
+ protected:
   const bluetooth::test::headless::GetOpt& options_;
   unsigned long loop_{0};
 
@@ -101,7 +102,7 @@ protected:
 
 template <typename T>
 class HeadlessTest : public HeadlessRun {
-public:
+ public:
   virtual T Run() {
     if (options_.non_options_.size() == 0) {
       fprintf(stdout, "Must supply at least one subtest name\n");
@@ -118,12 +119,13 @@ public:
 
   virtual ~HeadlessTest() = default;
 
-protected:
-  HeadlessTest(const bluetooth::test::headless::GetOpt& options) : HeadlessRun(options) {}
+ protected:
+  HeadlessTest(const bluetooth::test::headless::GetOpt& options)
+      : HeadlessRun(options) {}
 
   std::unordered_map<std::string, std::unique_ptr<HeadlessTest<T>>> test_nodes_;
 };
 
-} // namespace headless
-} // namespace test
-} // namespace bluetooth
+}  // namespace headless
+}  // namespace test
+}  // namespace bluetooth

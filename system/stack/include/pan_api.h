@@ -42,13 +42,13 @@
  * sending PAN packets. Note, we are currently not sending
  * extension headers, but may in the future, so allow
  * space for them
- */
+*/
 #define PAN_MINIMUM_OFFSET BNEP_MINIMUM_OFFSET
 
 /*
  * The handle is passed from BNEP to PAN. The same handle is used
  * between PAN and application as well
- */
+*/
 #define PAN_INVALID_HANDLE BNEP_INVALID_HANDLE
 
 /* Bit map for PAN roles */
@@ -58,7 +58,8 @@
 typedef uint8_t tPAN_ROLE;
 
 inline const std::string pan_role_to_text(const tPAN_ROLE& role) {
-  return base::StringPrintf("%c%c%c[0x%x]", (role & PAN_ROLE_CLIENT) ? 'C' : '.',
+  return base::StringPrintf("%c%c%c[0x%x]",
+                            (role & PAN_ROLE_CLIENT) ? 'C' : '.',
                             (role & PAN_ROLE_GROUP) ? 'G' : '.',
                             (role & PAN_ROLE_NAP_SERVER) ? 'N' : '.', role);
 }
@@ -69,27 +70,33 @@ inline const std::string pan_role_to_text(const tPAN_ROLE& role) {
 
 /* Define the result codes from PAN */
 typedef enum : uint8_t {
-  PAN_SUCCESS,                                      /* Success                           */
-  PAN_DISCONNECTED = BNEP_CONN_DISCONNECTED,        /* Connection terminated   */
-  PAN_CONN_FAILED = BNEP_CONN_FAILED,               /* Connection failed                 */
-  PAN_NO_RESOURCES = BNEP_NO_RESOURCES,             /* No resources                      */
-  PAN_MTU_EXCEDED = BNEP_MTU_EXCEDED,               /* Attempt to write long data        */
-  PAN_INVALID_OFFSET = BNEP_INVALID_OFFSET,         /* Insufficient offset in GKI buffer */
-  PAN_CONN_FAILED_CFG = BNEP_CONN_FAILED_CFG,       /* Connection failed cos of config   */
-  PAN_INVALID_SRC_ROLE = BNEP_CONN_FAILED_SRC_UUID, /* Connection failed wrong source UUID   */
-  PAN_INVALID_DST_ROLE = BNEP_CONN_FAILED_DST_UUID, /* Connection failed wrong destination UUID */
-  PAN_CONN_FAILED_UUID_SIZE = BNEP_CONN_FAILED_UUID_SIZE, /* Connection failed wrong size UUID   */
-  PAN_Q_SIZE_EXCEEDED = BNEP_Q_SIZE_EXCEEDED,             /* Too many buffers to dest */
-  PAN_TOO_MANY_FILTERS = BNEP_TOO_MANY_FILTERS,           /* Too many local filters specified  */
-  PAN_SET_FILTER_FAIL = BNEP_SET_FILTER_FAIL,             /* Set Filter failed  */
-  PAN_WRONG_HANDLE = BNEP_WRONG_HANDLE,                   /* Wrong handle for the connection  */
-  PAN_WRONG_STATE = BNEP_WRONG_STATE,                     /* Connection is in wrong state */
-  PAN_SECURITY_FAIL = BNEP_SECURITY_FAIL,                 /* Failed because of security */
-  PAN_IGNORE_CMD = BNEP_IGNORE_CMD,                       /* To ignore the rcvd command */
-  PAN_TX_FLOW_ON = BNEP_TX_FLOW_ON,                       /* tx data flow enabled */
-  PAN_TX_FLOW_OFF = BNEP_TX_FLOW_OFF,                     /* tx data flow disabled */
-  PAN_FAILURE = 19,                                       /* Failure                      */
-  PAN_HOTSPOT_DISABLED = 20,                              /* Hotspot disabled             */
+  PAN_SUCCESS, /* Success                           */
+  PAN_DISCONNECTED = BNEP_CONN_DISCONNECTED, /* Connection terminated   */
+  PAN_CONN_FAILED = BNEP_CONN_FAILED,   /* Connection failed                 */
+  PAN_NO_RESOURCES = BNEP_NO_RESOURCES, /* No resources                      */
+  PAN_MTU_EXCEDED = BNEP_MTU_EXCEDED,   /* Attempt to write long data        */
+  PAN_INVALID_OFFSET =
+      BNEP_INVALID_OFFSET, /* Insufficient offset in GKI buffer */
+  PAN_CONN_FAILED_CFG =
+      BNEP_CONN_FAILED_CFG, /* Connection failed cos of config   */
+  PAN_INVALID_SRC_ROLE =
+      BNEP_CONN_FAILED_SRC_UUID, /* Connection failed wrong source UUID   */
+  PAN_INVALID_DST_ROLE =
+      BNEP_CONN_FAILED_DST_UUID, /* Connection failed wrong destination UUID */
+  PAN_CONN_FAILED_UUID_SIZE =
+      BNEP_CONN_FAILED_UUID_SIZE, /* Connection failed wrong size UUID   */
+  PAN_Q_SIZE_EXCEEDED = BNEP_Q_SIZE_EXCEEDED, /* Too many buffers to dest */
+  PAN_TOO_MANY_FILTERS =
+      BNEP_TOO_MANY_FILTERS, /* Too many local filters specified  */
+  PAN_SET_FILTER_FAIL = BNEP_SET_FILTER_FAIL, /* Set Filter failed  */
+  PAN_WRONG_HANDLE = BNEP_WRONG_HANDLE,   /* Wrong handle for the connection  */
+  PAN_WRONG_STATE = BNEP_WRONG_STATE,     /* Connection is in wrong state */
+  PAN_SECURITY_FAIL = BNEP_SECURITY_FAIL, /* Failed because of security */
+  PAN_IGNORE_CMD = BNEP_IGNORE_CMD,       /* To ignore the rcvd command */
+  PAN_TX_FLOW_ON = BNEP_TX_FLOW_ON,       /* tx data flow enabled */
+  PAN_TX_FLOW_OFF = BNEP_TX_FLOW_OFF,     /* tx data flow disabled */
+  PAN_FAILURE = 19,                       /* Failure                      */
+  PAN_HOTSPOT_DISABLED = 20,              /* Hotspot disabled             */
 } tPAN_RESULT;
 
 inline const std::string pan_result_text(const tPAN_RESULT& result) {
@@ -127,15 +134,16 @@ inline const std::string pan_result_text(const tPAN_RESULT& result) {
 /* This is call back function used to report connection status
  *      to the application. The second parameter true means
  *      to create the bridge and false means to remove it.
- */
-typedef void(tPAN_CONN_STATE_CB)(uint16_t handle, const RawAddress& bd_addr, tPAN_RESULT state,
-                                 bool is_role_change, uint8_t src_role, uint8_t dst_role);
+*/
+typedef void(tPAN_CONN_STATE_CB)(uint16_t handle, const RawAddress& bd_addr,
+                                 tPAN_RESULT state, bool is_role_change,
+                                 uint8_t src_role, uint8_t dst_role);
 
 /* This is call back function used to create bridge for the
  *      Connected device. The parameter "state" indicates
  *      whether to create the bridge or remove it. true means
  *      to create the bridge and false means to remove it.
- */
+*/
 typedef void(tPAN_BRIDGE_REQ_CB)(const RawAddress& bd_addr, bool state);
 
 /* Data received indication callback prototype. Parameters are
@@ -148,9 +156,10 @@ typedef void(tPAN_BRIDGE_REQ_CB)(const RawAddress& bd_addr, bool state);
  *              Flag used to indicate to forward on LAN
  *                      false - Use it for internal stack
  *                      true  - Send it across the ethernet as well
- */
-typedef void(tPAN_DATA_IND_CB)(uint16_t handle, const RawAddress& src, const RawAddress& dst,
-                               uint16_t protocol, uint8_t* p_data, uint16_t len, bool ext,
+*/
+typedef void(tPAN_DATA_IND_CB)(uint16_t handle, const RawAddress& src,
+                               const RawAddress& dst, uint16_t protocol,
+                               uint8_t* p_data, uint16_t len, bool ext,
                                bool forward);
 
 /* Data buffer received indication callback prototype. Parameters are
@@ -162,14 +171,15 @@ typedef void(tPAN_DATA_IND_CB)(uint16_t handle, const RawAddress& src, const Raw
  *              Flag used to indicate to forward on LAN
  *                      false - Use it for internal stack
  *                      true  - Send it across the ethernet as well
- */
-typedef void(tPAN_DATA_BUF_IND_CB)(uint16_t handle, const RawAddress& src, const RawAddress& dst,
-                                   uint16_t protocol, BT_HDR* p_buf, bool ext, bool forward);
+*/
+typedef void(tPAN_DATA_BUF_IND_CB)(uint16_t handle, const RawAddress& src,
+                                   const RawAddress& dst, uint16_t protocol,
+                                   BT_HDR* p_buf, bool ext, bool forward);
 
 /* Flow control callback for TX data. Parameters are
  *              Handle to the connection
  *              Event  flow status
- */
+*/
 typedef void(tPAN_TX_DATA_FLOW_CB)(uint16_t handle, tPAN_RESULT event);
 
 /* Filters received indication callback prototype. Parameters are
@@ -184,9 +194,10 @@ typedef void(tPAN_TX_DATA_FLOW_CB)(uint16_t handle, tPAN_RESULT event);
  *                      They will be present in big endian order. First
  *                      two bytes will be starting of the first range and
  *                      next two bytes will be ending of the range.
- */
-typedef void(tPAN_FILTER_IND_CB)(uint16_t handle, bool indication, tPAN_RESULT result,
-                                 uint16_t num_filters, uint8_t* p_filters);
+*/
+typedef void(tPAN_FILTER_IND_CB)(uint16_t handle, bool indication,
+                                 tPAN_RESULT result, uint16_t num_filters,
+                                 uint8_t* p_filters);
 
 /* Multicast Filters received indication callback prototype. Parameters are
  *              Handle to the connection
@@ -199,20 +210,24 @@ typedef void(tPAN_FILTER_IND_CB)(uint16_t handle, bool indication, tPAN_RESULT r
  *                      of start of the range and end of the range.
  *                      First six bytes will be starting of the first range and
  *                      next six bytes will be ending of the range.
- */
-typedef void(tPAN_MFILTER_IND_CB)(uint16_t handle, bool indication, tPAN_RESULT result,
-                                  uint16_t num_mfilters, uint8_t* p_mfilters);
+*/
+typedef void(tPAN_MFILTER_IND_CB)(uint16_t handle, bool indication,
+                                  tPAN_RESULT result, uint16_t num_mfilters,
+                                  uint8_t* p_mfilters);
 
 /* This structure is used to register with PAN profile
  * It is passed as a parameter to PAN_Register call.
- */
+*/
 typedef struct {
-  tPAN_CONN_STATE_CB* pan_conn_state_cb;     /* Connection state callback */
-  tPAN_BRIDGE_REQ_CB* pan_bridge_req_cb;     /* Bridge request callback */
-  tPAN_DATA_IND_CB* pan_data_ind_cb;         /* Data indication callback */
-  tPAN_DATA_BUF_IND_CB* pan_data_buf_ind_cb; /* Data buffer indication callback */
-  tPAN_FILTER_IND_CB* pan_pfilt_ind_cb;      /* protocol filter indication callback */
-  tPAN_MFILTER_IND_CB* pan_mfilt_ind_cb;     /* multicast filter indication callback */
+  tPAN_CONN_STATE_CB* pan_conn_state_cb; /* Connection state callback */
+  tPAN_BRIDGE_REQ_CB* pan_bridge_req_cb; /* Bridge request callback */
+  tPAN_DATA_IND_CB* pan_data_ind_cb;     /* Data indication callback */
+  tPAN_DATA_BUF_IND_CB*
+      pan_data_buf_ind_cb; /* Data buffer indication callback */
+  tPAN_FILTER_IND_CB*
+      pan_pfilt_ind_cb; /* protocol filter indication callback */
+  tPAN_MFILTER_IND_CB*
+      pan_mfilt_ind_cb; /* multicast filter indication callback */
   tPAN_TX_DATA_FLOW_CB* pan_tx_data_flow_cb; /* data flow callback */
 } tPAN_REGISTER;
 
@@ -274,7 +289,8 @@ void PAN_Deregister(void);
  *                  PAN_FAILURE     - if the role is not valid
  *
  ******************************************************************************/
-tPAN_RESULT PAN_SetRole(uint8_t role, std::string user_name, std::string nap_name);
+tPAN_RESULT PAN_SetRole(uint8_t role, std::string user_name,
+                        std::string nap_name);
 
 /*******************************************************************************
  *
@@ -298,8 +314,8 @@ tPAN_RESULT PAN_SetRole(uint8_t role, std::string user_name, std::string nap_nam
  *                                     allowed at that point of time
  *
  ******************************************************************************/
-tPAN_RESULT PAN_Connect(const RawAddress& rem_bda, tPAN_ROLE src_role, tPAN_ROLE dst_role,
-                        uint16_t* handle);
+tPAN_RESULT PAN_Connect(const RawAddress& rem_bda, tPAN_ROLE src_role,
+                        tPAN_ROLE dst_role, uint16_t* handle);
 
 /*******************************************************************************
  *
@@ -339,8 +355,9 @@ tPAN_RESULT PAN_Disconnect(uint16_t handle);
  *                                           there is an error in sending data
  *
  ******************************************************************************/
-tPAN_RESULT PAN_Write(uint16_t handle, const RawAddress& dst, const RawAddress& src,
-                      uint16_t protocol, uint8_t* p_data, uint16_t len, bool ext);
+tPAN_RESULT PAN_Write(uint16_t handle, const RawAddress& dst,
+                      const RawAddress& src, uint16_t protocol, uint8_t* p_data,
+                      uint16_t len, bool ext);
 
 /*******************************************************************************
  *
@@ -364,8 +381,9 @@ tPAN_RESULT PAN_Write(uint16_t handle, const RawAddress& dst, const RawAddress& 
  *                                           there is an error in sending data
  *
  ******************************************************************************/
-tPAN_RESULT PAN_WriteBuf(uint16_t handle, const RawAddress& dst, const RawAddress& src,
-                         uint16_t protocol, BT_HDR* p_buf, bool ext);
+tPAN_RESULT PAN_WriteBuf(uint16_t handle, const RawAddress& dst,
+                         const RawAddress& src, uint16_t protocol,
+                         BT_HDR* p_buf, bool ext);
 
 /*******************************************************************************
  *
@@ -383,7 +401,8 @@ tPAN_RESULT PAN_WriteBuf(uint16_t handle, const RawAddress& dst, const RawAddres
  *                  PAN_FAILURE     if connection not found or error in setting
  *
  ******************************************************************************/
-tPAN_RESULT PAN_SetProtocolFilters(uint16_t handle, uint16_t num_filters, uint16_t* p_start_array,
+tPAN_RESULT PAN_SetProtocolFilters(uint16_t handle, uint16_t num_filters,
+                                   uint16_t* p_start_array,
                                    uint16_t* p_end_array);
 
 /*******************************************************************************
@@ -405,7 +424,8 @@ tPAN_RESULT PAN_SetProtocolFilters(uint16_t handle, uint16_t num_filters, uint16
  *
  ******************************************************************************/
 tPAN_RESULT PAN_SetMulticastFilters(uint16_t handle, uint16_t num_mcast_filters,
-                                    uint8_t* p_start_array, uint8_t* p_end_array);
+                                    uint8_t* p_start_array,
+                                    uint8_t* p_end_array);
 
 /*******************************************************************************
  *
@@ -425,6 +445,6 @@ void PAN_Dumpsys(int fd);
 namespace fmt {
 template <>
 struct formatter<tPAN_RESULT> : enum_formatter<tPAN_RESULT> {};
-} // namespace fmt
+}  // namespace fmt
 
 #endif /* PAN_API_H */

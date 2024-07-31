@@ -41,7 +41,8 @@
 
 #define BTM_SEC_MAX_COLLISION_DELAY (5000)
 
-#define BTM_SEC_CONN_PROC_TIMEOUT_MS (2900) /* 2.9 sec timer to acquire wakelock */
+
+#define BTM_SEC_CONN_PROC_TIMEOUT_MS (2900)  /* 2.9 sec timer to acquire wakelock */
 
 /*******************************************************************************
  *
@@ -118,9 +119,9 @@ void BTM_SetPinType(uint8_t pin_type, PIN_CODE pin_code, uint8_t pin_code_len);
  * Returns          true if registered OK, else false
  *
  ******************************************************************************/
-bool BTM_SetSecurityLevel(bool is_originator, const char* p_name, uint8_t service_id,
-                          uint16_t sec_level, uint16_t psm, uint32_t mx_proto_id,
-                          uint32_t mx_chan_id);
+bool BTM_SetSecurityLevel(bool is_originator, const char* p_name,
+                          uint8_t service_id, uint16_t sec_level, uint16_t psm,
+                          uint32_t mx_proto_id, uint32_t mx_chan_id);
 
 /*******************************************************************************
  *
@@ -175,7 +176,8 @@ uint8_t BTM_SecClrServiceByPsm(uint16_t psm);
  *                  p_pin        - pointer to array with the PIN Code
  *
  ******************************************************************************/
-void BTM_PINCodeReply(const RawAddress& bd_addr, tBTM_STATUS res, uint8_t pin_len, uint8_t* p_pin);
+void BTM_PINCodeReply(const RawAddress& bd_addr, tBTM_STATUS res,
+                      uint8_t pin_len, uint8_t* p_pin);
 
 /*******************************************************************************
  *
@@ -189,7 +191,8 @@ void BTM_PINCodeReply(const RawAddress& bd_addr, tBTM_STATUS res, uint8_t pin_le
  *
  *  Note: After 2.1 parameters are not used and preserved here not to change API
  ******************************************************************************/
-tBTM_STATUS btm_sec_bond_by_transport(const RawAddress& bd_addr, tBLE_ADDR_TYPE addr_type,
+tBTM_STATUS btm_sec_bond_by_transport(const RawAddress& bd_addr,
+                                      tBLE_ADDR_TYPE addr_type,
                                       tBT_TRANSPORT transport);
 
 /*******************************************************************************
@@ -265,7 +268,8 @@ tBTM_LINK_KEY_TYPE BTM_SecGetDeviceLinkKeyType(const RawAddress& bd_addr);
  *                  BTM_MODE_UNSUPPORTED - if security manager not linked in.
  *
  ******************************************************************************/
-tBTM_STATUS BTM_SetEncryption(const RawAddress& bd_addr, tBT_TRANSPORT transport,
+tBTM_STATUS BTM_SetEncryption(const RawAddress& bd_addr,
+                              tBT_TRANSPORT transport,
                               tBTM_SEC_CALLBACK* p_callback, void* p_ref_data,
                               tBTM_BLE_SEC_ACT sec_act);
 
@@ -299,7 +303,8 @@ void BTM_ConfirmReqReply(tBTM_STATUS res, const RawAddress& bd_addr);
  *                  BTM_MAX_PASSKEY_VAL(999999(0xF423F)).
  *
  ******************************************************************************/
-void BTM_PasskeyReqReply(tBTM_STATUS res, const RawAddress& bd_addr, uint32_t passkey);
+void BTM_PasskeyReqReply(tBTM_STATUS res, const RawAddress& bd_addr,
+                         uint32_t passkey);
 
 /*******************************************************************************
  *
@@ -323,8 +328,8 @@ void BTM_ReadLocalOobData(void);
  *                  r           - simple pairing Randomizer  C.
  *
  ******************************************************************************/
-void BTM_RemoteOobDataReply(tBTM_STATUS res, const RawAddress& bd_addr, const Octet16& c,
-                            const Octet16& r);
+void BTM_RemoteOobDataReply(tBTM_STATUS res, const RawAddress& bd_addr,
+                            const Octet16& c, const Octet16& r);
 
 /*******************************************************************************
  *
@@ -369,14 +374,15 @@ uint8_t BTM_GetSecurityMode();
  * Returns          tBTM_STATUS
  *
  ******************************************************************************/
-tBTM_STATUS btm_sec_l2cap_access_req(const RawAddress& bd_addr, uint16_t psm, bool is_originator,
-                                     tBTM_SEC_CALLBACK* p_callback, void* p_ref_data);
+tBTM_STATUS btm_sec_l2cap_access_req(const RawAddress& bd_addr, uint16_t psm,
+                                     bool is_originator,
+                                     tBTM_SEC_CALLBACK* p_callback,
+                                     void* p_ref_data);
 
 // Allow enforcing security by specific requirement (from shim layer).
-tBTM_STATUS btm_sec_l2cap_access_req_by_requirement(const RawAddress& bd_addr,
-                                                    uint16_t security_required, bool is_originator,
-                                                    tBTM_SEC_CALLBACK* p_callback,
-                                                    void* p_ref_data);
+tBTM_STATUS btm_sec_l2cap_access_req_by_requirement(
+    const RawAddress& bd_addr, uint16_t security_required, bool is_originator,
+    tBTM_SEC_CALLBACK* p_callback, void* p_ref_data);
 
 /*******************************************************************************
  *
@@ -400,8 +406,10 @@ tBTM_STATUS btm_sec_l2cap_access_req_by_requirement(const RawAddress& bd_addr,
  * Returns          BTM_CMD_STARTED
  *
  ******************************************************************************/
-tBTM_STATUS btm_sec_mx_access_request(const RawAddress& bd_addr, bool is_originator,
-                                      uint16_t security_requirement, tBTM_SEC_CALLBACK* p_callback,
+tBTM_STATUS btm_sec_mx_access_request(const RawAddress& bd_addr,
+                                      bool is_originator,
+                                      uint16_t security_requirement,
+                                      tBTM_SEC_CALLBACK* p_callback,
                                       void* p_ref_data);
 
 /*******************************************************************************
@@ -427,7 +435,8 @@ void btm_sec_conn_req(const RawAddress& bda, const DEV_CLASS dc);
  * Returns          void
  *
  ******************************************************************************/
-void btm_create_conn_cancel_complete(uint8_t status, const RawAddress bd_addr, uint32_t value);
+void btm_create_conn_cancel_complete(uint8_t status, const RawAddress bd_addr,
+                                     uint32_t value);
 
 /*******************************************************************************
  *
@@ -464,7 +473,8 @@ void btm_sec_abort_access_req(const RawAddress& bd_addr);
  * Returns          void
  *
  ******************************************************************************/
-void btm_sec_rmt_name_request_complete(const RawAddress* p_bd_addr, const uint8_t* p_bd_name,
+void btm_sec_rmt_name_request_complete(const RawAddress* p_bd_addr,
+                                       const uint8_t* p_bd_name,
                                        tHCI_STATUS status);
 
 /*******************************************************************************
@@ -477,7 +487,8 @@ void btm_sec_rmt_name_request_complete(const RawAddress* p_bd_addr, const uint8_
  * Returns          void
  *
  ******************************************************************************/
-void btm_sec_rmt_host_support_feat_evt(const RawAddress bd_addr, uint8_t features_0);
+void btm_sec_rmt_host_support_feat_evt(const RawAddress bd_addr,
+                                       uint8_t features_0);
 
 /*******************************************************************************
  *
@@ -516,7 +527,8 @@ void btm_io_capabilities_rsp(const tBTM_SP_IO_RSP evt_data);
  * Returns          void
  *
  ******************************************************************************/
-void btm_proc_sp_req_evt(tBTM_SP_EVT event, const RawAddress bda, uint32_t value);
+void btm_proc_sp_req_evt(tBTM_SP_EVT event, const RawAddress bda,
+                         uint32_t value);
 
 /*******************************************************************************
  *
@@ -575,7 +587,8 @@ void btm_sec_auth_complete(uint16_t handle, tHCI_STATUS status);
  * Returns          void
  *
  ******************************************************************************/
-void btm_sec_encryption_change_evt(uint16_t handle, tHCI_STATUS status, uint8_t encr_enable);
+void btm_sec_encryption_change_evt(uint16_t handle, tHCI_STATUS status,
+                                   uint8_t encr_enable);
 
 /*******************************************************************************
  *
@@ -587,7 +600,8 @@ void btm_sec_encryption_change_evt(uint16_t handle, tHCI_STATUS status, uint8_t 
  * Returns          void
  *
  ******************************************************************************/
-void btm_sec_encrypt_change(uint16_t handle, tHCI_STATUS status, uint8_t encr_enable);
+void btm_sec_encrypt_change(uint16_t handle, tHCI_STATUS status,
+                            uint8_t encr_enable);
 
 /*******************************************************************************
  *
@@ -599,7 +613,8 @@ void btm_sec_encrypt_change(uint16_t handle, tHCI_STATUS status, uint8_t encr_en
  * Returns          void
  *
  ******************************************************************************/
-void btm_sec_connected(const RawAddress& bda, uint16_t handle, tHCI_STATUS status, uint8_t enc_mode,
+void btm_sec_connected(const RawAddress& bda, uint16_t handle,
+                       tHCI_STATUS status, uint8_t enc_mode,
                        tHCI_ROLE assigned_role = HCI_ROLE_PERIPHERAL);
 
 /*******************************************************************************
@@ -611,7 +626,8 @@ void btm_sec_connected(const RawAddress& bda, uint16_t handle, tHCI_STATUS statu
  * Returns          btm status
  *
  ******************************************************************************/
-tBTM_STATUS btm_sec_disconnect(uint16_t handle, tHCI_STATUS reason, std::string);
+tBTM_STATUS btm_sec_disconnect(uint16_t handle, tHCI_STATUS reason,
+                               std::string);
 
 /*******************************************************************************
  *
@@ -623,7 +639,8 @@ tBTM_STATUS btm_sec_disconnect(uint16_t handle, tHCI_STATUS reason, std::string)
  * Returns          void
  *
  ******************************************************************************/
-void btm_sec_disconnected(uint16_t handle, tHCI_STATUS reason, std::string comment);
+void btm_sec_disconnected(uint16_t handle, tHCI_STATUS reason,
+                          std::string comment);
 
 /*******************************************************************************
  *
@@ -635,14 +652,16 @@ void btm_sec_disconnected(uint16_t handle, tHCI_STATUS reason, std::string comme
  * Returns          void
  *
  ******************************************************************************/
-void btm_sec_role_changed(tHCI_STATUS hci_status, const RawAddress& bd_addr, tHCI_ROLE new_role);
+void btm_sec_role_changed(tHCI_STATUS hci_status, const RawAddress& bd_addr,
+                          tHCI_ROLE new_role);
 
 /** This function is called when a new connection link key is generated */
-void btm_sec_link_key_notification(const RawAddress& p_bda, const Octet16& link_key,
-                                   uint8_t key_type);
+void btm_sec_link_key_notification(const RawAddress& p_bda,
+                                   const Octet16& link_key, uint8_t key_type);
 
 /** This function is called for each encryption key refresh complete event */
-void btm_sec_encryption_key_refresh_complete(uint16_t handle, tHCI_STATUS status);
+void btm_sec_encryption_key_refresh_complete(uint16_t handle,
+                                             tHCI_STATUS status);
 
 /*******************************************************************************
  *
@@ -725,7 +744,8 @@ bool btm_sec_is_a_bonded_dev(const RawAddress& bda);
  *
  ******************************************************************************/
 
-bool btm_sec_is_a_bonded_dev_by_transport(const RawAddress& bda, uint8_t transport);
+bool btm_sec_is_a_bonded_dev_by_transport(const RawAddress& bda,
+                                          uint8_t transport);
 
 /*******************************************************************************
  *
@@ -737,9 +757,10 @@ bool btm_sec_is_a_bonded_dev_by_transport(const RawAddress& bda, uint8_t transpo
  * Returns          void
  *
  ******************************************************************************/
-void btm_sec_set_peer_sec_caps(uint16_t hci_handle, bool ssp_supported, bool sc_supported,
-                               bool hci_role_switch_supported, bool br_edr_supported,
-                               bool le_supported);
+void btm_sec_set_peer_sec_caps(uint16_t hci_handle, bool ssp_supported,
+                               bool sc_supported,
+                               bool hci_role_switch_supported,
+                               bool br_edr_supported, bool le_supported);
 
 /*******************************************************************************
  *
@@ -756,7 +777,7 @@ void btm_sec_set_peer_sec_caps(uint16_t hci_handle, bool ssp_supported, bool sc_
  *                  BTM_NO_RESOURCES  - permission declined
  *
  ******************************************************************************/
-extern tBTM_STATUS btm_sec_execute_procedure(tBTM_SEC_DEV_REC* p_dev_rec);
+extern tBTM_STATUS btm_sec_execute_procedure (tBTM_SEC_DEV_REC *p_dev_rec);
 
 /*******************************************************************************
  *
@@ -767,7 +788,11 @@ extern tBTM_STATUS btm_sec_execute_procedure(tBTM_SEC_DEV_REC* p_dev_rec);
  * Returns          void
  *
  ******************************************************************************/
-void btm_sec_cr_loc_oob_data_cback_event(const RawAddress& address, tSMP_LOC_OOB_DATA loc_oob_data);
+void btm_sec_cr_loc_oob_data_cback_event(const RawAddress& address,
+                                         tSMP_LOC_OOB_DATA loc_oob_data);
 
 // Return DEV_CLASS of bda. If record doesn't exist, create one.
 DEV_CLASS btm_get_dev_class(const RawAddress& bda);
+
+
+

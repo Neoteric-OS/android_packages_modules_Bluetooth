@@ -39,4 +39,4 @@ Octet16 aes_128(const Octet16& key, const Octet16& message) {
   return output;
 }
 
-} // namespace rootcanal::crypto
+}  // namespace rootcanal::crypto

@@ -15,5 +15,7 @@
  */
 
 extern "C" {
-struct android_namespace_t* android_get_exported_namespace(const char*) { return nullptr; }
-} // "C"
+struct android_namespace_t* android_get_exported_namespace(const char*) {
+  return nullptr;
+}
+}  // "C"

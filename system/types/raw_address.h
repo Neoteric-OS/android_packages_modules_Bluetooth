@@ -25,7 +25,7 @@
 
 /** Bluetooth Address */
 class RawAddress final {
-public:
+ public:
   static constexpr unsigned int kLength = 6;
 
   uint8_t address[kLength];
@@ -35,12 +35,12 @@ public:
   RawAddress(const std::array<uint8_t, kLength> array);
 
   bool operator<(const RawAddress& rhs) const {
-    return std::memcmp(address, rhs.address, sizeof(address)) < 0;
+    return (std::memcmp(address, rhs.address, sizeof(address)) < 0);
   }
   bool operator==(const RawAddress& rhs) const {
-    return std::memcmp(address, rhs.address, sizeof(address)) == 0;
+    return (std::memcmp(address, rhs.address, sizeof(address)) == 0);
   }
-  bool operator>(const RawAddress& rhs) const { return rhs < *this; }
+  bool operator>(const RawAddress& rhs) const { return (rhs < *this); }
   bool operator<=(const RawAddress& rhs) const { return !(*this > rhs); }
   bool operator>=(const RawAddress& rhs) const { return !(*this < rhs); }
   bool operator!=(const RawAddress& rhs) const { return !(*this == rhs); }
@@ -76,8 +76,8 @@ public:
 
   static bool IsValidAddress(const std::string& address);
 
-  static const RawAddress kEmpty; // 00:00:00:00:00:00
-  static const RawAddress kAny;   // FF:FF:FF:FF:FF:FF
+  static const RawAddress kEmpty;  // 00:00:00:00:00:00
+  static const RawAddress kAny;    // FF:FF:FF:FF:FF:FF
 };
 
 inline std::ostream& operator<<(std::ostream& os, const RawAddress& a) {
@@ -90,7 +90,8 @@ struct std::hash<RawAddress> {
   std::size_t operator()(const RawAddress& val) const {
     static_assert(sizeof(uint64_t) >= RawAddress::kLength);
     uint64_t int_addr = 0;
-    memcpy(reinterpret_cast<uint8_t*>(&int_addr), val.address, RawAddress::kLength);
+    memcpy(reinterpret_cast<uint8_t*>(&int_addr), val.address,
+           RawAddress::kLength);
     return std::hash<uint64_t>{}(int_addr);
   }
 };
@@ -98,16 +99,13 @@ struct std::hash<RawAddress> {
 #define BD_ADDR_LEN 6 /* Device address length */
 
 inline void BDADDR_TO_STREAM(uint8_t*& p, const RawAddress& a) {
-  for (int ijk = 0; ijk < BD_ADDR_LEN; ijk++) {
+  for (int ijk = 0; ijk < BD_ADDR_LEN; ijk++)
     *(p)++ = (uint8_t)(a.address)[BD_ADDR_LEN - 1 - ijk];
-  }
 }
 
 inline void STREAM_TO_BDADDR(RawAddress& a, const uint8_t*& p) {
   uint8_t* pbda = (uint8_t*)(a.address) + BD_ADDR_LEN - 1;
-  for (int ijk = 0; ijk < BD_ADDR_LEN; ijk++) {
-    *pbda-- = *(p)++;
-  }
+  for (int ijk = 0; ijk < BD_ADDR_LEN; ijk++) *pbda-- = *(p)++;
 }
 
 #if __has_include(<bluetooth/log.h>)
@@ -115,19 +113,20 @@ inline void STREAM_TO_BDADDR(RawAddress& a, const uint8_t*& p) {
 
 namespace bluetooth::os {
 bool should_log_be_redacted();
-} // namespace bluetooth::os
+}  // namespace bluetooth::os
 
 namespace fmt {
 template <>
 struct formatter<RawAddress> : formatter<std::string> {
   template <class Context>
-  typename Context::iterator format(const RawAddress& address, Context& ctx) const {
+  typename Context::iterator format(const RawAddress& address,
+                                    Context& ctx) const {
     std::string repr = bluetooth::os::should_log_be_redacted()
-                               ? address.ToRedactedStringForLogging()
-                               : address.ToStringForLogging();
+                           ? address.ToRedactedStringForLogging()
+                           : address.ToStringForLogging();
     return fmt::formatter<std::string>::format(repr, ctx);
   }
 };
-} // namespace fmt
+}  // namespace fmt
 
-#endif // __has_include(<bluetooth/log.h>)
+#endif  // __has_include(<bluetooth/log.h>)

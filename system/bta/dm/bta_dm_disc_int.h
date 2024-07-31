@@ -68,9 +68,13 @@ typedef struct {
 
 using tBTA_DM_MSG = std::variant<tBTA_DM_API_DISCOVER, tBTA_DM_SVC_RES>;
 
-typedef enum { BTA_DM_DISCOVER_IDLE, BTA_DM_DISCOVER_ACTIVE } tBTA_DM_SERVICE_DISCOVERY_STATE;
+typedef enum {
+  BTA_DM_DISCOVER_IDLE,
+  BTA_DM_DISCOVER_ACTIVE
+} tBTA_DM_SERVICE_DISCOVERY_STATE;
 
-inline std::string bta_dm_state_text(const tBTA_DM_SERVICE_DISCOVERY_STATE& state) {
+inline std::string bta_dm_state_text(
+    const tBTA_DM_SERVICE_DISCOVERY_STATE& state) {
   switch (state) {
     CASE_RETURN_TEXT(BTA_DM_DISCOVER_IDLE);
     CASE_RETURN_TEXT(BTA_DM_DISCOVER_ACTIVE);
@@ -116,9 +120,9 @@ extern const uint32_t bta_service_id_to_btm_srv_id_lkup_tbl[];
 extern const uint16_t bta_service_id_to_uuid_lkup_tbl[];
 
 void bta_dm_disc_override_sdp_performer_for_testing(
-        base::RepeatingCallback<void(tBTA_DM_SDP_STATE*)> sdp_performer);
+    base::RepeatingCallback<void(tBTA_DM_SDP_STATE*)> sdp_performer);
 void bta_dm_disc_override_gatt_performer_for_testing(
-        base::RepeatingCallback<void(const RawAddress&)> test_gatt_performer);
+    base::RepeatingCallback<void(const RawAddress&)> test_gatt_performer);
 void bta_dm_sdp_find_services(tBTA_DM_SDP_STATE* sdp_state);
 void bta_dm_sdp_result(tSDP_STATUS sdp_result, tBTA_DM_SDP_STATE* sdp_state);
 void bta_dm_sdp_finished(RawAddress bda, tBTA_STATUS result,
@@ -129,7 +133,8 @@ void bta_dm_gatt_finished(RawAddress bda, tBTA_STATUS result,
 void bta_dm_sdp_callback(const RawAddress& bd_addr, tSDP_STATUS sdp_status);
 
 #ifdef TARGET_FLOSS
-void bta_dm_sdp_received_di(const RawAddress& bd_addr, tSDP_DI_GET_RECORD& di_record);
+void bta_dm_sdp_received_di(const RawAddress& bd_addr,
+                            tSDP_DI_GET_RECORD& di_record);
 #endif
 
 namespace fmt {
@@ -138,4 +143,4 @@ struct formatter<tBTA_DM_DISC_EVT> : enum_formatter<tBTA_DM_DISC_EVT> {};
 template <>
 struct formatter<tBTA_DM_SERVICE_DISCOVERY_STATE>
     : enum_formatter<tBTA_DM_SERVICE_DISCOVERY_STATE> {};
-} // namespace fmt
+}  // namespace fmt

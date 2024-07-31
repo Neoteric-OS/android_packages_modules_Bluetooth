@@ -61,7 +61,8 @@ struct StoredAttribute {
      * «Characteristic Extended Properties» */
     uint16_t characteristic_extended_properties;
   } value;
-  static void SerializeStoredAttribute(const StoredAttribute& attr, std::vector<uint8_t>& bytes);
+  static void SerializeStoredAttribute(const StoredAttribute& attr,
+                                       std::vector<uint8_t>& bytes);
 };
 
 struct IncludedService;
@@ -102,7 +103,7 @@ struct Descriptor {
 class DatabaseBuilder;
 
 class Database {
-public:
+ public:
   /* Return true if there are no services in this database. */
   bool IsEmpty() const { return services.empty(); }
 
@@ -117,14 +118,15 @@ public:
 
   std::vector<gatt::StoredAttribute> Serialize() const;
 
-  static Database Deserialize(const std::vector<gatt::StoredAttribute>& nv_attr, bool* success);
+  static Database Deserialize(const std::vector<gatt::StoredAttribute>& nv_attr,
+                              bool* success);
 
   /* Return 128 bit unique identifier of this GATT database */
   Octet16 Hash() const;
 
   friend class DatabaseBuilder;
 
-private:
+ private:
   std::list<Service> services;
 };
 
@@ -132,4 +134,4 @@ private:
  * inside gatt namespace.*/
 Service* FindService(std::list<Service>& services, uint16_t handle);
 
-} // namespace gatt
+}  // namespace gatt

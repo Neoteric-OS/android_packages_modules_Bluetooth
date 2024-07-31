@@ -56,12 +56,11 @@ class SyscallWrapperImpl : public SyscallWrapperInterface {
 
   void FDZero(fd_set* set);
 
-  int Select(int __nfds, fd_set* __readfds, fd_set* __writefds, fd_set* __exceptfds,
-             struct timeval* __timeout);
+  int Select(int __nfds, fd_set* __readfds, fd_set* __writefds, fd_set* __exceptfds, struct timeval* __timeout);
 
-private:
+ private:
   int errno_;
 };
 
-} // namespace hal
-} // namespace bluetooth
+}  // namespace hal
+}  // namespace bluetooth

@@ -59,5 +59,5 @@ TEST(PlayItemResponseTest, invalidTest) {
   ASSERT_FALSE(test_packet->IsValid());
 }
 
-} // namespace avrcp
-} // namespace bluetooth
+}  // namespace avrcp
+}  // namespace bluetooth

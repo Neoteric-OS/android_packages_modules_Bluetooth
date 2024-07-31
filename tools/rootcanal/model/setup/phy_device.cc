@@ -26,7 +26,8 @@ PhyDevice::PhyDevice(std::string type, std::shared_ptr<Device> device)
     : id(device->id_), type(std::move(type)), device_(std::move(device)) {
   using namespace std::placeholders;
   ASSERT(device_ != nullptr);
-  device_->RegisterLinkLayerChannel(std::bind(&PhyDevice::Send, this, _1, _2, _3));
+  device_->RegisterLinkLayerChannel(
+      std::bind(&PhyDevice::Send, this, _1, _2, _3));
 }
 
 void PhyDevice::Register(PhyLayer* phy) { phy_layers_.insert(phy); }
@@ -35,19 +36,25 @@ void PhyDevice::Unregister(PhyLayer* phy) { phy_layers_.erase(phy); }
 
 void PhyDevice::Tick() { device_->Tick(); }
 
-bluetooth::hci::Address PhyDevice::GetAddress() const { return device_->GetAddress(); }
+bluetooth::hci::Address PhyDevice::GetAddress() const {
+  return device_->GetAddress();
+}
 
-std::shared_ptr<Device> PhyDevice::GetDevice() const { return device_; }
+std::shared_ptr<Device> PhyDevice::GetDevice() const {
+  return device_;
+}
 
 void PhyDevice::SetAddress(bluetooth::hci::Address address) {
   device_->SetAddress(std::move(address));
 }
 
-void PhyDevice::Receive(std::vector<uint8_t> const& packet, Phy::Type type, int8_t rssi) {
+void PhyDevice::Receive(std::vector<uint8_t> const& packet, Phy::Type type,
+                        int8_t rssi) {
   std::shared_ptr<std::vector<uint8_t>> packet_copy =
-          std::make_shared<std::vector<uint8_t>>(packet);
+      std::make_shared<std::vector<uint8_t>>(packet);
   model::packets::LinkLayerPacketView packet_view =
-          model::packets::LinkLayerPacketView::Create(pdl::packet::slice(packet_copy));
+      model::packets::LinkLayerPacketView::Create(
+          pdl::packet::slice(packet_copy));
   if (packet_view.IsValid()) {
     device_->ReceiveLinkLayerPacket(std::move(packet_view), type, rssi);
   } else {
@@ -55,7 +62,8 @@ void PhyDevice::Receive(std::vector<uint8_t> const& packet, Phy::Type type, int8
   }
 }
 
-void PhyDevice::Send(std::vector<uint8_t> const& packet, Phy::Type type, int8_t tx_power) {
+void PhyDevice::Send(std::vector<uint8_t> const& packet, Phy::Type type,
+                     int8_t tx_power) {
   for (auto const& phy : phy_layers_) {
     if (phy->type == type) {
       phy->Send(packet, tx_power, id);
@@ -65,4 +73,4 @@ void PhyDevice::Send(std::vector<uint8_t> const& packet, Phy::Type type, int8_t 
 
 std::string PhyDevice::ToString() { return device_->ToString(); }
 
-} // namespace rootcanal
+}  // namespace rootcanal

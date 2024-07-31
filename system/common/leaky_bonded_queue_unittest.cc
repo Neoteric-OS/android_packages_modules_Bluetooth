@@ -33,14 +33,14 @@ using namespace bluetooth;
   } while (0)
 
 class Item {
-public:
+ public:
   Item(int i) { index = i; }
   virtual ~Item() {}
   int index;
 };
 
 class MockItem : public Item {
-public:
+ public:
   MockItem(int i) : Item(i) {}
   ~MockItem() override { Destruct(); }
   MOCK_METHOD0(Destruct, void());
@@ -239,4 +239,4 @@ TEST(LeakyBondedQueueTest, TestPushNullDeleteQueue) {
   queue->Enqueue(item2);
   delete queue;
 }
-} // namespace testing
+}  // namespace testing

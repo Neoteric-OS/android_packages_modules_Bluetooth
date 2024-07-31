@@ -37,12 +37,12 @@ namespace l2cap {
 namespace internal {
 
 class BasicModeDataController : public DataController {
-public:
+ public:
   using UpperEnqueue = packet::PacketView<packet::kLittleEndian>;
   using UpperDequeue = packet::BasePacketBuilder;
   using UpperQueueDownEnd = common::BidiQueueEnd<UpperEnqueue, UpperDequeue>;
-  BasicModeDataController(Cid cid, Cid remote_cid, UpperQueueDownEnd* channel_queue_end,
-                          os::Handler* handler, Scheduler* scheduler);
+  BasicModeDataController(Cid cid, Cid remote_cid, UpperQueueDownEnd* channel_queue_end, os::Handler* handler,
+                          Scheduler* scheduler);
 
   ~BasicModeDataController();
 
@@ -54,9 +54,9 @@ public:
 
   void EnableFcs(bool /* enabled */) override {}
   void SetRetransmissionAndFlowControlOptions(
-          const RetransmissionAndFlowControlConfigurationOption& /* option */) override {}
+      const RetransmissionAndFlowControlConfigurationOption& /* option */) override {}
 
-private:
+ private:
   Cid cid_;
   Cid remote_cid_;
   os::EnqueueBuffer<UpperEnqueue> enqueue_buffer_;
@@ -65,6 +65,6 @@ private:
   Scheduler* scheduler_;
 };
 
-} // namespace internal
-} // namespace l2cap
-} // namespace bluetooth
+}  // namespace internal
+}  // namespace l2cap
+}  // namespace bluetooth

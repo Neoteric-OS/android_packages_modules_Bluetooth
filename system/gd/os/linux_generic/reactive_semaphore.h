@@ -23,7 +23,7 @@ namespace os {
 
 // A event_fd work in non-blocking and Semaphore mode
 class ReactiveSemaphore {
-public:
+ public:
   // Creates a new ReactiveSemaphore with an initial value of |value|.
   explicit ReactiveSemaphore(unsigned int value);
 
@@ -37,9 +37,9 @@ public:
   void Increase();
   int GetFd();
 
-private:
+ private:
   int fd_;
 };
 
-} // namespace os
-} // namespace bluetooth
+}  // namespace os
+}  // namespace bluetooth

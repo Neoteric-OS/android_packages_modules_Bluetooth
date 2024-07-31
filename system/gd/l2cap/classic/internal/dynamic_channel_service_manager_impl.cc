@@ -27,33 +27,32 @@ namespace l2cap {
 namespace classic {
 namespace internal {
 
-void DynamicChannelServiceManagerImpl::Register(
-        Psm psm, DynamicChannelServiceImpl::PendingRegistration pending_registration) {
+void DynamicChannelServiceManagerImpl::Register(Psm psm,
+                                                DynamicChannelServiceImpl::PendingRegistration pending_registration) {
   if (!IsPsmValid(psm)) {
     std::unique_ptr<DynamicChannelService> invalid_service(new DynamicChannelService());
     pending_registration.on_registration_complete_callback_(
-            DynamicChannelManager::RegistrationResult::FAIL_INVALID_SERVICE,
-            std::move(invalid_service));
+        DynamicChannelManager::RegistrationResult::FAIL_INVALID_SERVICE,
+        std::move(invalid_service));
   } else if (IsServiceRegistered(psm)) {
     std::unique_ptr<DynamicChannelService> invalid_service(new DynamicChannelService());
     pending_registration.on_registration_complete_callback_(
-            DynamicChannelManager::RegistrationResult::FAIL_DUPLICATE_SERVICE,
-            std::move(invalid_service));
+        DynamicChannelManager::RegistrationResult::FAIL_DUPLICATE_SERVICE,
+        std::move(invalid_service));
   } else {
     service_map_.try_emplace(
-            psm,
-            DynamicChannelServiceImpl(pending_registration.security_policy_,
-                                      std::move(pending_registration.on_connection_open_callback_),
-                                      pending_registration.configuration_));
-    std::unique_ptr<DynamicChannelService> user_service(
-            new DynamicChannelService(psm, this, l2cap_layer_handler_));
+        psm,
+        DynamicChannelServiceImpl(
+            pending_registration.security_policy_,
+            std::move(pending_registration.on_connection_open_callback_),
+            pending_registration.configuration_));
+    std::unique_ptr<DynamicChannelService> user_service(new DynamicChannelService(psm, this, l2cap_layer_handler_));
     pending_registration.on_registration_complete_callback_(
-            DynamicChannelManager::RegistrationResult::SUCCESS, std::move(user_service));
+        DynamicChannelManager::RegistrationResult::SUCCESS, std::move(user_service));
   }
 }
 
-void DynamicChannelServiceManagerImpl::Unregister(
-        Psm psm, DynamicChannelService::OnUnregisteredCallback callback) {
+void DynamicChannelServiceManagerImpl::Unregister(Psm psm, DynamicChannelService::OnUnregisteredCallback callback) {
   if (IsServiceRegistered(psm)) {
     service_map_.erase(psm);
     callback();
@@ -71,8 +70,7 @@ DynamicChannelServiceImpl* DynamicChannelServiceManagerImpl::GetService(Psm psm)
   return &service_map_.find(psm)->second;
 }
 
-std::vector<std::pair<Psm, DynamicChannelServiceImpl*>>
-DynamicChannelServiceManagerImpl::GetRegisteredServices() {
+std::vector<std::pair<Psm, DynamicChannelServiceImpl*>> DynamicChannelServiceManagerImpl::GetRegisteredServices() {
   std::vector<std::pair<Psm, DynamicChannelServiceImpl*>> results;
   for (auto& elem : service_map_) {
     results.emplace_back(elem.first, &elem.second);
@@ -80,7 +78,7 @@ DynamicChannelServiceManagerImpl::GetRegisteredServices() {
   return results;
 }
 
-} // namespace internal
-} // namespace classic
-} // namespace l2cap
-} // namespace bluetooth
+}  // namespace internal
+}  // namespace classic
+}  // namespace l2cap
+}  // namespace bluetooth

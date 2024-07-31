@@ -26,12 +26,14 @@
 namespace rootcanal {
 
 class HciDevice : public DualModeController {
-public:
-  HciDevice(std::shared_ptr<HciTransport> transport, ControllerProperties const& properties);
+ public:
+  HciDevice(std::shared_ptr<HciTransport> transport,
+            ControllerProperties const& properties);
   ~HciDevice() = default;
 
-  static std::shared_ptr<HciDevice> Create(std::shared_ptr<HciTransport> transport,
-                                           ControllerProperties const& properties) {
+  static std::shared_ptr<HciDevice> Create(
+      std::shared_ptr<HciTransport> transport,
+      ControllerProperties const& properties) {
     return std::make_shared<HciDevice>(transport, properties);
   }
 
@@ -41,8 +43,8 @@ public:
 
   void Close() override;
 
-private:
+ private:
   std::shared_ptr<HciTransport> transport_;
 };
 
-} // namespace rootcanal
+}  // namespace rootcanal

@@ -24,11 +24,12 @@ namespace test {
 namespace headless {
 
 class Discovery : public HeadlessTest<int> {
-public:
-  Discovery(const bluetooth::test::headless::GetOpt& options) : HeadlessTest<int>(options) {}
+ public:
+  Discovery(const bluetooth::test::headless::GetOpt& options)
+      : HeadlessTest<int>(options) {}
   int Run() override;
 };
 
-} // namespace headless
-} // namespace test
-} // namespace bluetooth
+}  // namespace headless
+}  // namespace test
+}  // namespace bluetooth

@@ -15,9 +15,9 @@
  */
 #pragma once
 
-#include <gmock/gmock.h>
-
 #include "l2cap/internal/parameter_provider.h"
+
+#include <gmock/gmock.h>
 
 // Unit test interfaces
 namespace bluetooth {
@@ -26,12 +26,12 @@ namespace internal {
 namespace testing {
 
 class MockParameterProvider : public ParameterProvider {
-public:
+ public:
   MOCK_METHOD(std::chrono::milliseconds, GetClassicLinkIdleDisconnectTimeout, (), (override));
   MOCK_METHOD(std::chrono::milliseconds, GetLeLinkIdleDisconnectTimeout, (), (override));
 };
 
-} // namespace testing
-} // namespace internal
-} // namespace l2cap
-} // namespace bluetooth
+}  // namespace testing
+}  // namespace internal
+}  // namespace l2cap
+}  // namespace bluetooth

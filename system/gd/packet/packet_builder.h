@@ -34,7 +34,7 @@ namespace packet {
 // The template parameter little_endian controls the generation of insert().
 template <bool little_endian>
 class PacketBuilder : public BasePacketBuilder, protected EndianInserter<little_endian> {
-public:
+ public:
   PacketBuilder() = default;
   virtual ~PacketBuilder() = default;
 
@@ -50,5 +50,5 @@ public:
   }
 };
 
-} // namespace packet
-} // namespace bluetooth
+}  // namespace packet
+}  // namespace bluetooth

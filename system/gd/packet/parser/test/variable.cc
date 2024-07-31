@@ -38,8 +38,10 @@ void Variable::Serialize(BitInserter& bi) const {
   }
 }
 
-size_t Variable::size() const { return data.size() + 1; }
-} // namespace test
-} // namespace parser
-} // namespace packet
-} // namespace bluetooth
+size_t Variable::size() const {
+  return data.size() + 1;
+}
+}  // namespace test
+}  // namespace parser
+}  // namespace packet
+}  // namespace bluetooth

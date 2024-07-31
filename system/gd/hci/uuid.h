@@ -36,22 +36,26 @@ namespace hci {
 // 3. Bytes representing UUID coming from lower layer, HCI packets, are Little Endian.
 // 4. UUID in storage is always string.
 class Uuid final : public storage::Serializable<Uuid> {
-public:
+ public:
   static constexpr size_t kNumBytes128 = 16;
   static constexpr size_t kNumBytes32 = 4;
   static constexpr size_t kNumBytes16 = 2;
 
   static constexpr size_t kString128BitLen = 36;
 
-  static const Uuid kEmpty; // 00000000-0000-0000-0000-000000000000
+  static const Uuid kEmpty;  // 00000000-0000-0000-0000-000000000000
 
   using UUID128Bit = std::array<uint8_t, kNumBytes128>;
 
   Uuid() = default;
 
-  inline uint8_t* data() { return uu.data(); }
+  inline uint8_t* data() {
+    return uu.data();
+  }
 
-  inline const uint8_t* data() const { return uu.data(); }
+  inline const uint8_t* data() const {
+    return uu.data();
+  }
 
   // storage::Serializable methods
   // Converts string representing 128, 32, or 16 bit UUID in
@@ -115,15 +119,15 @@ public:
   bool operator==(const Uuid& rhs) const;
   bool operator!=(const Uuid& rhs) const;
 
-private:
-  constexpr Uuid(const UUID128Bit& val) : uu{val} {}
+ private:
+  constexpr Uuid(const UUID128Bit& val) : uu{val} {};
 
   // Network-byte-ordered ID (Big Endian).
   UUID128Bit uu = {};
 };
-} // namespace hci
+}  // namespace hci
 
-} // namespace bluetooth
+}  // namespace bluetooth
 
 inline std::ostream& operator<<(std::ostream& os, const bluetooth::hci::Uuid& a) {
   os << a.ToString();
@@ -139,9 +143,8 @@ struct hash<bluetooth::hci::Uuid> {
   std::size_t operator()(const bluetooth::hci::Uuid& key) const {
     const auto& uuid_bytes = key.To128BitBE();
     std::hash<std::string> hash_fn;
-    return hash_fn(
-            std::string(reinterpret_cast<const char*>(uuid_bytes.data()), uuid_bytes.size()));
+    return hash_fn(std::string(reinterpret_cast<const char*>(uuid_bytes.data()), uuid_bytes.size()));
   }
 };
 
-} // namespace std
+}  // namespace std

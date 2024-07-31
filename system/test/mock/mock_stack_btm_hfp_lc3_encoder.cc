@@ -41,9 +41,9 @@ struct hfp_lc3_encode_frames hfp_lc3_encode_frames;
 struct hfp_lc3_encoder_cleanup hfp_lc3_encoder_cleanup;
 struct hfp_lc3_encoder_init hfp_lc3_encoder_init;
 
-} // namespace stack_btm_hfp_lc3_encoder
-} // namespace mock
-} // namespace test
+}  // namespace stack_btm_hfp_lc3_encoder
+}  // namespace mock
+}  // namespace test
 
 // Mocked function return values, if any
 namespace test {
@@ -52,14 +52,15 @@ namespace stack_btm_hfp_lc3_encoder {
 
 uint32_t hfp_lc3_encode_frames::return_value = 0;
 
-} // namespace stack_btm_hfp_lc3_encoder
-} // namespace mock
-} // namespace test
+}  // namespace stack_btm_hfp_lc3_encoder
+}  // namespace mock
+}  // namespace test
 
 // Mocked functions, if any
 uint32_t hfp_lc3_encode_frames(int16_t* input, uint8_t* output) {
   inc_func_call_count(__func__);
-  return test::mock::stack_btm_hfp_lc3_encoder::hfp_lc3_encode_frames(input, output);
+  return test::mock::stack_btm_hfp_lc3_encoder::hfp_lc3_encode_frames(input,
+                                                                      output);
 }
 void hfp_lc3_encoder_cleanup(void) {
   inc_func_call_count(__func__);
@@ -70,5 +71,5 @@ void hfp_lc3_encoder_init(void) {
   test::mock::stack_btm_hfp_lc3_encoder::hfp_lc3_encoder_init();
 }
 // Mocked functions complete
-#endif //  __clang_analyzer__
+#endif  //  __clang_analyzer__
 // END mockcify generation

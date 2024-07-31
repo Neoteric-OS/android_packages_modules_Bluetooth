@@ -107,6 +107,6 @@ TEST(SmpEccValidationTest, test_invalid_points) {
   EXPECT_FALSE(ECC_ValidatePoint(p));
 }
 
-} // namespace ecc
-} // namespace security
-} // namespace bluetooth
+}  // namespace ecc
+}  // namespace security
+}  // namespace bluetooth

@@ -194,27 +194,34 @@ struct ctp_update_metadata {
 
 /* Device control and common functions */
 bool ParseAseStatusHeader(ase_rsp_hdr& rsp, uint16_t len, const uint8_t* value);
-bool ParseAseStatusCodecConfiguredStateParams(struct ase_codec_configured_state_params& rsp,
-                                              uint16_t len, const uint8_t* value);
-bool ParseAseStatusQosConfiguredStateParams(struct ase_qos_configured_state_params& rsp,
-                                            uint16_t len, const uint8_t* value);
-bool ParseAseStatusTransientStateParams(struct ase_transient_state_params& rsp, uint16_t len,
-                                        const uint8_t* value);
-bool ParseAseCtpNotification(struct ctp_ntf& ntf, uint16_t len, const uint8_t* value);
+bool ParseAseStatusCodecConfiguredStateParams(
+    struct ase_codec_configured_state_params& rsp, uint16_t len,
+    const uint8_t* value);
+bool ParseAseStatusQosConfiguredStateParams(
+    struct ase_qos_configured_state_params& rsp, uint16_t len,
+    const uint8_t* value);
+bool ParseAseStatusTransientStateParams(struct ase_transient_state_params& rsp,
+                                        uint16_t len, const uint8_t* value);
+bool ParseAseCtpNotification(struct ctp_ntf& ntf, uint16_t len,
+                             const uint8_t* value);
 bool PrepareAseCtpCodecConfig(const std::vector<struct ctp_codec_conf>& confs,
                               std::vector<uint8_t>& value);
 bool PrepareAseCtpConfigQos(const std::vector<struct ctp_qos_conf>& confs,
                             std::vector<uint8_t>& value);
-bool PrepareAseCtpEnable(const std::vector<struct ctp_enable>& confs, std::vector<uint8_t>& value);
+bool PrepareAseCtpEnable(const std::vector<struct ctp_enable>& confs,
+                         std::vector<uint8_t>& value);
 bool PrepareAseCtpAudioReceiverStartReady(const std::vector<uint8_t>& ids,
                                           std::vector<uint8_t>& value);
-bool PrepareAseCtpDisable(const std::vector<uint8_t>& ids, std::vector<uint8_t>& value);
+bool PrepareAseCtpDisable(const std::vector<uint8_t>& ids,
+                          std::vector<uint8_t>& value);
 bool PrepareAseCtpAudioReceiverStopReady(const std::vector<uint8_t>& ids,
                                          std::vector<uint8_t>& value);
-bool PrepareAseCtpUpdateMetadata(const std::vector<struct ctp_update_metadata>& confs,
-                                 std::vector<uint8_t>& value);
-bool PrepareAseCtpRelease(const std::vector<uint8_t>& ids, std::vector<uint8_t>& value);
-} // namespace ascs
+bool PrepareAseCtpUpdateMetadata(
+    const std::vector<struct ctp_update_metadata>& confs,
+    std::vector<uint8_t>& value);
+bool PrepareAseCtpRelease(const std::vector<uint8_t>& ids,
+                          std::vector<uint8_t>& value);
+}  // namespace ascs
 
 namespace pacs {
 
@@ -228,17 +235,19 @@ constexpr uint16_t kAseAudioAvailRspMinLen = 4;
 
 constexpr uint16_t kAseAudioSuppContRspMinLen = 4;
 
-int ParseSinglePac(std::vector<struct types::acs_ac_record>& pac_recs, uint16_t len,
-                   const uint8_t* value);
+int ParseSinglePac(std::vector<struct types::acs_ac_record>& pac_recs,
+                   uint16_t len, const uint8_t* value);
 bool ParsePacs(std::vector<struct types::acs_ac_record>& pac_recs, uint16_t len,
                const uint8_t* value);
 bool ParseAudioLocations(types::AudioLocations& audio_locations, uint16_t len,
                          const uint8_t* value);
-bool ParseAvailableAudioContexts(types::BidirectionalPair<types::AudioContexts>& rsp, uint16_t len,
-                                 const uint8_t* value);
-bool ParseSupportedAudioContexts(types::BidirectionalPair<types::AudioContexts>& rsp, uint16_t len,
-                                 const uint8_t* value);
-} // namespace pacs
+bool ParseAvailableAudioContexts(
+    types::BidirectionalPair<types::AudioContexts>& rsp, uint16_t len,
+    const uint8_t* value);
+bool ParseSupportedAudioContexts(
+    types::BidirectionalPair<types::AudioContexts>& rsp, uint16_t len,
+    const uint8_t* value);
+}  // namespace pacs
 
 namespace tmap {
 
@@ -246,6 +255,6 @@ constexpr uint16_t kTmapRoleLen = 2;
 
 bool ParseTmapRole(std::bitset<16>& role, uint16_t len, const uint8_t* value);
 
-} // namespace tmap
-} // namespace client_parser
-} // namespace bluetooth::le_audio
+}  // namespace tmap
+}  // namespace client_parser
+}  // namespace bluetooth::le_audio

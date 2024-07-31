@@ -18,7 +18,6 @@
 #pragma once
 
 #include <vector>
-
 #include "stack/include/bt_hdr.h"
 
 namespace bluetooth {
@@ -30,7 +29,8 @@ namespace bluetooth {
  * @param data
  * @return vector of bytes
  */
-std::vector<uint8_t> CreateL2capDataPacket(uint16_t lcid, const std::vector<uint8_t>& data);
+std::vector<uint8_t> CreateL2capDataPacket(uint16_t lcid,
+                                           const std::vector<uint8_t>& data);
 
 /**
  * Create ACL data packet
@@ -57,7 +57,8 @@ std::vector<uint8_t> CreateAclPacket(uint16_t handle, uint8_t pb, uint8_t bc,
  */
 BT_HDR* AllocateWrappedIncomingL2capAclPacket(const uint8_t* acl_packet_bytes,
                                               size_t buffer_length);
-BT_HDR* AllocateWrappedIncomingL2capAclPacket(const std::vector<uint8_t>& buffer);
+BT_HDR* AllocateWrappedIncomingL2capAclPacket(
+    const std::vector<uint8_t>& buffer);
 
 /**
  * Given an array of ACL packet bytes from BTSNOOP log, allocate an OSI
@@ -72,6 +73,7 @@ BT_HDR* AllocateWrappedIncomingL2capAclPacket(const std::vector<uint8_t>& buffer
  */
 BT_HDR* AllocateWrappedOutgoingL2capAclPacket(const uint8_t* acl_packet_bytes,
                                               size_t buffer_length);
-BT_HDR* AllocateWrappedOutgoingL2capAclPacket(const std::vector<uint8_t>& buffer);
+BT_HDR* AllocateWrappedOutgoingL2capAclPacket(
+    const std::vector<uint8_t>& buffer);
 
-} // namespace bluetooth
+}  // namespace bluetooth

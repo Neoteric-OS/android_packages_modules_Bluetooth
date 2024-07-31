@@ -28,7 +28,15 @@
 namespace testing {
 
 const char* data[] = {
-        "One", "Two", "Two", "Three", "Three", "Three", "AAA", "ZZZ", nullptr,
+    "One",
+    "Two",
+    "Two",
+    "Three",
+    "Three",
+    "Three",
+    "AAA",
+    "ZZZ",
+    nullptr,
 };
 
 namespace {
@@ -37,7 +45,7 @@ void LoadStringMap(SyncMapCount<std::string>& map) {
     map.Put(*p);
   }
 }
-} // namespace
+}  // namespace
 
 TEST(SyncMapCount, simple) {
   SyncMapCount<std::string> map;
@@ -78,12 +86,18 @@ TEST(SyncMapCount, sorted_string_value_high_to_low) {
 
 struct TestString {
   TestString(std::string string) : string_(string) {}
-  std::string String() const { return string_; }
+  std::string String() const {
+    return string_;
+  }
 
-  bool operator<(const TestString& other) const { return other.string_ > string_; }
-  bool operator==(const TestString& other) const { return other.string_ == string_; }
+  bool operator<(const TestString& other) const {
+    return (other.string_ > string_);
+  }
+  bool operator==(const TestString& other) const {
+    return (other.string_ == string_);
+  }
 
-private:
+ private:
   std::string string_;
 };
 
@@ -93,7 +107,7 @@ void LoadTestStringMap(SyncMapCount<TestString>& map) {
     map.Put(TestString(*p));
   }
 }
-} // namespace
+}  // namespace
 
 TEST(SyncMapCount, simple_struct) {
   SyncMapCount<TestString> map;
@@ -139,4 +153,4 @@ TEST(SyncMapCount, locked_for_map_copy) {
   ASSERT_EQ(5ul, vec.size());
 }
 
-} // namespace testing
+}  // namespace testing

@@ -26,7 +26,6 @@
 #pragma once
 
 #include <cstdbool>
-
 #include "p_256_multprecision.h"
 
 typedef struct {

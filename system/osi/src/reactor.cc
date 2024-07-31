@@ -44,22 +44,22 @@ struct reactor_t {
   int epoll_fd;
   int event_fd;
   std::mutex* list_mutex;
-  list_t* invalidation_list; // reactor objects that have been unregistered.
-  pthread_t run_thread;      // the pthread on which reactor_run is executing.
-  bool is_running;           // indicates whether |run_thread| is valid.
+  list_t* invalidation_list;  // reactor objects that have been unregistered.
+  pthread_t run_thread;       // the pthread on which reactor_run is executing.
+  bool is_running;            // indicates whether |run_thread| is valid.
   bool object_removed;
 };
 
 struct reactor_object_t {
-  int fd;             // the file descriptor to monitor for events.
-  void* context;      // a context that's passed back to the *_ready functions.
-  reactor_t* reactor; // the reactor instance this object is registered with.
+  int fd;              // the file descriptor to monitor for events.
+  void* context;       // a context that's passed back to the *_ready functions.
+  reactor_t* reactor;  // the reactor instance this object is registered with.
   std::mutex* mutex;  // protects the lifetime of this object and all variables.
 
-  void (*read_ready)(void* context);  // function to call when the file
-                                      // descriptor becomes readable.
-  void (*write_ready)(void* context); // function to call when the file
-                                      // descriptor becomes writeable.
+  void (*read_ready)(void* context);   // function to call when the file
+                                       // descriptor becomes readable.
+  void (*write_ready)(void* context);  // function to call when the file
+                                       // descriptor becomes writeable.
 };
 
 static reactor_status_t run_reactor(reactor_t* reactor, int iterations);
@@ -97,7 +97,8 @@ reactor_t* reactor_new(void) {
   event.events = EPOLLIN;
   event.data.ptr = NULL;
   if (epoll_ctl(ret->epoll_fd, EPOLL_CTL_ADD, ret->event_fd, &event) == -1) {
-    log::error("unable to register eventfd with epoll set: {}", strerror(errno));
+    log::error("unable to register eventfd with epoll set: {}",
+               strerror(errno));
     goto error;
   }
 
@@ -109,9 +110,7 @@ error:;
 }
 
 void reactor_free(reactor_t* reactor) {
-  if (!reactor) {
-    return;
-  }
+  if (!reactor) return;
 
   list_free(reactor->invalidation_list);
   close(reactor->event_fd);
@@ -142,7 +141,8 @@ reactor_object_t* reactor_register(reactor_t* reactor, int fd, void* context,
   log::assert_that(reactor != NULL, "assert failed: reactor != NULL");
   log::assert_that(fd != INVALID_FD, "assert failed: fd != INVALID_FD");
 
-  reactor_object_t* object = (reactor_object_t*)osi_calloc(sizeof(reactor_object_t));
+  reactor_object_t* object =
+      (reactor_object_t*)osi_calloc(sizeof(reactor_object_t));
 
   object->reactor = reactor;
   object->fd = fd;
@@ -153,16 +153,13 @@ reactor_object_t* reactor_register(reactor_t* reactor, int fd, void* context,
 
   struct epoll_event event;
   memset(&event, 0, sizeof(event));
-  if (read_ready) {
-    event.events |= (EPOLLIN | EPOLLRDHUP);
-  }
-  if (write_ready) {
-    event.events |= EPOLLOUT;
-  }
+  if (read_ready) event.events |= (EPOLLIN | EPOLLRDHUP);
+  if (write_ready) event.events |= EPOLLOUT;
   event.data.ptr = object;
 
   if (epoll_ctl(reactor->epoll_fd, EPOLL_CTL_ADD, fd, &event) == -1) {
-    log::error("unable to register fd {} to epoll set: {}", fd, strerror(errno));
+    log::error("unable to register fd {} to epoll set: {}", fd,
+               strerror(errno));
     delete object->mutex;
     osi_free(object);
     return NULL;
@@ -171,22 +168,21 @@ reactor_object_t* reactor_register(reactor_t* reactor, int fd, void* context,
   return object;
 }
 
-bool reactor_change_registration(reactor_object_t* object, void (*read_ready)(void* context),
+bool reactor_change_registration(reactor_object_t* object,
+                                 void (*read_ready)(void* context),
                                  void (*write_ready)(void* context)) {
   log::assert_that(object != NULL, "assert failed: object != NULL");
 
   struct epoll_event event;
   memset(&event, 0, sizeof(event));
-  if (read_ready) {
-    event.events |= (EPOLLIN | EPOLLRDHUP);
-  }
-  if (write_ready) {
-    event.events |= EPOLLOUT;
-  }
+  if (read_ready) event.events |= (EPOLLIN | EPOLLRDHUP);
+  if (write_ready) event.events |= EPOLLOUT;
   event.data.ptr = object;
 
-  if (epoll_ctl(object->reactor->epoll_fd, EPOLL_CTL_MOD, object->fd, &event) == -1) {
-    log::error("unable to modify interest set for fd {}: {}", object->fd, strerror(errno));
+  if (epoll_ctl(object->reactor->epoll_fd, EPOLL_CTL_MOD, object->fd, &event) ==
+      -1) {
+    log::error("unable to modify interest set for fd {}: {}", object->fd,
+               strerror(errno));
     return false;
   }
 
@@ -202,11 +198,12 @@ void reactor_unregister(reactor_object_t* obj) {
 
   reactor_t* reactor = obj->reactor;
 
-  if (epoll_ctl(reactor->epoll_fd, EPOLL_CTL_DEL, obj->fd, NULL) == -1) {
-    log::error("unable to unregister fd {} from epoll set: {}", obj->fd, strerror(errno));
-  }
+  if (epoll_ctl(reactor->epoll_fd, EPOLL_CTL_DEL, obj->fd, NULL) == -1)
+    log::error("unable to unregister fd {} from epoll set: {}", obj->fd,
+               strerror(errno));
 
-  if (reactor->is_running && pthread_equal(pthread_self(), reactor->run_thread)) {
+  if (reactor->is_running &&
+      pthread_equal(pthread_self(), reactor->run_thread)) {
     reactor->object_removed = true;
     return;
   }
@@ -278,12 +275,12 @@ static reactor_status_t run_reactor(reactor_t* reactor, int iterations) {
         lock.unlock();
 
         reactor->object_removed = false;
-        if (events[j].events & (EPOLLIN | EPOLLHUP | EPOLLRDHUP | EPOLLERR) && object->read_ready) {
+        if (events[j].events & (EPOLLIN | EPOLLHUP | EPOLLRDHUP | EPOLLERR) &&
+            object->read_ready)
           object->read_ready(object->context);
-        }
-        if (!reactor->object_removed && events[j].events & EPOLLOUT && object->write_ready) {
+        if (!reactor->object_removed && events[j].events & EPOLLOUT &&
+            object->write_ready)
           object->write_ready(object->context);
-        }
       }
 
       if (reactor->object_removed) {

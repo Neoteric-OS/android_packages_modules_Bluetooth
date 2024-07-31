@@ -35,4 +35,4 @@ enum CsrPskey : uint16_t {
   CSR_PSKEY_HCI_LMP_LOCAL_VERSION = 0x010d,
 };
 
-} // namespace rootcanal
+}  // namespace rootcanal

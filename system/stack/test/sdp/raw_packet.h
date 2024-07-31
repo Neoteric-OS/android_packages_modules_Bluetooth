@@ -26,5 +26,5 @@ struct raw_packet_t {
   size_t len;
 };
 
-} // namespace testing
-} // namespace bluetooth
+}  // namespace testing
+}  // namespace bluetooth

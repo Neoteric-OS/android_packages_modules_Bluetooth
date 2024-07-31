@@ -41,4 +41,4 @@ void a2dp_aac_decoder_cleanup(void);
 // if decoded frames are available.
 bool a2dp_aac_decoder_decode_packet(BT_HDR* p_buf);
 
-#endif // A2DP_AAC_DECODER_H
+#endif  // A2DP_AAC_DECODER_H

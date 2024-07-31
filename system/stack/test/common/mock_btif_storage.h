@@ -23,13 +23,13 @@ namespace bluetooth {
 namespace manager {
 
 class BtifStorageInterface {
-public:
+ public:
   virtual void LoadBondedEatt(void) = 0;
   virtual ~BtifStorageInterface() = default;
 };
 
 class MockBtifStorageInterface : public BtifStorageInterface {
-public:
+ public:
   MOCK_METHOD0(LoadBondedEatt, void(void));
 };
 
@@ -39,7 +39,8 @@ public:
  * @param mock_btif_storage_interface pointer to mock btm security
  * internal interface, could be null
  */
-void SetMockBtifStorageInterface(MockBtifStorageInterface* mock_btif_storage_interface);
+void SetMockBtifStorageInterface(
+    MockBtifStorageInterface* mock_btif_storage_interface);
 
-} // namespace manager
-} // namespace bluetooth
+}  // namespace manager
+}  // namespace bluetooth

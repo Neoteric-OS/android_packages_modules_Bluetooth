@@ -15,7 +15,6 @@
  */
 
 #include "fields/payload_field.h"
-
 #include "util.h"
 
 const std::string PayloadField::kFieldType = "PayloadField";
@@ -25,14 +24,15 @@ PayloadField::PayloadField(std::string modifier, ParseLocation loc)
 
 void PayloadField::SetSizeField(const SizeField* size_field) {
   if (size_field_ != nullptr) {
-    ERROR(this, size_field_, size_field)
-            << "The size field for the payload has already been assigned.";
+    ERROR(this, size_field_, size_field) << "The size field for the payload has already been assigned.";
   }
 
   size_field_ = size_field;
 }
 
-const std::string& PayloadField::GetFieldType() const { return PayloadField::kFieldType; }
+const std::string& PayloadField::GetFieldType() const {
+  return PayloadField::kFieldType;
+}
 
 Size PayloadField::GetSize() const {
   if (size_field_ == nullptr) {
@@ -42,8 +42,7 @@ Size PayloadField::GetSize() const {
     return Size();
   }
 
-  std::string dynamic_size =
-          "(Get" + util::UnderscoreToCamelCase(size_field_->GetName()) + "() * 8)";
+  std::string dynamic_size = "(Get" + util::UnderscoreToCamelCase(size_field_->GetName()) + "() * 8)";
   if (!size_modifier_.empty()) {
     dynamic_size += "- (" + size_modifier_.substr(1) + " * 8)";
   }
@@ -51,13 +50,17 @@ Size PayloadField::GetSize() const {
   return dynamic_size;
 }
 
-std::string PayloadField::GetDataType() const { return "PacketView"; }
+std::string PayloadField::GetDataType() const {
+  return "PacketView";
+}
 
 void PayloadField::GenExtractor(std::ostream&, int, bool) const {
   ERROR(this) << __func__ << " should never be called. ";
 }
 
-std::string PayloadField::GetGetterFunctionName() const { return "GetPayload"; }
+std::string PayloadField::GetGetterFunctionName() const {
+  return "GetPayload";
+}
 
 void PayloadField::GenGetter(std::ostream& s, Size start_offset, Size end_offset) const {
   s << "PacketView<kLittleEndian> " << GetGetterFunctionName() << "() const {";
@@ -73,14 +76,17 @@ std::string PayloadField::GetBuilderParameterType() const {
   return "std::unique_ptr<BasePacketBuilder>";
 }
 
-bool PayloadField::BuilderParameterMustBeMoved() const { return true; }
-
-void PayloadField::GenBuilderParameterFromView(std::ostream& s) const {
-  s << "std::make_unique<RawBuilder>(std::vector<uint8_t>(view.GetPayload().begin(), "
-       "view.GetPayload().end()))";
+bool PayloadField::BuilderParameterMustBeMoved() const {
+  return true;
 }
 
-bool PayloadField::HasParameterValidator() const { return false; }
+void PayloadField::GenBuilderParameterFromView(std::ostream& s) const {
+  s << "std::make_unique<RawBuilder>(std::vector<uint8_t>(view.GetPayload().begin(), view.GetPayload().end()))";
+}
+
+bool PayloadField::HasParameterValidator() const {
+  return false;
+}
 
 void PayloadField::GenParameterValidator(std::ostream&) const {
   // There is no validation needed for a payload

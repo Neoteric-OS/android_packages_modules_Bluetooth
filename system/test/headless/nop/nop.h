@@ -24,11 +24,12 @@ namespace test {
 namespace headless {
 
 class Nop : public HeadlessTest<int> {
-public:
-  Nop(const bluetooth::test::headless::GetOpt& options) : HeadlessTest<int>(options) {}
+ public:
+  Nop(const bluetooth::test::headless::GetOpt& options)
+      : HeadlessTest<int>(options) {}
   int Run() override;
 };
 
-} // namespace headless
-} // namespace test
-} // namespace bluetooth
+}  // namespace headless
+}  // namespace test
+}  // namespace bluetooth

@@ -21,9 +21,10 @@ namespace bluetooth::le_audio {
 namespace has {
 
 std::ostream& operator<<(std::ostream& os, const HasDevice& b) {
-  os << "HAP device: {" << "addr: " << b.addr << ", conn id: " << b.conn_id << "}";
+  os << "HAP device: {"
+     << "addr: " << b.addr << ", conn id: " << b.conn_id << "}";
   return os;
 }
 
-} // namespace has
-} // namespace bluetooth::le_audio
+}  // namespace has
+}  // namespace bluetooth::le_audio

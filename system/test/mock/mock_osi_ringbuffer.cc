@@ -43,9 +43,9 @@ struct ringbuffer_peek ringbuffer_peek;
 struct ringbuffer_pop ringbuffer_pop;
 struct ringbuffer_size ringbuffer_size;
 
-} // namespace osi_ringbuffer
-} // namespace mock
-} // namespace test
+}  // namespace osi_ringbuffer
+}  // namespace mock
+}  // namespace test
 
 // Mocked functions, if any
 size_t ringbuffer_available(const ringbuffer_t* rb) {
@@ -68,7 +68,8 @@ size_t ringbuffer_insert(ringbuffer_t* rb, const uint8_t* p, size_t length) {
   inc_func_call_count(__func__);
   return test::mock::osi_ringbuffer::ringbuffer_insert(rb, p, length);
 }
-size_t ringbuffer_peek(const ringbuffer_t* rb, off_t offset, uint8_t* p, size_t length) {
+size_t ringbuffer_peek(const ringbuffer_t* rb, off_t offset, uint8_t* p,
+                       size_t length) {
   inc_func_call_count(__func__);
   return test::mock::osi_ringbuffer::ringbuffer_peek(rb, offset, p, length);
 }

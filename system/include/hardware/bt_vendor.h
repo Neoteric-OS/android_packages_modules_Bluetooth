@@ -63,7 +63,6 @@
 #define ANDROID_INCLUDE_BT_VENDOR_H
 
 #include <hardware/bluetooth.h>
-
 #include <vector>
 
 __BEGIN_DECLS
@@ -86,7 +85,8 @@ typedef void (*ssr_vendor_callback)(void);
 
 /** Callback to notify the remote device vendor properties.
  */
-typedef void (*adapter_vendor_prop_callback)(bt_status_t status, int num_properties,
+typedef void (*adapter_vendor_prop_callback)(bt_status_t status,
+                                             int num_properties,
                                              bt_vendor_property_t* properties);
 
 /** BT-Vendor callback structure. */

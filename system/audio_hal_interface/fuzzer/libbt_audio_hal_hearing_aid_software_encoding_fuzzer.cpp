@@ -30,7 +30,9 @@ constexpr int32_t kPropertyValueMax = 92;
 constexpr int32_t kMaxBytes = 1000;
 
 extern "C" {
-struct android_namespace_t* android_get_exported_namespace(const char*) { return nullptr; }
+struct android_namespace_t* android_get_exported_namespace(const char*) {
+  return nullptr;
+}
 }
 
 static void source_init_delayed(void) {}
@@ -40,8 +42,8 @@ bool hearingAidOnResumeReq(bool /*start_media_task*/) { return true; }
 bool hearingAidOnSuspendReq() { return true; }
 
 auto streamCb = bluetooth::audio::hearing_aid::StreamCallbacks{
-        .on_resume_ = hearingAidOnResumeReq,
-        .on_suspend_ = hearingAidOnSuspendReq,
+    .on_resume_ = hearingAidOnResumeReq,
+    .on_suspend_ = hearingAidOnSuspendReq,
 };
 
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {

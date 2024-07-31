@@ -22,24 +22,26 @@ namespace bluetooth {
 namespace avrcp {
 
 class PlayItemResponseBuilder : public VendorPacketBuilder {
-public:
+ public:
   virtual ~PlayItemResponseBuilder() = default;
 
   static std::unique_ptr<PlayItemResponseBuilder> MakeBuilder(Status status);
 
   virtual size_t size() const override;
-  virtual bool Serialize(const std::shared_ptr<::bluetooth::Packet>& pkt) override;
+  virtual bool Serialize(
+      const std::shared_ptr<::bluetooth::Packet>& pkt) override;
 
-protected:
+ protected:
   Status status_;
 
   PlayItemResponseBuilder(Status status)
-      : VendorPacketBuilder(CType::ACCEPTED, CommandPdu::PLAY_ITEM, PacketType::SINGLE),
-        status_(status) {}
+      : VendorPacketBuilder(CType::ACCEPTED, CommandPdu::PLAY_ITEM,
+                            PacketType::SINGLE),
+        status_(status){};
 };
 
 class PlayItemRequest : public VendorPacket {
-public:
+ public:
   virtual ~PlayItemRequest() = default;
 
   /**
@@ -68,9 +70,9 @@ public:
   virtual bool IsValid() const override;
   virtual std::string ToString() const override;
 
-protected:
+ protected:
   using VendorPacket::VendorPacket;
 };
 
-} // namespace avrcp
-} // namespace bluetooth
+}  // namespace avrcp
+}  // namespace bluetooth

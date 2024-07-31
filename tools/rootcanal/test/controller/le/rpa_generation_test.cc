@@ -23,14 +23,15 @@ namespace rootcanal {
 using namespace bluetooth::hci;
 
 class RpaGenerationTest : public ::testing::Test {
-public:
+ public:
   RpaGenerationTest() = default;
   ~RpaGenerationTest() override = default;
 };
 
 TEST_F(RpaGenerationTest, Test) {
   std::array<uint8_t, rootcanal::LinkLayerController::kIrkSize> irk = {
-          0x0, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf,
+      0x0, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7,
+      0x8, 0x9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf,
   };
 
   AddressWithType rpa{rootcanal::LinkLayerController::generate_rpa(irk),
@@ -40,4 +41,4 @@ TEST_F(RpaGenerationTest, Test) {
   ASSERT_TRUE(rpa.IsRpaThatMatchesIrk(irk));
 }
 
-} // namespace rootcanal
+}  // namespace rootcanal

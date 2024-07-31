@@ -90,4 +90,4 @@ const auto sdp_result_text = sdp_status_text;
 namespace fmt {
 template <>
 struct formatter<tSDP_STATUS> : enum_formatter<tSDP_STATUS> {};
-} // namespace fmt
+}  // namespace fmt

@@ -28,14 +28,17 @@ namespace bluetooth {
 
 constexpr std::chrono::milliseconds kModuleStopTimeout = std::chrono::milliseconds(2000);
 
-ModuleFactory::ModuleFactory(std::function<Module*()> ctor) : ctor_(ctor) {}
+ModuleFactory::ModuleFactory(std::function<Module*()> ctor) : ctor_(ctor) {
+}
 
 Handler* Module::GetHandler() const {
   log::assert_that(handler_ != nullptr, "Can't get handler when it's not started");
   return handler_;
 }
 
-const ModuleRegistry* Module::GetModuleRegistry() const { return registry_; }
+const ModuleRegistry* Module::GetModuleRegistry() const {
+  return registry_;
+}
 
 Module* Module::GetDependency(const ModuleFactory* module) const {
   for (auto& dependency : dependencies_.list_) {
@@ -48,7 +51,7 @@ Module* Module::GetDependency(const ModuleFactory* module) const {
 }
 
 bluetooth::DumpsysDataFinisher EmptyDumpsysDataFinisher =
-        [](bluetooth::DumpsysDataBuilder* /* dumpsys_data_builder */) {};
+    [](bluetooth::DumpsysDataBuilder* /* dumpsys_data_builder */) {};
 
 DumpsysDataFinisher Module::GetDumpsysData(flatbuffers::FlatBufferBuilder* /* builder */) const {
   return EmptyDumpsysDataFinisher;
@@ -56,8 +59,9 @@ DumpsysDataFinisher Module::GetDumpsysData(flatbuffers::FlatBufferBuilder* /* bu
 
 Module* ModuleRegistry::Get(const ModuleFactory* module) const {
   auto instance = started_modules_.find(module);
-  log::assert_that(instance != started_modules_.end(),
-                   "Request for module not started up, maybe not in Start(ModuleList)?");
+  log::assert_that(
+      instance != started_modules_.end(),
+      "Request for module not started up, maybe not in Start(ModuleList)?");
   return instance->second;
 }
 
@@ -101,12 +105,11 @@ Module* ModuleRegistry::Start(const ModuleFactory* module, Thread* thread) {
 }
 
 void ModuleRegistry::StopAll() {
-  // Since modules were brought up in dependency order, it is safe to tear down by going in reverse
-  // order.
+  // Since modules were brought up in dependency order, it is safe to tear down by going in reverse order.
   for (auto it = start_order_.rbegin(); it != start_order_.rend(); it++) {
     auto instance = started_modules_.find(*it);
-    log::assert_that(instance != started_modules_.end(),
-                     "assert failed: instance != started_modules_.end()");
+    log::assert_that(
+        instance != started_modules_.end(), "assert failed: instance != started_modules_.end()");
     last_instance_ = "stopping " + instance->second->ToString();
 
     // Clear the handler before stopping the module to allow it to shut down gracefully.
@@ -118,8 +121,8 @@ void ModuleRegistry::StopAll() {
   }
   for (auto it = start_order_.rbegin(); it != start_order_.rend(); it++) {
     auto instance = started_modules_.find(*it);
-    log::assert_that(instance != started_modules_.end(),
-                     "assert failed: instance != started_modules_.end()");
+    log::assert_that(
+        instance != started_modules_.end(), "assert failed: instance != started_modules_.end()");
     delete instance->second->handler_;
     delete instance->second;
     started_modules_.erase(instance);
@@ -137,4 +140,4 @@ os::Handler* ModuleRegistry::GetModuleHandler(const ModuleFactory* module) const
   return nullptr;
 }
 
-} // namespace bluetooth
+}  // namespace bluetooth

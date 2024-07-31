@@ -26,6 +26,7 @@
 #include <base/functional/callback.h>
 #include <bluetooth/log.h>
 #include <frameworks/proto_logging/stats/enums/bluetooth/enums.pb.h>
+#include <bluetooth/log.h>
 
 #include <string>
 
@@ -49,14 +50,20 @@ using namespace bluetooth;
 /*            L O C A L    F U N C T I O N     P R O T O T Y P E S            */
 /******************************************************************************/
 static void l2c_csm_closed(tL2C_CCB* p_ccb, tL2CEVT event, void* p_data);
-static void l2c_csm_orig_w4_sec_comp(tL2C_CCB* p_ccb, tL2CEVT event, void* p_data);
-static void l2c_csm_term_w4_sec_comp(tL2C_CCB* p_ccb, tL2CEVT event, void* p_data);
-static void l2c_csm_w4_l2cap_connect_rsp(tL2C_CCB* p_ccb, tL2CEVT event, void* p_data);
-static void l2c_csm_w4_l2ca_connect_rsp(tL2C_CCB* p_ccb, tL2CEVT event, void* p_data);
+static void l2c_csm_orig_w4_sec_comp(tL2C_CCB* p_ccb, tL2CEVT event,
+                                     void* p_data);
+static void l2c_csm_term_w4_sec_comp(tL2C_CCB* p_ccb, tL2CEVT event,
+                                     void* p_data);
+static void l2c_csm_w4_l2cap_connect_rsp(tL2C_CCB* p_ccb, tL2CEVT event,
+                                         void* p_data);
+static void l2c_csm_w4_l2ca_connect_rsp(tL2C_CCB* p_ccb, tL2CEVT event,
+                                        void* p_data);
 static void l2c_csm_config(tL2C_CCB* p_ccb, tL2CEVT event, void* p_data);
 static void l2c_csm_open(tL2C_CCB* p_ccb, tL2CEVT event, void* p_data);
-static void l2c_csm_w4_l2cap_disconnect_rsp(tL2C_CCB* p_ccb, tL2CEVT event, void* p_data);
-static void l2c_csm_w4_l2ca_disconnect_rsp(tL2C_CCB* p_ccb, tL2CEVT event, void* p_data);
+static void l2c_csm_w4_l2cap_disconnect_rsp(tL2C_CCB* p_ccb, tL2CEVT event,
+                                            void* p_data);
+static void l2c_csm_w4_l2ca_disconnect_rsp(tL2C_CCB* p_ccb, tL2CEVT event,
+                                           void* p_data);
 
 static const char* l2c_csm_get_event_name(tL2CEVT event);
 
@@ -98,18 +105,20 @@ static void l2c_csm_indicate_connection_open(tL2C_CCB* p_ccb) {
     (*p_ccb->p_rcb->api.pL2CA_ConnectCfm_Cb)(p_ccb->local_cid, L2CAP_CONN_OK);
   } else {
     if (*p_ccb->p_rcb->api.pL2CA_ConnectInd_Cb) {
-      (*p_ccb->p_rcb->api.pL2CA_ConnectInd_Cb)(p_ccb->p_lcb->remote_bd_addr, p_ccb->local_cid,
-                                               p_ccb->p_rcb->psm, p_ccb->remote_id);
+      (*p_ccb->p_rcb->api.pL2CA_ConnectInd_Cb)(
+          p_ccb->p_lcb->remote_bd_addr, p_ccb->local_cid, p_ccb->p_rcb->psm,
+          p_ccb->remote_id);
     } else {
       log::warn("pL2CA_ConnectInd_Cb is null");
     }
   }
   if (p_ccb->chnl_state == CST_OPEN && !p_ccb->p_lcb->is_transport_ble()) {
-    (*p_ccb->p_rcb->api.pL2CA_ConfigCfm_Cb)(p_ccb->local_cid, p_ccb->connection_initiator,
-                                            &p_ccb->peer_cfg);
+    (*p_ccb->p_rcb->api.pL2CA_ConfigCfm_Cb)(
+        p_ccb->local_cid, p_ccb->connection_initiator, &p_ccb->peer_cfg);
   }
   power_telemetry::GetInstance().LogChannelConnected(
-          p_ccb->p_rcb->psm, p_ccb->local_cid, p_ccb->remote_id, p_ccb->p_lcb->remote_bd_addr);
+      p_ccb->p_rcb->psm, p_ccb->local_cid, p_ccb->remote_id,
+      p_ccb->p_lcb->remote_bd_addr);
 }
 
 /*******************************************************************************
@@ -135,8 +144,9 @@ void l2c_csm_execute(tL2C_CCB* p_ccb, tL2CEVT event, void* p_data) {
   // Log all but data events
   if (event != L2CEVT_L2CAP_DATA && event != L2CEVT_L2CA_DATA_READ &&
       event != L2CEVT_L2CA_DATA_WRITE) {
-    log::info("Enter CSM, chnl_state:{} [{}], event:{} [{}]", channel_state_text(p_ccb->chnl_state),
-              p_ccb->chnl_state, l2c_csm_get_event_name(event), event);
+    log::info("Enter CSM, chnl_state:{} [{}], event:{} [{}]",
+              channel_state_text(p_ccb->chnl_state), p_ccb->chnl_state,
+              l2c_csm_get_event_name(event), event);
   }
 
   switch (p_ccb->chnl_state) {
@@ -199,15 +209,13 @@ static void l2c_csm_closed(tL2C_CCB* p_ccb, tL2CEVT event, void* p_data) {
   tL2CA_DISCONNECT_IND_CB* disconnect_ind;
 
   if (p_ccb->p_rcb == NULL) {
-    log::error("LCID: 0x{:04x}  st: CLOSED  evt: {} p_rcb == NULL", p_ccb->local_cid,
-               l2c_csm_get_event_name(event));
+    log::error("LCID: 0x{:04x}  st: CLOSED  evt: {} p_rcb == NULL", p_ccb->local_cid, l2c_csm_get_event_name(event));
     return;
   }
 
   disconnect_ind = p_ccb->p_rcb->api.pL2CA_DisconnectInd_Cb;
 
-  log::debug("LCID: 0x{:04x}  st: CLOSED  evt: {}", p_ccb->local_cid,
-             l2c_csm_get_event_name(event));
+  log::debug("LCID: 0x{:04x}  st: CLOSED  evt: {}", p_ccb->local_cid, l2c_csm_get_event_name(event));
 
   switch (event) {
     case L2CEVT_LP_DISCONNECT_IND: /* Link was disconnected */
@@ -219,12 +227,13 @@ static void l2c_csm_closed(tL2C_CCB* p_ccb, tL2CEVT event, void* p_data) {
     case L2CEVT_LP_CONNECT_CFM: /* Link came up         */
       if (p_ccb->p_lcb->transport == BT_TRANSPORT_LE) {
         p_ccb->chnl_state = CST_ORIG_W4_SEC_COMP;
-        l2ble_sec_access_req(p_ccb->p_lcb->remote_bd_addr, p_ccb->p_rcb->psm, true,
-                             &l2c_link_sec_comp, p_ccb);
+        l2ble_sec_access_req(p_ccb->p_lcb->remote_bd_addr, p_ccb->p_rcb->psm,
+                             true, &l2c_link_sec_comp, p_ccb);
       } else {
         p_ccb->chnl_state = CST_ORIG_W4_SEC_COMP;
-        btm_sec_l2cap_access_req(p_ccb->p_lcb->remote_bd_addr, p_ccb->p_rcb->psm, true,
-                                 &l2c_link_sec_comp, p_ccb);
+        btm_sec_l2cap_access_req(p_ccb->p_lcb->remote_bd_addr,
+                                 p_ccb->p_rcb->psm, true, &l2c_link_sec_comp,
+                                 p_ccb);
       }
       break;
 
@@ -233,9 +242,12 @@ static void l2c_csm_closed(tL2C_CCB* p_ccb, tL2CEVT event, void* p_data) {
         btm_acl_notif_conn_collision(p_ccb->p_lcb->remote_bd_addr);
       } else {
         l2cu_release_ccb(p_ccb);
-        (*p_ccb->p_rcb->api.pL2CA_Error_Cb)(local_cid, L2CAP_CONN_ACL_CONNECTION_FAILED);
+        (*p_ccb->p_rcb->api.pL2CA_Error_Cb)(local_cid,
+                                            L2CAP_CONN_ACL_CONNECTION_FAILED);
         bluetooth::shim::CountCounterMetrics(
-                android::bluetooth::CodePathCounterKeyEnum::L2CAP_CONNECT_CONFIRM_NEG, 1);
+            android::bluetooth::CodePathCounterKeyEnum::
+                L2CAP_CONNECT_CONFIRM_NEG,
+            1);
       }
       break;
 
@@ -243,16 +255,17 @@ static void l2c_csm_closed(tL2C_CCB* p_ccb, tL2CEVT event, void* p_data) {
     case L2CEVT_L2CA_CONNECT_REQ:
       if (p_ccb->p_lcb->transport == BT_TRANSPORT_LE) {
         p_ccb->chnl_state = CST_ORIG_W4_SEC_COMP;
-        l2ble_sec_access_req(p_ccb->p_lcb->remote_bd_addr, p_ccb->p_rcb->psm, true,
-                             &l2c_link_sec_comp, p_ccb);
+        l2ble_sec_access_req(p_ccb->p_lcb->remote_bd_addr, p_ccb->p_rcb->psm,
+                             true, &l2c_link_sec_comp, p_ccb);
       } else {
         if (!BTM_SetLinkPolicyActiveMode(p_ccb->p_lcb->remote_bd_addr)) {
           log::warn("Unable to set link policy active");
         }
         /* If sec access does not result in started SEC_COM or COMP_NEG are
          * already processed */
-        if (btm_sec_l2cap_access_req(p_ccb->p_lcb->remote_bd_addr, p_ccb->p_rcb->psm, true,
-                                     &l2c_link_sec_comp, p_ccb) == BTM_CMD_STARTED) {
+        if (btm_sec_l2cap_access_req(
+                p_ccb->p_lcb->remote_bd_addr, p_ccb->p_rcb->psm, true,
+                &l2c_link_sec_comp, p_ccb) == BTM_CMD_STARTED) {
           p_ccb->chnl_state = CST_ORIG_W4_SEC_COMP;
         }
       }
@@ -267,13 +280,16 @@ static void l2c_csm_closed(tL2C_CCB* p_ccb, tL2CEVT event, void* p_data) {
         /* Need to have at least one compatible channel to continue */
         if (!l2c_fcr_chk_chan_modes(p_ccb)) {
           l2cu_release_ccb(p_ccb);
-          (*p_ccb->p_rcb->api.pL2CA_Error_Cb)(local_cid, L2CAP_CONN_OTHER_ERROR);
-          bluetooth::shim::CountCounterMetrics(android::bluetooth::CodePathCounterKeyEnum::
-                                                       L2CAP_NO_COMPATIBLE_CHANNEL_AT_CSM_CLOSED,
-                                               1);
+          (*p_ccb->p_rcb->api.pL2CA_Error_Cb)(local_cid,
+                                              L2CAP_CONN_OTHER_ERROR);
+          bluetooth::shim::CountCounterMetrics(
+              android::bluetooth::CodePathCounterKeyEnum::
+                  L2CAP_NO_COMPATIBLE_CHANNEL_AT_CSM_CLOSED,
+              1);
         } else {
           l2cu_send_peer_connect_req(p_ccb);
-          alarm_set_on_mloop(p_ccb->l2c_ccb_timer, L2CAP_CHNL_CONNECT_TIMEOUT_MS,
+          alarm_set_on_mloop(p_ccb->l2c_ccb_timer,
+                             L2CAP_CHNL_CONNECT_TIMEOUT_MS,
                              l2c_ccb_timer_timeout, p_ccb);
         }
       }
@@ -281,9 +297,12 @@ static void l2c_csm_closed(tL2C_CCB* p_ccb, tL2CEVT event, void* p_data) {
 
     case L2CEVT_SEC_COMP_NEG: /* something is really bad with security */
       l2cu_release_ccb(p_ccb);
-      (*p_ccb->p_rcb->api.pL2CA_Error_Cb)(local_cid, L2CAP_CONN_CLIENT_SECURITY_CLEARANCE_FAILED);
+      (*p_ccb->p_rcb->api.pL2CA_Error_Cb)(
+          local_cid, L2CAP_CONN_CLIENT_SECURITY_CLEARANCE_FAILED);
       bluetooth::shim::CountCounterMetrics(
-              android::bluetooth::CodePathCounterKeyEnum::L2CAP_SECURITY_NEG_AT_CSM_CLOSED, 1);
+          android::bluetooth::CodePathCounterKeyEnum::
+              L2CAP_SECURITY_NEG_AT_CSM_CLOSED,
+          1);
       break;
 
     case L2CEVT_L2CAP_CREDIT_BASED_CONNECT_REQ: /* Peer connect request */
@@ -295,7 +314,8 @@ static void l2c_csm_closed(tL2C_CCB* p_ccb, tL2CEVT event, void* p_data) {
       if (p_ccb->p_lcb->transport == BT_TRANSPORT_LE) {
         p_ccb->chnl_state = CST_TERM_W4_SEC_COMP;
         tL2CAP_LE_RESULT_CODE result = l2ble_sec_access_req(
-                p_ccb->p_lcb->remote_bd_addr, p_ccb->p_rcb->psm, false, &l2c_link_sec_comp, p_ccb);
+            p_ccb->p_lcb->remote_bd_addr, p_ccb->p_rcb->psm, false,
+            &l2c_link_sec_comp, p_ccb);
 
         switch (result) {
           case L2CAP_LE_RESULT_INSUFFICIENT_AUTHORIZATION:
@@ -319,8 +339,9 @@ static void l2c_csm_closed(tL2C_CCB* p_ccb, tL2CEVT event, void* p_data) {
           log::warn("Unable to set link policy active");
         }
         p_ccb->chnl_state = CST_TERM_W4_SEC_COMP;
-        auto status = btm_sec_l2cap_access_req(p_ccb->p_lcb->remote_bd_addr, p_ccb->p_rcb->psm,
-                                               false, &l2c_link_sec_comp, p_ccb);
+        auto status = btm_sec_l2cap_access_req(p_ccb->p_lcb->remote_bd_addr,
+                                               p_ccb->p_rcb->psm, false,
+                                               &l2c_link_sec_comp, p_ccb);
         if (status == BTM_CMD_STARTED) {
           // started the security process, tell the peer to set a longer timer
           l2cu_send_peer_connect_rsp(p_ccb, L2CAP_CONN_PENDING, 0);
@@ -334,7 +355,9 @@ static void l2c_csm_closed(tL2C_CCB* p_ccb, tL2CEVT event, void* p_data) {
       l2cu_release_ccb(p_ccb);
       (*p_ccb->p_rcb->api.pL2CA_Error_Cb)(local_cid, L2CAP_CONN_OTHER_ERROR);
       bluetooth::shim::CountCounterMetrics(
-              android::bluetooth::CodePathCounterKeyEnum::L2CAP_TIMEOUT_AT_CSM_CLOSED, 1);
+          android::bluetooth::CodePathCounterKeyEnum::
+              L2CAP_TIMEOUT_AT_CSM_CLOSED,
+          1);
       break;
 
     case L2CEVT_L2CAP_DATA:      /* Peer data packet rcvd    */
@@ -349,8 +372,7 @@ static void l2c_csm_closed(tL2C_CCB* p_ccb, tL2CEVT event, void* p_data) {
     default:
       log::error("Handling unexpected event:{}", l2c_csm_get_event_name(event));
   }
-  log::verbose("Exit chnl_state={} [{}], event={} [{}]", channel_state_text(p_ccb->chnl_state),
-               p_ccb->chnl_state, l2c_csm_get_event_name(event), event);
+  log::verbose("Exit chnl_state={} [{}], event={} [{}]", channel_state_text(p_ccb->chnl_state), p_ccb->chnl_state, l2c_csm_get_event_name(event), event);
 }
 
 /*******************************************************************************
@@ -363,13 +385,15 @@ static void l2c_csm_closed(tL2C_CCB* p_ccb, tL2CEVT event, void* p_data) {
  * Returns          void
  *
  ******************************************************************************/
-static void l2c_csm_orig_w4_sec_comp(tL2C_CCB* p_ccb, tL2CEVT event, void* p_data) {
-  tL2CA_DISCONNECT_IND_CB* disconnect_ind = p_ccb->p_rcb->api.pL2CA_DisconnectInd_Cb;
+static void l2c_csm_orig_w4_sec_comp(tL2C_CCB* p_ccb, tL2CEVT event,
+                                     void* p_data) {
+  tL2CA_DISCONNECT_IND_CB* disconnect_ind =
+      p_ccb->p_rcb->api.pL2CA_DisconnectInd_Cb;
   uint16_t local_cid = p_ccb->local_cid;
 
-  log::debug("{} - LCID: 0x{:04x}  st: ORIG_W4_SEC_COMP  evt: {}",
-             ((p_ccb->p_lcb) && (p_ccb->p_lcb->transport == BT_TRANSPORT_LE)) ? "LE " : "",
-             p_ccb->local_cid, l2c_csm_get_event_name(event));
+  log::debug("{} - LCID: 0x{:04x}  st: ORIG_W4_SEC_COMP  evt: {}", ((p_ccb->p_lcb) && (p_ccb->p_lcb->transport == BT_TRANSPORT_LE))
+                ? "LE "
+                : "", p_ccb->local_cid, l2c_csm_get_event_name(event));
 
   switch (event) {
     case L2CEVT_LP_DISCONNECT_IND: /* Link was disconnected */
@@ -381,11 +405,12 @@ static void l2c_csm_orig_w4_sec_comp(tL2C_CCB* p_ccb, tL2CEVT event, void* p_dat
     case L2CEVT_SEC_RE_SEND_CMD: /* BTM has enough info to proceed */
     case L2CEVT_LP_CONNECT_CFM:  /* Link came up         */
       if (p_ccb->p_lcb->transport == BT_TRANSPORT_LE) {
-        l2ble_sec_access_req(p_ccb->p_lcb->remote_bd_addr, p_ccb->p_rcb->psm, false,
-                             &l2c_link_sec_comp, p_ccb);
+        l2ble_sec_access_req(p_ccb->p_lcb->remote_bd_addr, p_ccb->p_rcb->psm,
+                             false, &l2c_link_sec_comp, p_ccb);
       } else {
-        btm_sec_l2cap_access_req(p_ccb->p_lcb->remote_bd_addr, p_ccb->p_rcb->psm, true,
-                                 &l2c_link_sec_comp, p_ccb);
+        btm_sec_l2cap_access_req(p_ccb->p_lcb->remote_bd_addr,
+                                 p_ccb->p_rcb->psm, true, &l2c_link_sec_comp,
+                                 p_ccb);
       }
       break;
 
@@ -402,12 +427,15 @@ static void l2c_csm_orig_w4_sec_comp(tL2C_CCB* p_ccb, tL2CEVT event, void* p_dat
           /* Need to have at least one compatible channel to continue */
           if (!l2c_fcr_chk_chan_modes(p_ccb)) {
             l2cu_release_ccb(p_ccb);
-            (*p_ccb->p_rcb->api.pL2CA_Error_Cb)(local_cid, L2CAP_CONN_OTHER_ERROR);
-            bluetooth::shim::CountCounterMetrics(android::bluetooth::CodePathCounterKeyEnum::
-                                                         L2CAP_NO_COMPATIBLE_CHANNEL_AT_W4_SEC,
-                                                 1);
+            (*p_ccb->p_rcb->api.pL2CA_Error_Cb)(local_cid,
+                                                L2CAP_CONN_OTHER_ERROR);
+            bluetooth::shim::CountCounterMetrics(
+                android::bluetooth::CodePathCounterKeyEnum::
+                    L2CAP_NO_COMPATIBLE_CHANNEL_AT_W4_SEC,
+                1);
           } else {
-            alarm_set_on_mloop(p_ccb->l2c_ccb_timer, L2CAP_CHNL_CONNECT_TIMEOUT_MS,
+            alarm_set_on_mloop(p_ccb->l2c_ccb_timer,
+                               L2CAP_CHNL_CONNECT_TIMEOUT_MS,
                                l2c_ccb_timer_timeout, p_ccb);
             l2cu_send_peer_connect_req(p_ccb); /* Start Connection     */
           }
@@ -424,9 +452,12 @@ static void l2c_csm_orig_w4_sec_comp(tL2C_CCB* p_ccb, tL2CEVT event, void* p_dat
       }
 
       l2cu_release_ccb(p_ccb);
-      (*p_ccb->p_rcb->api.pL2CA_Error_Cb)(local_cid, L2CAP_CONN_CLIENT_SECURITY_CLEARANCE_FAILED);
+      (*p_ccb->p_rcb->api.pL2CA_Error_Cb)(
+          local_cid, L2CAP_CONN_CLIENT_SECURITY_CLEARANCE_FAILED);
       bluetooth::shim::CountCounterMetrics(
-              android::bluetooth::CodePathCounterKeyEnum::L2CAP_SECURITY_NEG_AT_W4_SEC, 1);
+          android::bluetooth::CodePathCounterKeyEnum::
+              L2CAP_SECURITY_NEG_AT_W4_SEC,
+          1);
       break;
 
     case L2CEVT_L2CA_DATA_WRITE: /* Upper layer data to send */
@@ -444,8 +475,7 @@ static void l2c_csm_orig_w4_sec_comp(tL2C_CCB* p_ccb, tL2CEVT event, void* p_dat
     default:
       log::error("Handling unexpected event:{}", l2c_csm_get_event_name(event));
   }
-  log::verbose("Exit chnl_state={} [{}], event={} [{}]", channel_state_text(p_ccb->chnl_state),
-               p_ccb->chnl_state, l2c_csm_get_event_name(event), event);
+  log::verbose("Exit chnl_state={} [{}], event={} [{}]", channel_state_text(p_ccb->chnl_state), p_ccb->chnl_state, l2c_csm_get_event_name(event), event);
 }
 
 /*******************************************************************************
@@ -458,9 +488,9 @@ static void l2c_csm_orig_w4_sec_comp(tL2C_CCB* p_ccb, tL2CEVT event, void* p_dat
  * Returns          void
  *
  ******************************************************************************/
-static void l2c_csm_term_w4_sec_comp(tL2C_CCB* p_ccb, tL2CEVT event, void* p_data) {
-  log::debug("LCID: 0x{:04x}  st: TERM_W4_SEC_COMP  evt: {}", p_ccb->local_cid,
-             l2c_csm_get_event_name(event));
+static void l2c_csm_term_w4_sec_comp(tL2C_CCB* p_ccb, tL2CEVT event,
+                                     void* p_data) {
+  log::debug("LCID: 0x{:04x}  st: TERM_W4_SEC_COMP  evt: {}", p_ccb->local_cid, l2c_csm_get_event_name(event));
 
   switch (event) {
     case L2CEVT_LP_DISCONNECT_IND: /* Link was disconnected */
@@ -488,20 +518,17 @@ static void l2c_csm_term_w4_sec_comp(tL2C_CCB* p_ccb, tL2CEVT event, void* p_dat
         } else {
           if (p_ccb->ecoc) {
             /* Handle Credit Based Connection */
-            log::debug("Calling CreditBasedConnect_Ind_Cb(), num of cids: {}",
-                       p_ccb->p_lcb->pending_ecoc_conn_cnt);
+            log::debug("Calling CreditBasedConnect_Ind_Cb(), num of cids: {}", p_ccb->p_lcb->pending_ecoc_conn_cnt);
 
             std::vector<uint16_t> pending_cids;
             for (int i = 0; i < p_ccb->p_lcb->pending_ecoc_conn_cnt; i++) {
               uint16_t cid = p_ccb->p_lcb->pending_ecoc_connection_cids[i];
-              if (cid != 0) {
-                pending_cids.push_back(cid);
-              }
+              if (cid != 0) pending_cids.push_back(cid);
             }
 
             (*p_ccb->p_rcb->api.pL2CA_CreditBasedConnectInd_Cb)(
-                    p_ccb->p_lcb->remote_bd_addr, pending_cids, p_ccb->p_rcb->psm,
-                    p_ccb->peer_conn_cfg.mtu, p_ccb->remote_id);
+                p_ccb->p_lcb->remote_bd_addr, pending_cids, p_ccb->p_rcb->psm,
+                p_ccb->peer_conn_cfg.mtu, p_ccb->remote_id);
           } else {
             /* Handle BLE CoC */
             log::debug("Calling Connect_Ind_Cb(), CID: 0x{:04x}", p_ccb->local_cid);
@@ -535,15 +562,16 @@ static void l2c_csm_term_w4_sec_comp(tL2C_CCB* p_ccb, tL2CEVT event, void* p_dat
       if (((tL2C_CONN_INFO*)p_data)->status == BTM_DELAY_CHECK) {
         /* start a timer - encryption change not received before L2CAP connect
          * req */
-        alarm_set_on_mloop(p_ccb->l2c_ccb_timer, L2CAP_DELAY_CHECK_SM4_TIMEOUT_MS,
+        alarm_set_on_mloop(p_ccb->l2c_ccb_timer,
+                           L2CAP_DELAY_CHECK_SM4_TIMEOUT_MS,
                            l2c_ccb_timer_timeout, p_ccb);
       } else {
-        if (p_ccb->p_lcb->transport == BT_TRANSPORT_LE) {
-          l2cu_reject_ble_connection(p_ccb, p_ccb->remote_id,
-                                     L2CAP_LE_RESULT_INSUFFICIENT_AUTHENTICATION);
-        } else {
+        if (p_ccb->p_lcb->transport == BT_TRANSPORT_LE)
+          l2cu_reject_ble_connection(
+              p_ccb, p_ccb->remote_id,
+              L2CAP_LE_RESULT_INSUFFICIENT_AUTHENTICATION);
+        else
           l2cu_send_peer_connect_rsp(p_ccb, L2CAP_CONN_SECURITY_BLOCK, 0);
-        }
         l2cu_release_ccb(p_ccb);
       }
       break;
@@ -558,7 +586,8 @@ static void l2c_csm_term_w4_sec_comp(tL2C_CCB* p_ccb, tL2CEVT event, void* p_dat
       break;
 
     case L2CEVT_L2CAP_DISCONNECT_REQ: /* Peer disconnected request */
-      l2cu_send_peer_disc_rsp(p_ccb->p_lcb, p_ccb->remote_id, p_ccb->local_cid, p_ccb->remote_cid);
+      l2cu_send_peer_disc_rsp(p_ccb->p_lcb, p_ccb->remote_id, p_ccb->local_cid,
+                              p_ccb->remote_cid);
 
       /* Tell security manager to abort */
       btm_sec_abort_access_req(p_ccb->p_lcb->remote_bd_addr);
@@ -568,20 +597,20 @@ static void l2c_csm_term_w4_sec_comp(tL2C_CCB* p_ccb, tL2CEVT event, void* p_dat
 
     case L2CEVT_TIMEOUT:
       /* SM4 related. */
-      acl_disconnect_from_handle(p_ccb->p_lcb->Handle(), HCI_ERR_AUTH_FAILURE,
-                                 "stack::l2cap::l2c_csm::l2c_csm_term_w4_sec_comp Event timeout");
+      acl_disconnect_from_handle(
+          p_ccb->p_lcb->Handle(), HCI_ERR_AUTH_FAILURE,
+          "stack::l2cap::l2c_csm::l2c_csm_term_w4_sec_comp Event timeout");
       break;
 
     case L2CEVT_SEC_RE_SEND_CMD: /* BTM has enough info to proceed */
-      btm_sec_l2cap_access_req(p_ccb->p_lcb->remote_bd_addr, p_ccb->p_rcb->psm, false,
-                               &l2c_link_sec_comp, p_ccb);
+      btm_sec_l2cap_access_req(p_ccb->p_lcb->remote_bd_addr, p_ccb->p_rcb->psm,
+                               false, &l2c_link_sec_comp, p_ccb);
       break;
 
     default:
       log::error("Handling unexpected event:{}", l2c_csm_get_event_name(event));
   }
-  log::verbose("Exit chnl_state={} [{}], event={} [{}]", channel_state_text(p_ccb->chnl_state),
-               p_ccb->chnl_state, l2c_csm_get_event_name(event), event);
+  log::verbose("Exit chnl_state={} [{}], event={} [{}]", channel_state_text(p_ccb->chnl_state), p_ccb->chnl_state, l2c_csm_get_event_name(event), event);
 }
 
 /*******************************************************************************
@@ -594,16 +623,17 @@ static void l2c_csm_term_w4_sec_comp(tL2C_CCB* p_ccb, tL2CEVT event, void* p_dat
  * Returns          void
  *
  ******************************************************************************/
-static void l2c_csm_w4_l2cap_connect_rsp(tL2C_CCB* p_ccb, tL2CEVT event, void* p_data) {
+static void l2c_csm_w4_l2cap_connect_rsp(tL2C_CCB* p_ccb, tL2CEVT event,
+                                         void* p_data) {
   tL2C_CONN_INFO* p_ci = (tL2C_CONN_INFO*)p_data;
-  tL2CA_DISCONNECT_IND_CB* disconnect_ind = p_ccb->p_rcb->api.pL2CA_DisconnectInd_Cb;
+  tL2CA_DISCONNECT_IND_CB* disconnect_ind =
+      p_ccb->p_rcb->api.pL2CA_DisconnectInd_Cb;
   tL2CA_CREDIT_BASED_CONNECT_CFM_CB* credit_based_connect_cfm =
-          p_ccb->p_rcb->api.pL2CA_CreditBasedConnectCfm_Cb;
+      p_ccb->p_rcb->api.pL2CA_CreditBasedConnectCfm_Cb;
   uint16_t local_cid = p_ccb->local_cid;
   tL2C_LCB* p_lcb = p_ccb->p_lcb;
 
-  log::debug("LCID: 0x{:04x}  st: W4_L2CAP_CON_RSP  evt: {}", p_ccb->local_cid,
-             l2c_csm_get_event_name(event));
+  log::debug("LCID: 0x{:04x}  st: W4_L2CAP_CON_RSP  evt: {}", p_ccb->local_cid, l2c_csm_get_event_name(event));
 
   switch (event) {
     case L2CEVT_LP_DISCONNECT_IND: /* Link was disconnected */
@@ -633,8 +663,8 @@ static void l2c_csm_w4_l2cap_connect_rsp(tL2C_CCB* p_ccb, tL2CEVT event, void* p
         l2c_csm_execute(p_ccb, L2CEVT_L2CA_CONNECT_RSP, NULL);
       } else {
         p_ccb->chnl_state = CST_CONFIG;
-        alarm_set_on_mloop(p_ccb->l2c_ccb_timer, L2CAP_CHNL_CFG_TIMEOUT_MS, l2c_ccb_timer_timeout,
-                           p_ccb);
+        alarm_set_on_mloop(p_ccb->l2c_ccb_timer, L2CAP_CHNL_CFG_TIMEOUT_MS,
+                           l2c_ccb_timer_timeout, p_ccb);
       }
       log::debug("Calling Connect_Cfm_Cb(), CID: 0x{:04x}, Success", p_ccb->local_cid);
 
@@ -643,40 +673,43 @@ static void l2c_csm_w4_l2cap_connect_rsp(tL2C_CCB* p_ccb, tL2CEVT event, void* p
 
     case L2CEVT_L2CAP_CONNECT_RSP_PND: /* Got peer connect pending */
       p_ccb->remote_cid = p_ci->remote_cid;
-      alarm_set_on_mloop(p_ccb->l2c_ccb_timer, L2CAP_CHNL_CONNECT_EXT_TIMEOUT_MS,
+      alarm_set_on_mloop(p_ccb->l2c_ccb_timer,
+                         L2CAP_CHNL_CONNECT_EXT_TIMEOUT_MS,
                          l2c_ccb_timer_timeout, p_ccb);
       break;
 
     case L2CEVT_L2CAP_CREDIT_BASED_CONNECT_RSP:
       alarm_cancel(p_ccb->l2c_ccb_timer);
       p_ccb->chnl_state = CST_OPEN;
-      log::debug("Calling credit_based_connect_cfm(),cid {}, result 0x{:04x}", p_ccb->local_cid,
-                 L2CAP_CONN_OK);
+      log::debug("Calling credit_based_connect_cfm(),cid {}, result 0x{:04x}", p_ccb->local_cid, L2CAP_CONN_OK);
 
-      (*credit_based_connect_cfm)(p_lcb->remote_bd_addr, p_ccb->local_cid, p_ci->peer_mtu,
-                                  L2CAP_CONN_OK);
+      (*credit_based_connect_cfm)(p_lcb->remote_bd_addr, p_ccb->local_cid,
+                                  p_ci->peer_mtu, L2CAP_CONN_OK);
       break;
 
     case L2CEVT_L2CAP_CREDIT_BASED_CONNECT_RSP_NEG:
       log::debug("Calling pL2CA_Error_Cb(),cid {}, result 0x{:04x}", local_cid, p_ci->l2cap_result);
       (*p_ccb->p_rcb->api.pL2CA_Error_Cb)(local_cid, p_ci->l2cap_result);
       bluetooth::shim::CountCounterMetrics(
-              android::bluetooth::CodePathCounterKeyEnum::L2CAP_CREDIT_BASED_CONNECT_RSP_NEG, 1);
+          android::bluetooth::CodePathCounterKeyEnum::
+              L2CAP_CREDIT_BASED_CONNECT_RSP_NEG,
+          1);
 
       l2cu_release_ccb(p_ccb);
       break;
 
     case L2CEVT_L2CAP_CONNECT_RSP_NEG: /* Peer rejected connection */
-      log::warn("L2CAP connection rejected, lcid=0x{:x}, reason=0x{:x}", p_ccb->local_cid,
-                p_ci->l2cap_result);
+      log::warn("L2CAP connection rejected, lcid=0x{:x}, reason=0x{:x}",
+                p_ccb->local_cid, p_ci->l2cap_result);
       l2cu_release_ccb(p_ccb);
       if (p_lcb->transport == BT_TRANSPORT_LE) {
-        (*p_ccb->p_rcb->api.pL2CA_Error_Cb)(local_cid, le_result_to_l2c_conn(p_ci->l2cap_result));
+        (*p_ccb->p_rcb->api.pL2CA_Error_Cb)(
+            local_cid, le_result_to_l2c_conn(p_ci->l2cap_result));
       } else {
         (*p_ccb->p_rcb->api.pL2CA_Error_Cb)(local_cid, L2CAP_CONN_OTHER_ERROR);
       }
       bluetooth::shim::CountCounterMetrics(
-              android::bluetooth::CodePathCounterKeyEnum::L2CAP_CONNECT_RSP_NEG, 1);
+          android::bluetooth::CodePathCounterKeyEnum::L2CAP_CONNECT_RSP_NEG, 1);
       break;
 
     case L2CEVT_TIMEOUT:
@@ -687,21 +720,26 @@ static void l2c_csm_w4_l2cap_connect_rsp(tL2C_CCB* p_ccb, tL2CEVT event, void* p
           uint16_t cid = p_lcb->pending_ecoc_connection_cids[i];
           tL2C_CCB* temp_p_ccb = l2cu_find_ccb_by_cid(p_lcb, cid);
           log::warn("lcid= 0x{:x}", cid);
-          (*p_ccb->p_rcb->api.pL2CA_Error_Cb)(p_ccb->local_cid, L2CAP_CONN_TIMEOUT);
+          (*p_ccb->p_rcb->api.pL2CA_Error_Cb)(p_ccb->local_cid,
+                                              L2CAP_CONN_TIMEOUT);
           bluetooth::shim::CountCounterMetrics(
-                  android::bluetooth::CodePathCounterKeyEnum::L2CAP_TIMEOUT_AT_CONNECT_RSP, 1);
+              android::bluetooth::CodePathCounterKeyEnum::
+                  L2CAP_TIMEOUT_AT_CONNECT_RSP,
+              1);
           l2cu_release_ccb(temp_p_ccb);
         }
         p_lcb->pending_ecoc_conn_cnt = 0;
-        memset(p_lcb->pending_ecoc_connection_cids, 0, L2CAP_CREDIT_BASED_MAX_CIDS);
+        memset(p_lcb->pending_ecoc_connection_cids, 0,
+               L2CAP_CREDIT_BASED_MAX_CIDS);
 
       } else {
         log::warn("lcid= 0x{:x}", p_ccb->local_cid);
         l2cu_release_ccb(p_ccb);
         (*p_ccb->p_rcb->api.pL2CA_Error_Cb)(local_cid, L2CAP_CONN_OTHER_ERROR);
         bluetooth::shim::CountCounterMetrics(
-                android::bluetooth::CodePathCounterKeyEnum::L2CAP_CONN_OTHER_ERROR_AT_CONNECT_RSP,
-                1);
+            android::bluetooth::CodePathCounterKeyEnum::
+                L2CAP_CONN_OTHER_ERROR_AT_CONNECT_RSP,
+            1);
       }
       break;
 
@@ -710,10 +748,12 @@ static void l2c_csm_w4_l2cap_connect_rsp(tL2C_CCB* p_ccb, tL2CEVT event, void* p
       if (p_ccb->remote_cid != 0) {
         l2cu_send_peer_disc_req(p_ccb);
         p_ccb->chnl_state = CST_W4_L2CAP_DISCONNECT_RSP;
-        alarm_set_on_mloop(p_ccb->l2c_ccb_timer, L2CAP_CHNL_DISCONNECT_TIMEOUT_MS,
+        alarm_set_on_mloop(p_ccb->l2c_ccb_timer,
+                           L2CAP_CHNL_DISCONNECT_TIMEOUT_MS,
                            l2c_ccb_timer_timeout, p_ccb);
       } else {
-        tL2CA_DISCONNECT_CFM_CB* disconnect_cfm = p_ccb->p_rcb->api.pL2CA_DisconnectCfm_Cb;
+        tL2CA_DISCONNECT_CFM_CB* disconnect_cfm =
+            p_ccb->p_rcb->api.pL2CA_DisconnectCfm_Cb;
         l2cu_release_ccb(p_ccb);
         if (disconnect_cfm != nullptr) {
           (*disconnect_cfm)(local_cid, L2CAP_CONN_NO_LINK);
@@ -732,8 +772,9 @@ static void l2c_csm_w4_l2cap_connect_rsp(tL2C_CCB* p_ccb, tL2CEVT event, void* p
         l2cu_release_ccb(p_ccb);
         (*p_ccb->p_rcb->api.pL2CA_Error_Cb)(local_cid, L2CAP_CONN_OTHER_ERROR);
         bluetooth::shim::CountCounterMetrics(
-                android::bluetooth::CodePathCounterKeyEnum::L2CAP_INFO_NO_COMPATIBLE_CHANNEL_AT_RSP,
-                1);
+            android::bluetooth::CodePathCounterKeyEnum::
+                L2CAP_INFO_NO_COMPATIBLE_CHANNEL_AT_RSP,
+            1);
       } else {
         /* We have feature info, so now send peer connect request */
         alarm_set_on_mloop(p_ccb->l2c_ccb_timer, L2CAP_CHNL_CONNECT_TIMEOUT_MS,
@@ -745,8 +786,7 @@ static void l2c_csm_w4_l2cap_connect_rsp(tL2C_CCB* p_ccb, tL2CEVT event, void* p
     default:
       log::error("Handling unexpected event:{}", l2c_csm_get_event_name(event));
   }
-  log::verbose("Exit chnl_state={} [{}], event={} [{}]", channel_state_text(p_ccb->chnl_state),
-               p_ccb->chnl_state, l2c_csm_get_event_name(event), event);
+  log::verbose("Exit chnl_state={} [{}], event={} [{}]", channel_state_text(p_ccb->chnl_state), p_ccb->chnl_state, l2c_csm_get_event_name(event), event);
 }
 
 /*******************************************************************************
@@ -759,14 +799,15 @@ static void l2c_csm_w4_l2cap_connect_rsp(tL2C_CCB* p_ccb, tL2CEVT event, void* p
  * Returns          void
  *
  ******************************************************************************/
-static void l2c_csm_w4_l2ca_connect_rsp(tL2C_CCB* p_ccb, tL2CEVT event, void* p_data) {
+static void l2c_csm_w4_l2ca_connect_rsp(tL2C_CCB* p_ccb, tL2CEVT event,
+                                        void* p_data) {
   tL2C_CONN_INFO* p_ci;
   tL2C_LCB* p_lcb = p_ccb->p_lcb;
-  tL2CA_DISCONNECT_IND_CB* disconnect_ind = p_ccb->p_rcb->api.pL2CA_DisconnectInd_Cb;
+  tL2CA_DISCONNECT_IND_CB* disconnect_ind =
+      p_ccb->p_rcb->api.pL2CA_DisconnectInd_Cb;
   uint16_t local_cid = p_ccb->local_cid;
 
-  log::debug("LCID: 0x{:04x}  st: W4_L2CA_CON_RSP  evt: {}", p_ccb->local_cid,
-             l2c_csm_get_event_name(event));
+  log::debug("LCID: 0x{:04x}  st: W4_L2CA_CON_RSP  evt: {}", p_ccb->local_cid, l2c_csm_get_event_name(event));
 
   switch (event) {
     case L2CEVT_LP_DISCONNECT_IND: /* Link was disconnected */
@@ -781,14 +822,15 @@ static void l2c_csm_w4_l2ca_connect_rsp(tL2C_CCB* p_ccb, tL2CEVT event, void* p_
         log::warn("LE link doesn't exist");
         return;
       }
-      l2cu_send_peer_credit_based_conn_res(p_ccb, p_ci->lcids, p_ci->l2cap_result);
+      l2cu_send_peer_credit_based_conn_res(p_ccb, p_ci->lcids,
+                                           p_ci->l2cap_result);
       alarm_cancel(p_ccb->l2c_ccb_timer);
 
       for (int i = 0; i < p_lcb->pending_ecoc_conn_cnt; i++) {
         uint16_t cid = p_lcb->pending_ecoc_connection_cids[i];
         if (cid == 0) {
-          log::warn("pending_ecoc_connection_cids[{}] is {}", i, cid);
-          continue;
+            log::warn("pending_ecoc_connection_cids[{}] is {}", i, cid);
+            continue;
         }
 
         tL2C_CCB* temp_p_ccb = l2cu_find_ccb_by_cid(p_lcb, cid);
@@ -799,12 +841,14 @@ static void l2c_csm_w4_l2ca_connect_rsp(tL2C_CCB* p_ccb, tL2CEVT event, void* p_
           } else {
             l2cu_release_ccb(temp_p_ccb);
           }
-        } else {
-          log::warn("temp_p_ccb is NULL, pending_ecoc_connection_cids[{}] is {}", i, cid);
+        }
+        else {
+            log::warn("temp_p_ccb is NULL, pending_ecoc_connection_cids[{}] is {}", i, cid);
         }
       }
       p_lcb->pending_ecoc_conn_cnt = 0;
-      memset(p_lcb->pending_ecoc_connection_cids, 0, L2CAP_CREDIT_BASED_MAX_CIDS);
+      memset(p_lcb->pending_ecoc_connection_cids, 0,
+             L2CAP_CREDIT_BASED_MAX_CIDS);
 
       break;
     case L2CEVT_L2CA_CONNECT_RSP:
@@ -825,14 +869,15 @@ static void l2c_csm_w4_l2ca_connect_rsp(tL2C_CCB* p_ccb, tL2CEVT event, void* p_
           log::debug("Sending connection ok for BR_EDR");
           l2cu_send_peer_connect_rsp(p_ccb, L2CAP_CONN_OK, 0);
           p_ccb->chnl_state = CST_CONFIG;
-          alarm_set_on_mloop(p_ccb->l2c_ccb_timer, L2CAP_CHNL_CFG_TIMEOUT_MS, l2c_ccb_timer_timeout,
-                             p_ccb);
+          alarm_set_on_mloop(p_ccb->l2c_ccb_timer, L2CAP_CHNL_CFG_TIMEOUT_MS,
+                             l2c_ccb_timer_timeout, p_ccb);
         } else {
           /* If pending, stay in same state and start extended timer */
-          log::debug("Sending connection result {} and status {}", p_ci->l2cap_result,
-                     p_ci->l2cap_status);
-          l2cu_send_peer_connect_rsp(p_ccb, p_ci->l2cap_result, p_ci->l2cap_status);
-          alarm_set_on_mloop(p_ccb->l2c_ccb_timer, L2CAP_CHNL_CONNECT_EXT_TIMEOUT_MS,
+          log::debug("Sending connection result {} and status {}", p_ci->l2cap_result, p_ci->l2cap_status);
+          l2cu_send_peer_connect_rsp(p_ccb, p_ci->l2cap_result,
+                                     p_ci->l2cap_status);
+          alarm_set_on_mloop(p_ccb->l2c_ccb_timer,
+                             L2CAP_CHNL_CONNECT_EXT_TIMEOUT_MS,
                              l2c_ccb_timer_timeout, p_ccb);
         }
       }
@@ -843,7 +888,8 @@ static void l2c_csm_w4_l2ca_connect_rsp(tL2C_CCB* p_ccb, tL2CEVT event, void* p_
       alarm_cancel(p_ccb->l2c_ccb_timer);
       if (p_lcb != nullptr) {
         if (p_lcb->transport == BT_TRANSPORT_LE) {
-          l2cu_send_peer_credit_based_conn_res(p_ccb, p_ci->lcids, p_ci->l2cap_result);
+          l2cu_send_peer_credit_based_conn_res(p_ccb, p_ci->lcids,
+                                               p_ci->l2cap_result);
         }
         for (int i = 0; i < p_lcb->pending_ecoc_conn_cnt; i++) {
           uint16_t cid = p_lcb->pending_ecoc_connection_cids[i];
@@ -852,16 +898,17 @@ static void l2c_csm_w4_l2ca_connect_rsp(tL2C_CCB* p_ccb, tL2CEVT event, void* p_
         }
 
         p_lcb->pending_ecoc_conn_cnt = 0;
-        memset(p_lcb->pending_ecoc_connection_cids, 0, L2CAP_CREDIT_BASED_MAX_CIDS);
+        memset(p_lcb->pending_ecoc_connection_cids, 0,
+               L2CAP_CREDIT_BASED_MAX_CIDS);
       }
       break;
     case L2CEVT_L2CA_CONNECT_RSP_NEG:
       p_ci = (tL2C_CONN_INFO*)p_data;
-      if (p_ccb->p_lcb->transport == BT_TRANSPORT_LE) {
+      if (p_ccb->p_lcb->transport == BT_TRANSPORT_LE)
         l2cble_credit_based_conn_res(p_ccb, p_ci->l2cap_result);
-      } else {
-        l2cu_send_peer_connect_rsp(p_ccb, p_ci->l2cap_result, p_ci->l2cap_status);
-      }
+      else
+        l2cu_send_peer_connect_rsp(p_ccb, p_ci->l2cap_result,
+                                   p_ci->l2cap_status);
       l2cu_release_ccb(p_ccb);
       break;
 
@@ -886,8 +933,8 @@ static void l2c_csm_w4_l2ca_connect_rsp(tL2C_CCB* p_ccb, tL2CEVT event, void* p_
 
     case L2CEVT_L2CAP_INFO_RSP:
       /* We have feature info, so now give the upper layer connect IND */
-      alarm_set_on_mloop(p_ccb->l2c_ccb_timer, L2CAP_CHNL_CONNECT_TIMEOUT_MS, l2c_ccb_timer_timeout,
-                         p_ccb);
+      alarm_set_on_mloop(p_ccb->l2c_ccb_timer, L2CAP_CHNL_CONNECT_TIMEOUT_MS,
+                         l2c_ccb_timer_timeout, p_ccb);
       log::debug("Calling Connect_Ind_Cb(), CID: 0x{:04x}", p_ccb->local_cid);
 
       l2c_csm_send_connect_rsp(p_ccb);
@@ -896,8 +943,7 @@ static void l2c_csm_w4_l2ca_connect_rsp(tL2C_CCB* p_ccb, tL2CEVT event, void* p_
     default:
       log::error("Handling unexpected event:{}", l2c_csm_get_event_name(event));
   }
-  log::verbose("Exit chnl_state={} [{}], event={} [{}]", channel_state_text(p_ccb->chnl_state),
-               p_ccb->chnl_state, l2c_csm_get_event_name(event), event);
+  log::verbose("Exit chnl_state={} [{}], event={} [{}]", channel_state_text(p_ccb->chnl_state), p_ccb->chnl_state, l2c_csm_get_event_name(event), event);
 }
 
 /*******************************************************************************
@@ -912,15 +958,15 @@ static void l2c_csm_w4_l2ca_connect_rsp(tL2C_CCB* p_ccb, tL2CEVT event, void* p_
  ******************************************************************************/
 static void l2c_csm_config(tL2C_CCB* p_ccb, tL2CEVT event, void* p_data) {
   tL2CAP_CFG_INFO* p_cfg = (tL2CAP_CFG_INFO*)p_data;
-  tL2CA_DISCONNECT_IND_CB* disconnect_ind = p_ccb->p_rcb->api.pL2CA_DisconnectInd_Cb;
+  tL2CA_DISCONNECT_IND_CB* disconnect_ind =
+      p_ccb->p_rcb->api.pL2CA_DisconnectInd_Cb;
   uint16_t local_cid = p_ccb->local_cid;
   uint8_t cfg_result;
   tL2C_LCB* p_lcb = p_ccb->p_lcb;
   tL2C_CCB* temp_p_ccb;
   tL2CAP_LE_CFG_INFO* p_le_cfg = (tL2CAP_LE_CFG_INFO*)p_data;
 
-  log::debug("LCID: 0x{:04x}  st: CONFIG  evt: {}", p_ccb->local_cid,
-             l2c_csm_get_event_name(event));
+  log::debug("LCID: 0x{:04x}  st: CONFIG  evt: {}", p_ccb->local_cid, l2c_csm_get_event_name(event));
 
   switch (event) {
     case L2CEVT_LP_DISCONNECT_IND: /* Link was disconnected */
@@ -935,23 +981,27 @@ static void l2c_csm_config(tL2C_CCB* p_ccb, tL2CEVT event, void* p_data) {
        */
       log::debug("Calling LeReconfigCompleted_Cb(), CID: 0x{:04x}", p_ccb->local_cid);
 
-      (*p_ccb->p_rcb->api.pL2CA_CreditBasedReconfigCompleted_Cb)(p_lcb->remote_bd_addr,
-                                                                 p_ccb->local_cid, false, p_le_cfg);
+      (*p_ccb->p_rcb->api.pL2CA_CreditBasedReconfigCompleted_Cb)(
+          p_lcb->remote_bd_addr, p_ccb->local_cid, false, p_le_cfg);
       break;
     case L2CEVT_L2CAP_CONFIG_REQ: /* Peer config request   */
       cfg_result = l2cu_process_peer_cfg_req(p_ccb, p_cfg);
       if (cfg_result == L2CAP_PEER_CFG_OK) {
-        log::debug("Calling Config_Req_Cb(), CID: 0x{:04x}, C-bit {}", p_ccb->local_cid,
-                   p_cfg->flags & L2CAP_CFG_FLAGS_MASK_CONT);
-        l2c_csm_send_config_rsp_ok(p_ccb, p_cfg->flags & L2CAP_CFG_FLAGS_MASK_CONT);
+        log::debug("Calling Config_Req_Cb(), CID: 0x{:04x}, C-bit {}",
+                   p_ccb->local_cid, p_cfg->flags & L2CAP_CFG_FLAGS_MASK_CONT);
+        l2c_csm_send_config_rsp_ok(p_ccb,
+                                   p_cfg->flags & L2CAP_CFG_FLAGS_MASK_CONT);
         if (p_ccb->config_done & OB_CFG_DONE) {
           if (p_ccb->remote_config_rsp_result == L2CAP_CFG_OK) {
             l2c_csm_indicate_connection_open(p_ccb);
           } else {
             if (p_ccb->connection_initiator == L2CAP_INITIATOR_LOCAL) {
-              (*p_ccb->p_rcb->api.pL2CA_Error_Cb)(p_ccb->local_cid, L2CAP_CFG_FAILED_NO_REASON);
+              (*p_ccb->p_rcb->api.pL2CA_Error_Cb)(p_ccb->local_cid,
+                                                  L2CAP_CFG_FAILED_NO_REASON);
               bluetooth::shim::CountCounterMetrics(
-                      android::bluetooth::CodePathCounterKeyEnum::L2CAP_CONFIG_REQ_FAILURE, 1);
+                  android::bluetooth::CodePathCounterKeyEnum::
+                      L2CAP_CONFIG_REQ_FAILURE,
+                  1);
             }
           }
         }
@@ -974,8 +1024,8 @@ static void l2c_csm_config(tL2C_CCB* p_ccb, tL2CEVT event, void* p_data) {
 
       log::debug("Calling Config_Rsp_Cb(), CID: 0x{:04x}", p_ccb->local_cid);
 
-      p_ccb->p_rcb->api.pL2CA_CreditBasedReconfigCompleted_Cb(p_lcb->remote_bd_addr,
-                                                              p_ccb->local_cid, true, p_le_cfg);
+      p_ccb->p_rcb->api.pL2CA_CreditBasedReconfigCompleted_Cb(
+          p_lcb->remote_bd_addr, p_ccb->local_cid, true, p_le_cfg);
 
       break;
     case L2CEVT_L2CAP_CONFIG_RSP: /* Peer config response  */
@@ -993,8 +1043,7 @@ static void l2c_csm_config(tL2C_CCB* p_ccb, tL2CEVT event, void* p_data) {
         /* Verify two sides are in compatible modes before continuing */
         if (p_ccb->our_cfg.fcr.mode != p_ccb->peer_cfg.fcr.mode) {
           l2cu_send_peer_disc_req(p_ccb);
-          log::warn("Calling Disconnect_Ind_Cb(Incompatible CFG), CID: 0x{:04x}  No Conf Needed",
-                    p_ccb->local_cid);
+          log::warn("Calling Disconnect_Ind_Cb(Incompatible CFG), CID: 0x{:04x}  No Conf Needed", p_ccb->local_cid);
           l2cu_release_ccb(p_ccb);
           (*disconnect_ind)(local_cid, false);
           break;
@@ -1006,9 +1055,7 @@ static void l2c_csm_config(tL2C_CCB* p_ccb, tL2CEVT event, void* p_data) {
         alarm_cancel(p_ccb->l2c_ccb_timer);
 
         /* If using eRTM and waiting for an ACK, restart the ACK timer */
-        if (p_ccb->fcrb.wait_ack) {
-          l2c_fcr_start_timer(p_ccb);
-        }
+        if (p_ccb->fcrb.wait_ack) l2c_fcr_start_timer(p_ccb);
 
         /*
          ** check p_ccb->our_cfg.fcr.mon_tout and
@@ -1017,7 +1064,8 @@ static void l2c_csm_config(tL2C_CCB* p_ccb, tL2CEVT event, void* p_data) {
          *renegotiation
          */
         if ((p_ccb->our_cfg.fcr.mode == L2CAP_FCR_ERTM_MODE) &&
-            ((p_ccb->our_cfg.fcr.mon_tout == 0) || (p_ccb->our_cfg.fcr.rtrans_tout))) {
+            ((p_ccb->our_cfg.fcr.mon_tout == 0) ||
+             (p_ccb->our_cfg.fcr.rtrans_tout))) {
           l2c_fcr_adj_monitor_retran_timeout(p_ccb);
         }
 
@@ -1030,8 +1078,9 @@ static void l2c_csm_config(tL2C_CCB* p_ccb, tL2CEVT event, void* p_data) {
       if (p_ccb->config_done & RECONFIG_FLAG) {
         // Notify only once
         bluetooth::shim::GetSnoopLogger()->SetL2capChannelOpen(
-                p_ccb->p_lcb->Handle(), p_ccb->local_cid, p_ccb->remote_cid, p_ccb->p_rcb->psm,
-                p_ccb->peer_cfg.fcr.mode != L2CAP_FCR_BASIC_MODE);
+            p_ccb->p_lcb->Handle(), p_ccb->local_cid, p_ccb->remote_cid,
+            p_ccb->p_rcb->psm,
+            p_ccb->peer_cfg.fcr.mode != L2CAP_FCR_BASIC_MODE);
       }
 
       log::debug("Calling Config_Rsp_Cb(), CID: 0x{:04x}", p_ccb->local_cid);
@@ -1047,12 +1096,13 @@ static void l2c_csm_config(tL2C_CCB* p_ccb, tL2CEVT event, void* p_data) {
 
       /* If failure was channel mode try to renegotiate */
       if (!l2c_fcr_renegotiate_chan(p_ccb, p_cfg)) {
-        log::debug("Calling Config_Rsp_Cb(), CID: 0x{:04x}, Failure: {}", p_ccb->local_cid,
-                   p_cfg->result);
+        log::debug("Calling Config_Rsp_Cb(), CID: 0x{:04x}, Failure: {}", p_ccb->local_cid, p_cfg->result);
         if (p_ccb->connection_initiator == L2CAP_INITIATOR_LOCAL) {
-          (*p_ccb->p_rcb->api.pL2CA_Error_Cb)(p_ccb->local_cid, L2CAP_CFG_FAILED_NO_REASON);
+          (*p_ccb->p_rcb->api.pL2CA_Error_Cb)(p_ccb->local_cid,
+                                              L2CAP_CFG_FAILED_NO_REASON);
           bluetooth::shim::CountCounterMetrics(
-                  android::bluetooth::CodePathCounterKeyEnum::L2CAP_CONFIG_RSP_NEG, 1);
+              android::bluetooth::CodePathCounterKeyEnum::L2CAP_CONFIG_RSP_NEG,
+              1);
         }
       }
       break;
@@ -1068,14 +1118,14 @@ static void l2c_csm_config(tL2C_CCB* p_ccb, tL2CEVT event, void* p_data) {
 
     case L2CEVT_L2CA_CREDIT_BASED_RECONFIG_REQ:
       l2cu_send_credit_based_reconfig_req(p_ccb, (tL2CAP_LE_CFG_INFO*)p_data);
-      alarm_set_on_mloop(p_ccb->l2c_ccb_timer, L2CAP_CHNL_CFG_TIMEOUT_MS, l2c_ccb_timer_timeout,
-                         p_ccb);
+      alarm_set_on_mloop(p_ccb->l2c_ccb_timer, L2CAP_CHNL_CFG_TIMEOUT_MS,
+                         l2c_ccb_timer_timeout, p_ccb);
       break;
     case L2CEVT_L2CA_CONFIG_REQ: /* Upper layer config req   */
       l2cu_process_our_cfg_req(p_ccb, p_cfg);
       l2cu_send_peer_config_req(p_ccb, p_cfg);
-      alarm_set_on_mloop(p_ccb->l2c_ccb_timer, L2CAP_CHNL_CFG_TIMEOUT_MS, l2c_ccb_timer_timeout,
-                         p_ccb);
+      alarm_set_on_mloop(p_ccb->l2c_ccb_timer, L2CAP_CHNL_CFG_TIMEOUT_MS,
+                         l2c_ccb_timer_timeout, p_ccb);
       break;
 
     case L2CEVT_L2CA_CONFIG_RSP: /* Upper layer config rsp   */
@@ -1087,8 +1137,7 @@ static void l2c_csm_config(tL2C_CCB* p_ccb, tL2CEVT event, void* p_data) {
         /* Verify two sides are in compatible modes before continuing */
         if (p_ccb->our_cfg.fcr.mode != p_ccb->peer_cfg.fcr.mode) {
           l2cu_send_peer_disc_req(p_ccb);
-          log::warn("Calling Disconnect_Ind_Cb(Incompatible CFG), CID: 0x{:04x}  No Conf Needed",
-                    p_ccb->local_cid);
+          log::warn("Calling Disconnect_Ind_Cb(Incompatible CFG), CID: 0x{:04x}  No Conf Needed", p_ccb->local_cid);
           l2cu_release_ccb(p_ccb);
           (*disconnect_ind)(local_cid, false);
           break;
@@ -1103,19 +1152,19 @@ static void l2c_csm_config(tL2C_CCB* p_ccb, tL2CEVT event, void* p_data) {
       l2cu_send_peer_config_rsp(p_ccb, p_cfg);
 
       /* If using eRTM and waiting for an ACK, restart the ACK timer */
-      if (p_ccb->fcrb.wait_ack) {
-        l2c_fcr_start_timer(p_ccb);
-      }
+      if (p_ccb->fcrb.wait_ack) l2c_fcr_start_timer(p_ccb);
 
       if (p_ccb->config_done & RECONFIG_FLAG) {
         // Notify only once
         bluetooth::shim::GetSnoopLogger()->SetL2capChannelOpen(
-                p_ccb->p_lcb->Handle(), p_ccb->local_cid, p_ccb->remote_cid, p_ccb->p_rcb->psm,
-                p_ccb->peer_cfg.fcr.mode != L2CAP_FCR_BASIC_MODE);
+            p_ccb->p_lcb->Handle(), p_ccb->local_cid, p_ccb->remote_cid,
+            p_ccb->p_rcb->psm,
+            p_ccb->peer_cfg.fcr.mode != L2CAP_FCR_BASIC_MODE);
       }
 
       /* See if we can forward anything on the hold queue */
-      if ((p_ccb->chnl_state == CST_OPEN) && (!fixed_queue_is_empty(p_ccb->xmit_hold_q))) {
+      if ((p_ccb->chnl_state == CST_OPEN) &&
+          (!fixed_queue_is_empty(p_ccb->xmit_hold_q))) {
         l2c_link_check_send_pkts(p_ccb->p_lcb, 0, NULL);
       }
       break;
@@ -1129,33 +1178,31 @@ static void l2c_csm_config(tL2C_CCB* p_ccb, tL2CEVT event, void* p_data) {
 
     case L2CEVT_L2CAP_DATA: /* Peer data packet rcvd    */
       log::debug("Calling DataInd_Cb(), CID: 0x{:04x}", p_ccb->local_cid);
-      if (p_ccb->local_cid >= L2CAP_FIRST_FIXED_CHNL && p_ccb->local_cid <= L2CAP_LAST_FIXED_CHNL) {
+      if (p_ccb->local_cid >= L2CAP_FIRST_FIXED_CHNL &&
+          p_ccb->local_cid <= L2CAP_LAST_FIXED_CHNL) {
         if (p_ccb->local_cid < L2CAP_BASE_APPL_CID) {
-          if (l2cb.fixed_reg[p_ccb->local_cid - L2CAP_FIRST_FIXED_CHNL].pL2CA_FixedData_Cb !=
-              nullptr) {
+          if (l2cb.fixed_reg[p_ccb->local_cid - L2CAP_FIRST_FIXED_CHNL]
+                  .pL2CA_FixedData_Cb != nullptr) {
             p_ccb->metrics.rx(static_cast<BT_HDR*>(p_data)->len);
-            (*l2cb.fixed_reg[p_ccb->local_cid - L2CAP_FIRST_FIXED_CHNL].pL2CA_FixedData_Cb)(
-                    p_ccb->local_cid, p_ccb->p_lcb->remote_bd_addr, (BT_HDR*)p_data);
+            (*l2cb.fixed_reg[p_ccb->local_cid - L2CAP_FIRST_FIXED_CHNL]
+                  .pL2CA_FixedData_Cb)(p_ccb->local_cid,
+                                       p_ccb->p_lcb->remote_bd_addr,
+                                       (BT_HDR*)p_data);
           } else {
-            if (p_data != nullptr) {
-              osi_free_and_reset(&p_data);
-            }
+            if (p_data != nullptr) osi_free_and_reset(&p_data);
           }
           break;
         }
       }
-      if (p_data) {
-        p_ccb->metrics.rx(static_cast<BT_HDR*>(p_data)->len);
-      }
+      if (p_data) p_ccb->metrics.rx(static_cast<BT_HDR*>(p_data)->len);
       (*p_ccb->p_rcb->api.pL2CA_DataInd_Cb)(p_ccb->local_cid, (BT_HDR*)p_data);
       break;
 
     case L2CEVT_L2CA_DATA_WRITE: /* Upper layer data to send */
-      if (p_ccb->config_done & OB_CFG_DONE) {
+      if (p_ccb->config_done & OB_CFG_DONE)
         l2c_enqueue_peer_data(p_ccb, (BT_HDR*)p_data);
-      } else {
+      else
         osi_free(p_data);
-      }
       break;
 
     case L2CEVT_TIMEOUT:
@@ -1163,13 +1210,15 @@ static void l2c_csm_config(tL2C_CCB* p_ccb, tL2CEVT event, void* p_data) {
         for (temp_p_ccb = p_lcb->ccb_queue.p_first_ccb; temp_p_ccb;
              temp_p_ccb = temp_p_ccb->p_next_ccb) {
           if ((temp_p_ccb->in_use) && (temp_p_ccb->reconfig_started)) {
-            (*temp_p_ccb->p_rcb->api.pL2CA_DisconnectInd_Cb)(temp_p_ccb->local_cid, false);
+            (*temp_p_ccb->p_rcb->api.pL2CA_DisconnectInd_Cb)(
+                temp_p_ccb->local_cid, false);
             l2cu_release_ccb(temp_p_ccb);
           }
         }
 
-        acl_disconnect_from_handle(p_ccb->p_lcb->Handle(), HCI_ERR_CONN_CAUSE_LOCAL_HOST,
-                                   "stack::l2cap::l2c_csm::l2c_csm_config timeout");
+        acl_disconnect_from_handle(
+            p_ccb->p_lcb->Handle(), HCI_ERR_CONN_CAUSE_LOCAL_HOST,
+            "stack::l2cap::l2c_csm::l2c_csm_config timeout");
         return;
       }
 
@@ -1181,8 +1230,7 @@ static void l2c_csm_config(tL2C_CCB* p_ccb, tL2CEVT event, void* p_data) {
     default:
       log::error("Handling unexpected event:{}", l2c_csm_get_event_name(event));
   }
-  log::verbose("Exit chnl_state={} [{}], event={} [{}]", channel_state_text(p_ccb->chnl_state),
-               p_ccb->chnl_state, l2c_csm_get_event_name(event), event);
+  log::verbose("Exit chnl_state={} [{}], event={} [{}]", channel_state_text(p_ccb->chnl_state), p_ccb->chnl_state, l2c_csm_get_event_name(event), event);
 }
 
 /*******************************************************************************
@@ -1204,18 +1252,17 @@ static void l2c_csm_open(tL2C_CCB* p_ccb, tL2CEVT event, void* p_data) {
   uint16_t credit = 0;
   tL2CAP_LE_CFG_INFO* p_le_cfg = (tL2CAP_LE_CFG_INFO*)p_data;
 
-  log::verbose("LCID: 0x{:04x}  st: OPEN  evt: {}", p_ccb->local_cid,
-               l2c_csm_get_event_name(event));
+  log::verbose("LCID: 0x{:04x}  st: OPEN  evt: {}", p_ccb->local_cid, l2c_csm_get_event_name(event));
 
   switch (event) {
     case L2CEVT_LP_DISCONNECT_IND: /* Link was disconnected */
       log::debug("Calling Disconnect_Ind_Cb(), CID: 0x{:04x}  No Conf Needed", p_ccb->local_cid);
       power_telemetry::GetInstance().LogChannelDisconnected(
-              p_ccb->p_rcb->psm, p_ccb->local_cid, p_ccb->remote_id, p_ccb->p_lcb->remote_bd_addr);
+          p_ccb->p_rcb->psm, p_ccb->local_cid, p_ccb->remote_id,
+          p_ccb->p_lcb->remote_bd_addr);
       l2cu_release_ccb(p_ccb);
-      if (p_ccb->p_rcb) {
+      if (p_ccb->p_rcb)
         (*p_ccb->p_rcb->api.pL2CA_DisconnectInd_Cb)(local_cid, false);
-      }
       break;
 
     case L2CEVT_L2CAP_CREDIT_BASED_RECONFIG_REQ:
@@ -1225,7 +1272,7 @@ static void l2c_csm_open(tL2C_CCB* p_ccb, tL2CEVT event, void* p_data) {
       if (p_le_cfg) {
         log::debug("Calling LeReconfigCompleted_Cb(), CID: 0x{:04x}", p_ccb->local_cid);
         (*p_ccb->p_rcb->api.pL2CA_CreditBasedReconfigCompleted_Cb)(
-                p_ccb->p_lcb->remote_bd_addr, p_ccb->local_cid, false, p_le_cfg);
+            p_ccb->p_lcb->remote_bd_addr, p_ccb->local_cid, false, p_le_cfg);
       }
       break;
 
@@ -1241,14 +1288,15 @@ static void l2c_csm_open(tL2C_CCB* p_ccb, tL2CEVT event, void* p_data) {
       p_ccb->peer_cfg.qos_present = false;
       p_ccb->config_done &= ~IB_CFG_DONE;
 
-      alarm_set_on_mloop(p_ccb->l2c_ccb_timer, L2CAP_CHNL_CFG_TIMEOUT_MS, l2c_ccb_timer_timeout,
-                         p_ccb);
+      alarm_set_on_mloop(p_ccb->l2c_ccb_timer, L2CAP_CHNL_CFG_TIMEOUT_MS,
+                         l2c_ccb_timer_timeout, p_ccb);
       if (p_cfg) {
         cfg_result = l2cu_process_peer_cfg_req(p_ccb, p_cfg);
       }
       if (cfg_result == L2CAP_PEER_CFG_OK) {
         (*p_ccb->p_rcb->api.pL2CA_ConfigInd_Cb)(p_ccb->local_cid, p_cfg);
-        l2c_csm_send_config_rsp_ok(p_ccb, p_cfg->flags & L2CAP_CFG_FLAGS_MASK_CONT);
+        l2c_csm_send_config_rsp_ok(p_ccb,
+                                   p_cfg->flags & L2CAP_CFG_FLAGS_MASK_CONT);
       }
 
       /* Error in config parameters: reset state and config flag */
@@ -1279,7 +1327,8 @@ static void l2c_csm_open(tL2C_CCB* p_ccb, tL2CEVT event, void* p_data) {
                          l2c_ccb_timer_timeout, p_ccb);
       log::debug("Calling Disconnect_Ind_Cb(), CID: 0x{:04x}  Conf Needed", p_ccb->local_cid);
       power_telemetry::GetInstance().LogChannelDisconnected(
-              p_ccb->p_rcb->psm, p_ccb->local_cid, p_ccb->remote_id, p_ccb->p_lcb->remote_bd_addr);
+          p_ccb->p_rcb->psm, p_ccb->local_cid, p_ccb->remote_id,
+          p_ccb->p_lcb->remote_bd_addr);
       (*p_ccb->p_rcb->api.pL2CA_DisconnectInd_Cb)(p_ccb->local_cid, true);
       l2c_csm_send_disconnect_rsp(p_ccb);
       break;
@@ -1289,12 +1338,13 @@ static void l2c_csm_open(tL2C_CCB* p_ccb, tL2CEVT event, void* p_data) {
         uint16_t package_len = ((BT_HDR*)p_data)->len;
         if (p_ccb->p_rcb->api.pL2CA_DataInd_Cb) {
           p_ccb->metrics.rx(static_cast<BT_HDR*>(p_data)->len);
-          (*p_ccb->p_rcb->api.pL2CA_DataInd_Cb)(p_ccb->local_cid, (BT_HDR*)p_data);
+          (*p_ccb->p_rcb->api.pL2CA_DataInd_Cb)(p_ccb->local_cid,
+                                                (BT_HDR*)p_data);
         }
 
-        power_telemetry::GetInstance().LogRxBytes(p_ccb->p_rcb->psm, p_ccb->local_cid,
-                                                  p_ccb->remote_id, p_ccb->p_lcb->remote_bd_addr,
-                                                  package_len);
+        power_telemetry::GetInstance().LogRxBytes(
+            p_ccb->p_rcb->psm, p_ccb->local_cid, p_ccb->remote_id,
+            p_ccb->p_lcb->remote_bd_addr, package_len);
       }
       break;
 
@@ -1306,12 +1356,12 @@ static void l2c_csm_open(tL2C_CCB* p_ccb, tL2CEVT event, void* p_data) {
         }
       }
       power_telemetry::GetInstance().LogChannelDisconnected(
-              p_ccb->p_rcb->psm, p_ccb->local_cid, p_ccb->remote_id, p_ccb->p_lcb->remote_bd_addr);
-      if (p_ccb->p_lcb->transport == BT_TRANSPORT_LE) {
+          p_ccb->p_rcb->psm, p_ccb->local_cid, p_ccb->remote_id,
+          p_ccb->p_lcb->remote_bd_addr);
+      if (p_ccb->p_lcb->transport == BT_TRANSPORT_LE)
         l2cble_send_peer_disc_req(p_ccb);
-      } else {
+      else
         l2cu_send_peer_disc_req(p_ccb);
-      }
 
       p_ccb->chnl_state = CST_W4_L2CAP_DISCONNECT_RSP;
       alarm_set_on_mloop(p_ccb->l2c_ccb_timer, L2CAP_CHNL_DISCONNECT_TIMEOUT_MS,
@@ -1323,9 +1373,9 @@ static void l2c_csm_open(tL2C_CCB* p_ccb, tL2CEVT event, void* p_data) {
         uint16_t package_len = ((BT_HDR*)p_data)->len;
         l2c_enqueue_peer_data(p_ccb, (BT_HDR*)p_data);
         l2c_link_check_send_pkts(p_ccb->p_lcb, 0, NULL);
-        power_telemetry::GetInstance().LogTxBytes(p_ccb->p_rcb->psm, p_ccb->local_cid,
-                                                  p_ccb->remote_id, p_ccb->p_lcb->remote_bd_addr,
-                                                  package_len);
+        power_telemetry::GetInstance().LogTxBytes(
+            p_ccb->p_rcb->psm, p_ccb->local_cid, p_ccb->remote_id,
+            p_ccb->p_lcb->remote_bd_addr, package_len);
       }
       break;
 
@@ -1336,23 +1386,20 @@ static void l2c_csm_open(tL2C_CCB* p_ccb, tL2CEVT event, void* p_data) {
       if (p_data) {
         l2cu_send_credit_based_reconfig_req(p_ccb, (tL2CAP_LE_CFG_INFO*)p_data);
 
-        alarm_set_on_mloop(p_ccb->l2c_ccb_timer, L2CAP_CHNL_CFG_TIMEOUT_MS, l2c_ccb_timer_timeout,
-                           p_ccb);
+        alarm_set_on_mloop(p_ccb->l2c_ccb_timer, L2CAP_CHNL_CFG_TIMEOUT_MS,
+                           l2c_ccb_timer_timeout, p_ccb);
       }
       break;
 
     case L2CEVT_L2CA_CONFIG_REQ: /* Upper layer config req   */
-      log::error(
-              "Dropping L2CAP re-config request because there is no usage and should not be "
-              "invoked");
+      log::error("Dropping L2CAP re-config request because there is no usage and should not be invoked");
       break;
 
     case L2CEVT_TIMEOUT:
       /* Process the monitor/retransmission time-outs in flow control/retrans
        * mode */
-      if (p_ccb->peer_cfg.fcr.mode == L2CAP_FCR_ERTM_MODE) {
+      if (p_ccb->peer_cfg.fcr.mode == L2CAP_FCR_ERTM_MODE)
         l2c_fcr_proc_tout(p_ccb);
-      }
       break;
 
     case L2CEVT_ACK_TIMEOUT:
@@ -1385,8 +1432,7 @@ static void l2c_csm_open(tL2C_CCB* p_ccb, tL2CEVT event, void* p_data) {
     default:
       log::error("Handling unexpected event:{}", l2c_csm_get_event_name(event));
   }
-  log::verbose("Exit chnl_state={} [{}], event={} [{}]", channel_state_text(p_ccb->chnl_state),
-               p_ccb->chnl_state, l2c_csm_get_event_name(event), event);
+  log::verbose("Exit chnl_state={} [{}], event={} [{}]", channel_state_text(p_ccb->chnl_state), p_ccb->chnl_state, l2c_csm_get_event_name(event), event);
 }
 
 /*******************************************************************************
@@ -1399,12 +1445,13 @@ static void l2c_csm_open(tL2C_CCB* p_ccb, tL2CEVT event, void* p_data) {
  * Returns          void
  *
  ******************************************************************************/
-static void l2c_csm_w4_l2cap_disconnect_rsp(tL2C_CCB* p_ccb, tL2CEVT event, void* p_data) {
-  tL2CA_DISCONNECT_CFM_CB* disconnect_cfm = p_ccb->p_rcb->api.pL2CA_DisconnectCfm_Cb;
+static void l2c_csm_w4_l2cap_disconnect_rsp(tL2C_CCB* p_ccb, tL2CEVT event,
+                                            void* p_data) {
+  tL2CA_DISCONNECT_CFM_CB* disconnect_cfm =
+      p_ccb->p_rcb->api.pL2CA_DisconnectCfm_Cb;
   uint16_t local_cid = p_ccb->local_cid;
 
-  log::debug("LCID: 0x{:04x}  st: W4_L2CAP_DISC_RSP  evt: {}", p_ccb->local_cid,
-             l2c_csm_get_event_name(event));
+  log::debug("LCID: 0x{:04x}  st: W4_L2CAP_DISC_RSP  evt: {}", p_ccb->local_cid, l2c_csm_get_event_name(event));
 
   switch (event) {
     case L2CEVT_L2CAP_DISCONNECT_RSP: /* Peer disconnect response */
@@ -1415,7 +1462,8 @@ static void l2c_csm_w4_l2cap_disconnect_rsp(tL2C_CCB* p_ccb, tL2CEVT event, void
       break;
 
     case L2CEVT_L2CAP_DISCONNECT_REQ: /* Peer disconnect request  */
-      l2cu_send_peer_disc_rsp(p_ccb->p_lcb, p_ccb->remote_id, p_ccb->local_cid, p_ccb->remote_cid);
+      l2cu_send_peer_disc_rsp(p_ccb->p_lcb, p_ccb->remote_id, p_ccb->local_cid,
+                              p_ccb->remote_cid);
       l2cu_release_ccb(p_ccb);
       if (disconnect_cfm != nullptr) {
         (*disconnect_cfm)(local_cid, L2CAP_DISC_OK);
@@ -1438,8 +1486,7 @@ static void l2c_csm_w4_l2cap_disconnect_rsp(tL2C_CCB* p_ccb, tL2CEVT event, void
     default:
       log::error("Handling unexpected event:{}", l2c_csm_get_event_name(event));
   }
-  log::verbose("Exit chnl_state={} [{}], event={} [{}]", channel_state_text(p_ccb->chnl_state),
-               p_ccb->chnl_state, l2c_csm_get_event_name(event), event);
+  log::verbose("Exit chnl_state={} [{}], event={} [{}]", channel_state_text(p_ccb->chnl_state), p_ccb->chnl_state, l2c_csm_get_event_name(event), event);
 }
 
 /*******************************************************************************
@@ -1452,12 +1499,13 @@ static void l2c_csm_w4_l2cap_disconnect_rsp(tL2C_CCB* p_ccb, tL2CEVT event, void
  * Returns          void
  *
  ******************************************************************************/
-static void l2c_csm_w4_l2ca_disconnect_rsp(tL2C_CCB* p_ccb, tL2CEVT event, void* p_data) {
-  tL2CA_DISCONNECT_IND_CB* disconnect_ind = p_ccb->p_rcb->api.pL2CA_DisconnectInd_Cb;
+static void l2c_csm_w4_l2ca_disconnect_rsp(tL2C_CCB* p_ccb, tL2CEVT event,
+                                           void* p_data) {
+  tL2CA_DISCONNECT_IND_CB* disconnect_ind =
+      p_ccb->p_rcb->api.pL2CA_DisconnectInd_Cb;
   uint16_t local_cid = p_ccb->local_cid;
 
-  log::debug("LCID: 0x{:04x}  st: W4_L2CA_DISC_RSP  evt: {}", p_ccb->local_cid,
-             l2c_csm_get_event_name(event));
+  log::debug("LCID: 0x{:04x}  st: W4_L2CA_DISC_RSP  evt: {}", p_ccb->local_cid, l2c_csm_get_event_name(event));
 
   switch (event) {
     case L2CEVT_LP_DISCONNECT_IND: /* Link was disconnected */
@@ -1467,7 +1515,8 @@ static void l2c_csm_w4_l2ca_disconnect_rsp(tL2C_CCB* p_ccb, tL2CEVT event, void*
       break;
 
     case L2CEVT_TIMEOUT:
-      l2cu_send_peer_disc_rsp(p_ccb->p_lcb, p_ccb->remote_id, p_ccb->local_cid, p_ccb->remote_cid);
+      l2cu_send_peer_disc_rsp(p_ccb->p_lcb, p_ccb->remote_id, p_ccb->local_cid,
+                              p_ccb->remote_cid);
       log::debug("Calling Disconnect_Ind_Cb(), CID: 0x{:04x}  No Conf Needed", p_ccb->local_cid);
       l2cu_release_ccb(p_ccb);
       (*disconnect_ind)(local_cid, false);
@@ -1475,7 +1524,8 @@ static void l2c_csm_w4_l2ca_disconnect_rsp(tL2C_CCB* p_ccb, tL2CEVT event, void*
 
     case L2CEVT_L2CA_DISCONNECT_REQ: /* Upper disconnect request */
     case L2CEVT_L2CA_DISCONNECT_RSP: /* Upper disconnect response */
-      l2cu_send_peer_disc_rsp(p_ccb->p_lcb, p_ccb->remote_id, p_ccb->local_cid, p_ccb->remote_cid);
+      l2cu_send_peer_disc_rsp(p_ccb->p_lcb, p_ccb->remote_id, p_ccb->local_cid,
+                              p_ccb->remote_cid);
       l2cu_release_ccb(p_ccb);
       break;
 
@@ -1486,8 +1536,7 @@ static void l2c_csm_w4_l2ca_disconnect_rsp(tL2C_CCB* p_ccb, tL2CEVT event, void*
     default:
       log::error("Handling unexpected event:{}", l2c_csm_get_event_name(event));
   }
-  log::verbose("Exit chnl_state={} [{}], event={} [{}]", channel_state_text(p_ccb->chnl_state),
-               p_ccb->chnl_state, l2c_csm_get_event_name(event), event);
+  log::verbose("Exit chnl_state={} [{}], event={} [{}]", channel_state_text(p_ccb->chnl_state), p_ccb->chnl_state, l2c_csm_get_event_name(event), event);
 }
 
 /*******************************************************************************
@@ -1504,101 +1553,101 @@ static void l2c_csm_w4_l2ca_disconnect_rsp(tL2C_CCB* p_ccb, tL2CEVT event, void*
 static const char* l2c_csm_get_event_name(tL2CEVT event) {
   switch (event) {
     case L2CEVT_LP_CONNECT_CFM: /* Lower layer connect confirm          */
-      return "LOWER_LAYER_CONNECT_CFM";
+      return ("LOWER_LAYER_CONNECT_CFM");
     case L2CEVT_LP_CONNECT_CFM_NEG: /* Lower layer connect confirm (failed) */
-      return "LOWER_LAYER_CONNECT_CFM_NEG";
+      return ("LOWER_LAYER_CONNECT_CFM_NEG");
     case L2CEVT_LP_CONNECT_IND: /* Lower layer connect indication       */
-      return "LOWER_LAYER_CONNECT_IND";
+      return ("LOWER_LAYER_CONNECT_IND");
     case L2CEVT_LP_DISCONNECT_IND: /* Lower layer disconnect indication    */
-      return "LOWER_LAYER_DISCONNECT_IND";
+      return ("LOWER_LAYER_DISCONNECT_IND");
 
     case L2CEVT_SEC_COMP: /* Security cleared successfully        */
-      return "SECURITY_COMPLETE";
+      return ("SECURITY_COMPLETE");
     case L2CEVT_SEC_COMP_NEG: /* Security procedure failed            */
-      return "SECURITY_COMPLETE_NEG";
+      return ("SECURITY_COMPLETE_NEG");
 
     case L2CEVT_L2CAP_CONNECT_REQ: /* Peer connection request              */
-      return "PEER_CONNECT_REQ";
+      return ("PEER_CONNECT_REQ");
     case L2CEVT_L2CAP_CONNECT_RSP: /* Peer connection response             */
-      return "PEER_CONNECT_RSP";
+      return ("PEER_CONNECT_RSP");
     case L2CEVT_L2CAP_CONNECT_RSP_PND: /* Peer connection response pending */
-      return "PEER_CONNECT_RSP_PND";
+      return ("PEER_CONNECT_RSP_PND");
     case L2CEVT_L2CAP_CONNECT_RSP_NEG: /* Peer connection response (failed) */
-      return "PEER_CONNECT_RSP_NEG";
+      return ("PEER_CONNECT_RSP_NEG");
     case L2CEVT_L2CAP_CONFIG_REQ: /* Peer configuration request           */
-      return "PEER_CONFIG_REQ";
+      return ("PEER_CONFIG_REQ");
     case L2CEVT_L2CAP_CONFIG_RSP: /* Peer configuration response          */
-      return "PEER_CONFIG_RSP";
+      return ("PEER_CONFIG_RSP");
     case L2CEVT_L2CAP_CONFIG_RSP_NEG: /* Peer configuration response (failed) */
-      return "PEER_CONFIG_RSP_NEG";
+      return ("PEER_CONFIG_RSP_NEG");
     case L2CEVT_L2CAP_DISCONNECT_REQ: /* Peer disconnect request              */
-      return "PEER_DISCONNECT_REQ";
+      return ("PEER_DISCONNECT_REQ");
     case L2CEVT_L2CAP_DISCONNECT_RSP: /* Peer disconnect response             */
-      return "PEER_DISCONNECT_RSP";
+      return ("PEER_DISCONNECT_RSP");
     case L2CEVT_L2CAP_DATA: /* Peer data                            */
-      return "PEER_DATA";
+      return ("PEER_DATA");
 
     case L2CEVT_L2CA_CONNECT_REQ: /* Upper layer connect request          */
-      return "UPPER_LAYER_CONNECT_REQ";
+      return ("UPPER_LAYER_CONNECT_REQ");
     case L2CEVT_L2CA_CONNECT_RSP: /* Upper layer connect response         */
-      return "UPPER_LAYER_CONNECT_RSP";
+      return ("UPPER_LAYER_CONNECT_RSP");
     case L2CEVT_L2CA_CONNECT_RSP_NEG: /* Upper layer connect response (failed)*/
-      return "UPPER_LAYER_CONNECT_RSP_NEG";
+      return ("UPPER_LAYER_CONNECT_RSP_NEG");
     case L2CEVT_L2CA_CONFIG_REQ: /* Upper layer config request           */
-      return "UPPER_LAYER_CONFIG_REQ";
+      return ("UPPER_LAYER_CONFIG_REQ");
     case L2CEVT_L2CA_CONFIG_RSP: /* Upper layer config response          */
-      return "UPPER_LAYER_CONFIG_RSP";
+      return ("UPPER_LAYER_CONFIG_RSP");
     case L2CEVT_L2CA_DISCONNECT_REQ: /* Upper layer disconnect request       */
-      return "UPPER_LAYER_DISCONNECT_REQ";
+      return ("UPPER_LAYER_DISCONNECT_REQ");
     case L2CEVT_L2CA_DISCONNECT_RSP: /* Upper layer disconnect response      */
-      return "UPPER_LAYER_DISCONNECT_RSP";
+      return ("UPPER_LAYER_DISCONNECT_RSP");
     case L2CEVT_L2CA_DATA_READ: /* Upper layer data read                */
-      return "UPPER_LAYER_DATA_READ";
+      return ("UPPER_LAYER_DATA_READ");
     case L2CEVT_L2CA_DATA_WRITE: /* Upper layer data write               */
-      return "UPPER_LAYER_DATA_WRITE";
+      return ("UPPER_LAYER_DATA_WRITE");
     case L2CEVT_TIMEOUT: /* Timeout                              */
-      return "TIMEOUT";
+      return ("TIMEOUT");
     case L2CEVT_SEC_RE_SEND_CMD:
-      return "SEC_RE_SEND_CMD";
+      return ("SEC_RE_SEND_CMD");
     case L2CEVT_L2CAP_INFO_RSP: /* Peer information response            */
-      return "L2CEVT_L2CAP_INFO_RSP";
+      return ("L2CEVT_L2CAP_INFO_RSP");
     case L2CEVT_ACK_TIMEOUT:
-      return "L2CEVT_ACK_TIMEOUT";
+      return ("L2CEVT_ACK_TIMEOUT");
     case L2CEVT_L2CA_SEND_FLOW_CONTROL_CREDIT: /* Upper layer send credit packet
                                                 */
-      return "SEND_FLOW_CONTROL_CREDIT";
+      return ("SEND_FLOW_CONTROL_CREDIT");
     case L2CEVT_L2CA_CREDIT_BASED_CONNECT_REQ: /* Upper layer credit based
                                                   connect request */
-      return "SEND_CREDIT_BASED_CONNECT_REQ";
+      return ("SEND_CREDIT_BASED_CONNECT_REQ");
     case L2CEVT_L2CA_CREDIT_BASED_CONNECT_RSP: /* Upper layer credit based
                                                   connect response */
-      return "SEND_CREDIT_BASED_CONNECT_RSP";
+      return ("SEND_CREDIT_BASED_CONNECT_RSP");
     case L2CEVT_L2CA_CREDIT_BASED_CONNECT_RSP_NEG: /* Upper layer credit based
                                                       connect response
                                                       (failed)*/
-      return "SEND_CREDIT_BASED_CONNECT_RSP_NEG";
+      return ("SEND_CREDIT_BASED_CONNECT_RSP_NEG");
     case L2CEVT_L2CA_CREDIT_BASED_RECONFIG_REQ: /* Upper layer credit based
                                                    reconfig request */
-      return "SEND_CREDIT_BASED_RECONFIG_REQ";
+      return ("SEND_CREDIT_BASED_RECONFIG_REQ");
     case L2CEVT_L2CAP_RECV_FLOW_CONTROL_CREDIT: /* Peer send credit packet */
-      return "RECV_FLOW_CONTROL_CREDIT";
+      return ("RECV_FLOW_CONTROL_CREDIT");
     case L2CEVT_L2CAP_CREDIT_BASED_CONNECT_REQ: /* Peer send credit based
                                                    connect request */
-      return "RECV_CREDIT_BASED_CONNECT_REQ";
+      return ("RECV_CREDIT_BASED_CONNECT_REQ");
     case L2CEVT_L2CAP_CREDIT_BASED_CONNECT_RSP: /* Peer send credit based
                                                    connect response */
-      return "RECV_CREDIT_BASED_CONNECT_RSP";
+      return ("RECV_CREDIT_BASED_CONNECT_RSP");
     case L2CEVT_L2CAP_CREDIT_BASED_CONNECT_RSP_NEG: /* Peer send reject credit
                                                        based connect response */
-      return "RECV_CREDIT_BASED_CONNECT_RSP_NEG";
+      return ("RECV_CREDIT_BASED_CONNECT_RSP_NEG");
     case L2CEVT_L2CAP_CREDIT_BASED_RECONFIG_REQ: /* Peer send credit based
                                                     reconfig request */
-      return "RECV_CREDIT_BASED_RECONFIG_REQ";
+      return ("RECV_CREDIT_BASED_RECONFIG_REQ");
     case L2CEVT_L2CAP_CREDIT_BASED_RECONFIG_RSP: /* Peer send credit based
                                                     reconfig response */
-      return "RECV_CREDIT_BASED_RECONFIG_RSP";
+      return ("RECV_CREDIT_BASED_RECONFIG_RSP");
     default:
-      return "???? UNKNOWN EVENT";
+      return ("???? UNKNOWN EVENT");
   }
 }
 
@@ -1638,10 +1687,7 @@ void l2c_enqueue_peer_data(tL2C_CCB* p_ccb, BT_HDR* p_buf) {
   }
 
   if (p_ccb->xmit_hold_q == NULL) {
-    log::error(
-            "empty queue: p_ccb = {} p_ccb->in_use = {} p_ccb->chnl_state = {} p_ccb->local_cid = "
-            "{} p_ccb->remote_cid = {}",
-            fmt::ptr(p_ccb), p_ccb->in_use, p_ccb->chnl_state, p_ccb->local_cid, p_ccb->remote_cid);
+    log::error("empty queue: p_ccb = {} p_ccb->in_use = {} p_ccb->chnl_state = {} p_ccb->local_cid = {} p_ccb->remote_cid = {}", fmt::ptr(p_ccb), p_ccb->in_use, p_ccb->chnl_state, p_ccb->local_cid, p_ccb->remote_cid);
   } else {
     fixed_queue_enqueue(p_ccb->xmit_hold_q, p_buf);
   }
@@ -1656,7 +1702,5 @@ void l2c_enqueue_peer_data(tL2C_CCB* p_ccb, BT_HDR* p_buf) {
   }
 
   /* if we are doing a round robin scheduling, set the flag */
-  if (p_ccb->p_lcb->link_xmit_quota == 0) {
-    l2cb.check_round_robin = true;
-  }
+  if (p_ccb->p_lcb->link_xmit_quota == 0) l2cb.check_round_robin = true;
 }

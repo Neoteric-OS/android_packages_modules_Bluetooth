@@ -27,8 +27,9 @@
 #ifndef AUDIO_A2DP_HW_H
 #define AUDIO_A2DP_HW_H
 
-#include <hardware/bt_av.h>
 #include <stdint.h>
+
+#include <hardware/bt_av.h>
 
 /*****************************************************************************
  *  Constants & Macros
@@ -142,9 +143,9 @@ typedef uint8_t tA2DP_BITS_PER_SAMPLE;
 // Returns the computed buffer size. If any of the input parameters is
 // invalid, the return value is the default |AUDIO_STREAM_OUTPUT_BUFFER_SZ|.
 size_t audio_a2dp_hw_stream_compute_buffer_size(
-        btav_a2dp_codec_sample_rate_t codec_sample_rate,
-        btav_a2dp_codec_bits_per_sample_t codec_bits_per_sample,
-        btav_a2dp_codec_channel_mode_t codec_channel_mode);
+    btav_a2dp_codec_sample_rate_t codec_sample_rate,
+    btav_a2dp_codec_bits_per_sample_t codec_bits_per_sample,
+    btav_a2dp_codec_channel_mode_t codec_channel_mode);
 
 // Returns whether the delay reporting property is set.
 bool delay_reporting_enabled();

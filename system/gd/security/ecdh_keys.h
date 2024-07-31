@@ -18,7 +18,6 @@
 #pragma once
 
 #include <stdint.h>
-
 #include <array>
 
 namespace bluetooth {
@@ -36,8 +35,7 @@ std::pair<std::array<uint8_t, 32>, EcdhPublicKey> GenerateECDHKeyPair();
  * Bluetooth curve */
 bool ValidateECDHPoint(EcdhPublicKey pk);
 
-std::array<uint8_t, 32> ComputeDHKey(std::array<uint8_t, 32> my_private_key,
-                                     EcdhPublicKey remote_public_key);
+std::array<uint8_t, 32> ComputeDHKey(std::array<uint8_t, 32> my_private_key, EcdhPublicKey remote_public_key);
 
-} // namespace security
-} // namespace bluetooth
+}  // namespace security
+}  // namespace bluetooth

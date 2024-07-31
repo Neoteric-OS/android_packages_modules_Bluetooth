@@ -26,8 +26,8 @@
 namespace bluetooth {
 namespace fuzz {
 
-std::vector<std::vector<uint8_t>> SplitInput(const uint8_t* data, size_t size,
-                                             const uint8_t* separator, size_t separatorSize);
+std::vector<std::vector<uint8_t>> SplitInput(
+    const uint8_t* data, size_t size, const uint8_t* separator, size_t separatorSize);
 
 std::vector<uint8_t> GetArbitraryBytes(FuzzedDataProvider* fdp);
 
@@ -38,8 +38,7 @@ std::vector<uint8_t> GetArbitraryBytes(FuzzedDataProvider* fdp);
   }
 
 template <typename TView>
-void InvokeIfValid(common::ContextualOnceCallback<void(TView)> callback,
-                   std::vector<uint8_t> data) {
+void InvokeIfValid(common::ContextualOnceCallback<void(TView)> callback, std::vector<uint8_t> data) {
   auto packet = TView::FromBytes(data);
   if (!packet.IsValid()) {
     return;
@@ -60,5 +59,5 @@ void InvokeIfValid(common::ContextualCallback<void(TView)> callback, std::vector
   }
 }
 
-} // namespace fuzz
-} // namespace bluetooth
+}  // namespace fuzz
+}  // namespace bluetooth

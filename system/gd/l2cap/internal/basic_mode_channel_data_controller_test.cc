@@ -49,7 +49,7 @@ void sync_handler(os::Handler* handler) {
 }
 
 class BasicModeDataControllerTest : public ::testing::Test {
-protected:
+ protected:
   void SetUp() override {
     thread_ = new os::Thread("test_thread", os::Thread::Priority::NORMAL);
     user_handler_ = new os::Handler(thread_);
@@ -98,7 +98,7 @@ TEST_F(BasicModeDataControllerTest, receive) {
   EXPECT_EQ(data, "abcd");
 }
 
-} // namespace
-} // namespace internal
-} // namespace l2cap
-} // namespace bluetooth
+}  // namespace
+}  // namespace internal
+}  // namespace l2cap
+}  // namespace bluetooth

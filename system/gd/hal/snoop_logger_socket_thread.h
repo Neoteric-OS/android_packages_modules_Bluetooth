@@ -31,7 +31,7 @@ namespace bluetooth {
 namespace hal {
 
 class SnoopLoggerSocketThread : public SnoopLoggerSocketInterface {
-public:
+ public:
   SnoopLoggerSocketThread(std::unique_ptr<SnoopLoggerSocket>&& socket);
   SnoopLoggerSocketThread(const SnoopLoggerSocket&) = delete;
   SnoopLoggerSocketThread& operator=(const SnoopLoggerSocketThread&) = delete;
@@ -44,7 +44,7 @@ public:
 
   SnoopLoggerSocket* GetSocket();
 
-private:
+ private:
   void Run(std::promise<bool> thread_started);
 
   std::unique_ptr<SnoopLoggerSocket> socket_;
@@ -58,5 +58,5 @@ private:
   std::atomic<bool> stop_thread_;
 };
 
-} // namespace hal
-} // namespace bluetooth
+}  // namespace hal
+}  // namespace bluetooth

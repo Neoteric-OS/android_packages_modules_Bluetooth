@@ -35,14 +35,15 @@ namespace {
 struct RustArbiterCallbacks {
   ::rust::Fn<void(uint8_t tcb_idx, uint8_t advertiser)> on_le_connect;
   ::rust::Fn<void(uint8_t tcb_idx)> on_le_disconnect;
-  ::rust::Fn<InterceptAction(uint8_t tcb_idx, ::rust::Vec<uint8_t> buffer)> intercept_packet;
+  ::rust::Fn<InterceptAction(uint8_t tcb_idx, ::rust::Vec<uint8_t> buffer)>
+      intercept_packet;
   ::rust::Fn<void(uint8_t tcb_idx)> on_outgoing_mtu_req;
   ::rust::Fn<void(uint8_t tcb_idx, size_t mtu)> on_incoming_mtu_resp;
   ::rust::Fn<void(uint8_t tcb_idx, size_t mtu)> on_incoming_mtu_req;
 };
 
 RustArbiterCallbacks callbacks_{};
-} // namespace
+}  // namespace
 
 void AclArbiter::OnLeConnect(uint8_t tcb_idx, uint16_t advertiser_id) {
 #ifdef TARGET_FLOSS
@@ -60,7 +61,8 @@ void AclArbiter::OnLeDisconnect(uint8_t tcb_idx) {
   callbacks_.on_le_disconnect(tcb_idx);
 }
 
-InterceptAction AclArbiter::InterceptAttPacket(uint8_t tcb_idx, const BT_HDR* packet) {
+InterceptAction AclArbiter::InterceptAttPacket(uint8_t tcb_idx,
+                                               const BT_HDR* packet) {
 #ifdef TARGET_FLOSS
   return InterceptAction::FORWARD;
 #endif
@@ -98,13 +100,15 @@ void AclArbiter::OnIncomingMtuReq(uint8_t tcb_idx, size_t mtu) {
   callbacks_.on_incoming_mtu_req(tcb_idx, mtu);
 }
 
-void AclArbiter::SendPacketToPeer(uint8_t tcb_idx, ::rust::Vec<uint8_t> buffer) {
+void AclArbiter::SendPacketToPeer(uint8_t tcb_idx,
+                                  ::rust::Vec<uint8_t> buffer) {
 #ifdef TARGET_FLOSS
   return;
 #endif
   tGATT_TCB* p_tcb = gatt_get_tcb_by_idx(tcb_idx);
   if (p_tcb != nullptr) {
-    BT_HDR* p_buf = (BT_HDR*)osi_malloc(sizeof(BT_HDR) + buffer.size() + L2CAP_MIN_OFFSET);
+    BT_HDR* p_buf =
+        (BT_HDR*)osi_malloc(sizeof(BT_HDR) + buffer.size() + L2CAP_MIN_OFFSET);
     if (p_buf == nullptr) {
       log::fatal("OOM when sending packet");
     }
@@ -114,8 +118,8 @@ void AclArbiter::SendPacketToPeer(uint8_t tcb_idx, ::rust::Vec<uint8_t> buffer) 
     p_buf->len = buffer.size();
     if (L2CA_SendFixedChnlData(L2CAP_ATT_CID, p_tcb->peer_bda, p_buf) !=
         tL2CAP_DW_RESULT::SUCCESS) {
-      log::warn("Unable to send L2CAP data peer:{} fixed_cid:{} len:{}", p_tcb->peer_bda,
-                L2CAP_ATT_CID, p_buf->len);
+      log::warn("Unable to send L2CAP data peer:{} fixed_cid:{} len:{}",
+                p_tcb->peer_bda, L2CAP_ATT_CID, p_buf->len);
     }
   } else {
     log::error("Dropping packet since connection no longer exists");
@@ -123,21 +127,22 @@ void AclArbiter::SendPacketToPeer(uint8_t tcb_idx, ::rust::Vec<uint8_t> buffer) 
 }
 
 void StoreCallbacksFromRust(
-        ::rust::Fn<void(uint8_t tcb_idx, uint8_t advertiser)> on_le_connect,
-        ::rust::Fn<void(uint8_t tcb_idx)> on_le_disconnect,
-        ::rust::Fn<InterceptAction(uint8_t tcb_idx, ::rust::Vec<uint8_t> buffer)> intercept_packet,
-        ::rust::Fn<void(uint8_t tcb_idx)> on_outgoing_mtu_req,
-        ::rust::Fn<void(uint8_t tcb_idx, size_t mtu)> on_incoming_mtu_resp,
-        ::rust::Fn<void(uint8_t tcb_idx, size_t mtu)> on_incoming_mtu_req) {
+    ::rust::Fn<void(uint8_t tcb_idx, uint8_t advertiser)> on_le_connect,
+    ::rust::Fn<void(uint8_t tcb_idx)> on_le_disconnect,
+    ::rust::Fn<InterceptAction(uint8_t tcb_idx, ::rust::Vec<uint8_t> buffer)>
+        intercept_packet,
+    ::rust::Fn<void(uint8_t tcb_idx)> on_outgoing_mtu_req,
+    ::rust::Fn<void(uint8_t tcb_idx, size_t mtu)> on_incoming_mtu_resp,
+    ::rust::Fn<void(uint8_t tcb_idx, size_t mtu)> on_incoming_mtu_req) {
   log::info("Received callbacks from Rust, registering in Arbiter");
   callbacks_ = {on_le_connect,       on_le_disconnect,     intercept_packet,
                 on_outgoing_mtu_req, on_incoming_mtu_resp, on_incoming_mtu_req};
 }
 
 void SendPacketToPeer(uint8_t tcb_idx, ::rust::Vec<uint8_t> buffer) {
-  do_in_main_thread(FROM_HERE,
-                    base::BindOnce(&AclArbiter::SendPacketToPeer, base::Unretained(&GetArbiter()),
-                                   tcb_idx, std::move(buffer)));
+  do_in_main_thread(FROM_HERE, base::BindOnce(&AclArbiter::SendPacketToPeer,
+                                              base::Unretained(&GetArbiter()),
+                                              tcb_idx, std::move(buffer)));
 }
 
 AclArbiter& GetArbiter() {
@@ -145,6 +150,6 @@ AclArbiter& GetArbiter() {
   return singleton;
 }
 
-} // namespace arbiter
-} // namespace shim
-} // namespace bluetooth
+}  // namespace arbiter
+}  // namespace shim
+}  // namespace bluetooth

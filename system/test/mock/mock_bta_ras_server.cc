@@ -18,13 +18,16 @@
 
 class MockRasServer : public bluetooth::ras::RasServer {
   void Initialize() override {}
-  void RegisterCallbacks(bluetooth::ras::RasServerCallbacks* /* callbacks */) override {}
-  void HandleVendorSpecificReplyComplete(RawAddress /* address */, bool /* success */) override {}
-  void PushProcedureData(RawAddress /* address */, uint16_t /* procedure_count */,
-                         bool /* is_last */, std::vector<uint8_t> /* data */) override {}
+  void RegisterCallbacks(
+      bluetooth::ras::RasServerCallbacks* /* callbacks */) override {}
+  void HandleVendorSpecificReplyComplete(RawAddress /* address */,
+                                         bool /* success */) override {}
+  void PushProcedureData(RawAddress /* address */,
+                         uint16_t /* procedure_count */, bool /* is_last */,
+                         std::vector<uint8_t> /* data */) override {}
   void SetVendorSpecificCharacteristic(
-          const std::vector<bluetooth::ras::VendorSpecificCharacteristic>&
-          /* vendor_specific_characteristics */) override {}
+      const std::vector<bluetooth::ras::VendorSpecificCharacteristic>&
+      /* vendor_specific_characteristics */) override {}
 };
 
 namespace bluetooth {
@@ -38,5 +41,5 @@ RasServer* GetRasServer() {
   return instance;
 }
 
-} // namespace ras
-} // namespace bluetooth
+}  // namespace ras
+}  // namespace bluetooth

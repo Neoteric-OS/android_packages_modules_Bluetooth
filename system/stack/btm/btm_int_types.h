@@ -47,24 +47,26 @@ extern bluetooth::common::TimestamperInMilliseconds timestamper_in_milliseconds;
 
 class TimestampedStringCircularBuffer
     : public bluetooth::common::TimestampedCircularBuffer<std::string> {
-public:
+ public:
   explicit TimestampedStringCircularBuffer(size_t size)
       : bluetooth::common::TimestampedCircularBuffer<std::string>(size) {}
 
   void Push(const std::string& s) {
-    bluetooth::common::TimestampedCircularBuffer<std::string>::Push(s.substr(0, kMaxLogSize));
+    bluetooth::common::TimestampedCircularBuffer<std::string>::Push(
+        s.substr(0, kMaxLogSize));
   }
 
   template <typename... Args>
   void Push(Args... args) {
     char buf[kMaxLogSize];
     std::snprintf(buf, sizeof(buf), args...);
-    bluetooth::common::TimestampedCircularBuffer<std::string>::Push(std::string(buf));
+    bluetooth::common::TimestampedCircularBuffer<std::string>::Push(
+        std::string(buf));
   }
 };
 
 /* Define a structure to hold all the BTM data
- */
+*/
 
 /* Define the Device Management control structure
  */
@@ -77,13 +79,14 @@ typedef struct tBTM_DEVCB {
   tBTM_CMPL_CB* p_rssi_cmpl_cb; /* Callback function to be called when  */
                                 /* read RSSI function completes */
 
-  alarm_t* read_failed_contact_counter_timer;     /* Read Failed Contact Counter */
-                                                  /* timer */
+  alarm_t* read_failed_contact_counter_timer; /* Read Failed Contact Counter */
+                                              /* timer */
   tBTM_CMPL_CB* p_failed_contact_counter_cmpl_cb; /* Callback function to be */
   /* called when read Failed Contact Counter function completes */
 
-  alarm_t* read_automatic_flush_timeout_timer;     /* Read Automatic Flush Timeout */
-                                                   /* timer */
+  alarm_t*
+      read_automatic_flush_timeout_timer; /* Read Automatic Flush Timeout */
+                                          /* timer */
   tBTM_CMPL_CB* p_automatic_flush_timeout_cmpl_cb; /* Callback function to be */
   /* called when read Automatic Flush Timeout function completes */
 
@@ -97,16 +100,19 @@ typedef struct tBTM_DEVCB {
 
   DEV_CLASS dev_class; /* Local device class                   */
 
-  tBTM_CMPL_CB* p_le_test_cmd_cmpl_cb; /* Callback function to be called when
-                                       LE test mode command has been sent successfully */
+  tBTM_CMPL_CB*
+      p_le_test_cmd_cmpl_cb; /* Callback function to be called when
+                             LE test mode command has been sent successfully */
 
   RawAddress read_tx_pwr_addr; /* read TX power target address     */
 
   void Init() {
     read_local_name_timer = alarm_new("btm.read_local_name_timer");
     read_rssi_timer = alarm_new("btm.read_rssi_timer");
-    read_failed_contact_counter_timer = alarm_new("btm.read_failed_contact_counter_timer");
-    read_automatic_flush_timeout_timer = alarm_new("btm.read_automatic_flush_timeout_timer");
+    read_failed_contact_counter_timer =
+        alarm_new("btm.read_failed_contact_counter_timer");
+    read_automatic_flush_timeout_timer =
+        alarm_new("btm.read_automatic_flush_timeout_timer");
     read_tx_power_timer = alarm_new("btm.read_tx_power_timer");
     conn_proc_timer = alarm_new("btm.conn_proc_timer");
   }
@@ -132,7 +138,7 @@ typedef struct tBTM_CB {
   *****************************************************/
   tBTM_BLE_CB ble_ctr_cb;
 
-public:
+ public:
   tBTM_BLE_VSC_CB cmn_ble_vsc_cb;
 
   /* Packet types supported by the local device */
@@ -150,14 +156,15 @@ public:
 
   bool encrypted_advertising_data_supported;
 
-  uint16_t disc_handle{0}; /* for legacy devices */
-  uint8_t disc_reason{0};  /* for legacy devices */
+  uint16_t disc_handle{0};          /* for legacy devices */
+  uint8_t disc_reason{0};           /* for legacy devices */
 
   fixed_queue_t* sec_pending_q{nullptr}; /* pending sequrity requests in
                                             tBTM_SEC_QUEUE_ENTRY format */
 
 #define BTM_CODEC_TYPE_MAX_RECORDS 32
-  tBTM_BT_DYNAMIC_AUDIO_BUFFER_CB dynamic_audio_buffer_cb[BTM_CODEC_TYPE_MAX_RECORDS];
+  tBTM_BT_DYNAMIC_AUDIO_BUFFER_CB
+      dynamic_audio_buffer_cb[BTM_CODEC_TYPE_MAX_RECORDS];
 
   tACL_CB acl_cb_;
 
@@ -168,10 +175,11 @@ public:
       long long start_time_ms;
       unsigned long results;
     } classic_inquiry, le_scan, le_inquiry, le_observe, le_legacy_scan;
-    std::unique_ptr<bluetooth::common::TimestampedCircularBuffer<tBTM_INQUIRY_CMPL>>
-            inquiry_history_ = std::make_unique<
-                    bluetooth::common::TimestampedCircularBuffer<tBTM_INQUIRY_CMPL>>(
-                    kMaxInquiryScanHistory);
+    std::unique_ptr<
+        bluetooth::common::TimestampedCircularBuffer<tBTM_INQUIRY_CMPL>>
+        inquiry_history_ = std::make_unique<
+            bluetooth::common::TimestampedCircularBuffer<tBTM_INQUIRY_CMPL>>(
+            kMaxInquiryScanHistory);
   } neighbor;
 
   bluetooth::rnr::RemoteNameRequest rnr;
@@ -193,8 +201,10 @@ public:
     sco_cb.Init();       /* SCO Database and Structures (If included) */
     devcb.Init();
     encrypted_advertising_data_supported = true;
-    history_ = std::make_shared<TimestampedStringCircularBuffer>(kBtmLogHistoryBufferSize);
-    bluetooth::log::assert_that(history_ != nullptr, "assert failed: history_ != nullptr");
+    history_ = std::make_shared<TimestampedStringCircularBuffer>(
+        kBtmLogHistoryBufferSize);
+    bluetooth::log::assert_that(history_ != nullptr,
+                                "assert failed: history_ != nullptr");
     history_->Push(std::string("Initialized btm history"));
   }
 
@@ -208,4 +218,4 @@ public:
   }
 } tBTM_CB;
 
-#endif // BTM_INT_TYPES_H
+#endif  // BTM_INT_TYPES_H

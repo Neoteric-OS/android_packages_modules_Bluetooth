@@ -39,12 +39,8 @@ namespace bluetooth {
 namespace sdp {
 
 DataElementReader::DataElement DataElementReader::ReadNext() {
-  if (it_ > end_) {
-    log::fatal("Beginning of buffer is past end of buffer.");
-  }
-  if (it_ == end_) {
-    return std::monostate();
-  }
+  if (it_ > end_) log::fatal("Beginning of buffer is past end of buffer.");
+  if (it_ == end_) return std::monostate();
 
   uint8_t descriptor = *it_++;
   DataElementType type = static_cast<DataElementType>(descriptor >> 3);
@@ -64,7 +60,7 @@ DataElementReader::DataElement DataElementReader::ReadNext() {
       }
 
       CHECK_REMAINING_LEN(1);
-      return it_.extract<uint8_t>() != 0;
+      return (it_.extract<uint8_t>() != 0);
     case DataElementType::SIGNED_INT:
       return ReadSignedInt(size);
     case DataElementType::UNSIGNED_INT:
@@ -92,7 +88,8 @@ DataElementReader::DataElement DataElementReader::ParseFail() {
 
 template <class IntegerType>
 DataElementReader::DataElement DataElementReader::ReadInteger() {
-  static_assert(std::is_integral<IntegerType>::value, "ReadInteger requires an integral type.");
+  static_assert(std::is_integral<IntegerType>::value,
+                "ReadInteger requires an integral type.");
 
   CHECK_REMAINING_LEN(sizeof(IntegerType));
   return it_.extractBE<IntegerType>();
@@ -109,7 +106,8 @@ DataElementReader::DataElement DataElementReader::ReadLargeInt() {
   return array;
 }
 
-DataElementReader::DataElement DataElementReader::ReadSignedInt(DataElementSize size) {
+DataElementReader::DataElement DataElementReader::ReadSignedInt(
+    DataElementSize size) {
   switch (size) {
     case DataElementSize::BYTE1:
       return ReadInteger<int8_t>();
@@ -128,7 +126,8 @@ DataElementReader::DataElement DataElementReader::ReadSignedInt(DataElementSize 
   return ParseFail();
 }
 
-DataElementReader::DataElement DataElementReader::ReadUnsignedInt(DataElementSize size) {
+DataElementReader::DataElement DataElementReader::ReadUnsignedInt(
+    DataElementSize size) {
   switch (size) {
     case DataElementSize::BYTE1:
       return ReadInteger<uint8_t>();
@@ -147,7 +146,8 @@ DataElementReader::DataElement DataElementReader::ReadUnsignedInt(DataElementSiz
   return ParseFail();
 }
 
-DataElementReader::DataElement DataElementReader::ReadUuid(DataElementSize size) {
+DataElementReader::DataElement DataElementReader::ReadUuid(
+    DataElementSize size) {
   if (size == DataElementSize::BYTE2) {
     CHECK_REMAINING_LEN(2);
     return Uuid::From16Bit(it_.extractBE<uint16_t>());
@@ -173,7 +173,8 @@ DataElementReader::DataElement DataElementReader::ReadUuid(DataElementSize size)
   return ParseFail();
 }
 
-DataElementReader::DataElement DataElementReader::ReadString(DataElementSize size) {
+DataElementReader::DataElement DataElementReader::ReadString(
+    DataElementSize size) {
   uint32_t num_bytes = 0;
 
   switch (size) {
@@ -204,7 +205,8 @@ DataElementReader::DataElement DataElementReader::ReadString(DataElementSize siz
   return str;
 }
 
-DataElementReader::DataElement DataElementReader::ReadSequence(DataElementSize size) {
+DataElementReader::DataElement DataElementReader::ReadSequence(
+    DataElementSize size) {
   uint32_t num_bytes = 0;
 
   switch (size) {
@@ -234,5 +236,5 @@ DataElementReader::DataElement DataElementReader::ReadSequence(DataElementSize s
   return std::move(temp);
 }
 
-} // namespace sdp
-} // namespace bluetooth
+}  // namespace sdp
+}  // namespace bluetooth

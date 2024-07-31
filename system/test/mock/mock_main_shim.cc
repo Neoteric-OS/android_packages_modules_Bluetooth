@@ -32,7 +32,7 @@ namespace test {
 namespace mock {
 bool bluetooth_shim_is_gd_stack_started_up = false;
 }
-} // namespace test
+}  // namespace test
 bool bluetooth::shim::is_gd_stack_started_up() {
   inc_func_call_count(__func__);
   return test::mock::bluetooth_shim_is_gd_stack_started_up;

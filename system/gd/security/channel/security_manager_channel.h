@@ -30,14 +30,13 @@ namespace bluetooth {
 namespace security {
 namespace channel {
 
-using SecurityCommandStatusCallback =
-        common::ContextualOnceCallback<void(hci::CommandCompleteView)>;
+using SecurityCommandStatusCallback = common::ContextualOnceCallback<void(hci::CommandCompleteView)>;
 
 /**
  * Interface for listening to the channel for SMP commands.
  */
 class ISecurityManagerChannelListener {
-public:
+ public:
   virtual ~ISecurityManagerChannelListener() = default;
   virtual void OnHciEventReceived(hci::EventView packet) = 0;
   virtual void OnConnectionClosed(hci::Address) = 0;
@@ -47,7 +46,7 @@ public:
  * Channel for consolidating traffic and making the transport agnostic.
  */
 class SecurityManagerChannel : public l2cap::classic::LinkSecurityInterfaceListener {
-public:
+ public:
   SecurityManagerChannel(os::Handler* handler, hci::HciLayer* hci_layer);
 
   virtual ~SecurityManagerChannel();
@@ -90,15 +89,16 @@ public:
    * @param command smp command to send
    * @param callback listener to call when command status complete
    */
-  void SendCommand(std::unique_ptr<hci::SecurityCommandBuilder> command,
-                   SecurityCommandStatusCallback callback);
+  void SendCommand(std::unique_ptr<hci::SecurityCommandBuilder> command, SecurityCommandStatusCallback callback);
 
   /**
    * Sets the listener to listen for channel events
    *
    * @param listener the caller interested in events
    */
-  void SetChannelListener(ISecurityManagerChannelListener* listener) { listener_ = listener; }
+  void SetChannelListener(ISecurityManagerChannelListener* listener) {
+    listener_ = listener;
+  }
 
   void SetSecurityInterface(l2cap::classic::SecurityInterface* security_interface) {
     l2cap_security_interface_ = security_interface;
@@ -124,16 +124,15 @@ public:
   void OnAuthenticationComplete(hci::ErrorCode hci_status, hci::Address remote) override;
   void OnEncryptionChange(hci::Address, bool encrypted) override;
 
-private:
+ private:
   ISecurityManagerChannelListener* listener_{nullptr};
   hci::SecurityInterface* hci_security_interface_{nullptr};
   os::Handler* handler_{nullptr};
   l2cap::classic::SecurityInterface* l2cap_security_interface_{nullptr};
-  std::unordered_map<hci::Address, std::unique_ptr<l2cap::classic::LinkSecurityInterface>>
-          link_map_;
+  std::unordered_map<hci::Address, std::unique_ptr<l2cap::classic::LinkSecurityInterface>> link_map_;
   std::set<hci::Address> outgoing_pairing_remote_devices_;
 };
 
-} // namespace channel
-} // namespace security
-} // namespace bluetooth
+}  // namespace channel
+}  // namespace security
+}  // namespace bluetooth

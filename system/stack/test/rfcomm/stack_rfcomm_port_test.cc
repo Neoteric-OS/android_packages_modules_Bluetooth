@@ -23,14 +23,14 @@
 namespace {
 const RawAddress kRawAddress = RawAddress({0x11, 0x22, 0x33, 0x44, 0x55, 0x66});
 
-} // namespace
+}  // namespace
 
 class StackRfcommPortTest : public ::testing::Test {
-protected:
+ protected:
   void SetUp() override {}
   void TearDown() override {}
 
-private:
+ private:
 };
 
 TEST_F(StackRfcommPortTest, PORT_IsOpening__basic) {

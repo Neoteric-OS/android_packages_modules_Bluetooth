@@ -24,7 +24,7 @@ namespace bluetooth {
 namespace common {
 
 class ILoggable {
-public:
+ public:
   // the interface for
   // converting an object to a string for feeding to loggers
   // e.g.. logcat
@@ -33,7 +33,7 @@ public:
 };
 
 class IRedactableLoggable : public ILoggable {
-public:
+ public:
   // the interface for
   // converting an object to a string with sensitive info redacted
   // to avoid violating privacy
@@ -41,5 +41,5 @@ public:
   virtual ~IRedactableLoggable() = default;
 };
 
-} // namespace common
-} // namespace bluetooth
+}  // namespace common
+}  // namespace bluetooth

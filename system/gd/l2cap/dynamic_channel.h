@@ -28,17 +28,16 @@ namespace l2cap {
 
 namespace internal {
 class DynamicChannelImpl;
-} // namespace internal
+}  // namespace internal
 
 /**
- * L2CAP Dynamic channel object. User needs to call Close() when user no longer wants to use it.
- * Otherwise the link won't be disconnected.
+ * L2CAP Dynamic channel object. User needs to call Close() when user no longer wants to use it. Otherwise the link
+ * won't be disconnected.
  */
 class DynamicChannel {
-public:
+ public:
   // Should only be constructed by modules that have access to LinkManager
-  DynamicChannel(std::shared_ptr<l2cap::internal::DynamicChannelImpl> impl,
-                 os::Handler* l2cap_handler)
+  DynamicChannel(std::shared_ptr<l2cap::internal::DynamicChannelImpl> impl, os::Handler* l2cap_handler)
       : impl_(std::move(impl)), l2cap_handler_(l2cap_handler) {
     log::assert_that(impl_ != nullptr, "assert failed: impl_ != nullptr");
     log::assert_that(l2cap_handler_ != nullptr, "assert failed: l2cap_handler_ != nullptr");
@@ -47,10 +46,9 @@ public:
   hci::AddressWithType GetDevice() const;
 
   /**
-   * Register close callback. If close callback is registered, when a channel is closed, the
-   * channel's resource will only be freed after on_close callback is invoked. Otherwise, if no
-   * on_close callback is registered, the channel's resource will be freed immediately after
-   * closing.
+   * Register close callback. If close callback is registered, when a channel is closed, the channel's resource will
+   * only be freed after on_close callback is invoked. Otherwise, if no on_close callback is registered, the channel's
+   * resource will be freed immediately after closing.
    *
    * @param on_close_callback The callback invoked upon channel closing.
    */
@@ -58,9 +56,8 @@ public:
   void RegisterOnCloseCallback(OnCloseCallback on_close_callback);
 
   /**
-   * Indicate that this Dynamic Channel should be closed. OnCloseCallback will be invoked when
-   * channel close is done. L2cay layer may terminate this ACL connection to free the resource after
-   * channel is closed.
+   * Indicate that this Dynamic Channel should be closed. OnCloseCallback will be invoked when channel close is done.
+   * L2cay layer may terminate this ACL connection to free the resource after channel is closed.
    */
   void Close();
 
@@ -71,8 +68,7 @@ public:
    *
    * @return The upper end of a bi-directional queue.
    */
-  common::BidiQueueEnd<packet::BasePacketBuilder, packet::PacketView<packet::kLittleEndian>>*
-  GetQueueUpEnd() const;
+  common::BidiQueueEnd<packet::BasePacketBuilder, packet::PacketView<packet::kLittleEndian>>* GetQueueUpEnd() const;
 
   Cid HACK_GetRemoteCid();
 
@@ -82,10 +78,10 @@ public:
    */
   void HACK_SetChannelTxPriority(bool high_priority);
 
-private:
+ private:
   std::shared_ptr<l2cap::internal::DynamicChannelImpl> impl_;
   os::Handler* l2cap_handler_;
 };
 
-} // namespace l2cap
-} // namespace bluetooth
+}  // namespace l2cap
+}  // namespace bluetooth

@@ -37,7 +37,8 @@ extern "C" int LLVMFuzzerTestOneInput(const char* data, size_t size) {
     for (size_t x = 0; x < size; x++) {
       set_absolute_volume_response.push_back(data[x]);
     }
-    auto test_packet = TestSetVolumeRspPacket::Make(set_absolute_volume_response);
+    auto test_packet =
+        TestSetVolumeRspPacket::Make(set_absolute_volume_response);
 
     test_packet->IsValid();
     test_packet->GetVolume();
@@ -47,5 +48,5 @@ extern "C" int LLVMFuzzerTestOneInput(const char* data, size_t size) {
   return 0;
 }
 
-} // namespace avrcp
-} // namespace bluetooth
+}  // namespace avrcp
+}  // namespace bluetooth

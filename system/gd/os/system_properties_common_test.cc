@@ -57,7 +57,7 @@ TEST(SystemPropertiesTest, getUint32BaseHex) {
   stream << std::showbase << std::hex << value;
   ASSERT_TRUE(SetSystemProperty(property, stream.str()));
   ASSERT_EQ(bluetooth::os::GetSystemPropertyUint32Base(property, 0), value);
-  ASSERT_EQ(bluetooth::os::GetSystemPropertyUint32Base(property, 1, 10), 0u); // if parsed as a dec
+  ASSERT_EQ(bluetooth::os::GetSystemPropertyUint32Base(property, 1, 10), 0u);  // if parsed as a dec
 }
 
-} // namespace testing
+}  // namespace testing

@@ -16,9 +16,9 @@
  *
  ******************************************************************************/
 
-#include "common/multi_priority_queue.h"
-
 #include <gtest/gtest.h>
+
+#include "common/multi_priority_queue.h"
 
 namespace bluetooth {
 namespace common {
@@ -59,5 +59,5 @@ TEST(MultiPriorityQueueTest, with_multiple_priority_item) {
   }
 }
 
-} // namespace common
-} // namespace bluetooth
+}  // namespace common
+}  // namespace bluetooth

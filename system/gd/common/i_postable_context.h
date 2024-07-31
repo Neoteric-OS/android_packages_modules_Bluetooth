@@ -22,10 +22,10 @@ namespace bluetooth {
 namespace common {
 
 class IPostableContext {
-public:
-  virtual ~IPostableContext() {}
+ public:
+  virtual ~IPostableContext(){};
   virtual void Post(base::OnceClosure closure) = 0;
 };
 
-} // namespace common
-} // namespace bluetooth
+}  // namespace common
+}  // namespace bluetooth

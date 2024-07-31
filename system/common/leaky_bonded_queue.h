@@ -41,7 +41,7 @@ namespace common {
  */
 template <class T>
 class LeakyBondedQueue {
-public:
+ public:
   LeakyBondedQueue(size_t capacity);
   /* Default destructor
    *
@@ -79,7 +79,7 @@ public:
    */
   void Clear();
 
-private:
+ private:
   // Put item in unique_ptr so that they get freed automatically when poped or
   // when queue_ is freed
   std::queue<std::unique_ptr<T>> queue_;
@@ -157,6 +157,6 @@ bool LeakyBondedQueue<T>::Empty() {
   return queue_.empty();
 }
 
-} // namespace common
+}  // namespace common
 
-} // namespace bluetooth
+}  // namespace bluetooth

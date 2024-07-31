@@ -16,11 +16,12 @@
 
 #pragma once
 
-#include <gmock/gmock.h>
+#include "l2cap/internal/data_pipeline_manager.h"
 
 #include "l2cap/internal/channel_impl.h"
 #include "l2cap/internal/data_controller.h"
-#include "l2cap/internal/data_pipeline_manager.h"
+
+#include <gmock/gmock.h>
 
 // Unit test interfaces
 namespace bluetooth {
@@ -29,7 +30,7 @@ namespace internal {
 namespace testing {
 
 class MockDataPipelineManager : public DataPipelineManager {
-public:
+ public:
   MockDataPipelineManager(os::Handler* handler, LowerQueueUpEnd* link_queue_up_end)
       : DataPipelineManager(handler, nullptr, link_queue_up_end) {}
   MOCK_METHOD(void, AttachChannel, (Cid, std::shared_ptr<ChannelImpl>, ChannelMode), (override));
@@ -38,7 +39,7 @@ public:
   MOCK_METHOD(void, OnPacketSent, (Cid), (override));
 };
 
-} // namespace testing
-} // namespace internal
-} // namespace l2cap
-} // namespace bluetooth
+}  // namespace testing
+}  // namespace internal
+}  // namespace l2cap
+}  // namespace bluetooth

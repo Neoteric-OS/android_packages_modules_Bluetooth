@@ -32,7 +32,7 @@
 namespace bluetooth::hci {
 
 class Address final : public pdl::packet::Builder {
-public:
+ public:
   static constexpr size_t kLength = 6;
 
   // Bluetooth MAC address bytes saved in little endian format.
@@ -52,7 +52,7 @@ public:
 
   bool operator<(const Address& rhs) const { return address < rhs.address; }
   bool operator==(const Address& rhs) const { return address == rhs.address; }
-  bool operator>(const Address& rhs) const { return rhs < *this; }
+  bool operator>(const Address& rhs) const { return (rhs < *this); }
   bool operator<=(const Address& rhs) const { return !(*this > rhs); }
   bool operator>=(const Address& rhs) const { return !(*this < rhs); }
   bool operator!=(const Address& rhs) const { return !(*this == rhs); }
@@ -81,8 +81,8 @@ public:
 
   static bool IsValidAddress(const std::string& address);
 
-  static const Address kEmpty; // 00:00:00:00:00:00
-  static const Address kAny;   // FF:FF:FF:FF:FF:FF
+  static const Address kEmpty;  // 00:00:00:00:00:00
+  static const Address kAny;    // FF:FF:FF:FF:FF:FF
 };
 
 inline std::ostream& operator<<(std::ostream& os, const Address& a) {
@@ -90,7 +90,7 @@ inline std::ostream& operator<<(std::ostream& os, const Address& a) {
   return os;
 }
 
-} // namespace bluetooth::hci
+}  // namespace bluetooth::hci
 
 namespace std {
 template <>
@@ -104,7 +104,7 @@ struct hash<bluetooth::hci::Address> {
     return std::hash<uint64_t>{}(address_int);
   }
 };
-} // namespace std
+}  // namespace std
 
 template <>
 struct fmt::formatter<bluetooth::hci::Address> {
@@ -112,7 +112,8 @@ struct fmt::formatter<bluetooth::hci::Address> {
   char presentation = 'x';
 
   // Parses format specifications of the form ['x' | 'X'].
-  constexpr auto parse(format_parse_context& ctx) -> format_parse_context::iterator {
+  constexpr auto parse(format_parse_context& ctx)
+      -> format_parse_context::iterator {
     // Parse the presentation format and store it in the formatter:
     auto it = ctx.begin();
     auto end = ctx.end();
@@ -131,14 +132,16 @@ struct fmt::formatter<bluetooth::hci::Address> {
 
   // Formats the address a using the parsed format specification (presentation)
   // stored in this formatter.
-  auto format(const bluetooth::hci::Address& a,
-              format_context& ctx) const -> format_context::iterator {
+  auto format(const bluetooth::hci::Address& a, format_context& ctx) const
+      -> format_context::iterator {
     return presentation == 'x'
-                   ? fmt::format_to(ctx.out(), "{:02x}:{:02x}:{:02x}:{:02x}:{:02x}:{:02x}",
-                                    a.address[5], a.address[4], a.address[3], a.address[2],
-                                    a.address[1], a.address[0])
-                   : fmt::format_to(ctx.out(), "{:02X}:{:02X}:{:02X}:{:02X}:{:02X}:{:02X}",
-                                    a.address[5], a.address[4], a.address[3], a.address[2],
-                                    a.address[1], a.address[0]);
+               ? fmt::format_to(ctx.out(),
+                                "{:02x}:{:02x}:{:02x}:{:02x}:{:02x}:{:02x}",
+                                a.address[5], a.address[4], a.address[3],
+                                a.address[2], a.address[1], a.address[0])
+               : fmt::format_to(ctx.out(),
+                                "{:02X}:{:02X}:{:02X}:{:02X}:{:02X}:{:02X}",
+                                a.address[5], a.address[4], a.address[3],
+                                a.address[2], a.address[1], a.address[0]);
   }
 };

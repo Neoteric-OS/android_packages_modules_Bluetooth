@@ -47,7 +47,8 @@ bool BTM_IsQHSPhySupported(const RawAddress& bda, tBT_TRANSPORT transport);
  * Returns          host add on features array
  *
  ******************************************************************************/
-bt_device_host_add_on_features_t* BTM_GetHostAddOnFeatures(uint8_t* host_add_on_features_len);
+bt_device_host_add_on_features_t* BTM_GetHostAddOnFeatures(
+    uint8_t* host_add_on_features_len);
 
 /*******************************************************************************
  *
@@ -59,7 +60,9 @@ bt_device_host_add_on_features_t* BTM_GetHostAddOnFeatures(uint8_t* host_add_on_
  * Returns          soc add on features array
  *
  ******************************************************************************/
-bt_device_soc_add_on_features_t* BTM_GetSocAddOnFeatures(uint8_t* soc_add_on_features_len);
+bt_device_soc_add_on_features_t* BTM_GetSocAddOnFeatures(
+    uint8_t* soc_add_on_features_len);
+
 
 /*******************************************************************************
  *
@@ -72,7 +75,8 @@ bt_device_soc_add_on_features_t* BTM_GetSocAddOnFeatures(uint8_t* soc_add_on_fea
  *
  ******************************************************************************/
 bt_device_qll_local_supported_features_t* BTM_GetQllLocalSupportedFeatures(
-        uint8_t* qll_local_supported_features_len);
+    uint8_t* qll_local_supported_features_len);
+
 
 /*******************************************************************************
  *

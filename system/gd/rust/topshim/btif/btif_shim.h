@@ -25,21 +25,23 @@ namespace topshim {
 namespace rust {
 
 class InitFlags {
-public:
+ public:
   InitFlags();
   ~InitFlags();
 
   void Convert(::rust::Vec<::rust::String>& flags);
-  const char** GetFlagsPtr() const { return flags_; }
+  const char** GetFlagsPtr() const {
+    return flags_;
+  }
 
-private:
+ private:
   const char** flags_;
 };
 
 std::unique_ptr<InitFlags> ConvertFlags(::rust::Vec<::rust::String> flags);
 
-} // namespace rust
-} // namespace topshim
-} // namespace bluetooth
+}  // namespace rust
+}  // namespace topshim
+}  // namespace bluetooth
 
-#endif // GD_RUST_TOPSHIM_BTIF_BTIF_SHIM_H
+#endif  // GD_RUST_TOPSHIM_BTIF_BTIF_SHIM_H

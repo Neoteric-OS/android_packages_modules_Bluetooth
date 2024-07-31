@@ -63,7 +63,7 @@ constexpr uint16_t kInvalidTaskId = 0;
 // AsyncManager object from different threads are granted to *NOT* run
 // concurrently.
 class AsyncManager {
-public:
+ public:
   // Starts watching a file descriptor in a separate thread. The
   // on_read_fd_ready_callback() will be asynchronously called when it is
   // guaranteed that a call to read() on the FD will not block. No promise is
@@ -88,8 +88,10 @@ public:
   // is not positive the callback will be asynchronously called once for each
   // time in the past that it should have been called and then scheduled for
   // future times.
-  AsyncTaskId ExecAsyncPeriodically(AsyncUserId user_id, std::chrono::milliseconds delay,
-                                    std::chrono::milliseconds period, const TaskCallback& callback);
+  AsyncTaskId ExecAsyncPeriodically(AsyncUserId user_id,
+                                    std::chrono::milliseconds delay,
+                                    std::chrono::milliseconds period,
+                                    const TaskCallback& callback);
 
   // Cancels the/every future occurrence of the action specified by this id.
   // The following invariants will hold:
@@ -120,7 +122,7 @@ public:
 
   ~AsyncManager();
 
-private:
+ private:
   // Implementation of the FD watching part of AsyncManager, extracted to its
   // own class for clarity purposes.
   class AsyncFdWatcher;
@@ -134,5 +136,5 @@ private:
   std::unique_ptr<AsyncFdWatcher> fdWatcher_p_;
   std::unique_ptr<AsyncTaskManager> taskManager_p_;
 };
-} // namespace rootcanal
-#endif // TEST_VENDOR_LIB_ASYNC_MANAGER_H_
+}  // namespace rootcanal
+#endif  // TEST_VENDOR_LIB_ASYNC_MANAGER_H_

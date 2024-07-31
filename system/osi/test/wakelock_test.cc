@@ -36,18 +36,18 @@ static int release_wake_lock_cb(const char* lock_name) {
   return BT_STATUS_SUCCESS;
 }
 
-static bt_os_callouts_t bt_wakelock_callouts = {sizeof(bt_os_callouts_t), acquire_wake_lock_cb,
-                                                release_wake_lock_cb};
+static bt_os_callouts_t bt_wakelock_callouts = {
+    sizeof(bt_os_callouts_t), acquire_wake_lock_cb, release_wake_lock_cb};
 
 class WakelockTest : public ::testing::Test {
-protected:
+ protected:
   void SetUp() override {
 // TODO (jamuraa): maybe use base::CreateNewTempDirectory instead?
 #ifdef __ANDROID__
     tmp_dir_ = "/data/local/tmp/btwlXXXXXX";
-#else  // !__ANDROID__
+#else   // !__ANDROID__
     tmp_dir_ = "/tmp/btwlXXXXXX";
-#endif // __ANDROID__
+#endif  // __ANDROID__
 
     char* buffer = const_cast<char*>(tmp_dir_.c_str());
     char* dtemp = mkdtemp(buffer);
@@ -95,9 +95,11 @@ protected:
 
     EXPECT_GE(lock_stat.st_size, unlock_stat.st_size);
 
-    void* lock_file = mmap(nullptr, lock_stat.st_size, PROT_READ, MAP_PRIVATE, lock_fd, 0);
+    void* lock_file =
+        mmap(nullptr, lock_stat.st_size, PROT_READ, MAP_PRIVATE, lock_fd, 0);
 
-    void* unlock_file = mmap(nullptr, unlock_stat.st_size, PROT_READ, MAP_PRIVATE, unlock_fd, 0);
+    void* unlock_file = mmap(nullptr, unlock_stat.st_size, PROT_READ,
+                             MAP_PRIVATE, unlock_fd, 0);
 
     if (memcmp(lock_file, unlock_file, unlock_stat.st_size) == 0) {
       acquired = lock_stat.st_size > unlock_stat.st_size;
@@ -135,7 +137,7 @@ TEST_F(WakelockTest, test_set_os_callouts) {
 }
 
 TEST_F(WakelockTest, test_set_paths) {
-  wakelock_set_os_callouts(NULL); // Make sure we use native wakelocks
+  wakelock_set_os_callouts(NULL);  // Make sure we use native wakelocks
   wakelock_set_paths(lock_path_.c_str(), unlock_path_.c_str());
 
   // Initially, the wakelock is not acquired

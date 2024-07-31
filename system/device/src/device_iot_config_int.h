@@ -21,7 +21,8 @@
 
 #include "osi/include/config.h"
 
-#define PROPERTY_ENABLE_LOGGING "persist.bluetooth.device_iot_config.enablelogging"
+#define PROPERTY_ENABLE_LOGGING \
+  "persist.bluetooth.device_iot_config.enablelogging"
 #define PROPERTY_FACTORY_RESET "persist.bluetooth.factoryreset"
 
 #define INFO_SECTION "Info"
@@ -48,12 +49,14 @@ static const char* TIME_STRING_FORMAT = "%Y-%m-%d %H:%M:%S";
 #define IOT_CONFIG_SAVE_TIMER_FIRED_EVT 1
 
 #ifdef __ANDROID__
-static const char* IOT_CONFIG_FILE_PATH = "/data/misc/bluedroid/bt_remote_dev_info.conf";
-static const char* IOT_CONFIG_BACKUP_PATH = "/data/misc/bluedroid/bt_remote_dev_info.bak";
-#else  // !__ANDROID__
+static const char* IOT_CONFIG_FILE_PATH =
+    "/data/misc/bluedroid/bt_remote_dev_info.conf";
+static const char* IOT_CONFIG_BACKUP_PATH =
+    "/data/misc/bluedroid/bt_remote_dev_info.bak";
+#else   // !__ANDROID__
 static const char* IOT_CONFIG_FILE_PATH = "bt_remote_dev_info.conf";
 static const char* IOT_CONFIG_BACKUP_PATH = "bt_remote_dev_info.bak";
-#endif // __ANDROID__
+#endif  // __ANDROID__
 static const uint64_t CONFIG_SETTLE_PERIOD_MS = 12000;
 
 enum ConfigSource { NOT_LOADED, ORIGINAL, BACKUP, NEW_FILE, RESET };
@@ -71,8 +74,10 @@ future_t* device_iot_config_module_clean_up(void);
 void device_iot_config_write(uint16_t event, char* p_param);
 
 // config_lock is used by the caller of the following methods
-void device_iot_config_sections_sort_by_entry_key(config_t& config, compare_func comp);
-bool device_iot_config_has_key_value(const std::string& section, const std::string& key,
+void device_iot_config_sections_sort_by_entry_key(config_t& config,
+                                                  compare_func comp);
+bool device_iot_config_has_key_value(const std::string& section,
+                                     const std::string& key,
                                      const std::string& value_str);
 void device_iot_config_save_async(void);
 int device_iot_config_get_device_num(const config_t& config);

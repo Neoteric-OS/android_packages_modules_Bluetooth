@@ -19,7 +19,6 @@
 #pragma once
 
 #include <stdint.h>
-
 #include <string>
 
 #include "packet/custom_field_fixed_size_interface.h"
@@ -30,7 +29,7 @@ namespace parser {
 namespace test {
 
 class SixBytes final : public packet::CustomFieldFixedSizeInterface<SixBytes> {
-public:
+ public:
   static constexpr size_t kLength = 6;
 
   uint8_t six_bytes[kLength] = {};
@@ -38,24 +37,38 @@ public:
   SixBytes() = default;
   SixBytes(const uint8_t (&addr)[6]);
 
-  inline uint8_t* data() override { return six_bytes; }
+  inline uint8_t* data() override {
+    return six_bytes;
+  }
 
-  inline const uint8_t* data() const override { return six_bytes; }
+  inline const uint8_t* data() const override {
+    return six_bytes;
+  }
 
   bool operator<(const SixBytes& rhs) const {
-    return std::memcmp(six_bytes, rhs.six_bytes, sizeof(six_bytes)) < 0;
+    return (std::memcmp(six_bytes, rhs.six_bytes, sizeof(six_bytes)) < 0);
   }
   bool operator==(const SixBytes& rhs) const {
-    return std::memcmp(six_bytes, rhs.six_bytes, sizeof(six_bytes)) == 0;
+    return (std::memcmp(six_bytes, rhs.six_bytes, sizeof(six_bytes)) == 0);
   }
-  bool operator>(const SixBytes& rhs) const { return rhs < *this; }
-  bool operator<=(const SixBytes& rhs) const { return !(*this > rhs); }
-  bool operator>=(const SixBytes& rhs) const { return !(*this < rhs); }
-  bool operator!=(const SixBytes& rhs) const { return !(*this == rhs); }
-  std::string ToString() const { return "SixBytes"; }
+  bool operator>(const SixBytes& rhs) const {
+    return (rhs < *this);
+  }
+  bool operator<=(const SixBytes& rhs) const {
+    return !(*this > rhs);
+  }
+  bool operator>=(const SixBytes& rhs) const {
+    return !(*this < rhs);
+  }
+  bool operator!=(const SixBytes& rhs) const {
+    return !(*this == rhs);
+  }
+  std::string ToString() const {
+    return "SixBytes";
+  }
 };
 
-} // namespace test
-} // namespace parser
-} // namespace packet
-} // namespace bluetooth
+}  // namespace test
+}  // namespace parser
+}  // namespace packet
+}  // namespace bluetooth

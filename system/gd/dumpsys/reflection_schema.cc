@@ -29,8 +29,7 @@ using namespace bluetooth;
 
 dumpsys::ReflectionSchema::ReflectionSchema(const std::string& pre_bundled_schema)
     : pre_bundled_schema_(pre_bundled_schema) {
-  bundled_schema_ =
-          flatbuffers::GetRoot<bluetooth::dumpsys::BundledSchema>(pre_bundled_schema_.data());
+  bundled_schema_ = flatbuffers::GetRoot<bluetooth::dumpsys::BundledSchema>(pre_bundled_schema_.data());
   log::assert_that(bundled_schema_ != nullptr, "assert failed: bundled_schema_ != nullptr");
 }
 
@@ -38,7 +37,9 @@ int dumpsys::ReflectionSchema::GetNumberOfBundledSchemas() const {
   return bundled_schema_->map()->size();
 }
 
-std::string dumpsys::ReflectionSchema::GetTitle() const { return bundled_schema_->title()->str(); }
+std::string dumpsys::ReflectionSchema::GetTitle() const {
+  return bundled_schema_->title()->str();
+}
 
 std::string dumpsys::ReflectionSchema::GetRootName() const {
   return bundled_schema_->root_name()->str();
@@ -48,15 +49,12 @@ const reflection::Schema* dumpsys::ReflectionSchema::GetRootReflectionSchema() c
   return FindInReflectionSchema(GetRootName());
 }
 
-const reflection::Schema* dumpsys::ReflectionSchema::FindInReflectionSchema(
-        const std::string& name) const {
-  const flatbuffers::Vector<flatbuffers::Offset<bluetooth::dumpsys::BundledSchemaMap>>* map =
-          bundled_schema_->map();
+const reflection::Schema* dumpsys::ReflectionSchema::FindInReflectionSchema(const std::string& name) const {
+  const flatbuffers::Vector<flatbuffers::Offset<bluetooth::dumpsys::BundledSchemaMap>>* map = bundled_schema_->map();
 
   for (auto it = map->cbegin(); it != map->cend(); ++it) {
     if (it->name()->str() == name) {
-      flatbuffers::Verifier verifier(reinterpret_cast<const uint8_t*>(it->data()->Data()),
-                                     it->data()->size());
+      flatbuffers::Verifier verifier(reinterpret_cast<const uint8_t*>(it->data()->Data()), it->data()->size());
       if (!reflection::VerifySchemaBuffer(verifier)) {
         log::warn("Unable to verify schema buffer name:{}", name);
         return nullptr;
@@ -68,22 +66,21 @@ const reflection::Schema* dumpsys::ReflectionSchema::FindInReflectionSchema(
 }
 
 void dumpsys::ReflectionSchema::PrintReflectionSchema() const {
-  const flatbuffers::Vector<flatbuffers::Offset<bluetooth::dumpsys::BundledSchemaMap>>* map =
-          bundled_schema_->map();
-  log::info("Bundled schema title:{} root_name:{}", bundled_schema_->title()->c_str(),
-            bundled_schema_->root_name()->c_str());
+  const flatbuffers::Vector<flatbuffers::Offset<bluetooth::dumpsys::BundledSchemaMap>>* map = bundled_schema_->map();
+  log::info(
+      "Bundled schema title:{} root_name:{}",
+      bundled_schema_->title()->c_str(),
+      bundled_schema_->root_name()->c_str());
   for (auto it = map->cbegin(); it != map->cend(); ++it) {
     log::info("schema:{}", it->name()->c_str());
   }
 }
 
 bool dumpsys::ReflectionSchema::VerifyReflectionSchema() const {
-  const flatbuffers::Vector<flatbuffers::Offset<bluetooth::dumpsys::BundledSchemaMap>>* map =
-          bundled_schema_->map();
+  const flatbuffers::Vector<flatbuffers::Offset<bluetooth::dumpsys::BundledSchemaMap>>* map = bundled_schema_->map();
 
   for (auto it = map->cbegin(); it != map->cend(); ++it) {
-    flatbuffers::Verifier verifier(reinterpret_cast<const uint8_t*>(it->data()->Data()),
-                                   it->data()->size());
+    flatbuffers::Verifier verifier(reinterpret_cast<const uint8_t*>(it->data()->Data()), it->data()->size());
     if (!reflection::VerifySchemaBuffer(verifier)) {
       return false;
     }

@@ -31,7 +31,7 @@ namespace bluetooth {
 namespace hal {
 
 class TestHciHal : public hal::HciHal {
-public:
+ public:
   TestHciHal() : hal::HciHal() {}
 
   ~TestHciHal() {
@@ -44,7 +44,9 @@ public:
     callbacks = callback;
   }
 
-  void unregisterIncomingPacketCallback() override { callbacks = nullptr; }
+  void unregisterIncomingPacketCallback() override {
+    callbacks = nullptr;
+  }
 
   void sendHciCommand(hal::HciPacket command) override;
 
@@ -59,16 +61,16 @@ public:
   packet::PacketView<packet::kLittleEndian> GetPacketView(hal::HciPacket data);
 
   std::optional<hci::CommandView> GetSentCommand(
-          std::chrono::milliseconds timeout = std::chrono::seconds(1));
+      std::chrono::milliseconds timeout = std::chrono::seconds(1));
 
   std::optional<hci::AclView> GetSentAcl(
-          std::chrono::milliseconds timeout = std::chrono::seconds(1));
+      std::chrono::milliseconds timeout = std::chrono::seconds(1));
 
   std::optional<hci::ScoView> GetSentSco(
-          std::chrono::milliseconds timeout = std::chrono::seconds(1));
+      std::chrono::milliseconds timeout = std::chrono::seconds(1));
 
   std::optional<hci::IsoView> GetSentIso(
-          std::chrono::milliseconds timeout = std::chrono::seconds(1));
+      std::chrono::milliseconds timeout = std::chrono::seconds(1));
 
   void InjectEvent(std::unique_ptr<packet::BasePacketBuilder> event);
 
@@ -78,16 +80,18 @@ public:
 
   void ListDependencies(ModuleList* /* list */) const {}
 
-  std::string ToString() const override { return std::string("TestHciHal"); }
+  std::string ToString() const override {
+    return std::string("TestHciHal");
+  }
 
   static const ModuleFactory Factory;
 
-private:
+ private:
   common::BlockingQueue<hal::HciPacket> outgoing_commands_;
   common::BlockingQueue<hal::HciPacket> outgoing_acl_;
   common::BlockingQueue<hal::HciPacket> outgoing_sco_;
   common::BlockingQueue<hal::HciPacket> outgoing_iso_;
 };
 
-} // namespace hal
-} // namespace bluetooth
+}  // namespace hal
+}  // namespace bluetooth

@@ -23,16 +23,16 @@ namespace l2cap {
 
 // Frame Check Sequence from the L2CAP spec.
 class Fcs {
-public:
+ public:
   void Initialize();
 
   void AddByte(uint8_t byte);
 
   uint16_t GetChecksum() const;
 
-private:
+ private:
   uint16_t crc;
 };
 
-} // namespace l2cap
-} // namespace bluetooth
+}  // namespace l2cap
+}  // namespace bluetooth

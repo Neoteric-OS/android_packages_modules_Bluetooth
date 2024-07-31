@@ -41,11 +41,14 @@ std::mutex instance_mutex;
 static constexpr int kMaxGroupId = 0xEF;
 
 class DeviceGroup {
-public:
-  DeviceGroup(int group_id, Uuid uuid) : group_id_(group_id), group_uuid_(uuid) {}
+ public:
+  DeviceGroup(int group_id, Uuid uuid)
+      : group_id_(group_id), group_uuid_(uuid) {}
   void Add(const RawAddress& addr) { devices_.insert(addr); }
   void Remove(const RawAddress& addr) { devices_.erase(addr); }
-  bool Contains(const RawAddress& addr) const { return devices_.count(addr) != 0; }
+  bool Contains(const RawAddress& addr) const {
+    return (devices_.count(addr) != 0);
+  }
 
   void ForEachDevice(std::function<void(const RawAddress&)> cb) const {
     for (auto const& addr : devices_) {
@@ -57,8 +60,9 @@ public:
   int GetGroupId(void) const { return group_id_; }
   const Uuid& GetUuid(void) const { return group_uuid_; }
 
-private:
-  friend std::ostream& operator<<(std::ostream& out, const bluetooth::groups::DeviceGroup& value);
+ private:
+  friend std::ostream& operator<<(std::ostream& out,
+                                  const bluetooth::groups::DeviceGroup& value);
   int group_id_;
   Uuid group_uuid_;
   std::unordered_set<RawAddress> devices_;
@@ -67,11 +71,12 @@ private:
 class DeviceGroupsImpl : public DeviceGroups {
   static constexpr uint8_t GROUP_STORAGE_CURRENT_LAYOUT_MAGIC = 0x10;
   static constexpr size_t GROUP_STORAGE_HEADER_SZ =
-          sizeof(GROUP_STORAGE_CURRENT_LAYOUT_MAGIC) + sizeof(uint8_t); /* num_of_groups */
+      sizeof(GROUP_STORAGE_CURRENT_LAYOUT_MAGIC) +
+      sizeof(uint8_t); /* num_of_groups */
   static constexpr size_t GROUP_STORAGE_ENTRY_SZ =
-          sizeof(uint8_t) /* group_id */ + Uuid::kNumBytes128;
+      sizeof(uint8_t) /* group_id */ + Uuid::kNumBytes128;
 
-public:
+ public:
   DeviceGroupsImpl(DeviceGroupsCallbacks* callbacks) {
     AddCallbacks(callbacks);
     btif_storage_load_bonded_groups();
@@ -79,9 +84,7 @@ public:
 
   int GetGroupId(const RawAddress& addr, Uuid uuid) const override {
     for (const auto& [id, g] : groups_) {
-      if ((g.Contains(addr)) && (uuid == g.GetUuid())) {
-        return id;
-      }
+      if ((g.Contains(addr)) && (uuid == g.GetUuid())) return id;
     }
     return kGroupUnknown;
   }
@@ -105,9 +108,7 @@ public:
 
     if (group_id == kGroupUnknown) {
       auto gid = GetGroupId(addr, uuid);
-      if (gid != kGroupUnknown) {
-        return gid;
-      }
+      if (gid != kGroupUnknown) return gid;
       group = create_group(uuid);
     } else {
       group = get_or_create_group_with_id(group_id, uuid);
@@ -170,13 +171,14 @@ public:
     }
   }
 
-  bool SerializeGroups(const RawAddress& addr, std::vector<uint8_t>& out) const {
-    auto num_groups = std::count_if(groups_.begin(), groups_.end(), [&addr](auto& id_group_pair) {
-      return id_group_pair.second.Contains(addr);
-    });
-    if ((num_groups == 0) || (num_groups > std::numeric_limits<uint8_t>::max())) {
+  bool SerializeGroups(const RawAddress& addr,
+                       std::vector<uint8_t>& out) const {
+    auto num_groups = std::count_if(
+        groups_.begin(), groups_.end(), [&addr](auto& id_group_pair) {
+          return id_group_pair.second.Contains(addr);
+        });
+    if ((num_groups == 0) || (num_groups > std::numeric_limits<uint8_t>::max()))
       return false;
-    }
 
     out.resize(GROUP_STORAGE_HEADER_SZ + (num_groups * GROUP_STORAGE_ENTRY_SZ));
     auto* ptr = out.data();
@@ -199,10 +201,9 @@ public:
     return true;
   }
 
-  void DeserializeGroups(const RawAddress& addr, const std::vector<uint8_t>& in) {
-    if (in.size() < GROUP_STORAGE_HEADER_SZ + GROUP_STORAGE_ENTRY_SZ) {
-      return;
-    }
+  void DeserializeGroups(const RawAddress& addr,
+                         const std::vector<uint8_t>& in) {
+    if (in.size() < GROUP_STORAGE_HEADER_SZ + GROUP_STORAGE_ENTRY_SZ) return;
 
     auto* ptr = in.data();
 
@@ -213,7 +214,8 @@ public:
       uint8_t num_groups;
       STREAM_TO_UINT8(num_groups, ptr);
 
-      if (in.size() < GROUP_STORAGE_HEADER_SZ + (num_groups * GROUP_STORAGE_ENTRY_SZ)) {
+      if (in.size() <
+          GROUP_STORAGE_HEADER_SZ + (num_groups * GROUP_STORAGE_ENTRY_SZ)) {
         log::error("Invalid persistent storage data");
         return;
       }
@@ -226,10 +228,9 @@ public:
         Uuid::UUID128Bit uuid128;
         STREAM_TO_ARRAY(uuid128.data(), ptr, (int)Uuid::kNumBytes128);
 
-        auto* group = get_or_create_group_with_id(id, Uuid::From128BitLE(uuid128));
-        if (group) {
-          add_to_group(addr, group);
-        }
+        auto* group =
+            get_or_create_group_with_id(id, Uuid::From128BitLE(uuid128));
+        if (group) add_to_group(addr, group);
 
         for (auto c : callbacks_) {
           c->OnGroupAddFromStorage(addr, Uuid::From128BitLE(uuid128), id);
@@ -245,7 +246,9 @@ public:
     for (const auto& [id, g] : groups_) {
       auto group_uuid = g.GetUuid();
       auto group_id = g.GetGroupId();
-      g.ForEachDevice([&](auto& dev) { callbacks->OnGroupAdded(dev, group_uuid, group_id); });
+      g.ForEachDevice([&](auto& dev) {
+        callbacks->OnGroupAdded(dev, group_uuid, group_id);
+      });
     }
   }
 
@@ -253,9 +256,7 @@ public:
     auto it = find_if(callbacks_.begin(), callbacks_.end(),
                       [callbacks](auto c) { return c == callbacks; });
 
-    if (it != callbacks_.end()) {
-      callbacks_.erase(it);
-    }
+    if (it != callbacks_.end()) callbacks_.erase(it);
 
     if (callbacks_.size() != 0) {
       return false;
@@ -277,7 +278,7 @@ public:
     dprintf(fd, "%s", stream.str().c_str());
   }
 
-private:
+ private:
   DeviceGroup* find_device_group(int group_id) {
     return groups_.count(group_id) ? &groups_.at(group_id) : nullptr;
   }
@@ -286,8 +287,9 @@ private:
     auto group = find_device_group(group_id);
     if (group) {
       if (group->GetUuid() != uuid) {
-        log::error("group {} exists but for different uuid: {}, user request uuid: {}", group_id,
-                   group->GetUuid(), uuid);
+        log::error(
+            "group {} exists but for different uuid: {}, user request uuid: {}",
+            group_id, group->GetUuid(), uuid);
         return nullptr;
       }
 
@@ -338,7 +340,8 @@ void DeviceGroups::Initialize(DeviceGroupsCallbacks* callbacks) {
   instance->AddCallbacks(callbacks);
 }
 
-void DeviceGroups::AddFromStorage(const RawAddress& addr, const std::vector<uint8_t>& in) {
+void DeviceGroups::AddFromStorage(const RawAddress& addr,
+                                  const std::vector<uint8_t>& in) {
   if (!instance) {
     log::error("Not initialized yet");
     return;
@@ -347,7 +350,8 @@ void DeviceGroups::AddFromStorage(const RawAddress& addr, const std::vector<uint
   instance->DeserializeGroups(addr, in);
 }
 
-bool DeviceGroups::GetForStorage(const RawAddress& addr, std::vector<uint8_t>& out) {
+bool DeviceGroups::GetForStorage(const RawAddress& addr,
+                                 std::vector<uint8_t>& out) {
   if (!instance) {
     log::error("Not initialized yet");
     return false;
@@ -358,9 +362,7 @@ bool DeviceGroups::GetForStorage(const RawAddress& addr, std::vector<uint8_t>& o
 
 void DeviceGroups::CleanUp(DeviceGroupsCallbacks* callbacks) {
   std::scoped_lock<std::mutex> lock(instance_mutex);
-  if (!instance) {
-    return;
-  }
+  if (!instance) return;
 
   if (instance->Clear(callbacks)) {
     delete (instance);
@@ -368,7 +370,8 @@ void DeviceGroups::CleanUp(DeviceGroupsCallbacks* callbacks) {
   }
 }
 
-std::ostream& operator<<(std::ostream& out, bluetooth::groups::DeviceGroup const& group) {
+std::ostream& operator<<(std::ostream& out,
+                         bluetooth::groups::DeviceGroup const& group) {
   out << "    == Group id: " << group.group_id_ << " == \n"
       << "      Uuid: " << group.group_uuid_ << std::endl;
   out << "      Devices:\n";
@@ -381,14 +384,13 @@ std::ostream& operator<<(std::ostream& out, bluetooth::groups::DeviceGroup const
 void DeviceGroups::DebugDump(int fd) {
   std::scoped_lock<std::mutex> lock(instance_mutex);
   dprintf(fd, "Device Groups Manager:\n");
-  if (instance) {
+  if (instance)
     instance->Dump(fd);
-  } else {
+  else
     dprintf(fd, "  Not initialized \n");
-  }
 }
 
 DeviceGroups* DeviceGroups::Get() { return instance; }
 
-} // namespace groups
-} // namespace bluetooth
+}  // namespace groups
+}  // namespace bluetooth

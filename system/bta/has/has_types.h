@@ -38,7 +38,7 @@ namespace has {
 
 /* Helper class to pass some minimal context through the GATT operation API. */
 union HasGattOpContext {
-public:
+ public:
   void* ptr = nullptr;
   struct {
     /* Ctp. Operation ID or 0 if not a control point operation context */
@@ -59,7 +59,9 @@ public:
     /* Differ from nullptr in at least 1 bit when everything else is 0 */
     context_flags = flags | kIsNotNull;
   }
-  HasGattOpContext(uint8_t flags) : ctp_op_id(0) { context_flags = flags | kIsNotNull; }
+  HasGattOpContext(uint8_t flags) : ctp_op_id(0) {
+    context_flags = flags | kIsNotNull;
+  }
   HasGattOpContext(void* pp) {
     ptr = pp;
     /* Differ from nullptr in at least 1 bit when everything else is 0 */
@@ -72,17 +74,21 @@ public:
 static_assert(sizeof(HasGattOpContext) <= sizeof(void*));
 
 /* Service UUIDs */
-static const bluetooth::Uuid kUuidHearingAccessService = bluetooth::Uuid::From16Bit(0x1854);
-static const bluetooth::Uuid kUuidHearingAidFeatures = bluetooth::Uuid::From16Bit(0x2BDA);
-static const bluetooth::Uuid kUuidHearingAidPresetControlPoint = bluetooth::Uuid::From16Bit(0x2BDB);
-static const bluetooth::Uuid kUuidActivePresetIndex = bluetooth::Uuid::From16Bit(0x2BDC);
+static const bluetooth::Uuid kUuidHearingAccessService =
+    bluetooth::Uuid::From16Bit(0x1854);
+static const bluetooth::Uuid kUuidHearingAidFeatures =
+    bluetooth::Uuid::From16Bit(0x2BDA);
+static const bluetooth::Uuid kUuidHearingAidPresetControlPoint =
+    bluetooth::Uuid::From16Bit(0x2BDB);
+static const bluetooth::Uuid kUuidActivePresetIndex =
+    bluetooth::Uuid::From16Bit(0x2BDC);
 
 static const uint8_t kStartPresetIndex = 1;
 static const uint8_t kMaxNumOfPresets = 255;
 
 /* Base device class for the GATT-based service clients */
 class GattServiceDevice {
-public:
+ public:
   RawAddress addr;
   uint16_t conn_id = GATT_INVALID_CONN_ID;
   uint16_t service_handle = GAP_INVALID_HANDLE;
@@ -99,21 +105,25 @@ public:
   bool IsConnected() const { return conn_id != GATT_INVALID_CONN_ID; }
 
   class MatchAddress {
-  private:
+   private:
     RawAddress addr;
 
-  public:
+   public:
     MatchAddress(RawAddress addr) : addr(addr) {}
-    bool operator()(const GattServiceDevice& other) const { return addr == other.addr; }
+    bool operator()(const GattServiceDevice& other) const {
+      return (addr == other.addr);
+    }
   };
 
   class MatchConnId {
-  private:
+   private:
     uint16_t conn_id;
 
-  public:
+   public:
     MatchConnId(uint16_t conn_id) : conn_id(conn_id) {}
-    bool operator()(const GattServiceDevice& other) const { return conn_id == other.conn_id; }
+    bool operator()(const GattServiceDevice& other) const {
+      return (conn_id == other.conn_id);
+    }
   };
 
   void Dump(std::ostream& os) const {
@@ -122,7 +132,8 @@ public:
     os << ", \"is_gatt_service_valid\": "
        << (gatt_svc_validation_steps == 0 ? "\"True\"" : "\"False\"") << "("
        << +gatt_svc_validation_steps << ")";
-    os << ", \"is_connecting_actively\": " << (is_connecting_actively ? "\"True\"" : "\"False\"");
+    os << ", \"is_connecting_actively\": "
+       << (is_connecting_actively ? "\"True\"" : "\"False\"");
   }
 };
 
@@ -141,7 +152,8 @@ class HasDevice : public GattServiceDevice {
     /* Some opcodes are mandatory but the characteristics aren't - these are
      * conditional then.
      */
-    if ((cp_handle != GAP_INVALID_HANDLE) && (active_preset_handle != GAP_INVALID_HANDLE)) {
+    if ((cp_handle != GAP_INVALID_HANDLE) &&
+        (active_preset_handle != GAP_INVALID_HANDLE)) {
       supported_opcodes_bitmask |= kControlPointMandatoryOpcodesBitmask;
     }
 
@@ -151,11 +163,12 @@ class HasDevice : public GattServiceDevice {
     }
 
     if (features & bluetooth::has::kFeatureBitWritablePresets) {
-      supported_opcodes_bitmask |= PresetCtpOpcode2Bitmask(PresetCtpOpcode::WRITE_PRESET_NAME);
+      supported_opcodes_bitmask |=
+          PresetCtpOpcode2Bitmask(PresetCtpOpcode::WRITE_PRESET_NAME);
     }
   }
 
-public:
+ public:
   /* Char handle and current ccc value */
   uint16_t active_preset_handle = GAP_INVALID_HANDLE;
   uint16_t active_preset_ccc_handle = GAP_INVALID_HANDLE;
@@ -174,7 +187,8 @@ public:
   std::list<HasCtpNtf> ctp_notifications_;
   HasJournal has_journal_;
 
-  HasDevice(const RawAddress& addr, uint8_t features) : GattServiceDevice(addr) {
+  HasDevice(const RawAddress& addr, uint8_t features)
+      : GattServiceDevice(addr) {
     UpdateFeatures(features);
   }
 
@@ -215,7 +229,8 @@ public:
   }
 
   inline bool SupportsPresets() const {
-    return (active_preset_handle != GAP_INVALID_HANDLE) && (cp_handle != GAP_INVALID_HANDLE);
+    return (active_preset_handle != GAP_INVALID_HANDLE) &&
+           (cp_handle != GAP_INVALID_HANDLE);
   }
 
   inline bool SupportsActivePresetNotification() const {
@@ -226,7 +241,9 @@ public:
     return features_ccc_handle != GAP_INVALID_HANDLE;
   }
 
-  inline bool HasFeaturesNotificationEnabled() const { return features_notifications_enabled; }
+  inline bool HasFeaturesNotificationEnabled() const {
+    return features_notifications_enabled;
+  }
 
   inline bool SupportsOperation(PresetCtpOpcode op) {
     auto mask = PresetCtpOpcode2Bitmask(op);
@@ -235,17 +252,17 @@ public:
 
   bool IsValidPreset(uint8_t preset_index, bool writable_only = false) const {
     if (has_presets.count(preset_index)) {
-      return writable_only ? has_presets.find(preset_index)->IsWritable() : true;
+      return writable_only ? has_presets.find(preset_index)->IsWritable()
+                           : true;
     }
     return false;
   }
 
-  const HasPreset* GetPreset(uint8_t preset_index, bool writable_only = false) const {
+  const HasPreset* GetPreset(uint8_t preset_index,
+                             bool writable_only = false) const {
     if (has_presets.count(preset_index)) {
       decltype(has_presets)::iterator preset = has_presets.find(preset_index);
-      if (writable_only) {
-        return preset->IsWritable() ? &*preset : nullptr;
-      }
+      if (writable_only) return preset->IsWritable() ? &*preset : nullptr;
       return &*preset;
     }
     return nullptr;
@@ -312,10 +329,12 @@ public:
   /* Deserializes all the presets from a binary blob read from the persistent
    * storage.
    */
-  static bool DeserializePresets(const uint8_t* p_in, size_t len, HasDevice& device) {
+  static bool DeserializePresets(const uint8_t* p_in, size_t len,
+                                 HasDevice& device) {
     HasPreset preset;
     if (len < 2 + preset.SerializedSize()) {
-      bluetooth::log::error("Deserialization error. Invalid input buffer size length.");
+      bluetooth::log::error(
+          "Deserialization error. Invalid input buffer size length.");
       return false;
     }
     auto* p_end = p_in + len;
@@ -356,13 +375,15 @@ public:
     os << ", \"ctp_notifications size\": " << ctp_notifications_.size();
     os << ",\n";
 
-    os << "    " << "\"presets\": [";
+    os << "    "
+       << "\"presets\": [";
     for (auto const& preset : has_presets) {
       os << "\n      " << preset << ",";
     }
     os << "\n    ],\n";
 
-    os << "    " << "\"Ctp. notifications process queue\": {";
+    os << "    "
+       << "\"Ctp. notifications process queue\": {";
     if (ctp_notifications_.size() != 0) {
       size_t ntf_pos = 0;
       for (auto const& ntf : ctp_notifications_) {
@@ -379,7 +400,8 @@ public:
     }
     os << "\n    },\n";
 
-    os << "    " << "\"event history\": {";
+    os << "    "
+       << "\"event history\": {";
     size_t pos = 0;
     for (auto const& record : has_journal_) {
       os << "\n      ";
@@ -395,14 +417,14 @@ public:
     os << "\n    }";
   }
 
-private:
+ private:
   static constexpr int kHasDeviceBinaryBlobHdr = 0x55;
 };
 
-} // namespace has
-} // namespace bluetooth::le_audio
+}  // namespace has
+}  // namespace bluetooth::le_audio
 
 namespace fmt {
 template <>
 struct formatter<bluetooth::le_audio::has::HasDevice> : ostream_formatter {};
-} // namespace fmt
+}  // namespace fmt

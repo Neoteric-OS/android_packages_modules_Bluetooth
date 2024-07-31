@@ -32,7 +32,8 @@ using TestGetItemAttrsReqPacket = TestPacketType<GetItemAttributesRequest>;
 extern "C" int LLVMFuzzerTestOneInput(uint8_t* data, size_t size) {
   FuzzedDataProvider data_provider(data, size);
   std::string s = data_provider.ConsumeRemainingBytesAsString();
-  auto builder = GetItemAttributesResponseBuilder::MakeBuilder(Status::NO_ERROR, 0xFFFF);
+  auto builder =
+      GetItemAttributesResponseBuilder::MakeBuilder(Status::NO_ERROR, 0xFFFF);
   builder->AddAttributeEntry(Attribute::TITLE, s);
   builder->AddAttributeEntry(Attribute::ARTIST_NAME, s);
   builder->AddAttributeEntry(Attribute::ALBUM_NAME, s);
@@ -43,5 +44,5 @@ extern "C" int LLVMFuzzerTestOneInput(uint8_t* data, size_t size) {
   return 0;
 }
 
-} // namespace avrcp
-} // namespace bluetooth
+}  // namespace avrcp
+}  // namespace bluetooth

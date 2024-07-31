@@ -26,6 +26,7 @@ namespace shim {
  * @param raw_data input, raw bytes
  * @param output vector of GapData
  */
-void parse_gap_data(const std::vector<uint8_t> &raw_data, std::vector<hci::GapData> &output);
-} // namespace shim
-} // namespace bluetooth
+void parse_gap_data(const std::vector<uint8_t> &raw_data,
+                    std::vector<hci::GapData> &output);
+}  // namespace shim
+}  // namespace bluetooth

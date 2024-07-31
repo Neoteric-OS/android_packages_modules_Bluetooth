@@ -22,7 +22,7 @@
 
 #ifndef LOG_TAG
 #define LOG_TAG "bluetooth"
-#endif // LOG_TAG
+#endif  // LOG_TAG
 
 namespace bluetooth::log_internal {
 
@@ -42,7 +42,8 @@ enum Level {
 /// Passing this parameter by default value will fill in
 /// the correct information.
 struct source_location {
-  source_location(char const* file_name = __builtin_FILE(), int line = __builtin_LINE(),
+  source_location(char const* file_name = __builtin_FILE(),
+                  int line = __builtin_LINE(),
                   char const* function_name = __builtin_FUNCTION())
       : line(line), file_name(file_name), function_name(function_name) {}
 
@@ -53,8 +54,8 @@ struct source_location {
 
 /// Write a single log line.
 /// The implementation of this function is dependent on the backend.
-void vlog(Level level, char const* tag, source_location location, fmt::string_view fmt,
-          fmt::format_args vargs);
+void vlog(Level level, char const* tag, source_location location,
+          fmt::string_view fmt, fmt::format_args vargs);
 
 /// Capture invalid parameter values that would cause runtime
 /// formatting errors.
@@ -67,9 +68,7 @@ template <class T>
 template <>
 char const*& format_replace(char const*& arg) {
   static char const* nullptr_str = "(nullptr)";
-  if (arg) {
-    return arg;
-  }
+  if (arg) return arg;
   return nullptr_str;
 }
 
@@ -77,15 +76,14 @@ char const*& format_replace(char const*& arg) {
 template <>
 char*& format_replace(char*& arg) {
   static char* nullptr_str = (char*)"(nullptr)";
-  if (arg) {
-    return arg;
-  }
+  if (arg) return arg;
   return nullptr_str;
 }
 
 template <Level level, typename... T>
 struct log {
-  log(fmt::format_string<T...> fmt, T&&... args, source_location location = source_location()) {
+  log(fmt::format_string<T...> fmt, T&&... args,
+      source_location location = source_location()) {
     vlog(level, LOG_TAG, location, static_cast<fmt::string_view>(fmt),
          fmt::make_format_args(format_replace(args)...));
   }
@@ -98,7 +96,7 @@ log(fmt::format_string<T...>, T&&...) -> log<level, T...>;
 
 #endif
 
-} // namespace bluetooth::log_internal
+}  // namespace bluetooth::log_internal
 
 namespace bluetooth::log {
 
@@ -149,62 +147,71 @@ debug(fmt::format_string<T...>, T&&...) -> debug<T...>;
 template <typename... T>
 verbose(fmt::format_string<T...>, T&&...) -> verbose<T...>;
 
-#endif // GCC / C++20
+#endif  // GCC / C++20
 
 [[noreturn]] [[maybe_unused]] static void fatal(
-        fmt::format_string<> fmt,
-        log_internal::source_location location = log_internal::source_location()) {
-  vlog(log_internal::kFatal, LOG_TAG, location, static_cast<fmt::string_view>(fmt),
-       fmt::make_format_args());
-  std::abort(); // Enforce [[noreturn]]
+    fmt::format_string<> fmt,
+    log_internal::source_location location = log_internal::source_location()) {
+  vlog(log_internal::kFatal, LOG_TAG, location,
+       static_cast<fmt::string_view>(fmt), fmt::make_format_args());
+  std::abort();  // Enforce [[noreturn]]
 }
 
 template <typename T0>
 [[noreturn]] [[maybe_unused]] static void fatal(
-        fmt::format_string<T0> fmt, T0&& arg0,
-        log_internal::source_location location = log_internal::source_location()) {
-  vlog(log_internal::kFatal, LOG_TAG, location, static_cast<fmt::string_view>(fmt),
+    fmt::format_string<T0> fmt, T0&& arg0,
+    log_internal::source_location location = log_internal::source_location()) {
+  vlog(log_internal::kFatal, LOG_TAG, location,
+       static_cast<fmt::string_view>(fmt),
        fmt::make_format_args(log_internal::format_replace(arg0)));
-  std::abort(); // Enforce [[noreturn]]
+  std::abort();  // Enforce [[noreturn]]
 }
 
 template <typename T0, typename T1>
 [[noreturn]] [[maybe_unused]] static void fatal(
-        fmt::format_string<T0, T1> fmt, T0&& arg0, T1&& arg1,
-        log_internal::source_location location = log_internal::source_location()) {
-  vlog(log_internal::kFatal, LOG_TAG, location, static_cast<fmt::string_view>(fmt),
+    fmt::format_string<T0, T1> fmt, T0&& arg0, T1&& arg1,
+    log_internal::source_location location = log_internal::source_location()) {
+  vlog(log_internal::kFatal, LOG_TAG, location,
+       static_cast<fmt::string_view>(fmt),
        fmt::make_format_args(log_internal::format_replace(arg0),
                              log_internal::format_replace(arg1)));
-  std::abort(); // Enforce [[noreturn]]
+  std::abort();  // Enforce [[noreturn]]
 }
 
 template <typename T0, typename T1, typename T2>
 [[noreturn]] [[maybe_unused]] static void fatal(
-        fmt::format_string<T0, T1, T2> fmt, T0&& arg0, T1&& arg1, T2&& arg2,
-        log_internal::source_location location = log_internal::source_location()) {
-  vlog(log_internal::kFatal, LOG_TAG, location, static_cast<fmt::string_view>(fmt),
-       fmt::make_format_args(log_internal::format_replace(arg0), log_internal::format_replace(arg1),
+    fmt::format_string<T0, T1, T2> fmt, T0&& arg0, T1&& arg1, T2&& arg2,
+    log_internal::source_location location = log_internal::source_location()) {
+  vlog(log_internal::kFatal, LOG_TAG, location,
+       static_cast<fmt::string_view>(fmt),
+       fmt::make_format_args(log_internal::format_replace(arg0),
+                             log_internal::format_replace(arg1),
                              log_internal::format_replace(arg2)));
-  std::abort(); // Enforce [[noreturn]]
+  std::abort();  // Enforce [[noreturn]]
 }
 
 template <typename T0, typename T1, typename T2, typename T3>
 [[noreturn]] [[maybe_unused]] static void fatal(
-        fmt::format_string<T0, T1, T2, T3> fmt, T0&& arg0, T1&& arg1, T2&& arg2, T3&& arg3,
-        log_internal::source_location location = log_internal::source_location()) {
-  vlog(log_internal::kFatal, LOG_TAG, location, static_cast<fmt::string_view>(fmt),
-       fmt::make_format_args(log_internal::format_replace(arg0), log_internal::format_replace(arg1),
+    fmt::format_string<T0, T1, T2, T3> fmt, T0&& arg0, T1&& arg1, T2&& arg2,
+    T3&& arg3,
+    log_internal::source_location location = log_internal::source_location()) {
+  vlog(log_internal::kFatal, LOG_TAG, location,
+       static_cast<fmt::string_view>(fmt),
+       fmt::make_format_args(log_internal::format_replace(arg0),
+                             log_internal::format_replace(arg1),
                              log_internal::format_replace(arg2),
                              log_internal::format_replace(arg3)));
-  std::abort(); // Enforce [[noreturn]]
+  std::abort();  // Enforce [[noreturn]]
 }
 
 template <typename... T>
 struct assert_that {
   assert_that(bool cond, fmt::format_string<T...> fmt, T&&... args,
-              log_internal::source_location location = log_internal::source_location()) {
+              log_internal::source_location location =
+                  log_internal::source_location()) {
     if (!cond) {
-      vlog(log_internal::kFatal, LOG_TAG, location, static_cast<fmt::string_view>(fmt),
+      vlog(log_internal::kFatal, LOG_TAG, location,
+           static_cast<fmt::string_view>(fmt),
            fmt::make_format_args(log_internal::format_replace(args)...));
     }
   }
@@ -213,7 +220,7 @@ struct assert_that {
 template <typename... T>
 assert_that(bool, fmt::format_string<T...>, T&&...) -> assert_that<T...>;
 
-} // namespace bluetooth::log
+}  // namespace bluetooth::log
 
 namespace fmt {
 
@@ -230,7 +237,7 @@ struct enum_formatter : fmt::formatter<std::underlying_type_t<EnumT>, CharT> {
   template <class Context>
   typename Context::iterator format(EnumT value, Context& ctx) const {
     return fmt::formatter<std::underlying_type_t<EnumT>, CharT>::format(
-            static_cast<std::underlying_type_t<EnumT>>(value), ctx);
+        static_cast<std::underlying_type_t<EnumT>>(value), ctx);
   }
 };
 
@@ -251,4 +258,4 @@ struct string_formatter : fmt::formatter<std::string> {
   }
 };
 
-} // namespace fmt
+}  // namespace fmt

@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-#include "common/list_map.h"
+#include <memory>
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
-#include <memory>
+#include "common/list_map.h"
 
 namespace testing {
 
@@ -29,7 +29,7 @@ TEST(ListMapTest, empty_test) {
   ListMap<int, int> list_map;
   EXPECT_EQ(list_map.size(), 0ul);
   EXPECT_EQ(list_map.find(42), list_map.end());
-  list_map.clear(); // should not crash
+  list_map.clear();  // should not crash
   EXPECT_EQ(list_map.find(42), list_map.end());
   EXPECT_FALSE(list_map.contains(42));
   EXPECT_FALSE(list_map.extract(42));
@@ -328,7 +328,7 @@ TEST(ListMapTest, for_loop_test) {
 }
 
 TEST(ListMapTest, pressure_test) {
-  int num_entries = 0xFFFF; // 2^16 = 65535
+  int num_entries = 0xFFFF;  // 2^16 = 65535
   ListMap<int, int> list_map;
 
   // fill the list_map
@@ -351,4 +351,4 @@ TEST(ListMapTest, pressure_test) {
   EXPECT_EQ(list_map.size(), 0ul);
 }
 
-} // namespace testing
+}  // namespace testing

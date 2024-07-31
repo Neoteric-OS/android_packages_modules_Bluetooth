@@ -14,11 +14,10 @@
  * limitations under the License.
  */
 
-#include "l2cap/signal_id.h"
-
 #include <gtest/gtest.h>
-
 #include <cstdint>
+
+#include "l2cap/signal_id.h"
 
 namespace bluetooth {
 namespace l2cap {
@@ -116,5 +115,5 @@ TEST(L2capSignalIdTest, wrap_down) {
   ASSERT_EQ(0xff, signal_id.Value());
 }
 
-} // namespace l2cap
-} // namespace bluetooth
+}  // namespace l2cap
+}  // namespace bluetooth

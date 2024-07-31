@@ -18,7 +18,6 @@
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
-
 #include <future>
 
 #include "l2cap/internal/channel_impl_mock.h"
@@ -51,7 +50,7 @@ PacketView<kLittleEndian> GetPacketView(std::unique_ptr<packet::BasePacketBuilde
 }
 
 class FakeScheduler : public Scheduler {
-public:
+ public:
   void OnPacketsReady(Cid cid, int number_packets) override {
     on_packets_ready_(cid, number_packets);
   }
@@ -63,21 +62,20 @@ public:
 };
 
 class L2capSenderTest : public ::testing::Test {
-public:
+ public:
   std::unique_ptr<Sender::UpperDequeue> enqueue_callback() {
     auto packet_one = CreateSdu({'a', 'b', 'c'});
     channel_queue_.GetUpEnd()->UnregisterEnqueue();
     return packet_one;
   }
 
-protected:
+ protected:
   void SetUp() override {
     thread_ = new os::Thread("test_thread", os::Thread::Priority::NORMAL);
     user_handler_ = new os::Handler(thread_);
     queue_handler_ = new os::Handler(thread_);
     mock_channel_ = std::make_shared<testing::MockChannelImpl>();
-    EXPECT_CALL(*mock_channel_, GetQueueDownEnd())
-            .WillRepeatedly(Return(channel_queue_.GetDownEnd()));
+    EXPECT_CALL(*mock_channel_, GetQueueDownEnd()).WillRepeatedly(Return(channel_queue_.GetDownEnd()));
     EXPECT_CALL(*mock_channel_, GetCid()).WillRepeatedly(Return(cid_));
     EXPECT_CALL(*mock_channel_, GetRemoteCid()).WillRepeatedly(Return(cid_));
     sender_ = new Sender(queue_handler_, &link_, &scheduler_, mock_channel_);
@@ -108,8 +106,7 @@ TEST_F(L2capSenderTest, send_packet) {
   auto future = promise.get_future();
   scheduler_.SetOnPacketsReady([&promise](Cid cid, int number_packets) { promise.set_value(); });
   channel_queue_.GetUpEnd()->RegisterEnqueue(
-          queue_handler_,
-          common::Bind(&L2capSenderTest::enqueue_callback, common::Unretained(this)));
+      queue_handler_, common::Bind(&L2capSenderTest::enqueue_callback, common::Unretained(this)));
   auto status = future.wait_for(std::chrono::milliseconds(3));
   EXPECT_EQ(status, std::future_status::ready);
   auto packet = sender_->GetNextPacket();
@@ -123,7 +120,7 @@ TEST_F(L2capSenderTest, send_packet) {
   EXPECT_EQ(payload_string, "abc");
 }
 
-} // namespace
-} // namespace internal
-} // namespace l2cap
-} // namespace bluetooth
+}  // namespace
+}  // namespace internal
+}  // namespace l2cap
+}  // namespace bluetooth

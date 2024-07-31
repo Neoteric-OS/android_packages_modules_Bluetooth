@@ -29,7 +29,7 @@ using ::bluetooth::os::Thread;
 namespace bluetooth::hal {
 
 class TestBackend : public HciBackend {
-public:
+ public:
   static std::chrono::milliseconds initialization_delay;
 
   std::shared_ptr<HciBackendCallbacks> callbacks;
@@ -40,18 +40,26 @@ public:
   void initialize(std::shared_ptr<HciBackendCallbacks> callbacks) override {
     this->callbacks = callbacks;
     std::thread(
-            [callbacks](std::chrono::milliseconds delay) {
-              std::this_thread::sleep_for(delay);
-              callbacks->initializationComplete();
-            },
-            TestBackend::initialization_delay)
-            .detach();
+        [callbacks](std::chrono::milliseconds delay) {
+          std::this_thread::sleep_for(delay);
+          callbacks->initializationComplete();
+        },
+        TestBackend::initialization_delay)
+        .detach();
   }
 
-  void sendHciCommand(const std::vector<uint8_t>& command) override { queues.cmd.push(command); }
-  void sendAclData(const std::vector<uint8_t>& packet) override { queues.acl.push(packet); }
-  void sendScoData(const std::vector<uint8_t>& packet) override { queues.sco.push(packet); }
-  void sendIsoData(const std::vector<uint8_t>& packet) override { queues.iso.push(packet); }
+  void sendHciCommand(const std::vector<uint8_t>& command) override {
+    queues.cmd.push(command);
+  }
+  void sendAclData(const std::vector<uint8_t>& packet) override {
+    queues.acl.push(packet);
+  }
+  void sendScoData(const std::vector<uint8_t>& packet) override {
+    queues.sco.push(packet);
+  }
+  void sendIsoData(const std::vector<uint8_t>& packet) override {
+    queues.iso.push(packet);
+  }
 };
 
 std::shared_ptr<TestBackend> backend;
@@ -63,7 +71,7 @@ std::shared_ptr<HciBackend> HciBackend::CreateAidl() {
 }
 
 std::shared_ptr<HciBackend> HciBackend::CreateHidl(
-        [[maybe_unused]] ::bluetooth::os::Handler* handler) {
+    [[maybe_unused]] ::bluetooth::os::Handler* handler) {
   backend = std::make_shared<TestBackend>();
   return backend;
 }
@@ -71,7 +79,7 @@ std::shared_ptr<HciBackend> HciBackend::CreateHidl(
 namespace {
 
 class HciHalAndroidTest : public ::testing::Test {
-protected:
+ protected:
   void SetUp() override {
     thread_ = new Thread("test_thread", Thread::Priority::NORMAL);
     hal = fake_registry_.Start<HciHal>(thread_);
@@ -84,7 +92,7 @@ protected:
 
   HciHal* hal;
 
-private:
+ private:
   ModuleRegistry fake_registry_;
   Thread* thread_;
 };
@@ -101,5 +109,5 @@ TEST_F(HciHalAndroidTest, init) {
   TestBackend::initialization_delay = std::chrono::milliseconds(0);
 }
 
-} // namespace
-} // namespace bluetooth::hal
+}  // namespace
+}  // namespace bluetooth::hal
