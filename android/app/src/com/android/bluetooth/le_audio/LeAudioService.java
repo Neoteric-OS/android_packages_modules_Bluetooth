@@ -1334,6 +1334,7 @@ public class LeAudioService extends ProfileService {
         }
 
         mBroadcastIdPendingStart = Optional.empty();
+        mBroadcastIdDeactivatedForUnicastTransition = Optional.empty();
         if (mDialingOutTimeoutEvent != null &&
                 mDialingOutTimeoutEvent.mBroadcastId.equals(broadcastId)) {
             Log.w(TAG, "stopBroadcast: pending stopBrodcast while start Broadcast is ongoing: "
