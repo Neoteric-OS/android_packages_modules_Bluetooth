@@ -381,7 +381,7 @@ void srvc_eng_release_channel(uint16_t conn_id) {
  ******************************************************************************/
 tGATT_STATUS srvc_eng_init(void) {
   if (srvc_eng_cb.enabled) {
-    log::error("DIS already initialized");
+    log::error("DIS already initalized");
   } else {
     memset(&srvc_eng_cb, 0, sizeof(tSRVC_ENG_CB));
 

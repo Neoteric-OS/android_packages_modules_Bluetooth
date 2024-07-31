@@ -46,7 +46,7 @@ bool A2dpLdacToHalConfig(CodecConfiguration* codec_config, A2dpCodecConfig* a2dp
 bool UpdateOffloadingCapabilities(
         const std::vector<btav_a2dp_codec_config_t>& framework_preference);
 // Check whether this codec is supported by the audio HAL and is allowed to use
-// by preference of framework / Bluetooth SoC / runtime property.
+// by prefernece of framework / Bluetooth SoC / runtime property.
 bool IsCodecOffloadingEnabled(const CodecConfiguration& codec_config);
 
 } // namespace codec

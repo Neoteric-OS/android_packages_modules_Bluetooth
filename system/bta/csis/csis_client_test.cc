@@ -245,7 +245,7 @@ private:
                   value.assign(1, rank);
                   break;
                 default:
-                  FAIL();
+                  ASSERT_TRUE(false);
                   return;
               }
 
@@ -349,7 +349,7 @@ private:
                   break;
                 default:
                   log::error("Unknown handle? {}", handle);
-                  FAIL();
+                  ASSERT_TRUE(false);
                   return;
               }
 

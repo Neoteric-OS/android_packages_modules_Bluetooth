@@ -128,7 +128,7 @@ Octet16 smp_gen_p1_4_confirm(tSMP_CB* p_cb, tBLE_ADDR_TYPE remote_bd_addr_type);
 
 Octet16 smp_gen_p2_4_confirm(tSMP_CB* p_cb, const RawAddress& remote_bda);
 
-tSMP_STATUS smp_calculate_confirm(tSMP_CB* p_cb, const Octet16& rand, Octet16* output);
+tSMP_STATUS smp_calculate_comfirm(tSMP_CB* p_cb, const Octet16& rand, Octet16* output);
 
 void dump_uint128(const Octet16& a, char* buffer) {
   for (unsigned int i = 0; i < OCTET16_LEN; ++i) {
@@ -273,8 +273,8 @@ TEST_F(SmpCalculateConfirmTest, test_aes_128_as_central) {
   test::mock::stack_acl::BTM_ReadRemoteConnectionAddr = {};
 }
 
-// Test smp_calculate_confirm function implementation
-TEST_F(SmpCalculateConfirmTest, test_smp_calculate_confirm_as_central) {
+// Test smp_calculate_comfirm function implementation
+TEST_F(SmpCalculateConfirmTest, test_smp_calculate_comfirm_as_central) {
   // Set local_bda to 0xA1A2A3A4A5A6
   test::mock::stack_acl::BTM_ReadConnectionAddr.body =
           [](const RawAddress& remote_bda, RawAddress& local_conn_addr, tBLE_ADDR_TYPE* p_addr_type,
@@ -293,7 +293,7 @@ TEST_F(SmpCalculateConfirmTest, test_smp_calculate_confirm_as_central) {
           };
 
   Octet16 output;
-  tSMP_STATUS status = smp_calculate_confirm(&p_cb_, rand_, &output);
+  tSMP_STATUS status = smp_calculate_comfirm(&p_cb_, rand_, &output);
   EXPECT_EQ(status, SMP_SUCCESS);
   // Correct MConfirm is 0x1e1e3fef878988ead2a74dc5bef13b86
   const char expected_confirm_str[] = "1e1e3fef878988ead2a74dc5bef13b86";

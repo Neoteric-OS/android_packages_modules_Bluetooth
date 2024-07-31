@@ -83,7 +83,7 @@
 #define HCIC_PARAM_SIZE_BLE_READ_RESOLVABLE_ADDR_PEER 7
 #define HCIC_PARAM_SIZE_BLE_READ_RESOLVABLE_ADDR_LOCAL 7
 #define HCIC_PARAM_SIZE_BLE_SET_ADDR_RESOLUTION_ENABLE 1
-#define HCIC_PARAM_SIZE_BLE_SET_RAND_PRIV_ADDR_TIMEOUT 2
+#define HCIC_PARAM_SIZE_BLE_SET_RAND_PRIV_ADDR_TIMOUT 2
 
 #define HCIC_PARAM_SIZE_BLE_READ_PHY 2
 #define HCIC_PARAM_SIZE_BLE_SET_DEFAULT_PHY 3
@@ -358,16 +358,16 @@ void btsnd_hcic_ble_read_resolvable_addr_peer(uint8_t addr_type_peer, const RawA
   btu_hcif_send_cmd(LOCAL_BR_EDR_CONTROLLER_ID, p);
 }
 
-void btsnd_hcic_ble_set_rand_priv_addr_timeout(uint16_t rpa_timeout) {
+void btsnd_hcic_ble_set_rand_priv_addr_timeout(uint16_t rpa_timout) {
   BT_HDR* p = (BT_HDR*)osi_malloc(HCI_CMD_BUF_SIZE);
   uint8_t* pp = (uint8_t*)(p + 1);
 
-  p->len = HCIC_PREAMBLE_SIZE + HCIC_PARAM_SIZE_BLE_SET_RAND_PRIV_ADDR_TIMEOUT;
+  p->len = HCIC_PREAMBLE_SIZE + HCIC_PARAM_SIZE_BLE_SET_RAND_PRIV_ADDR_TIMOUT;
   p->offset = 0;
 
-  UINT16_TO_STREAM(pp, HCI_BLE_SET_RAND_PRIV_ADDR_TIMEOUT);
-  UINT8_TO_STREAM(pp, HCIC_PARAM_SIZE_BLE_SET_RAND_PRIV_ADDR_TIMEOUT);
-  UINT16_TO_STREAM(pp, rpa_timeout);
+  UINT16_TO_STREAM(pp, HCI_BLE_SET_RAND_PRIV_ADDR_TIMOUT);
+  UINT8_TO_STREAM(pp, HCIC_PARAM_SIZE_BLE_SET_RAND_PRIV_ADDR_TIMOUT);
+  UINT16_TO_STREAM(pp, rpa_timout);
 
   btu_hcif_send_cmd(LOCAL_BR_EDR_CONTROLLER_ID, p);
 }

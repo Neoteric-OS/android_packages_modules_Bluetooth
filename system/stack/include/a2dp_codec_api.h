@@ -538,7 +538,7 @@ typedef void (*decoded_data_callback_t)(uint8_t* buf, uint32_t len);
 // A2DP decoder callbacks interface.
 //
 typedef struct {
-  // Initialize the decoder. Can be called multiple times, will reinitialize.
+  // Initialize the decoder. Can be called multiple times, will reinitalize.
   bool (*decoder_init)(decoded_data_callback_t decode_callback);
 
   // Cleanup the A2DP decoder.

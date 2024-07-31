@@ -47,7 +47,7 @@ bool UpdateOffloadingCapabilities(
 
 /***
  * Check whether this codec is supported by the audio HAL and is allowed to use
- * by preference of framework / Bluetooth SoC / runtime property.
+ * by prefernece of framework / Bluetooth SoC / runtime property.
  ***/
 bool IsCodecOffloadingEnabled(const CodecConfiguration& codec_config);
 

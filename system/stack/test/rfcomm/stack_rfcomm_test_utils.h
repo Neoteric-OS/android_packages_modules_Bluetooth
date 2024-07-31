@@ -152,10 +152,10 @@ std::vector<uint8_t> CreateQuickUaPacket(uint8_t dlci, uint16_t l2cap_lcid, uint
  *
  * @param rfc_cr RFCOMM command/response bit, true of initiator
  * @param target_dlci DLCI to be configured
- * @param mx_cr multiplexer command or response, regardless of initiator
+ * @param mx_cr multiplexer command or reponse, regardless of initiator
  * @param rfc_mtu RFCOMM mtu to be used for DLCI
  * @param cl CL bit
- * @param priority priority
+ * @param priority prirority
  * @param k error recovery window k
  * @param l2cap_lcid L2CAP channel ID
  * @param acl_handle ACL handle
@@ -172,7 +172,7 @@ std::vector<uint8_t> CreateQuickPnPacket(bool rfc_cr, uint8_t target_dlci, bool 
  * @param dlci DLCI to be configured
  * @param l2cap_lcid L2CAP channel ID
  * @param acl_handle ACL handle
- * @param mx_cr multiplexer command or response, regardless of initiator
+ * @param mx_cr multiplexer command or reponse, regardless of initiator
  * @param fc flow control
  * @param rtc ready to communicate
  * @param rtr ready to receive

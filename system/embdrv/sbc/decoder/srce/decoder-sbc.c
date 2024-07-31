@@ -227,7 +227,7 @@ PRIVATE OI_STATUS internal_DecodeRaw(OI_CODEC_SBC_DECODER_CONTEXT* context, uint
     *frameData += bodyLen;
     *frameBytes -= bodyLen;
   }
-  TRACE(("-OI_CODEC_SBC_DecodeRaw: %d", status));
+  TRACE("-OI_CODEC_SBC_DecodeRaw: %d", status);
   return status;
 }
 
@@ -328,7 +328,7 @@ OI_STATUS OI_CODEC_SBC_DecodeFrame(OI_CODEC_SBC_DECODER_CONTEXT* context, const 
 
   crc = OI_SBC_CalculateChecksum(&context->common.frameInfo, *frameData);
   if (crc != context->common.frameInfo.crc) {
-    TRACE(("CRC Mismatch:  calc=%02x read=%02x\n", crc, context->common.frameInfo.crc));
+    TRACE("CRC Mismatch:  calc=%02x read=%02x\n", crc, context->common.frameInfo.crc);
     TRACE("-OI_CODEC_SBC_DecodeFrame: OI_CODEC_SBC_CHECKSUM_MISMATCH");
     return OI_CODEC_SBC_CHECKSUM_MISMATCH;
   }
@@ -338,12 +338,12 @@ OI_STATUS OI_CODEC_SBC_DecodeFrame(OI_CODEC_SBC_DECODER_CONTEXT* context, const 
    */
   if ((context->common.frameInfo.bitpool < SBC_MIN_BITPOOL) &&
       !context->common.frameInfo.enhanced) {
-    ERROR(("Bitpool too small: %d (must be >= 2)", context->common.frameInfo.bitpool));
+    ERROR("Bitpool too small: %d (must be >= 2)", context->common.frameInfo.bitpool);
     return OI_STATUS_INVALID_PARAMETERS;
   }
   if (context->common.frameInfo.bitpool > OI_SBC_MaxBitpool(&context->common.frameInfo)) {
-    ERROR(("Bitpool too large: %d (must be <= %ld)", context->common.frameInfo.bitpool,
-          OI_SBC_MaxBitpool(&context->common.frameInfo)));
+    ERROR("Bitpool too large: %d (must be <= %ld)", context->common.frameInfo.bitpool,
+          OI_SBC_MaxBitpool(&context->common.frameInfo));
     return OI_STATUS_INVALID_PARAMETERS;
   }
 
@@ -357,7 +357,7 @@ OI_STATUS OI_CODEC_SBC_DecodeFrame(OI_CODEC_SBC_DECODER_CONTEXT* context, const 
     *frameData += framelen;
     *frameBytes -= framelen;
   }
-  TRACE(("-OI_CODEC_SBC_DecodeFrame: %d", status));
+  TRACE("-OI_CODEC_SBC_DecodeFrame: %d", status);
 
   /* mSBC is designed with 8 bits of zeros at the end for padding. */
   if (context->mSbcEnabled) {

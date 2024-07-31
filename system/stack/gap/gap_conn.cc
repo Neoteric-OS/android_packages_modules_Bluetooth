@@ -439,7 +439,7 @@ int GAP_GetRxQueueCnt(uint16_t handle, uint32_t* p_rx_queue_count) {
 }
 
 /* Try to write the queued data to l2ca. Return true on success, or if queue is
- * congested. False if error occurred when writing. */
+ * congested. False if error occured when writing. */
 static bool gap_try_write_queued_data(tGAP_CCB* p_ccb) {
   if (p_ccb->is_congested) {
     return true;

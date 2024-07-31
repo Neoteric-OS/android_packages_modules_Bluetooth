@@ -385,11 +385,11 @@ struct btsnd_hcic_ble_set_privacy_mode {
 extern struct btsnd_hcic_ble_set_privacy_mode btsnd_hcic_ble_set_privacy_mode;
 
 // Name: btsnd_hcic_ble_set_rand_priv_addr_timeout
-// Params: uint16_t rpa_timeout
+// Params: uint16_t rpa_timout
 // Return: void
 struct btsnd_hcic_ble_set_rand_priv_addr_timeout {
-  std::function<void(uint16_t rpa_timeout)> body{[](uint16_t /* rpa_timeout */) {}};
-  void operator()(uint16_t rpa_timeout) { body(rpa_timeout); }
+  std::function<void(uint16_t rpa_timout)> body{[](uint16_t /* rpa_timout */) {}};
+  void operator()(uint16_t rpa_timout) { body(rpa_timout); }
 };
 extern struct btsnd_hcic_ble_set_rand_priv_addr_timeout btsnd_hcic_ble_set_rand_priv_addr_timeout;
 

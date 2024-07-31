@@ -388,11 +388,11 @@ typedef void(tPORT_MGMT_CALLBACK)(const tPORT_RESULT code, uint16_t port_handle)
 #define PORT_PPP_DEFAULT_SIGNAL_STATE (PORT_DTRDSR_ON | PORT_CTSRTS_ON | PORT_DCD_ON)
 #define PORT_DUN_DEFAULT_SIGNAL_STATE (PORT_DTRDSR_ON | PORT_CTSRTS_ON)
 
-#define PORT_ERR_BREAK 0x01   /* Break condition occurred on the peer device */
+#define PORT_ERR_BREAK 0x01   /* Break condition occured on the peer device */
 #define PORT_ERR_OVERRUN 0x02 /* Overrun is reported by peer device */
 #define PORT_ERR_FRAME 0x04   /* Framing error reported by peer device */
-#define PORT_ERR_RXOVER 0x08  /* Input queue overflow occurred */
-#define PORT_ERR_TXFULL 0x10  /* Output queue overflow occurred */
+#define PORT_ERR_RXOVER 0x08  /* Input queue overflow occured */
+#define PORT_ERR_TXFULL 0x10  /* Output queue overflow occured */
 
 /*******************************************************************************
  *

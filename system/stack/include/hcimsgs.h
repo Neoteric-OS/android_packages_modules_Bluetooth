@@ -330,7 +330,7 @@ struct EXT_CONN_PHY_CFG {
 
 void btsnd_hcic_ble_read_resolvable_addr_peer(uint8_t addr_type_peer, const RawAddress& bda_peer);
 
-void btsnd_hcic_ble_set_rand_priv_addr_timeout(uint16_t rpa_timeout);
+void btsnd_hcic_ble_set_rand_priv_addr_timeout(uint16_t rpa_timout);
 
 void btsnd_hcic_read_authenticated_payload_tout(uint16_t handle);
 

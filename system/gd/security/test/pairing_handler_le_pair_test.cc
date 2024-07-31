@@ -279,7 +279,7 @@ protected:
               }
 
               if (!(*handler)) {
-                log::fatal("handler not initialized yet!");
+                log::fatal("handler not initalized yet!");
               }
               // Simulate user accepting the pairing in UI
               (*handler)->OnUiAction(PairingEvent::PAIRING_ACCEPTED,
@@ -367,7 +367,7 @@ TEST_F(PairingHandlerPairTest, test_secure_connections_just_works) {
               }
 
               if (!pairing_handler_b) {
-                log::fatal("handler not initialized yet!");
+                log::fatal("handler not initalized yet!");
               }
 
               // Simulate user accepting the pairing in UI
@@ -466,7 +466,7 @@ TEST_F(PairingHandlerPairTest, test_secure_connections_just_works_peripheral_ini
                 std::lock_guard<std::mutex> lock(handlers_initialization_guard);
               }
               if (!pairing_handler_a) {
-                log::fatal("handler not initialized yet!");
+                log::fatal("handler not initalized yet!");
               }
               // Simulate user accepting the pairing in UI
               pairing_handler_a->OnUiAction(PairingEvent::PAIRING_ACCEPTED,

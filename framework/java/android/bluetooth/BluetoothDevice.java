@@ -475,7 +475,7 @@ public final class BluetoothDevice implements Parcelable, Attributable {
 
     /**
      * Used as a String extra field in {@link #ACTION_REMOTE_ISSUE_OCCURRED} intents.
-     * It contains the coutnt of glitches occurred since last broadcast.
+     * It contains the coutnt of glitches occured since last broadcast.
      * @hide
      */
     public static final String EXTRA_GLITCH_COUNT = "android.bluetooth.qti.extra.EXTRA_GLITCH_COUNT";

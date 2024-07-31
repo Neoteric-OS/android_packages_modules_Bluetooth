@@ -855,7 +855,7 @@ void BTA_GATTC_ConfigureMTU(uint16_t conn_id, uint16_t mtu, GATT_CONFIGURE_MTU_O
  *
  * Function         BTA_GATTS_Init
  *
- * Description      This function is called to initialize GATTS module
+ * Description      This function is called to initalize GATTS module
  *
  * Parameters       None
  *

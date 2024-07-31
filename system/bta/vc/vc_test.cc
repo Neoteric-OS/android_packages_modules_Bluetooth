@@ -200,7 +200,7 @@ private:
                   break;
 
                 default:
-                  FAIL();
+                  ASSERT_TRUE(false);
                   return;
               }
 

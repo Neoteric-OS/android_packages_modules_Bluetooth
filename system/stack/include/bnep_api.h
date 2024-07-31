@@ -231,15 +231,15 @@ tBNEP_RESULT BNEP_Connect(const RawAddress& p_rem_bda, const bluetooth::Uuid& sr
  *
  * Function         BNEP_ConnectResp
  *
- * Description      This function is called in response to connection indication
+ * Description      This function is called in responce to connection indication
  *
  *
  * Parameters:      handle  - handle given in the connection indication
- *                  resp    - response for the connection indication
+ *                  resp    - responce for the connection indication
  *
  * Returns          BNEP_SUCCESS                if connection started
  *                  BNEP_WRONG_HANDLE           if the connection is not found
- *                  BNEP_WRONG_STATE            if the response is not expected
+ *                  BNEP_WRONG_STATE            if the responce is not expected
  *
  ******************************************************************************/
 tBNEP_RESULT BNEP_ConnectResp(uint16_t handle, tBNEP_RESULT resp);

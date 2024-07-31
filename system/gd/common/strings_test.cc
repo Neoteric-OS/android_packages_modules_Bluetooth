@@ -72,7 +72,7 @@ TEST(StringsTest, to_hex_string_from_number) {
     ASSERT_EQ(ToHexString(LONG_MIN + 1L), "-0x7fffffffffffffff");
   } else {
     bluetooth::log::error("Unknown architecture");
-    FAIL();
+    ASSERT_TRUE(false);
   }
   ASSERT_EQ(ToHexString('a'), "0x61");
 }
