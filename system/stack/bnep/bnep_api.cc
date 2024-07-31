@@ -201,15 +201,15 @@ tBNEP_RESULT BNEP_Connect(const RawAddress& p_rem_bda, const Uuid& src_uuid, con
  *
  * Function         BNEP_ConnectResp
  *
- * Description      This function is called in responce to connection indication
+ * Description      This function is called in response to connection indication
  *
  *
  * Parameters:      handle  - handle given in the connection indication
- *                  resp    - responce for the connection indication
+ *                  resp    - response for the connection indication
  *
  * Returns          BNEP_SUCCESS                if connection started
  *                  BNEP_WRONG_HANDLE           if the connection is not found
- *                  BNEP_WRONG_STATE            if the responce is not expected
+ *                  BNEP_WRONG_STATE            if the response is not expected
  *
  ******************************************************************************/
 tBNEP_RESULT BNEP_ConnectResp(uint16_t handle, tBNEP_RESULT resp) {
@@ -226,9 +226,9 @@ tBNEP_RESULT BNEP_ConnectResp(uint16_t handle, tBNEP_RESULT resp) {
     return BNEP_WRONG_STATE;
   }
 
-  log::debug("handle {}, responce {}", handle, resp);
+  log::debug("handle {}, response {}", handle, resp);
 
-  /* Form appropriate responce based on profile responce */
+  /* Form appropriate response based on profile response */
   if (resp == BNEP_CONN_FAILED_SRC_UUID) {
     resp_code = BNEP_SETUP_INVALID_SRC_UUID;
   } else if (resp == BNEP_CONN_FAILED_DST_UUID) {

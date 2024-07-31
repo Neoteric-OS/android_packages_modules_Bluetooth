@@ -312,14 +312,14 @@ Octet16 smp_gen_p2_4_confirm(tSMP_CB* p_cb, const RawAddress& remote_bda) {
 
 /*******************************************************************************
  *
- * Function         smp_calculate_comfirm
+ * Function         smp_calculate_confirm
  *
  * Description      This function (c1) is called to calculate Confirm value.
  *
  * Returns          tSMP_STATUS status of confirmation calculation
  *
  ******************************************************************************/
-tSMP_STATUS smp_calculate_comfirm(tSMP_CB* p_cb, const Octet16& rand, Octet16* output) {
+tSMP_STATUS smp_calculate_confirm(tSMP_CB* p_cb, const Octet16& rand, Octet16* output) {
   log::verbose("addr:{}", p_cb->pairing_bda);
   RawAddress remote_bda;
   tBLE_ADDR_TYPE remote_bd_addr_type = BLE_ADDR_PUBLIC;
@@ -364,7 +364,7 @@ static void smp_generate_confirm(tSMP_CB* p_cb) {
   log::verbose("addr:{}", p_cb->pairing_bda);
   smp_debug_print_nbyte_little_endian(p_cb->rand.data(), "local_rand", 16);
   Octet16 output;
-  tSMP_STATUS status = smp_calculate_comfirm(p_cb, p_cb->rand, &output);
+  tSMP_STATUS status = smp_calculate_confirm(p_cb, p_cb->rand, &output);
   if (status != SMP_SUCCESS) {
     tSMP_INT_DATA smp_int_data;
     smp_int_data.status = status;
@@ -426,7 +426,7 @@ void smp_generate_compare(tSMP_CB* p_cb, tSMP_INT_DATA* /* p_data */) {
   log::verbose("addr:{}", p_cb->pairing_bda);
   smp_debug_print_nbyte_little_endian(p_cb->rrand, "peer rand", 16);
   Octet16 output;
-  tSMP_STATUS status = smp_calculate_comfirm(p_cb, p_cb->rrand, &output);
+  tSMP_STATUS status = smp_calculate_confirm(p_cb, p_cb->rrand, &output);
   if (status != SMP_SUCCESS) {
     tSMP_INT_DATA smp_int_data;
     smp_int_data.status = status;

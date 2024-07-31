@@ -880,7 +880,7 @@ bool l2cble_create_conn(tL2C_LCB* p_lcb) {
 
 /*******************************************************************************
  *
- * Function         l2c_link_processs_ble_num_bufs
+ * Function         l2c_link_process_ble_num_bufs
  *
  * Description      This function is called when a "controller buffer size"
  *                  event is first received from the controller. It updates
@@ -889,7 +889,7 @@ bool l2cble_create_conn(tL2C_LCB* p_lcb) {
  * Returns          void
  *
  ******************************************************************************/
-void l2c_link_processs_ble_num_bufs(uint16_t num_lm_ble_bufs) {
+void l2c_link_process_ble_num_bufs(uint16_t num_lm_ble_bufs) {
   if (num_lm_ble_bufs == 0) {
     num_lm_ble_bufs = L2C_DEF_NUM_BLE_BUF_SHARED;
     l2cb.num_lm_acl_bufs -= L2C_DEF_NUM_BLE_BUF_SHARED;

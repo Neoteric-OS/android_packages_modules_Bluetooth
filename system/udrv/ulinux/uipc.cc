@@ -505,7 +505,7 @@ void uipc_stop_main_server_thread(tUIPC_STATE& uipc) {
 
   /* wait until read thread is fully terminated */
   /* tid might hold pointer value where it's value
-     is negative vaule with singed bit is set, so
+     is negative value with signed bit is set, so
      corrected the logic to check zero or non zero */
   if (uipc.tid) {
     pthread_join(uipc.tid, NULL);

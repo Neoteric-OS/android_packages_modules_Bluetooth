@@ -51,7 +51,7 @@ uint32_t OI_SBC_MaxBitpool(OI_CODEC_SBC_FRAME_INFO* frame) {
       return 32 * frame->nrof_subbands;
   }
 
-  ERROR("Invalid frame mode %d", frame->mode);
+  ERROR(("Invalid frame mode %d", frame->mode));
   OI_ASSERT(false);
   return 0; /* Should never be reached */
 }

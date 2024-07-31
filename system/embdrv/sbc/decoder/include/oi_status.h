@@ -159,7 +159,7 @@ typedef enum {
   OI_HCI_UNEXPECTED_EVENT =
           619, /**< HCI: event received which only occurs in response to our cmd */
   OI_HCI_EVENT_TABLE_ERROR = 620,      /**< HCI: inconsistency in the internal event table */
-  OI_HCI_EXPECTED_EVENT_TIMOUT = 621,  /**< HCI: timed out waiting for an expected event */
+  OI_HCI_EXPECTED_EVENT_TIMEOUT = 621,  /**< HCI: timed out waiting for an expected event */
   OI_HCI_NO_CMD_DESC_FOR_OPCODE = 622, /**< HCI: event opcode is not known */
   OI_HCI_INVALID_OPCODE_ERROR = 623,   /**< HCI: command opcode is invalid */
   OI_HCI_FLOW_CONTROL_DISABLED = 624,  /**< HCI: can not use host flow control

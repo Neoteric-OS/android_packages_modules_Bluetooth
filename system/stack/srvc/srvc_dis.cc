@@ -329,7 +329,7 @@ tDIS_STATUS DIS_SrInit(tDIS_ATTR_MASK dis_attr_mask) {
   tGATT_STATUS status;
 
   if (dis_cb.enabled) {
-    log::error("DIS already initalized");
+    log::error("DIS already initialized");
     return DIS_SUCCESS;
   }
 

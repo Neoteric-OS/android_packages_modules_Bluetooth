@@ -175,7 +175,7 @@ uint32_t SBC_Encode(SBC_ENC_PARAMS* pstrEncParams, int16_t* input, uint8_t* outp
 }
 
 /****************************************************************************
- * InitSbcAnalysisFilt - Initalizes the input data to 0
+ * InitSbcAnalysisFilt - Initializes the input data to 0
  *
  * RETURNS : N/A
  */

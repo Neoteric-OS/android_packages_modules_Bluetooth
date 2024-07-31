@@ -74,7 +74,7 @@ TEST_F(AlarmTest, schedule) {
 }
 
 TEST_F(AlarmTest, cancel_alarm) {
-  alarm_->Schedule(BindOnce([]() { ASSERT_TRUE(false) << "Should not happen"; }),
+  alarm_->Schedule(BindOnce([]() { FAIL() << "Should not happen"; }),
                    std::chrono::milliseconds(3));
   alarm_->Cancel();
   std::this_thread::sleep_for(std::chrono::milliseconds(5));
@@ -97,7 +97,7 @@ TEST_F(AlarmTest, cancel_alarm_from_callback) {
 }
 
 TEST_F(AlarmTest, schedule_while_alarm_armed) {
-  alarm_->Schedule(BindOnce([]() { ASSERT_TRUE(false) << "Should not happen"; }),
+  alarm_->Schedule(BindOnce([]() { FAIL() << "Should not happen"; }),
                    std::chrono::milliseconds(1));
   std::promise<void> promise;
   auto future = promise.get_future();
@@ -108,7 +108,7 @@ TEST_F(AlarmTest, schedule_while_alarm_armed) {
 }
 
 TEST_F(AlarmTest, delete_while_alarm_armed) {
-  alarm_->Schedule(BindOnce([]() { ASSERT_TRUE(false) << "Should not happen"; }),
+  alarm_->Schedule(BindOnce([]() { FAIL() << "Should not happen"; }),
                    std::chrono::milliseconds(1));
   alarm_.reset();
   std::this_thread::sleep_for(std::chrono::milliseconds(10));

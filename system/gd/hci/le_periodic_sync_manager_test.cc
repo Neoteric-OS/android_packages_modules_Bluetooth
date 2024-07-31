@@ -468,10 +468,10 @@ TEST_F(PeriodicSyncManagerTest, sync_tx_parameters_test) {
   Address::FromString("00:11:22:33:44:55", address);
   uint8_t mode = 0x00;
   uint16_t skip = 0x11;
-  uint16_t timout = 0x12;
+  uint16_t timeout = 0x12;
   int reg_id = 0x01;
   ASSERT_NO_FATAL_FAILURE(test_le_scanning_interface_->SetCommandFuture());
-  periodic_sync_manager_->SyncTxParameters(address, mode, skip, timout, reg_id);
+  periodic_sync_manager_->SyncTxParameters(address, mode, skip, timeout, reg_id);
   auto packet = test_le_scanning_interface_->GetCommand(
           OpCode::LE_SET_DEFAULT_PERIODIC_ADVERTISING_SYNC_TRANSFER_PARAMETERS);
   auto packet_view = LeSetDefaultPeriodicAdvertisingSyncTransferParametersView::Create(
@@ -480,7 +480,7 @@ TEST_F(PeriodicSyncManagerTest, sync_tx_parameters_test) {
   ASSERT_TRUE(packet_view.IsValid());
   ASSERT_EQ(mode, (uint8_t)packet_view.GetMode());
   ASSERT_EQ(skip, packet_view.GetSkip());
-  ASSERT_EQ(timout, packet_view.GetSyncTimeout());
+  ASSERT_EQ(timeout, packet_view.GetSyncTimeout());
 
   sync_handler();
 }

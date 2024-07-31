@@ -261,7 +261,7 @@ public class BluetoothMapService extends ProfileService {
                         1);
                 Log.w(
                         TAG,
-                        "IOException occured while starting an obexServerSession restarting"
+                        "IOException occurred while starting an obexServerSession restarting"
                                 + " the listener",
                         e);
                 mMasInstances.valueAt(i).restartObexServerSession();
@@ -273,7 +273,7 @@ public class BluetoothMapService extends ProfileService {
                         2);
                 Log.w(
                         TAG,
-                        "RemoteException occured while starting an obexServerSession restarting"
+                        "RemoteException occurred while starting an obexServerSession restarting"
                                 + " the listener",
                         e);
                 mMasInstances.valueAt(i).restartObexServerSession();

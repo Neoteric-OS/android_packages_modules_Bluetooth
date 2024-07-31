@@ -207,7 +207,7 @@ void BTM_reset_complete() {
   }
 
   if (bluetooth::shim::GetController()->SupportsBle()) {
-    l2c_link_processs_ble_num_bufs(
+    l2c_link_process_ble_num_bufs(
             bluetooth::shim::GetController()->GetLeBufferSize().total_num_le_packets_);
   }
 

@@ -79,7 +79,7 @@ TEST_F(HandlerTest, post_task_cleared) {
           },
           common::Unretained(&val), std::move(closure_started), std::move(can_continue_future),
           std::move(closure_finished)));
-  handler_->Post(common::BindOnce([]() { ASSERT_TRUE(false); }));
+  handler_->Post(common::BindOnce([]() { FAIL(); }));
   closure_started_future.wait();
   handler_->Clear();
   closure_can_continue.set_value();

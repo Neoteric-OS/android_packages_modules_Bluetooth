@@ -1077,7 +1077,7 @@ static void process_i_frame(tL2C_CCB* p_ccb, BT_HDR* p_buf, uint16_t ctrl_word, 
   }
 
   /* Seq number is the next expected. Clear possible reject exception in case it
-   * occured */
+   * occurred */
   p_fcrb->rej_sent = p_fcrb->srej_sent = false;
 
   /* Adjust the next_seq, so that if the upper layer sends more data in the

@@ -166,7 +166,7 @@ static void Fuzz(const uint8_t* data, size_t size) {
   l2c_init();
 
   l2c_link_init(kNumClassicAclBuffer);
-  l2c_link_processs_ble_num_bufs(kNumLeAclBuffer);
+  l2c_link_process_ble_num_bufs(kNumLeAclBuffer);
 
   tL2CAP_FIXED_CHNL_REG reg = {
           .pL2CA_FixedConn_Cb = [](uint16_t, const RawAddress&, bool, uint16_t, tBT_TRANSPORT) {},

@@ -1012,7 +1012,7 @@ protected:
         break;
 
       default:
-        ASSERT_TRUE(false);
+        FAIL();
     }
 
     while (device_cnt) {

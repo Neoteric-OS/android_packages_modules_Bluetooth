@@ -142,14 +142,14 @@ struct l2cble_create_conn {
   bool operator()(tL2C_LCB* p_lcb) { return body(p_lcb); }
 };
 extern struct l2cble_create_conn l2cble_create_conn;
-// Name: l2c_link_processs_ble_num_bufs
+// Name: l2c_link_process_ble_num_bufs
 // Params: uint16_t num_lm_ble_bufs
 // Returns: void
-struct l2c_link_processs_ble_num_bufs {
+struct l2c_link_process_ble_num_bufs {
   std::function<void(uint16_t num_lm_ble_bufs)> body{[](uint16_t /* num_lm_ble_bufs */) {}};
   void operator()(uint16_t num_lm_ble_bufs) { body(num_lm_ble_bufs); }
 };
-extern struct l2c_link_processs_ble_num_bufs l2c_link_processs_ble_num_bufs;
+extern struct l2c_link_process_ble_num_bufs l2c_link_process_ble_num_bufs;
 // Name: l2c_ble_link_adjust_allocation
 // Params: void
 // Returns: void

@@ -230,9 +230,9 @@ void btsnd_hcic_ble_set_privacy_mode(uint8_t addr_type_peer, const RawAddress& b
   test::mock::stack_hcic_hciblecmds::btsnd_hcic_ble_set_privacy_mode(addr_type_peer, bda_peer,
                                                                      privacy_type);
 }
-void btsnd_hcic_ble_set_rand_priv_addr_timeout(uint16_t rpa_timout) {
+void btsnd_hcic_ble_set_rand_priv_addr_timeout(uint16_t rpa_timeout) {
   inc_func_call_count(__func__);
-  test::mock::stack_hcic_hciblecmds::btsnd_hcic_ble_set_rand_priv_addr_timeout(rpa_timout);
+  test::mock::stack_hcic_hciblecmds::btsnd_hcic_ble_set_rand_priv_addr_timeout(rpa_timeout);
 }
 void btsnd_hcic_ble_set_scan_enable(uint8_t scan_enable, uint8_t duplicate) {
   inc_func_call_count(__func__);

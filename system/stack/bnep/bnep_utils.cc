@@ -537,7 +537,7 @@ void bnep_process_setup_conn_req(tBNEP_CONN* p_bcb, uint8_t* p_setup, uint8_t le
   }
 
   /* Check if we already initiated security check or if waiting for user
-   * responce */
+   * response */
   if (p_bcb->con_flags & BNEP_FLAGS_SETUP_RCVD) {
     log::warn("BNEP - Duplicate Setup message received while doing security check");
     return;
@@ -602,7 +602,7 @@ void bnep_process_setup_conn_req(tBNEP_CONN* p_bcb, uint8_t* p_setup, uint8_t le
 
 /*******************************************************************************
  *
- * Function         bnep_process_setup_conn_responce
+ * Function         bnep_process_setup_conn_response
  *
  * Description      This function processes a peer's setup connection response
  *                  message. The response code is verified and
@@ -611,11 +611,11 @@ void bnep_process_setup_conn_req(tBNEP_CONN* p_bcb, uint8_t* p_setup, uint8_t le
  * Returns          void
  *
  ******************************************************************************/
-void bnep_process_setup_conn_responce(tBNEP_CONN* p_bcb, uint8_t* p_setup) {
+void bnep_process_setup_conn_response(tBNEP_CONN* p_bcb, uint8_t* p_setup) {
   tBNEP_RESULT resp;
   uint16_t resp_code;
 
-  log::verbose("BNEP received setup responce");
+  log::verbose("BNEP received setup response");
   /* The state should be either SETUP or CONNECTED */
   if (p_bcb->con_state != BNEP_STATE_CONN_SETUP) {
     /* Should we disconnect ? */
@@ -650,7 +650,7 @@ void bnep_process_setup_conn_responce(tBNEP_CONN* p_bcb, uint8_t* p_setup) {
       break;
   }
 
-  /* Check the responce code */
+  /* Check the response code */
   if (resp_code != BNEP_SETUP_CONN_OK) {
     if (p_bcb->con_flags & BNEP_FLAGS_CONN_COMPLETED) {
       log::verbose("BNEP - role change response is {}", resp_code);
@@ -689,7 +689,7 @@ void bnep_process_setup_conn_responce(tBNEP_CONN* p_bcb, uint8_t* p_setup) {
     }
   }
 
-  /* Received successful responce */
+  /* Received successful response */
   bnep_connected(p_bcb);
 }
 
@@ -769,7 +769,7 @@ uint8_t* bnep_process_control_packet(tBNEP_CONN* p_bcb, uint8_t* p, uint16_t* re
         goto bad_packet_length;
       }
       if (!is_ext) {
-        bnep_process_setup_conn_responce(p_bcb, p);
+        bnep_process_setup_conn_response(p_bcb, p);
       }
       p += 2;
       *rem_len = *rem_len - 2;
@@ -931,7 +931,7 @@ void bnepu_process_peer_filter_rsp(tBNEP_CONN* p_bcb, uint8_t* p_data) {
   uint16_t resp_code;
   tBNEP_RESULT result;
 
-  log::verbose("BNEP received filter responce");
+  log::verbose("BNEP received filter response");
   /* The state should be  CONNECTED */
   if ((p_bcb->con_state != BNEP_STATE_CONNECTED) &&
       (!(p_bcb->con_flags & BNEP_FLAGS_CONN_COMPLETED))) {
@@ -976,7 +976,7 @@ void bnepu_process_multicast_filter_rsp(tBNEP_CONN* p_bcb, uint8_t* p_data) {
   uint16_t resp_code;
   tBNEP_RESULT result;
 
-  log::verbose("BNEP received multicast filter responce");
+  log::verbose("BNEP received multicast filter response");
   /* The state should be  CONNECTED */
   if ((p_bcb->con_state != BNEP_STATE_CONNECTED) &&
       (!(p_bcb->con_flags & BNEP_FLAGS_CONN_COMPLETED))) {

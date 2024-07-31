@@ -40,7 +40,7 @@
 // Prints out a nice message including the call count, the
 // stub function name, and the mode index (sadly no mode name)
 #define UNEXPECTED_CALL                                                              \
-  EXPECT_TRUE(false) << "unexpected call " << _local_callcount << " to " << __func__ \
+  ADD_FAILURE() << "unexpected call " << _local_callcount << " to " << __func__ \
                      << " during mode " << (int)_current_mode
 
 #define MODE_IS(mode) (_current_mode == (mode))

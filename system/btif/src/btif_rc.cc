@@ -2178,7 +2178,7 @@ static bt_status_t get_folder_items_list_rsp(const RawAddress& bd_addr, btrc_sta
       /* Add current item to buffer and build response if no error in item type
        */
       if (status != AVRC_STS_NO_ERROR) {
-        /* Reject response due to error occured for unknown item_type, break the
+        /* Reject response due to error occurred for unknown item_type, break the
          * loop */
         break;
       }
@@ -2189,7 +2189,7 @@ static bt_status_t get_folder_items_list_rsp(const RawAddress& bd_addr, btrc_sta
       log::verbose("Build rsp status: {} len: {}", status, p_msg ? p_msg->len : 0);
       int len_after = p_msg ? p_msg->len : 0;
       if (status != AVRC_STS_NO_ERROR || len_before == len_after) {
-        /* Error occured in build response or we ran out of buffer so break the
+        /* Error occurred in build response or we ran out of buffer so break the
          * loop */
         break;
       }
@@ -2205,7 +2205,7 @@ static bt_status_t get_folder_items_list_rsp(const RawAddress& bd_addr, btrc_sta
     ctype = get_rsp_type_code(avrc_rsp.get_items.status, code);
     BTA_AvMetaRsp(p_dev->rc_handle, p_dev->rc_pdu_info[IDX_GET_FOLDER_ITEMS_RSP].label, ctype,
                   p_msg);
-  } else /* Error occured, send reject response */
+  } else /* Error occurred, send reject response */
   {
     log::error("Error status: 0x{:02X}. Sending reject rsp", avrc_rsp.rsp.status);
     send_reject_response(p_dev->rc_handle, p_dev->rc_pdu_info[IDX_GET_FOLDER_ITEMS_RSP].label,
@@ -2262,7 +2262,7 @@ static bt_status_t set_addressed_player_rsp(const RawAddress& bd_addr, btrc_stat
  *
  * Returns          bt_status_t
  *                      BT_STATUS_NOT_READY - when RC is not connected.
- *                      BT_STATUS_SUCCESS   - if RC is connected and reponse
+ *                      BT_STATUS_SUCCESS   - if RC is connected and response
  *                                            sent successfully
  *                      BT_STATUS_UNHANDLED - when rsp is not pending for
  *                                            set_browsed_player PDU
@@ -2328,7 +2328,7 @@ static bt_status_t set_browsed_player_rsp(const RawAddress& bd_addr, btrc_status
             status = AVRC_STS_NO_ERROR;
           }
 
-          /* Error occured in build response so break the loop */
+          /* Error occurred in build response so break the loop */
           break;
         }
       }
@@ -2352,7 +2352,7 @@ static bt_status_t set_browsed_player_rsp(const RawAddress& bd_addr, btrc_status
     ctype = get_rsp_type_code(avrc_rsp.br_player.status, code);
     BTA_AvMetaRsp(p_dev->rc_handle, p_dev->rc_pdu_info[IDX_SET_BROWSED_PLAYER_RSP].label, ctype,
                   p_msg);
-  } else /* Error occured, send reject response */
+  } else /* Error occurred, send reject response */
   {
     log::error("Error status: 0x{:02X}. Sending reject rsp", avrc_rsp.br_player.status);
     send_reject_response(p_dev->rc_handle, p_dev->rc_pdu_info[IDX_SET_BROWSED_PLAYER_RSP].label,

@@ -25,11 +25,11 @@
 
 /*! \file */
 
-#include <stdlib.h>
 #include <string.h>
+#include <stdlib.h>
 
-#include "g722_enc_dec.h"
 #include "g722_typedefs.h"
+#include "g722_enc_dec.h"
 
 #if !defined(FALSE)
 #define FALSE 0
