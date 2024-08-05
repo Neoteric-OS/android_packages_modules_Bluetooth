@@ -34,7 +34,7 @@
 #include "hci/controller_interface.h"
 #include "internal_include/stack_config.h"
 #include "main/shim/entry.h"
-#include "os/log.h"
+#include "osi/include/alarm.h"
 #include "osi/include/properties.h"
 #include "stack/include/bt_types.h"
 #include "stack/include/btm_api_types.h"
@@ -91,7 +91,9 @@ public:
       : callbacks_(callbacks_),
         current_phy_(PHY_LE_2M),
         le_audio_source_hal_client_(nullptr),
-        audio_state_(AudioState::SUSPENDED) {
+        audio_state_(AudioState::SUSPENDED),
+        big_terminate_timer_(alarm_new("BigTerminateTimer")),
+        broadcast_stop_timer_(alarm_new("BroadcastStopTimer")) {
     log::info("");
 
     /* Register State machine callbacks */
@@ -101,7 +103,10 @@ public:
     GenerateBroadcastIds();
   }
 
-  ~LeAudioBroadcasterImpl() override = default;
+  ~LeAudioBroadcasterImpl() override {
+    alarm_free(big_terminate_timer_);
+    alarm_free(broadcast_stop_timer_);
+  }
 
   void GenerateBroadcastIds(void) {
     btsnd_hcic_ble_rand(base::Bind([](BT_OCTET8 rand) {
@@ -142,6 +147,7 @@ public:
       le_audio_source_hal_client_.reset();
     }
     audio_state_ = AudioState::SUSPENDED;
+    cancelBroadcastTimers();
   }
 
   void Stop() {
@@ -722,8 +728,12 @@ public:
     log::info("broadcast_id={}", broadcast_id);
 
     if (broadcasts_.count(broadcast_id) != 0) {
-      log::info("Stopping AudioHalClient");
-      if (le_audio_source_hal_client_) le_audio_source_hal_client_->Stop();
+      if (!com::android::bluetooth::flags::leaudio_big_depends_on_audio_state()) {
+        log::info("Stopping AudioHalClient");
+        if (le_audio_source_hal_client_) {
+          le_audio_source_hal_client_->Stop();
+        }
+      }
       audio_state_ = AudioState::SUSPENDED;
       broadcasts_[broadcast_id]->SetMuted(true);
       broadcasts_[broadcast_id]->ProcessMessage(
@@ -941,11 +951,12 @@ public:
                          "assert failed: broadcasts_.count(broadcast_id) != 0");
         broadcasts_[broadcast_id]->HandleHciEvent(HCI_BLE_TERM_BIG_CPL_EVT,
                                                   evt);
-        auto result =
-            CodecManager::GetInstance()->UpdateActiveBroadcastAudioHalClient(
-                le_audio_source_hal_client_.get(), false);
-        log::assert_that(result, "Could not update session in codec manager");
-        le_audio_source_hal_client_.reset();
+        if (!com::android::bluetooth::flags::leaudio_big_depends_on_audio_state()) {
+          auto result = CodecManager::GetInstance()->UpdateActiveBroadcastAudioHalClient(
+                  le_audio_source_hal_client_.get(), false);
+          log::assert_that(result, "Could not update session in codec manager");
+          le_audio_source_hal_client_.reset();
+        }
       } break;
       default:
         log::error("Invalid event={}", event);
@@ -986,6 +997,57 @@ public:
   }
 
  private:
+   void SuspendAudioBroadcasts() {
+     log::info("");
+     for (auto& broadcast_pair : broadcasts_) {
+       auto& broadcast = broadcast_pair.second;
+       broadcast->SetMuted(true);
+       broadcast->ProcessMessage(BroadcastStateMachine::Message::SUSPEND, nullptr);
+     }
+   }
+
+   void StopAudioBroadcasts() {
+     log::info("");
+     if (le_audio_source_hal_client_) {
+       le_audio_source_hal_client_->Stop();
+     }
+     for (auto& broadcast_pair : broadcasts_) {
+       auto& broadcast = broadcast_pair.second;
+       broadcast->SetMuted(true);
+       broadcast->ProcessMessage(BroadcastStateMachine::Message::STOP, nullptr);
+     }
+     bluetooth::le_audio::MetricsCollector::Get()->OnBroadcastStateChanged(false);
+   }
+
+   void setBroadcastTimers() {
+     if (audio_state_ == AudioState::SUSPENDED) {
+       log::info(" Started");
+       alarm_set_on_mloop(
+               big_terminate_timer_, kBigTerminateTimeoutMs,
+               [](void*) {
+                 if (instance) {
+                   instance->SuspendAudioBroadcasts();
+                 }
+               },
+               nullptr);
+
+       alarm_set_on_mloop(
+               broadcast_stop_timer_, kBroadcastStopTimeoutMs,
+               [](void*) {
+                 if (instance) {
+                   instance->StopAudioBroadcasts();
+                 }
+               },
+               nullptr);
+     }
+   }
+
+   void cancelBroadcastTimers() {
+     log::info("");
+     alarm_cancel(big_terminate_timer_);
+     alarm_cancel(broadcast_stop_timer_);
+   }
+
   static class BroadcastStateMachineCallbacks
       : public IBroadcastStateMachineCallbacks {
     void OnStateMachineCreateStatus(uint32_t broadcast_id,
@@ -1066,15 +1128,18 @@ public:
               broadcast->SetMuted(false);
               auto is_started = instance->le_audio_source_hal_client_->Start(
                   broadcast_config.GetAudioHalClientConfig(), &audio_receiver_);
-              if (!is_started) {
-                /* Audio Source setup failed - stop the broadcast */
-                instance->StopAudioBroadcast(broadcast_id);
-                return;
-              }
-
-              if (com::android::bluetooth::flags::leaudio_big_depends_on_audio_state()) {
+              if (!com::android::bluetooth::flags::leaudio_big_depends_on_audio_state()) {
+                if (!is_started) {
+                  /* Audio Source setup failed - stop the broadcast */
+                  instance->StopAudioBroadcast(broadcast_id);
+                  return;
+                }
+              } else {
                 instance->UpdateAudioActiveStateInPublicAnnouncement();
               }
+            }
+            if (com::android::bluetooth::flags::leaudio_big_depends_on_audio_state()) {
+              instance->setBroadcastTimers();
             }
           }
           break;
@@ -1104,7 +1169,7 @@ public:
     }
   } state_machine_callbacks_;
 
-  static class BroadcastAdvertisingCallbacks : public AdvertisingCallbacks {
+  static class BroadcastAdvertisingCallbacks : public ::AdvertisingCallbacks {
     void OnAdvertisingSetStarted(int reg_id, uint8_t advertiser_id,
                                  int8_t tx_power, uint8_t status) {
       if (!instance) return;
@@ -1338,7 +1403,6 @@ public:
 
     virtual void OnAudioSuspend(void) override {
       log::info("");
-      /* TODO: Should we suspend all broadcasts - remove BIGs? */
       if (!instance) {
         return;
       }
@@ -1348,6 +1412,7 @@ public:
 
       if (com::android::bluetooth::flags::leaudio_big_depends_on_audio_state()) {
         instance->UpdateAudioActiveStateInPublicAnnouncement();
+        instance->setBroadcastTimers();
       }
     }
 
@@ -1355,18 +1420,24 @@ public:
       log::info("");
       if (!instance) return;
 
-      /* TODO: Should we resume all broadcasts - recreate BIGs? */
       instance->audio_state_ = AudioState::ACTIVE;
-
-      if (!IsAnyoneStreaming()) {
-        instance->le_audio_source_hal_client_->CancelStreamingRequest();
-        return;
-      }
-
-      instance->le_audio_source_hal_client_->ConfirmStreamingRequest();
-
       if (com::android::bluetooth::flags::leaudio_big_depends_on_audio_state()) {
+        instance->cancelBroadcastTimers();
         instance->UpdateAudioActiveStateInPublicAnnouncement();
+
+        for (auto& broadcast_pair : instance->broadcasts_) {
+          auto& broadcast = broadcast_pair.second;
+          broadcast->ProcessMessage(BroadcastStateMachine::Message::START, nullptr);
+        }
+
+        instance->le_audio_source_hal_client_->ConfirmStreamingRequest();
+      } else {
+        if (!IsAnyoneStreaming()) {
+          instance->le_audio_source_hal_client_->CancelStreamingRequest();
+          return;
+        }
+
+        instance->le_audio_source_hal_client_->ConfirmStreamingRequest();
       }
     }
 
@@ -1410,6 +1481,11 @@ public:
 
   // Flag to track iso state
   bool is_iso_running_ = false;
+
+  static constexpr uint64_t kBigTerminateTimeoutMs = 10 * 1000;
+  static constexpr uint64_t kBroadcastStopTimeoutMs = 30 * 60 * 1000;
+  alarm_t* big_terminate_timer_;
+  alarm_t* broadcast_stop_timer_;
 };
 
 /* Static members definitions */

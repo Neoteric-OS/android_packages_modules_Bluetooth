@@ -55,6 +55,7 @@
 #include "os/system_properties.h"
 #include "osi/include/alarm.h"
 #include "osi/include/allocator.h"
+#include "osi/include/properties.h"
 #include "stack/include/avrc_api.h"
 #include "stack/include/bt_hdr.h"
 #include "stack/include/bt_uuid16.h"
@@ -79,6 +80,10 @@ static constexpr tBTA_AV_HNDL kBtaHandleUnknown = 0;
 
 namespace {
 constexpr char kBtmLogHistoryTag[] = "A2DP";
+}
+
+static bool delay_reporting_enabled() {
+  return !osi_property_get_bool("persist.bluetooth.disabledelayreports", false);
 }
 
 /*****************************************************************************

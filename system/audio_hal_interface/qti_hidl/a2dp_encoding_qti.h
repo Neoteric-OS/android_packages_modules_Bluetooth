@@ -50,7 +50,6 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE
 
 #pragma once
 
-#include "audio_a2dp_hw/include/audio_a2dp_hw.h"
 #include "a2dp_encoding.h"
 #include <vendor/qti/hardware/bluetooth_audio/2.0/types.h>
 #include <vendor/qti/hardware/bluetooth_audio/2.1/types.h>
@@ -60,6 +59,18 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE
 #include "internal_include/bt_target.h"
 
 #include "common/message_loop_thread.h"
+
+typedef enum {
+  A2DP_CTRL_CMD_NONE,
+  A2DP_CTRL_CMD_CHECK_READY,
+  A2DP_CTRL_CMD_START,
+  A2DP_CTRL_CMD_STOP,
+  A2DP_CTRL_CMD_SUSPEND,
+  A2DP_CTRL_GET_INPUT_AUDIO_CONFIG,
+  A2DP_CTRL_GET_OUTPUT_AUDIO_CONFIG,
+  A2DP_CTRL_SET_OUTPUT_AUDIO_CONFIG,
+  A2DP_CTRL_GET_PRESENTATION_POSITION,
+} tA2DP_CTRL_CMD;
 
 using vendor::qti::hardware::bluetooth_audio::V2_0::SessionType;
 using vendor::qti::hardware::bluetooth_audio::V2_0::SessionParamType;
