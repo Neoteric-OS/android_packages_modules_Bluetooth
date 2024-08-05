@@ -628,8 +628,10 @@ static void bta_dm_gatt_disc_complete(uint16_t conn_id, tGATT_STATUS status) {
     bta_dm_discovery_cb.conn_id = GATT_INVALID_CONN_ID;
 
     log::info("Discovery complete for invalid conn ID. Will pick up next job");
-    bta_dm_discovery_set_state(BTA_DM_DISCOVER_IDLE);
-    bta_dm_execute_queued_discovery_request();
+    if (!bta_dm_discovery_cb.transports) {
+      bta_dm_discovery_set_state(BTA_DM_DISCOVER_IDLE);
+      bta_dm_execute_queued_discovery_request();
+    }
   }
 }
 
