@@ -55,6 +55,7 @@
 #include "stack/include/bt_hdr.h"
 #include "types/raw_address.h"
 
+using bluetooth::audio::a2dp::BluetoothAudioStatus;
 using bluetooth::common::A2dpSessionMetrics;
 using bluetooth::common::BluetoothMetricsLogger;
 using bluetooth::common::RepeatingTimer;
@@ -782,10 +783,10 @@ void btif_a2dp_source_on_stopped(tBTA_AV_SUSPEND* p_av_suspend) {
     log::error("A2DP stop failed: status={}, initiator={}",
                p_av_suspend->status, p_av_suspend->initiator);
     if (p_av_suspend->initiator) {
-      bluetooth::audio::a2dp::ack_stream_suspended(A2DP_CTRL_ACK_FAILURE);
+      bluetooth::audio::a2dp::ack_stream_suspended(BluetoothAudioStatus::FAILURE);
     }
   } else {
-    bluetooth::audio::a2dp::ack_stream_suspended(A2DP_CTRL_ACK_SUCCESS);
+    bluetooth::audio::a2dp::ack_stream_suspended(BluetoothAudioStatus::SUCCESS);
     return;
   }
 
@@ -815,10 +816,10 @@ void btif_a2dp_source_on_suspended(tBTA_AV_SUSPEND* p_av_suspend) {
     log::warn("A2DP suspend failed: status={}, initiator={}",
               p_av_suspend->status, p_av_suspend->initiator);
     if (p_av_suspend->initiator) {
-      bluetooth::audio::a2dp::ack_stream_suspended(A2DP_CTRL_ACK_FAILURE);
+      bluetooth::audio::a2dp::ack_stream_suspended(BluetoothAudioStatus::FAILURE);
     }
   } else if (btif_av_is_a2dp_offload_running()) {
-    bluetooth::audio::a2dp::ack_stream_suspended(A2DP_CTRL_ACK_SUCCESS);
+    bluetooth::audio::a2dp::ack_stream_suspended(BluetoothAudioStatus::SUCCESS);
     return;
   }
 
@@ -901,7 +902,7 @@ static void btif_a2dp_source_audio_tx_stop_event(void) {
   btif_a2dp_source_cb.media_alarm.CancelAndWait();
   wakelock_release();
 
-  bluetooth::audio::a2dp::ack_stream_suspended(A2DP_CTRL_ACK_SUCCESS);
+  bluetooth::audio::a2dp::ack_stream_suspended(BluetoothAudioStatus::SUCCESS);
 
   /* audio engine stopped, reset tx suspended flag */
   btif_a2dp_source_cb.tx_flush = false;
