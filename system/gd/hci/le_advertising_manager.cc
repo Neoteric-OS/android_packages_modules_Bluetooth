@@ -30,7 +30,6 @@
 #include <memory>
 #include <mutex>
 
-#include "common/init_flags.h"
 #include "common/strings.h"
 #include "hardware/ble_advertiser.h"
 #include "hci/acl_manager.h"
@@ -42,7 +41,6 @@
 #include "le_rand_callback.h"
 #include "module.h"
 #include "os/handler.h"
-#include "os/log.h"
 #include "os/system_properties.h"
 #include "packet/fragmenting_inserter.h"
 #include "stack/include/gap_api.h"
@@ -373,7 +371,13 @@ struct LeAdvertisingManager::impl : public bluetooth::hci::LeAddressManagerCallb
           advertising_sets_[advertiser_id].timeout_callback.Reset();
         }
       } else {
-        advertising_callbacks_->OnAdvertisingEnabled(advertiser_id, false, (uint8_t)status);
+        if (status == ErrorCode::LIMIT_REACHED) {
+          advertising_callbacks_->OnAdvertisingEnabled(advertiser_id, false,
+                                                       AdvertisingCallback::TOO_MANY_ADVERTISERS);
+        } else {
+          advertising_callbacks_->OnAdvertisingEnabled(advertiser_id, false,
+                                                       AdvertisingCallback::TIMEOUT);
+        }
       }
       return;
     }
@@ -1226,7 +1230,6 @@ struct LeAdvertisingManager::impl : public bluetooth::hci::LeAddressManagerCallb
           send_data_fragment(advertiser_id, set_scan_rsp, data, Operation::COMPLETE_ADVERTISEMENT);
         } else {
           std::vector<GapData> sub_data;
-          uint16_t sub_data_len = 0;
           Operation operation = Operation::FIRST_FRAGMENT;
 
           std::vector<std::unique_ptr<packet::RawBuilder>> fragments;
@@ -1423,7 +1426,6 @@ struct LeAdvertisingManager::impl : public bluetooth::hci::LeAddressManagerCallb
       send_periodic_data_fragment(advertiser_id, data, Operation::COMPLETE_ADVERTISEMENT);
     } else {
       std::vector<GapData> sub_data;
-      uint16_t sub_data_len = 0;
       Operation operation = Operation::FIRST_FRAGMENT;
 
       std::vector<std::unique_ptr<packet::RawBuilder>> fragments;

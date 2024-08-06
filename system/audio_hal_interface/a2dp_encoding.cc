@@ -21,7 +21,7 @@
 #include "aidl/a2dp_encoding_aidl.h"
 #include "hal_version_manager.h"
 #include "hidl/a2dp_encoding_hidl.h"
-#include "qti_hidl/a2dp_encoding.h"
+#include "qti_hidl/a2dp_encoding_qti.h"
 
 namespace bluetooth {
 namespace audio {
@@ -160,7 +160,7 @@ void end_session() {
   return;
 }
 
-void ack_stream_started(const tA2DP_CTRL_ACK& status) {
+void ack_stream_started(BluetoothAudioStatus status) {
   LOG(INFO) << __func__;
   if (HalVersionManager::GetHalTransport() ==
       BluetoothAudioHalTransport::HIDL) {
@@ -176,7 +176,7 @@ void ack_stream_started(const tA2DP_CTRL_ACK& status) {
   return;
 }
 
-void ack_stream_suspended(const tA2DP_CTRL_ACK& status) {
+void ack_stream_suspended(BluetoothAudioStatus status) {
   LOG(INFO) << __func__;
   if (HalVersionManager::GetHalTransport() ==
       BluetoothAudioHalTransport::HIDL) {
