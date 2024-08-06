@@ -1779,8 +1779,7 @@ public class BluetoothInCallService extends InCallService {
         int ringingAddressType = DEFAULT_RINGING_ADDRESS_TYPE;
         String ringingName = null;
         if (!mCallInfo.isNullCall(ringingCall)
-                && ringingCall.getHandle() != null
-                && !ringingCall.isSilentRingingRequested()) {
+                && ringingCall.getHandle() != null) {
             ringingAddress = ringingCall.getHandle().getSchemeSpecificPart();
             if (ringingAddress != null) {
                 ringingAddressType = PhoneNumberUtils.toaFromString(ringingAddress);
@@ -1937,7 +1936,7 @@ public class BluetoothInCallService extends InCallService {
         // bluetooth devices (like not getting out of ringing state after answering a call).
         //
         int bluetoothCallState = CALL_STATE_IDLE;
-        if (!mCallInfo.isNullCall(ringingCall) && !ringingCall.isSilentRingingRequested()) {
+        if (!mCallInfo.isNullCall(ringingCall)) {
             bluetoothCallState = CALL_STATE_INCOMING;
         } else if (!mCallInfo.isNullCall(dialingCall)) {
             bluetoothCallState = CALL_STATE_ALERTING;
@@ -1976,9 +1975,7 @@ public class BluetoothInCallService extends InCallService {
 
             case Call.STATE_RINGING:
             case Call.STATE_SIMULATED_RINGING:
-                if (call.isSilentRingingRequested()) {
-                    return CALL_STATE_IDLE;
-                } else if (isForeground) {
+                if (isForeground) {
                     return CALL_STATE_INCOMING;
                 } else {
                     return CALL_STATE_WAITING;
@@ -2367,8 +2364,7 @@ public class BluetoothInCallService extends InCallService {
           mDsDaRingingName = null;
           return;
        } else {
-         if (!mCallInfo.isNullCall(ringingCall) && ringingCall.getHandle() != null
-              && !ringingCall.isSilentRingingRequested()) {
+         if (!mCallInfo.isNullCall(ringingCall) && ringingCall.getHandle() != null) {
             mDsDaRingingAddress = ringingCall.getHandle().getSchemeSpecificPart();
             if (mDsDaRingingAddress != null) {
                mDsDaRingingAddressType = PhoneNumberUtils.toaFromString(mDsDaRingingAddress);
@@ -2603,11 +2599,7 @@ public class BluetoothInCallService extends InCallService {
 
             case Call.STATE_RINGING:
             case Call.STATE_SIMULATED_RINGING:
-                if (call.isSilentRingingRequested()) {
-                    return null;
-                } else {
-                    return BluetoothLeCall.STATE_INCOMING;
-                }
+                return BluetoothLeCall.STATE_INCOMING;
         }
         return null;
     }
