@@ -72,6 +72,7 @@
 #include <hardware/bt_vendor.h>
 #include <stdlib.h>
 #include <string.h>
+
 #include <vector>
 
 #undef LOG_TAG
@@ -82,6 +83,7 @@
 #include <base/location.h>
 #include <bluetooth/log.h>
 #include <cutils/properties.h>
+
 #include "btif_api.h"
 #include "btif_common.h"
 #include "btif_vendor.h"
@@ -117,11 +119,10 @@ static bt_status_t init(btvendor_callbacks_t* callbacks) {
   bt_vendor_callbacks = callbacks;
   char socName[SOC_NAME_MAX_SIZE];
   osi_property_get("persist.vendor.qcom.bluetooth.soc", socName, "");
-  if(!strcmp(socName,"cherokee")) {
-    //when socName is Cherokee
+  if (!strcmp(socName, "cherokee")) {
+    // when socName is Cherokee
     osi_property_set("persist.bluetooth.asha.enabled", "false");
-  }
-  else {
+  } else {
     osi_property_set("persist.bluetooth.asha.enabled", "true");
   }
   log::info("init done");
@@ -135,11 +136,9 @@ void btif_vendor_update_add_on_features_to_jni() {
   char s_buf[SOC_ADD_ON_FEATURES_MAX_SIZE];
   char h_buf[HOST_ADD_ON_FEATURES_MAX_SIZE];
   const bt_device_soc_add_on_features_t* soc_add_on_features =
-      get_btm_client_interface().vendor.BTM_GetSocAddOnFeatures(
-          &soc_add_on_features_len);
+          get_btm_client_interface().vendor.BTM_GetSocAddOnFeatures(&soc_add_on_features_len);
   const bt_device_host_add_on_features_t* host_add_on_features =
-      get_btm_client_interface().vendor.BTM_GetHostAddOnFeatures(
-          &host_add_on_features_len);
+          get_btm_client_interface().vendor.BTM_GetHostAddOnFeatures(&host_add_on_features_len);
 
   if (soc_add_on_features && soc_add_on_features_len > 0) {
     vnd_prop.len = soc_add_on_features_len;
@@ -147,8 +146,7 @@ void btif_vendor_update_add_on_features_to_jni() {
     vnd_prop.val = (void*)s_buf;
     memcpy(vnd_prop.val, soc_add_on_features, soc_add_on_features_len);
 
-    HAL_CBACK(bt_vendor_callbacks, adapter_vendor_prop_cb, BT_STATUS_SUCCESS, 1,
-              &vnd_prop);
+    HAL_CBACK(bt_vendor_callbacks, adapter_vendor_prop_cb, BT_STATUS_SUCCESS, 1, &vnd_prop);
   }
 
   if (host_add_on_features && host_add_on_features_len > 0) {
@@ -156,8 +154,7 @@ void btif_vendor_update_add_on_features_to_jni() {
     vnd_prop.type = BT_VENDOR_PROPERTY_HOST_ADD_ON_FEATURES;
     vnd_prop.val = (void*)h_buf;
     memcpy(vnd_prop.val, host_add_on_features, host_add_on_features_len);
-    HAL_CBACK(bt_vendor_callbacks, adapter_vendor_prop_cb, BT_STATUS_SUCCESS, 1,
-              &vnd_prop);
+    HAL_CBACK(bt_vendor_callbacks, adapter_vendor_prop_cb, BT_STATUS_SUCCESS, 1, &vnd_prop);
   }
 }
 void btif_vendor_update_add_on_features() {
@@ -177,12 +174,13 @@ static void set_Power_back_off_state(bool status) {
 
 static void cleanup(void) {
   log::info("cleanup");
-  if (bt_vendor_callbacks) bt_vendor_callbacks = NULL;
+  if (bt_vendor_callbacks) {
+    bt_vendor_callbacks = NULL;
+  }
 }
 
 static const btvendor_interface_t btvendorInterface = {
-    sizeof(btvendorInterface), init,    set_wifi_state,
-    set_Power_back_off_state,  cleanup,
+        sizeof(btvendorInterface), init, set_wifi_state, set_Power_back_off_state, cleanup,
 };
 
 /*******************************************************************************

@@ -50,15 +50,15 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE
 
 #pragma once
 
-#include "a2dp_encoding.h"
 #include <vendor/qti/hardware/bluetooth_audio/2.0/types.h>
 #include <vendor/qti/hardware/bluetooth_audio/2.1/types.h>
-#include "hardware/bt_av.h"
-#include "osi/include/thread.h"
-#include "bta_av_api.h"
-#include "internal_include/bt_target.h"
 
+#include "a2dp_encoding.h"
+#include "bta_av_api.h"
 #include "common/message_loop_thread.h"
+#include "hardware/bt_av.h"
+#include "internal_include/bt_target.h"
+#include "osi/include/thread.h"
 
 typedef enum {
   A2DP_CTRL_CMD_NONE,
@@ -72,9 +72,9 @@ typedef enum {
   A2DP_CTRL_GET_PRESENTATION_POSITION,
 } tA2DP_CTRL_CMD;
 
-using vendor::qti::hardware::bluetooth_audio::V2_0::SessionType;
+using ::bluetooth::audio::a2dp::BluetoothAudioStatus;
 using vendor::qti::hardware::bluetooth_audio::V2_0::SessionParamType;
-using ::bluetooth::audio::a2dp::BluetoothAudioStatus; 
+using vendor::qti::hardware::bluetooth_audio::V2_0::SessionType;
 
 namespace bluetooth {
 namespace audio {
@@ -97,7 +97,7 @@ enum class BluetoothAudioHalVersion : uint8_t {
 };
 
 // Initialize BluetoothAudio HAL: openProvider
-bool init( bluetooth::common::MessageLoopThread* message_loop);
+bool init(bluetooth::common::MessageLoopThread* message_loop);
 // Set up the codec into BluetoothAudio HAL
 bool setup_codec();
 

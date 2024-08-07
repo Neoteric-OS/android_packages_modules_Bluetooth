@@ -17,10 +17,10 @@
 #pragma once
 
 #include <functional>
-#include "../hearing_aid_software_encoding.h"
-#include "osi/include/thread.h"
 
+#include "../hearing_aid_software_encoding.h"
 #include "common/message_loop_thread.h"
+#include "osi/include/thread.h"
 
 namespace bluetooth {
 namespace audio {
@@ -35,8 +35,7 @@ bool is_hal_2_0_supported();
 bool is_hal_2_0_enabled();
 
 // Initialize BluetoothAudio HAL: openProvider
-bool init(StreamCallbacks stream_cb,
-          bluetooth::common::MessageLoopThread* message_loop);
+bool init(StreamCallbacks stream_cb, bluetooth::common::MessageLoopThread* message_loop);
 
 // Clean up BluetoothAudio HAL
 void cleanup();

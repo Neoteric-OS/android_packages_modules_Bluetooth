@@ -14,11 +14,11 @@
 
 #include <base/logging.h>
 #include <bluetooth/log.h>
+#include <include/hardware/bt_av.h>
 #include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include <include/hardware/bt_av.h>
 #include "acl_api.h"
 #include "btconfigstore/bt_configstore.h"
 #include "btif/include/btif_config.h"
@@ -55,9 +55,9 @@
 #define BLE_TECH_VALUE 0x02
 #define BT_DEFAULT_POWER (0x80)
 
-constexpr uint16_t  HCI_VS_QBCE_OCF = 0xFC51;
-constexpr uint16_t  HCI_VS_GET_ADDON_FEATURES_SUPPORT = 0xFC1D;
-constexpr uint16_t  HCI_VS_LINK_POWER_CTRL_REQ_OPCODE = 0xFCDA;
+constexpr uint16_t HCI_VS_QBCE_OCF = 0xFC51;
+constexpr uint16_t HCI_VS_GET_ADDON_FEATURES_SUPPORT = 0xFC1D;
+constexpr uint16_t HCI_VS_LINK_POWER_CTRL_REQ_OPCODE = 0xFCDA;
 
 using namespace bluetooth;
 
@@ -75,7 +75,7 @@ typedef struct {
 } max_pow_feature_t;
 
 const bt_event_mask_t QBCE_QLM_AND_QLL_EVENT_MASK = {
-    {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x4A}};
+        {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x4A}};
 
 // BT features related defines
 static bt_soc_type_t soc_type = BT_SOC_TYPE_DEFAULT;
@@ -104,8 +104,7 @@ void BTM_ConfigQHS();
 static void btm_vendor_set_tech_based_max_power(bool status);
 
 static inline bool is_byte_valid(char ch) {
-  return ((ch >= '0' && ch <= '9') || (ch >= 'a' && ch <= 'f') ||
-          (ch >= 'A' && ch <= 'F'));
+  return (ch >= '0' && ch <= '9') || (ch >= 'a' && ch <= 'f') || (ch >= 'A' && ch <= 'F');
 }
 
 bool decode_max_power_values(char* power_val) {
@@ -116,8 +115,7 @@ bool decode_max_power_values(char* power_val) {
   if (!strcmp(power_val, "false")) {
     log::info(": MAX POW property is not set");
     return false;
-  } else if (!strchr(power_val, '-') ||
-             (!strchr(power_val, 'x') && !strchr(power_val, 'X')) ||
+  } else if (!strchr(power_val, '-') || (!strchr(power_val, 'x') && !strchr(power_val, 'X')) ||
              strlen(power_val) != 14) {
     log::warn(": MAX POW property is not in required order");
     return false;
@@ -136,7 +134,8 @@ bool decode_max_power_values(char* power_val) {
   }
 
   if (status) {
-    log::debug(": MAX_POW_ID: BR MAX POW:{:02x}, EDR MAX POW:{:02x}, BLE MAX POW:{:02x}", max_power_prop_value[0], max_power_prop_value[1], max_power_prop_value[2]);
+    log::debug(": MAX_POW_ID: BR MAX POW:{:02x}, EDR MAX POW:{:02x}, BLE MAX POW:{:02x}",
+               max_power_prop_value[0], max_power_prop_value[1], max_power_prop_value[2]);
     max_power_prop_enabled = true;
   } else {
     log::error(": MAX POW property is not in required order");
@@ -169,8 +168,7 @@ uint8_t* BTM_GetScramblingSupportedFreqs(uint8_t* number_of_freqs) {
  * Returns          host add on features array
  *
  ******************************************************************************/
-bt_device_host_add_on_features_t* BTM_GetHostAddOnFeatures(
-    uint8_t* host_add_on_features_len) {
+bt_device_host_add_on_features_t* BTM_GetHostAddOnFeatures(uint8_t* host_add_on_features_len) {
   *host_add_on_features_len = host_add_on_features_length;
   return &host_add_on_features;
 }
@@ -185,8 +183,7 @@ bt_device_host_add_on_features_t* BTM_GetHostAddOnFeatures(
  * Returns          soc add on features array
  *
  ******************************************************************************/
-bt_device_soc_add_on_features_t* BTM_GetSocAddOnFeatures(
-    uint8_t* soc_add_on_features_len) {
+bt_device_soc_add_on_features_t* BTM_GetSocAddOnFeatures(uint8_t* soc_add_on_features_len) {
   *soc_add_on_features_len = soc_add_on_features_length;
   return &soc_add_on_features;
 }
@@ -202,7 +199,7 @@ bt_device_soc_add_on_features_t* BTM_GetSocAddOnFeatures(
  *
  ******************************************************************************/
 bt_device_qll_local_supported_features_t* BTM_GetQllLocalSupportedFeatures(
-    uint8_t* qll_local_supported_features_len) {
+        uint8_t* qll_local_supported_features_len) {
   *qll_local_supported_features_len = qll_local_supported_features_length;
   return &qll_features;
 }
@@ -221,9 +218,10 @@ bool BTM_BleIsCisParamUpdateLocalHostSupported() {
   bool supported = false;
 
   char value[PROPERTY_VALUE_MAX] = "true";
-  property_get("persist.vendor.service.bt.cis_param_update_enabled", value,
-               "true");
-  if (!strncmp("true", value, 4)) supported = true;
+  property_get("persist.vendor.service.bt.cis_param_update_enabled", value, "true");
+  if (!strncmp("true", value, 4)) {
+    supported = true;
+  }
 
   log::info(": supported={}", supported);
 
@@ -271,8 +269,8 @@ bool BTM_GetRemoteQLLFeatures(uint16_t handle, uint8_t* features) {
     BD_FEATURES value;
     size_t length = sizeof(value);
 
-    if (btif_config_get_bin(p_acl->remote_addr.ToString().c_str(),
-                            "QLL_FEATURES", value, &length)) {
+    if (btif_config_get_bin(p_acl->remote_addr.ToString().c_str(), "QLL_FEATURES", value,
+                            &length)) {
       log::info("reading feature from config file");
       p_acl->qll_features_state = BTM_QLL_FEATURES_STATE_FEATURE_COMPLETE;
       memcpy(p_acl->remote_qll_features, value, BD_FEATURES_LEN);
@@ -297,7 +295,8 @@ static void qbce_set_qhs_host_mode_hci_cmd_complete(tBTM_VSC_CMPL* p_data) {
     length = p_data->param_len;
     STREAM_TO_UINT8(status, stream);
     STREAM_TO_UINT8(subcmd, stream);
-    log::info(": opcode = 0x{:04X}, length = {}, status = {}, subcmd = {}", opcode, length, status, subcmd);
+    log::info(": opcode = 0x{:04X}, length = {}, status = {}, subcmd = {}", opcode, length, status,
+              subcmd);
     if (status == HCI_SUCCESS) {
       log::info(": status success");
     }
@@ -313,7 +312,8 @@ static void qbce_set_qll_event_mask_hci_cmd_complete(tBTM_VSC_CMPL* p_data) {
     length = p_data->param_len;
     STREAM_TO_UINT8(status, stream);
     STREAM_TO_UINT8(subcmd, stream);
-    log::info(": opcode = 0x{:04X}, length = {}, status = {}, subcmd = {}", opcode, length, status, subcmd);
+    log::info(": opcode = 0x{:04X}, length = {}, status = {}, subcmd = {}", opcode, length, status,
+              subcmd);
     if (status == HCI_SUCCESS) {
       log::info(": status success");
     }
@@ -330,7 +330,8 @@ static void qbce_set_qlm_event_mask_hci_cmd_complete(tBTM_VSC_CMPL* p_data) {
     STREAM_TO_UINT8(status, stream);
     STREAM_TO_UINT8(subcmd, stream);
 
-    log::info(": opcode = 0x{:04X}, length = {}, status = {}, subcmd = {}", opcode, length, status, subcmd);
+    log::info(": opcode = 0x{:04X}, length = {}, status = {}, subcmd = {}", opcode, length, status,
+              subcmd);
     if (status == HCI_SUCCESS) {
       log::info(": status success");
     }
@@ -346,14 +347,14 @@ static void qbce_qle_set_host_feature_hci_cmd_complete(tBTM_VSC_CMPL* p_data) {
     length = p_data->param_len;
     STREAM_TO_UINT8(status, stream);
     STREAM_TO_UINT8(subcmd, stream);
-    log::info(": opcode = 0x{:04X}, length = {}, status = {}, subcmd = {}", opcode, length, status, subcmd);
+    log::info(": opcode = 0x{:04X}, length = {}, status = {}, subcmd = {}", opcode, length, status,
+              subcmd);
     if (status == HCI_SUCCESS) {
       log::info(": Status success");
     }
   }
 }
-static void parse_qll_read_local_supported_features_response(
-    tBTM_VSC_CMPL* p_data) {
+static void parse_qll_read_local_supported_features_response(tBTM_VSC_CMPL* p_data) {
   uint8_t *stream, status, subcmd;
   uint16_t opcode, length;
 
@@ -365,11 +366,11 @@ static void parse_qll_read_local_supported_features_response(
     STREAM_TO_ARRAY(qll_features.as_array, stream,
                     (int)sizeof(bt_device_qll_local_supported_features_t));
     qll_local_supported_features_length = length - 2;
-    log::info(": opcode = 0x{:04X}, length = {}, status = {}, subcmd = {}", opcode, length, status, subcmd);
+    log::info(": opcode = 0x{:04X}, length = {}, status = {}, subcmd = {}", opcode, length, status,
+              subcmd);
     if (status == HCI_SUCCESS) {
       log::info(": status success");
-      if (BTM_QBCE_QLL_MULTI_CONFIG_CIS_PARAMETER_UPDATE_CONTROLLER(
-              qll_features.as_array) &&
+      if (BTM_QBCE_QLL_MULTI_CONFIG_CIS_PARAMETER_UPDATE_CONTROLLER(qll_features.as_array) &&
           BTM_BleIsCisParamUpdateLocalHostSupported()) {
         uint8_t cmd[3];
         cmd[0] = QBCE_QLE_SET_HOST_FEATURE;
@@ -396,28 +397,30 @@ static void parse_controller_addon_features_response(tBTM_VSC_CMPL* p_data) {
       STREAM_TO_UINT16(response_version, stream);
 
       soc_add_on_features_length = length - 5;
-      STREAM_TO_ARRAY(soc_add_on_features.as_array, stream,
-                      soc_add_on_features_length);
+      STREAM_TO_ARRAY(soc_add_on_features.as_array, stream, soc_add_on_features_length);
       soc_add_on_features.as_array[soc_add_on_features_length] = '\0';
     }
 
-    log::info("::opcode = 0x{:04X}, length = {}, soc_add_on_features_length={} status = {}, product_id:{}, feature={}", opcode, length, soc_add_on_features_length, status, product_id, fmt::ptr(soc_add_on_features.as_array));
+    log::info(
+            "::opcode = 0x{:04X}, length = {}, soc_add_on_features_length={} status = {}, "
+            "product_id:{}, feature={}",
+            opcode, length, soc_add_on_features_length, status, product_id,
+            fmt::ptr(soc_add_on_features.as_array));
     if (status == HCI_SUCCESS) {
       log::info(": status success");
 
-      if (BTM_SPLIT_A2DP_SCRAMBLING_DATA_REQUIRED(
-              soc_add_on_features.as_array)) {
+      if (BTM_SPLIT_A2DP_SCRAMBLING_DATA_REQUIRED(soc_add_on_features.as_array)) {
         if (BTM_SPLIT_A2DP_44P1KHZ_SAMPLE_FREQ(soc_add_on_features.as_array)) {
           scrambling_supported_freqs[number_of_scrambling_supported_freqs++] =
-              BTAV_A2DP_CODEC_SAMPLE_RATE_44100;
+                  BTAV_A2DP_CODEC_SAMPLE_RATE_44100;
           scrambling_supported_freqs[number_of_scrambling_supported_freqs++] =
-              BTAV_A2DP_CODEC_SAMPLE_RATE_88200;
+                  BTAV_A2DP_CODEC_SAMPLE_RATE_88200;
         }
         if (BTM_SPLIT_A2DP_48KHZ_SAMPLE_FREQ(soc_add_on_features.as_array)) {
           scrambling_supported_freqs[number_of_scrambling_supported_freqs++] =
-              BTAV_A2DP_CODEC_SAMPLE_RATE_48000;
+                  BTAV_A2DP_CODEC_SAMPLE_RATE_48000;
           scrambling_supported_freqs[number_of_scrambling_supported_freqs++] =
-              BTAV_A2DP_CODEC_SAMPLE_RATE_96000;
+                  BTAV_A2DP_CODEC_SAMPLE_RATE_96000;
         }
       }
       BTM_ConfigQHS();
@@ -425,8 +428,7 @@ static void parse_controller_addon_features_response(tBTM_VSC_CMPL* p_data) {
   }
 }
 
-void btm_ble_read_remote_supported_qll_features_status_cback(
-    tBTM_VSC_CMPL* param) {
+void btm_ble_read_remote_supported_qll_features_status_cback(tBTM_VSC_CMPL* param) {
   uint8_t status;
 
   log::info(":: op: {:x}, param_len: {}", param->opcode, param->param_len);
@@ -481,9 +483,8 @@ void btm_ble_qll_connection_complete(uint8_t* p) {
 
   UINT8_TO_STREAM(p_param, QBCE_READ_REMOTE_QLL_SUPPORTED_FEATURE);
   UINT16_TO_STREAM(p_param, handle);
-  BTM_VendorSpecificCommand(
-      HCI_VS_QBCE_OCF, BTM_QBCE_READ_REMOTE_QLL_SUPPORTED_FEATURE_LEN, param,
-      btm_ble_read_remote_supported_qll_features_status_cback);
+  BTM_VendorSpecificCommand(HCI_VS_QBCE_OCF, BTM_QBCE_READ_REMOTE_QLL_SUPPORTED_FEATURE_LEN, param,
+                            btm_ble_read_remote_supported_qll_features_status_cback);
 }
 
 /*******************************************************************************
@@ -527,8 +528,8 @@ void btm_ble_read_remote_supported_qll_features_complete(uint8_t* p) {
 
   p_acl->qll_features_state = BTM_QLL_FEATURES_STATE_FEATURE_COMPLETE;
   STREAM_TO_ARRAY(p_acl->remote_qll_features, p, BD_FEATURES_LEN);
-  btif_config_set_bin(p_acl->remote_addr.ToString(), "QLL_FEATURES",
-                      p_acl->remote_qll_features, BD_FEATURES_LEN);
+  btif_config_set_bin(p_acl->remote_addr.ToString(), "QLL_FEATURES", p_acl->remote_qll_features,
+                      BD_FEATURES_LEN);
 }
 
 /*******************************************************************************
@@ -596,15 +597,13 @@ void btm_acl_update_qcm_phy_state(uint8_t* p) {
   if (status != HCI_SUCCESS) {
     log::error(":: failed for handle: 0x{:04x}, status 0x{:02x}", handle, status);
     // Setting qcm phy state to default value: 0x00 BR/EDR
-    btif_config_set_int(p_acl->remote_addr.ToString(), "QCM_PHY_STATE",
-                        QCM_PHY_STATE_BR_EDR);
+    btif_config_set_int(p_acl->remote_addr.ToString(), "QCM_PHY_STATE", QCM_PHY_STATE_BR_EDR);
     return;
   }
 
   STREAM_TO_UINT8(qcm_phy_state, p);
   // Setting qcm phy state as 0x00 BR/EDR, 0x01 QHS
-  btif_config_set_int(p_acl->remote_addr.ToString(), "QCM_PHY_STATE",
-                      qcm_phy_state);
+  btif_config_set_int(p_acl->remote_addr.ToString(), "QCM_PHY_STATE", qcm_phy_state);
 }
 
 /*******************************************************************************
@@ -633,7 +632,9 @@ bool BTM_IsQHSPhySupported(const RawAddress& bda, tBT_TRANSPORT transport) {
       BD_FEATURES features;
 
       ret = BTM_GetRemoteQLLFeatures(p_acl->hci_handle, (uint8_t*)&features);
-      if (ret && (features[2] & 0x40)) qhs_phy = true;
+      if (ret && (features[2] & 0x40)) {
+        qhs_phy = true;
+      }
     }
   }
 
@@ -677,7 +678,10 @@ void btm_vendor_link_power_control_event(uint8_t* p) {
       STREAM_TO_UINT8(max_allowed_power_index, p);
       STREAM_TO_UINT8(fine_back_off, p);
       STREAM_TO_UINT8(max_support_power, p);
-      log::info(":: tech = 0x{:02x}, max_allowed_power_index = 0x{:02x}, fine_back_off = 0x{:02x}, max_support_power = 0x{:02x}", tech, max_allowed_power_index, fine_back_off, max_support_power);
+      log::info(
+              ":: tech = 0x{:02x}, max_allowed_power_index = 0x{:02x}, fine_back_off = 0x{:02x}, "
+              "max_support_power = 0x{:02x}",
+              tech, max_allowed_power_index, fine_back_off, max_support_power);
     }
   }
 }
@@ -695,7 +699,8 @@ void btm_vendor_vse_cback(uint8_t vse_subcode, uint8_t evt_len, uint8_t* p) {
   uint8_t i;
   uint8_t* pp = p;
 
-  log::info(":: VSE event received, vse_subcode = 0x{:02x}, evt_len = 0x{:02x}", vse_subcode, evt_len);
+  log::info(":: VSE event received, vse_subcode = 0x{:02x}, evt_len = 0x{:02x}", vse_subcode,
+            evt_len);
   if (evt_len >= 1) {
     if (HCI_VSE_SUBCODE_QBCE == vse_subcode) {
       uint8_t vse_msg_type;
@@ -720,8 +725,7 @@ void btm_vendor_vse_cback(uint8_t vse_subcode, uint8_t evt_len, uint8_t* p) {
       }
       return;
     } else if (MSG_QBCE_VS_PARAM_REPORT_EVENT == vse_subcode) {
-      bluetooth::hci::IsoManager::GetInstance()->HandleVscHciEvent(
-          vse_subcode, pp, evt_len - 1);
+      bluetooth::hci::IsoManager::GetInstance()->HandleVscHciEvent(vse_subcode, pp, evt_len - 1);
     } else if (HCI_VS_LINK_POWER_CTRL_EVENT == vse_subcode) {
       btm_vendor_link_power_control_event(pp);
     }
@@ -824,8 +828,7 @@ void BTM_ReadVendorAddOnFeaturesInternal() {
           char soc_name[32];
 
           strlcpy(soc_name, vendorProp.value, sizeof(soc_name));
-          soc_type =
-              bt_configstore_intf->convert_bt_soc_name_to_soc_type(soc_name);
+          soc_type = bt_configstore_intf->convert_bt_soc_name_to_soc_type(soc_name);
           break;
 
         case BT_PROP_A2DP_OFFLOAD_CAP:
@@ -866,9 +869,9 @@ void BTM_ReadVendorAddOnFeaturesInternal() {
     if (bt_configstore_intf->get_host_add_on_features(&features_list)) {
       host_add_on_features_length = features_list.feat_mask_len;
       if (host_add_on_features_length != 0 &&
-          host_add_on_features_length <= HOST_ADD_ON_FEATURES_MAX_SIZE)
-        memcpy(host_add_on_features.as_array, features_list.features,
-               host_add_on_features_length);
+          host_add_on_features_length <= HOST_ADD_ON_FEATURES_MAX_SIZE) {
+        memcpy(host_add_on_features.as_array, features_list.features, host_add_on_features_length);
+      }
     }
 
     // Read HCI_VS_GET_ADDON_FEATURES_SUPPORT
@@ -883,24 +886,17 @@ void BTM_ReadVendorAddOnFeaturesInternal() {
           if (soc_add_on_features_length <= SOC_ADD_ON_FEATURES_MAX_SIZE) {
             memcpy(soc_add_on_features.as_array, features_list.features,
                    soc_add_on_features_length);
-            if (BTM_SPLIT_A2DP_SCRAMBLING_DATA_REQUIRED(
-                    soc_add_on_features.as_array)) {
-              if (BTM_SPLIT_A2DP_44P1KHZ_SAMPLE_FREQ(
-                      soc_add_on_features.as_array)) {
-                scrambling_supported_freqs
-                    [number_of_scrambling_supported_freqs++] =
+            if (BTM_SPLIT_A2DP_SCRAMBLING_DATA_REQUIRED(soc_add_on_features.as_array)) {
+              if (BTM_SPLIT_A2DP_44P1KHZ_SAMPLE_FREQ(soc_add_on_features.as_array)) {
+                scrambling_supported_freqs[number_of_scrambling_supported_freqs++] =
                         BTAV_A2DP_CODEC_SAMPLE_RATE_44100;
-                scrambling_supported_freqs
-                    [number_of_scrambling_supported_freqs++] =
+                scrambling_supported_freqs[number_of_scrambling_supported_freqs++] =
                         BTAV_A2DP_CODEC_SAMPLE_RATE_88200;
               }
-              if (BTM_SPLIT_A2DP_48KHZ_SAMPLE_FREQ(
-                      soc_add_on_features.as_array)) {
-                scrambling_supported_freqs
-                    [number_of_scrambling_supported_freqs++] =
+              if (BTM_SPLIT_A2DP_48KHZ_SAMPLE_FREQ(soc_add_on_features.as_array)) {
+                scrambling_supported_freqs[number_of_scrambling_supported_freqs++] =
                         BTAV_A2DP_CODEC_SAMPLE_RATE_48000;
-                scrambling_supported_freqs
-                    [number_of_scrambling_supported_freqs++] =
+                scrambling_supported_freqs[number_of_scrambling_supported_freqs++] =
                         BTAV_A2DP_CODEC_SAMPLE_RATE_96000;
               }
             }
@@ -929,8 +925,7 @@ void BTM_ReadVendorAddOnFeatures() {
   int ret = 0;
 
   is_power_backoff_enabled = false;
-  ret = property_get("ro.vendor.bluetooth.btconfigstore", bt_config_store_prop,
-                     "true");
+  ret = property_get("ro.vendor.bluetooth.btconfigstore", bt_config_store_prop, "true");
 
   if (ret != 0) {
     if (!strncasecmp(bt_config_store_prop, "true", sizeof("true"))) {
@@ -959,8 +954,7 @@ void BTM_ReadVendorAddOnFeatures() {
       soc_type = bt_configstore_intf->convert_bt_soc_name_to_soc_type(soc_name);
     }
 
-    ret = property_get("persist.vendor.qcom.bluetooth.enable.splita2dp",
-                       splita2dp, "true");
+    ret = property_get("persist.vendor.qcom.bluetooth.enable.splita2dp", splita2dp, "true");
     log::info(":: persist.vendor.qcom.bluetooth.enable.splita2dp: {}, ret: {}", splita2dp, ret);
 
     if (ret != 0) {
@@ -972,13 +966,12 @@ void BTM_ReadVendorAddOnFeatures() {
       log::info(":: spilt_a2dp_supported = {}", spilt_a2dp_supported);
     }
 
-    ret = property_get("persist.vendor.qcom.bluetooth.a2dp_offload_cap",
-                       a2dp_offload_Cap, "");
+    ret = property_get("persist.vendor.qcom.bluetooth.a2dp_offload_cap", a2dp_offload_Cap, "");
     log::info(":: a2dp_offload_Cap = {}", a2dp_offload_Cap);
 
-    ret = property_get("persist.vendor.qcom.bluetooth.aac_frm_ctl.enabled",
-                       aac_frame_ctl, "false");
-    log::info(":: persist.vendor.qcom.bluetooth.aac_frm_ctl.enabled: {}, ret: {}", aac_frame_ctl, ret);
+    ret = property_get("persist.vendor.qcom.bluetooth.aac_frm_ctl.enabled", aac_frame_ctl, "false");
+    log::info(":: persist.vendor.qcom.bluetooth.aac_frm_ctl.enabled: {}, ret: {}", aac_frame_ctl,
+              ret);
 
     if (ret != 0) {
       if (!strncasecmp(aac_frame_ctl, "true", sizeof("true"))) {
@@ -988,9 +981,9 @@ void BTM_ReadVendorAddOnFeatures() {
       }
     }
 
-    ret = property_get("persist.vendor.qcom.bluetooth.max_power_support",
-                       max_pow_support, "false");
-    log::info(":: persist.vendor.qcom.bluetooth.max_power_support: {}, ret: {}", max_pow_support, ret);
+    ret = property_get("persist.vendor.qcom.bluetooth.max_power_support", max_pow_support, "false");
+    log::info(":: persist.vendor.qcom.bluetooth.max_power_support: {}, ret: {}", max_pow_support,
+              ret);
 
     if (ret != 0) {
       decode_max_power_values((char*)max_pow_support);
@@ -1063,7 +1056,8 @@ void btm_vendor_link_power_ctrl_callback(tBTM_VSC_CMPL* param) {
     return;
   }
 
-  log::info(": param->opcode=0x{:02x} subopcode=0x{:02x} status=0x{:02x}", param->opcode, param->p_param_buf[1], param->p_param_buf[0]);
+  log::info(": param->opcode=0x{:02x} subopcode=0x{:02x} status=0x{:02x}", param->opcode,
+            param->p_param_buf[1], param->p_param_buf[0]);
 }
 
 bool get_max_power_values(max_pow_feature_t* tech_based_max_power) {
@@ -1125,7 +1119,8 @@ static void btm_vendor_set_tech_based_max_power(bool status) {
       param[i++] = BR_TECH_VALUE;
       param[i++] = tech_based_max_power.BR_max_pow_support;
 
-      log::info("BR_max_power fetch from property 0x{:02x}", tech_based_max_power.BR_max_pow_support);
+      log::info("BR_max_power fetch from property 0x{:02x}",
+                tech_based_max_power.BR_max_pow_support);
     }
 
     if (tech_based_max_power.EDR_max_pow_feature == true) {
@@ -1133,7 +1128,8 @@ static void btm_vendor_set_tech_based_max_power(bool status) {
       param[i++] = EDR_TECH_VALUE;
       param[i++] = tech_based_max_power.EDR_max_pow_support;
 
-      log::info("EDR_max_power fetch from property: 0x{:02x}", tech_based_max_power.EDR_max_pow_support);
+      log::info("EDR_max_power fetch from property: 0x{:02x}",
+                tech_based_max_power.EDR_max_pow_support);
     }
 
     if (tech_based_max_power.BLE_max_pow_feature == true) {
@@ -1141,7 +1137,8 @@ static void btm_vendor_set_tech_based_max_power(bool status) {
       param[i++] = BLE_TECH_VALUE;
       param[i++] = tech_based_max_power.BLE_max_pow_support;
 
-      log::info("BLE_max_power fetch from property: 0x{:02x}", tech_based_max_power.BLE_max_pow_support);
+      log::info("BLE_max_power fetch from property: 0x{:02x}",
+                tech_based_max_power.BLE_max_pow_support);
     }
 
     if (!tech_count) {
@@ -1162,7 +1159,6 @@ static void btm_vendor_set_tech_based_max_power(bool status) {
     param[7] = 0x80;
   }
 
-  BTM_VendorSpecificCommand(HCI_VS_LINK_POWER_CTRL_REQ_OPCODE,
-                            HCI_VS_LINK_POWER_CTRL_PARAM_SIZE, param,
-                            btm_vendor_link_power_ctrl_callback);
+  BTM_VendorSpecificCommand(HCI_VS_LINK_POWER_CTRL_REQ_OPCODE, HCI_VS_LINK_POWER_CTRL_PARAM_SIZE,
+                            param, btm_vendor_link_power_ctrl_callback);
 }

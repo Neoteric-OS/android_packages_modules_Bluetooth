@@ -117,10 +117,9 @@ typedef struct {
   BD_NAME bd_name; /* Name of peer device. */
 } tBTA_DM_SVC_RES;
 
-using tBTA_DM_MSG =
-    std::variant<tBTA_DM_API_SEARCH, tBTA_DM_API_DISCOVER, tBTA_DM_REMOTE_NAME,
-                 tBTA_DM_DISC_RESULT, tBTA_DM_INQUIRY_CMPL, tBTA_DM_SDP_RESULT,
-                 tBTA_DM_SVC_RES>;
+using tBTA_DM_MSG = std::variant<tBTA_DM_API_SEARCH, tBTA_DM_API_DISCOVER, tBTA_DM_REMOTE_NAME,
+                                 tBTA_DM_DISC_RESULT, tBTA_DM_INQUIRY_CMPL, tBTA_DM_SDP_RESULT,
+                                 tBTA_DM_SVC_RES>;
 
 /* DM search state */
 typedef enum {

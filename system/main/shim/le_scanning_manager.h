@@ -29,8 +29,7 @@
 namespace bluetooth {
 namespace shim {
 namespace legacy {
-hci::Address identity_to_pseudo_random(hci::Address address,
-                                       uint8_t address_type, bool refresh);
+hci::Address identity_to_pseudo_random(hci::Address address, uint8_t address_type, bool refresh);
 }
 
 ::BleScannerInterface* get_ble_scanner_instance();

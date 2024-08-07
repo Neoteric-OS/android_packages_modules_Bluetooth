@@ -21,21 +21,19 @@
 namespace bluetooth::hci {
 
 class LeScanningDecrypter {
- public:
-  LeScanningDecrypter(){};
+public:
+  LeScanningDecrypter() {}
   LeScanningDecrypter(const LeScanningDecrypter&) = delete;
 
-  bool ExtractEncryptedData(
-      std::vector<uint8_t> const& adv_data,
-      std::vector<uint8_t> const& enc_key_material,
-      std::vector<uint8_t>* adv_data_decrypted);
+  bool ExtractEncryptedData(std::vector<uint8_t> const& adv_data,
+                            std::vector<uint8_t> const& enc_key_material,
+                            std::vector<uint8_t>* adv_data_decrypted);
 
   bool ContainsEncryptedData(const uint8_t* ad, size_t ad_len);
 
   static std::optional<std::vector<uint8_t>> DecryptEncryptedData(
-      std::vector<uint8_t> const& adv_data,
-      std::vector<uint8_t> const& key,
-      std::vector<uint8_t> const& iv);
+          std::vector<uint8_t> const& adv_data, std::vector<uint8_t> const& key,
+          std::vector<uint8_t> const& iv);
 };
 
 }  // namespace bluetooth::hci
