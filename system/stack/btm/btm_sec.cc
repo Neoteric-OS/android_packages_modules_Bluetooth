@@ -977,8 +977,8 @@ tBTM_STATUS BTM_SetEncryption(const RawAddress& bd_addr, tBT_TRANSPORT transport
                 "transport:{}",
                 bd_addr, bt_transport_text(transport));
         if (p_callback) {
-          do_in_main_thread(FROM_HERE, base::BindOnce(p_callback, bd_addr, transport, p_ref_data,
-                                                      BTM_WRONG_MODE));
+          do_in_main_thread(
+                  base::BindOnce(p_callback, bd_addr, transport, p_ref_data, BTM_WRONG_MODE));
         }
         return BTM_WRONG_MODE;
       }
@@ -988,8 +988,8 @@ tBTM_STATUS BTM_SetEncryption(const RawAddress& bd_addr, tBT_TRANSPORT transport
                 "transport:{}",
                 bd_addr, bt_transport_text(transport));
         if (p_callback) {
-          do_in_main_thread(FROM_HERE, base::BindOnce(p_callback, bd_addr, transport, p_ref_data,
-                                                      BTM_SUCCESS));
+          do_in_main_thread(
+                  base::BindOnce(p_callback, bd_addr, transport, p_ref_data, BTM_SUCCESS));
         }
         return BTM_SUCCESS;
       }
@@ -1002,8 +1002,8 @@ tBTM_STATUS BTM_SetEncryption(const RawAddress& bd_addr, tBT_TRANSPORT transport
                 "transport:{}",
                 bd_addr, bt_transport_text(transport));
         if (p_callback) {
-          do_in_main_thread(FROM_HERE, base::BindOnce(p_callback, bd_addr, transport, p_ref_data,
-                                                      BTM_WRONG_MODE));
+          do_in_main_thread(
+                  base::BindOnce(p_callback, bd_addr, transport, p_ref_data, BTM_WRONG_MODE));
         }
         return BTM_WRONG_MODE;
       }
@@ -1013,8 +1013,8 @@ tBTM_STATUS BTM_SetEncryption(const RawAddress& bd_addr, tBT_TRANSPORT transport
                 "transport:{}",
                 bd_addr, bt_transport_text(transport));
         if (p_callback) {
-          do_in_main_thread(FROM_HERE, base::BindOnce(p_callback, bd_addr, transport, p_ref_data,
-                                                      BTM_SUCCESS));
+          do_in_main_thread(
+                  base::BindOnce(p_callback, bd_addr, transport, p_ref_data, BTM_SUCCESS));
         }
         return BTM_SUCCESS;
       }
@@ -1080,8 +1080,8 @@ tBTM_STATUS BTM_SetEncryption(const RawAddress& bd_addr, tBT_TRANSPORT transport
         log::debug("Executing encryption callback peer:{} transport:{}", bd_addr,
                    bt_transport_text(transport));
         p_dev_rec->sec_rec.p_callback = nullptr;
-        do_in_main_thread(FROM_HERE, base::BindOnce(p_callback, bd_addr, transport,
-                                                    p_dev_rec->sec_rec.p_ref_data, rc));
+        do_in_main_thread(
+                base::BindOnce(p_callback, bd_addr, transport, p_dev_rec->sec_rec.p_ref_data, rc));
       }
       break;
   }
@@ -4536,9 +4536,8 @@ static void btm_sec_wait_and_start_authentication(tBTM_SEC_DEV_REC* p_dev_rec) {
     delay_auth = BTM_SEC_START_AUTH_DELAY;
   }
 
-  bt_status_t status =
-          do_in_main_thread_delayed(FROM_HERE, base::Bind(&btm_sec_auth_timer_timeout, addr),
-                                    std::chrono::milliseconds(delay_auth));
+  bt_status_t status = do_in_main_thread_delayed(base::Bind(&btm_sec_auth_timer_timeout, addr),
+                                                 std::chrono::milliseconds(delay_auth));
   if (status != BT_STATUS_SUCCESS) {
     log::error("do_in_main_thread_delayed failed. directly calling");
     btm_sec_auth_timer_timeout(addr);

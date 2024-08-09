@@ -137,7 +137,6 @@ class LeAudioClientInterfaceImpl : public LeAudioClientInterface, public LeAudio
     }
 
     do_in_main_thread(
-            FROM_HERE,
             Bind(&LeAudioClient::Initialize, this,
                  jni_thread_wrapper(Bind(&btif_storage_load_bonded_leaudio)),
                  base::Bind([]() -> bool { return LeAudioHalVerifier::SupportsLeAudio(); }),
@@ -159,7 +158,7 @@ class LeAudioClientInterfaceImpl : public LeAudioClientInterface, public LeAudio
 
     initialized = false;
 
-    do_in_main_thread(FROM_HERE, Bind(&LeAudioClient::Cleanup));
+    do_in_main_thread(Bind(&LeAudioClient::Cleanup));
   }
 
   void RemoveDevice(const RawAddress& address) override {
@@ -172,8 +171,8 @@ class LeAudioClientInterfaceImpl : public LeAudioClientInterface, public LeAudio
       return;
     }
 
-    do_in_main_thread(FROM_HERE, Bind(&LeAudioClient::RemoveDevice,
-                                      Unretained(LeAudioClient::Get()), address));
+    do_in_main_thread(
+            Bind(&LeAudioClient::RemoveDevice, Unretained(LeAudioClient::Get()), address));
 
     do_in_jni_thread(Bind(&btif_storage_remove_leaudio, address));
   }
@@ -186,8 +185,7 @@ class LeAudioClientInterfaceImpl : public LeAudioClientInterface, public LeAudio
       return;
     }
 
-    do_in_main_thread(FROM_HERE,
-                      Bind(&LeAudioClient::Connect, Unretained(LeAudioClient::Get()), address));
+    do_in_main_thread(Bind(&LeAudioClient::Connect, Unretained(LeAudioClient::Get()), address));
   }
 
   void Disconnect(const RawAddress& address) override {
@@ -198,8 +196,7 @@ class LeAudioClientInterfaceImpl : public LeAudioClientInterface, public LeAudio
       return;
     }
 
-    do_in_main_thread(FROM_HERE,
-                      Bind(&LeAudioClient::Disconnect, Unretained(LeAudioClient::Get()), address));
+    do_in_main_thread(Bind(&LeAudioClient::Disconnect, Unretained(LeAudioClient::Get()), address));
   }
 
   void SetEnableState(const RawAddress& address, bool enabled) override {
@@ -210,8 +207,8 @@ class LeAudioClientInterfaceImpl : public LeAudioClientInterface, public LeAudio
       return;
     }
 
-    do_in_main_thread(FROM_HERE, Bind(&LeAudioClient::SetEnableState,
-                                      Unretained(LeAudioClient::Get()), address, enabled));
+    do_in_main_thread(Bind(&LeAudioClient::SetEnableState, Unretained(LeAudioClient::Get()),
+                           address, enabled));
   }
 
   void GroupAddNode(const int group_id, const RawAddress& address) override {
@@ -222,8 +219,8 @@ class LeAudioClientInterfaceImpl : public LeAudioClientInterface, public LeAudio
       return;
     }
 
-    do_in_main_thread(FROM_HERE, Bind(&LeAudioClient::GroupAddNode,
-                                      Unretained(LeAudioClient::Get()), group_id, address));
+    do_in_main_thread(Bind(&LeAudioClient::GroupAddNode, Unretained(LeAudioClient::Get()), group_id,
+                           address));
   }
 
   void GroupRemoveNode(const int group_id, const RawAddress& address) override {
@@ -234,8 +231,8 @@ class LeAudioClientInterfaceImpl : public LeAudioClientInterface, public LeAudio
       return;
     }
 
-    do_in_main_thread(FROM_HERE, Bind(&LeAudioClient::GroupRemoveNode,
-                                      Unretained(LeAudioClient::Get()), group_id, address));
+    do_in_main_thread(Bind(&LeAudioClient::GroupRemoveNode, Unretained(LeAudioClient::Get()),
+                           group_id, address));
   }
 
   void GroupSetActive(const int group_id) override {
@@ -246,8 +243,8 @@ class LeAudioClientInterfaceImpl : public LeAudioClientInterface, public LeAudio
       return;
     }
 
-    do_in_main_thread(FROM_HERE, Bind(&LeAudioClient::GroupSetActive,
-                                      Unretained(LeAudioClient::Get()), group_id));
+    do_in_main_thread(
+            Bind(&LeAudioClient::GroupSetActive, Unretained(LeAudioClient::Get()), group_id));
   }
 
   void SetCodecConfigPreference(int group_id, btle_audio_codec_config_t input_codec_config,
@@ -258,9 +255,9 @@ class LeAudioClientInterfaceImpl : public LeAudioClientInterface, public LeAudio
               "being not read");
       return;
     }
-    do_in_main_thread(FROM_HERE, Bind(&LeAudioClient::SetCodecConfigPreference,
-                                      Unretained(LeAudioClient::Get()), group_id,
-                                      input_codec_config, output_codec_config));
+    do_in_main_thread(Bind(&LeAudioClient::SetCodecConfigPreference,
+                           Unretained(LeAudioClient::Get()), group_id, input_codec_config,
+                           output_codec_config));
   }
 
   void SetCcidInformation(int ccid, int context_type) {
@@ -271,8 +268,8 @@ class LeAudioClientInterfaceImpl : public LeAudioClientInterface, public LeAudio
       return;
     }
 
-    do_in_main_thread(FROM_HERE, Bind(&LeAudioClient::SetCcidInformation,
-                                      Unretained(LeAudioClient::Get()), ccid, context_type));
+    do_in_main_thread(Bind(&LeAudioClient::SetCcidInformation, Unretained(LeAudioClient::Get()),
+                           ccid, context_type));
   }
 
   void SetInCall(bool in_call) {
@@ -283,8 +280,7 @@ class LeAudioClientInterfaceImpl : public LeAudioClientInterface, public LeAudio
       return;
     }
 
-    do_in_main_thread(FROM_HERE,
-                      Bind(&LeAudioClient::SetInCall, Unretained(LeAudioClient::Get()), in_call));
+    do_in_main_thread(Bind(&LeAudioClient::SetInCall, Unretained(LeAudioClient::Get()), in_call));
   }
 
   void SetUnicastMonitorMode(uint8_t direction, bool enable) {
@@ -296,8 +292,8 @@ class LeAudioClientInterfaceImpl : public LeAudioClientInterface, public LeAudio
       return;
     }
 
-    do_in_main_thread(FROM_HERE, Bind(&LeAudioClient::SetUnicastMonitorMode,
-                                      Unretained(LeAudioClient::Get()), direction, enable));
+    do_in_main_thread(Bind(&LeAudioClient::SetUnicastMonitorMode, Unretained(LeAudioClient::Get()),
+                           direction, enable));
   }
 
   void SendAudioProfilePreferences(int group_id, bool is_output_preference_le_audio,
@@ -309,10 +305,9 @@ class LeAudioClientInterfaceImpl : public LeAudioClientInterface, public LeAudio
       return;
     }
 
-    do_in_main_thread(
-            FROM_HERE,
-            Bind(&LeAudioClient::SendAudioProfilePreferences, Unretained(LeAudioClient::Get()),
-                 group_id, is_output_preference_le_audio, is_duplex_preference_le_audio));
+    do_in_main_thread(Bind(&LeAudioClient::SendAudioProfilePreferences,
+                           Unretained(LeAudioClient::Get()), group_id,
+                           is_output_preference_le_audio, is_duplex_preference_le_audio));
   }
 
   void SetGroupAllowedContextMask(int group_id, int sink_context_types, int source_context_types) {
@@ -326,9 +321,9 @@ class LeAudioClientInterfaceImpl : public LeAudioClientInterface, public LeAudio
     log::info("group_id: {}, sink context types: {}, source context types: {}", group_id,
               sink_context_types, source_context_types);
 
-    do_in_main_thread(FROM_HERE, Bind(&LeAudioClient::SetGroupAllowedContextMask,
-                                      Unretained(LeAudioClient::Get()), group_id,
-                                      sink_context_types, source_context_types));
+    do_in_main_thread(Bind(&LeAudioClient::SetGroupAllowedContextMask,
+                           Unretained(LeAudioClient::Get()), group_id, sink_context_types,
+                           source_context_types));
   }
 
 private:
