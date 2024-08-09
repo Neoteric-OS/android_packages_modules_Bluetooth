@@ -179,6 +179,9 @@ public class ActiveDeviceManager implements AdapterService.BluetoothStateCallbac
     private static HashMap<Integer, Integer[]> contextToModeBundle =
         new HashMap<Integer, Integer[]>();
 
+    // Timeout for state machine thread join, to prevent potential ANR.
+    private static final int SM_THREAD_JOIN_TIMEOUT_MS = 1000;
+
     @Override
     public void onBluetoothStateChange(int prevState, int newState) {
         mHandler.post(() -> handleAdapterStateChanged(newState));
@@ -924,7 +927,12 @@ public class ActiveDeviceManager implements AdapterService.BluetoothStateCallbac
         mAudioManager.unregisterAudioDeviceCallback(mAudioManagerAudioDeviceCallback);
         mAdapterService.unregisterBluetoothStateCallback(this);
         if (mHandlerThread != null) {
-            mHandlerThread.quit();
+            mHandlerThread.quitSafely();
+            try {
+                mHandlerThread.join(SM_THREAD_JOIN_TIMEOUT_MS);
+            } catch (InterruptedException e) {
+                // Do not rethrow as we are shutting down anyway
+            }
             mHandlerThread = null;
         }
         resetState();

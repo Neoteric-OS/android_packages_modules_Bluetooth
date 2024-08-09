@@ -276,6 +276,10 @@ public class BassClientStateMachine extends StateMachine {
         }
     }
 
+    Boolean hasPendingSwitchingSourceOperation() {
+        return mPendingSourceToSwitch != null;
+    }
+
     BluetoothLeBroadcastMetadata getCurrentBroadcastMetadata(Integer sourceId) {
         return mCurrentMetadata.getOrDefault(sourceId, null);
     }
@@ -1080,7 +1084,6 @@ public class BassClientStateMachine extends StateMachine {
                         Message message = obtainMessage(ADD_BCAST_SOURCE);
                         message.obj = mPendingSourceToSwitch;
                         sendMessage(message);
-                        mPendingSourceToSwitch = null;
                     } else {
                         mService.getCallbacks()
                                 .notifySourceRemoved(
@@ -2090,6 +2093,12 @@ public class BassClientStateMachine extends StateMachine {
                         mService.getCallbacks()
                                 .notifySourceAddFailed(
                                         mDevice, metaData, BluetoothStatusCodes.ERROR_UNKNOWN);
+                    }
+                    if (mPendingSourceToSwitch != null
+                            && mPendingSourceToSwitch.getBroadcastId()
+                                    == metaData.getBroadcastId()) {
+                        // Clear pending source to switch when starting to add this new source
+                        mPendingSourceToSwitch = null;
                     }
                     break;
                 case UPDATE_BCAST_SOURCE:
