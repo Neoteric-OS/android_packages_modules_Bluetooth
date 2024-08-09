@@ -603,7 +603,13 @@ static bt_status_t btif_gattc_read_remote_rssi(int client_if, const RawAddress& 
   CHECK_BTGATT_INIT();
   rssi_request_client_if = client_if;
 
-  return do_in_jni_thread(Bind(base::IgnoreResult(&BTM_ReadRSSI), bd_addr, btm_read_rssi_cb));
+  return do_in_jni_thread(base::Bind(
+          [](int client_if, const RawAddress& bd_addr) {
+            if (BTM_ReadRSSI(bd_addr, btm_read_rssi_cb) != BTM_SUCCESS) {
+              log::warn("Unable to read RSSI peer:{} client_if:{}", bd_addr, client_if);
+            }
+          },
+          client_if, bd_addr));
 }
 
 static bt_status_t btif_gattc_configure_mtu(int conn_id, int mtu) {
@@ -636,7 +642,7 @@ bt_status_t btif_gattc_conn_parameter_update(const RawAddress& bd_addr, int min_
 static bt_status_t btif_gattc_set_preferred_phy(const RawAddress& bd_addr, uint8_t tx_phy,
                                                 uint8_t rx_phy, uint16_t phy_options) {
   CHECK_BTGATT_INIT();
-  do_in_main_thread(FROM_HERE, Bind(&BTM_BleSetPhy, bd_addr, tx_phy, rx_phy, phy_options));
+  do_in_main_thread(Bind(&BTM_BleSetPhy, bd_addr, tx_phy, rx_phy, phy_options));
   return BT_STATUS_SUCCESS;
 }
 
@@ -644,7 +650,7 @@ static bt_status_t btif_gattc_read_phy(
         const RawAddress& bd_addr,
         base::Callback<void(uint8_t tx_phy, uint8_t rx_phy, uint8_t status)> cb) {
   CHECK_BTGATT_INIT();
-  do_in_main_thread(FROM_HERE, Bind(&BTM_BleReadPhy, bd_addr, jni_thread_wrapper(cb)));
+  do_in_main_thread(Bind(&BTM_BleReadPhy, bd_addr, jni_thread_wrapper(cb)));
   return BT_STATUS_SUCCESS;
 }
 

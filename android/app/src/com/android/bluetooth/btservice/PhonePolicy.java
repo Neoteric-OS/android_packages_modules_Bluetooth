@@ -895,7 +895,6 @@ public class PhonePolicy implements AdapterService.BluetoothStateCallback {
     }
 
     @VisibleForTesting
-    @RequiresPermission(android.Manifest.permission.MODIFY_PHONE_STATE)
     void autoConnect() {
         debugLog("delay auto connect by 500 ms");
         if ((mHandler.hasMessages(MESSAGE_AUTO_CONNECT_PROFILES) == false) &&
@@ -971,7 +970,6 @@ public class PhonePolicy implements AdapterService.BluetoothStateCallback {
         }
     }
 
-    @RequiresPermission(android.Manifest.permission.MODIFY_PHONE_STATE)
     private void autoConnectHeadset(BluetoothDevice device) {
         final HeadsetService hsService = mFactory.getHeadsetService();
         if (hsService == null) {
@@ -991,7 +989,6 @@ public class PhonePolicy implements AdapterService.BluetoothStateCallback {
         }
     }
 
-    @RequiresPermission(android.Manifest.permission.MODIFY_PHONE_STATE)
     private void autoConnectHidHost(BluetoothDevice device) {
         final HidHostService hidHostService = mFactory.getHidHostService();
         if (hidHostService == null) {
@@ -1042,11 +1039,7 @@ public class PhonePolicy implements AdapterService.BluetoothStateCallback {
     // profiles which are not already connected or in the process of connecting to attempt to
     // connect to the device that initiated the connection.  In the event that this function is
     // invoked and there are no current bluetooth connections no new profiles will be connected.
-    @RequiresPermission(
-            allOf = {
-                android.Manifest.permission.BLUETOOTH_PRIVILEGED,
-                android.Manifest.permission.MODIFY_PHONE_STATE,
-            })
+    @RequiresPermission(android.Manifest.permission.BLUETOOTH_PRIVILEGED)
     private void processConnectOtherProfiles(BluetoothDevice device) {
         debugLog("processConnectOtherProfiles, device=" + device);
         if (mAdapterService.getState() != BluetoothAdapter.STATE_ON) {

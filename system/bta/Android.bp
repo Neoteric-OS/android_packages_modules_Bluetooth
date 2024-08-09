@@ -303,6 +303,7 @@ cc_test {
         "android.hardware.bluetooth.audio@2.1",
         "android.hardware.common-V2-ndk",
         "android.hardware.common.fmq-V1-ndk",
+        "avrcp-target-service",
         "bluetooth_flags_c_lib",
         "libbase",
         "libbluetooth-types",
@@ -661,7 +662,6 @@ cc_test {
     srcs: [
         ":TestCommonMockFunctions",
         ":TestMockStackBtmInterface",
-        ":TestStubOsi",
         "gatt/database.cc",
         "gatt/database_builder.cc",
         "test/common/bta_gatt_api_mock.cc",
@@ -689,7 +689,6 @@ cc_test {
         "libbt_shim_ffi",
         "libchrome",
         "libgmock",
-        "libosi",
         "libbase",
         "liblog",
     ],
