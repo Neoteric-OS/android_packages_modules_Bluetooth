@@ -729,10 +729,6 @@ A2dpCodecConfigAptxAdaptive::A2dpCodecConfigAptxAdaptive(btav_a2dp_codec_priorit
 A2dpCodecConfigAptxAdaptive::~A2dpCodecConfigAptxAdaptive() {}
 
 bool A2dpCodecConfigAptxAdaptive::init() {
-  if (!isValid()) {
-    return false;
-  }
-
   if (true /*A2DP_IsCodecEnabledInOffload(BTAV_A2DP_CODEC_INDEX_SOURCE_APTX_ADAPTIVE)*/) {
     return true;
   } /*else if(!A2DP_IsCodecEnabledInSoftware(BTAV_A2DP_CODEC_INDEX_SOURCE_APTX_ADAPTIVE)){

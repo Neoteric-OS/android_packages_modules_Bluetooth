@@ -1460,6 +1460,9 @@ public class HeadsetService extends ProfileService {
             mActiveDevice = null;
             mNativeInterface.setActiveDevice(null);
             broadcastActiveDevice(null);
+            if (Flags.updateActiveDeviceInBandRingtone()) {
+                updateInbandRinging(null, true);
+            }
         }
     }
 
@@ -1538,6 +1541,9 @@ public class HeadsetService extends ProfileService {
                                     BluetoothProfileConnectionInfo.createHfpInfo());
                 }
                 broadcastActiveDevice(mActiveDevice);
+                if (Flags.updateActiveDeviceInBandRingtone()) {
+                    updateInbandRinging(device, true);
+                }
             } else if (shouldPersistAudio()) {
                 /* If HFP is getting active for a phonecall and there is LeAudio device active,
                  * Lets inactive LeAudio device as soon as possible so there is no CISes connected
@@ -1595,6 +1601,9 @@ public class HeadsetService extends ProfileService {
                                     BluetoothProfileConnectionInfo.createHfpInfo());
                 }
                 broadcastActiveDevice(mActiveDevice);
+                if (Flags.updateActiveDeviceInBandRingtone()) {
+                    updateInbandRinging(device, true);
+                }
             }
         }
         return true;
@@ -2425,8 +2434,13 @@ public class HeadsetService extends ProfileService {
         synchronized (mStateMachines) {
             final boolean inbandRingingRuntimeDisable = mInbandRingingRuntimeDisable;
 
-            mInbandRingingRuntimeDisable =
-                    getConnectedDevices().size() > 1 || isHeadsetClientConnected();
+            if (getConnectedDevices().size() > 1
+                    || isHeadsetClientConnected()
+                    || (Flags.updateActiveDeviceInBandRingtone() && mActiveDevice == null)) {
+                mInbandRingingRuntimeDisable = true;
+            } else {
+                mInbandRingingRuntimeDisable = false;
+            }
 
             final boolean updateAll = inbandRingingRuntimeDisable != mInbandRingingRuntimeDisable;
 
@@ -2435,6 +2449,8 @@ public class HeadsetService extends ProfileService {
                     "updateInbandRinging():"
                             + " Device="
                             + device
+                            + " ActiveDevice="
+                            + mActiveDevice
                             + " enabled="
                             + !mInbandRingingRuntimeDisable
                             + " connected="
