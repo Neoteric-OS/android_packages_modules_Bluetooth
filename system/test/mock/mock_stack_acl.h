@@ -539,14 +539,6 @@ struct BTM_acl_after_controller_started {
   void operator()() { body(); }
 };
 extern struct BTM_acl_after_controller_started BTM_acl_after_controller_started;
-// Name: BTM_default_unblock_role_switch
-// Params:
-// Returns: void
-struct BTM_default_unblock_role_switch {
-  std::function<void()> body{[]() { ; }};
-  void operator()() { body(); }
-};
-extern struct BTM_default_unblock_role_switch BTM_default_unblock_role_switch;
 // Name: BTM_unblock_role_switch_for
 // Params: const RawAddress& peer_addr
 // Returns: void
@@ -1028,7 +1020,7 @@ extern struct btm_flow_spec_complete btm_flow_spec_complete;
 struct BTM_FlowSpec {
   std::function<tBTM_STATUS(const RawAddress& addr, tBT_FLOW_SPEC* p_flow, tBTM_CMPL_CB* p_cb)>
           body{[](const RawAddress& /*addr*/, tBT_FLOW_SPEC* /*p_flow*/, tBTM_CMPL_CB* /*p_cb*/) {
-            return 0;
+            return BTM_SUCCESS;
           }};
   tBTM_STATUS operator()(const RawAddress& addr, tBT_FLOW_SPEC* p_flow, tBTM_CMPL_CB* p_cb) {
     return body(addr, p_flow, p_cb);

@@ -842,7 +842,7 @@ void btm_read_remote_version_complete(tHCI_STATUS status, uint16_t handle, uint8
  *
  ******************************************************************************/
 void btm_process_remote_ext_features(tACL_CONN* p_acl_cb, uint8_t max_page_number) {
-  uint8_t status;
+  tBTM_STATUS status;
   tBTM_SEC_DEV_REC* p_dev_rec;
   CHECK(p_acl_cb != nullptr);
   if (!p_acl_cb->peer_lmp_feature_valid[max_page_number]) {

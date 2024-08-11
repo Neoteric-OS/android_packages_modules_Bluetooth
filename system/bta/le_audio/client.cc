@@ -271,13 +271,8 @@ public:
     LeAudioGroupStateMachine::Initialize(state_machine_callbacks_);
     groupStateMachine_ = LeAudioGroupStateMachine::Get();
 
-    if (bluetooth::common::InitFlags::IsTargetedAnnouncementReconnectionMode()) {
-      log::info("Reconnection mode: TARGETED_ANNOUNCEMENTS");
-      reconnection_mode_ = BTM_BLE_BKG_CONNECT_TARGETED_ANNOUNCEMENTS;
-    } else {
-      log::info("Reconnection mode: ALLOW_LIST");
-      reconnection_mode_ = BTM_BLE_BKG_CONNECT_ALLOW_LIST;
-    }
+    log::info("Reconnection mode: TARGETED_ANNOUNCEMENTS");
+    reconnection_mode_ = BTM_BLE_BKG_CONNECT_TARGETED_ANNOUNCEMENTS;
 
     log::info("Loading health status module");
     leAudioHealthStatus_ = LeAudioHealthStatus::Get();
@@ -1097,6 +1092,15 @@ public:
         ReconfigureOrUpdateRemote(group, bluetooth::le_audio::types::kLeAudioDirectionSource);
       }
     }
+  }
+
+  void initReconfiguration(LeAudioDeviceGroup* group, LeAudioContextType previous_context_type) {
+    log::debug(" group_id: {}, previous context_type {}", group->group_id_,
+               ToString(previous_context_type));
+    pre_configuration_context_type_ = previous_context_type;
+    group->SetPendingConfiguration();
+    groupStateMachine_->StopStream(group);
+    stream_setup_start_timestamp_ = bluetooth::common::time_get_os_boottime_us();
   }
 
   void SetInCall(bool in_call) override {
@@ -3246,9 +3250,7 @@ public:
 
           /* Reconfigure if newly connected member device cannot support
            * current codec configuration */
-          group->SetPendingConfiguration();
-          groupStateMachine_->StopStream(group);
-          stream_setup_start_timestamp_ = bluetooth::common::time_get_os_boottime_us();
+          initReconfiguration(group, configuration_context_type_);
           return;
         }
       }
@@ -4755,13 +4757,17 @@ public:
 
   bool SetConfigurationAndStopStreamWhenNeeded(LeAudioDeviceGroup* group,
                                                LeAudioContextType new_context_type) {
+    auto previous_context_type = configuration_context_type_;
+
     auto reconfig_result = UpdateConfigAndCheckIfReconfigurationIsNeeded(group, new_context_type);
     /* Even though the reconfiguration may not be needed, this has
      * to be set here as it might be the initial configuration.
      */
+
     configuration_context_type_ = new_context_type;
 
-    log::info("group_id {}, context type {} ({}), {}", group->group_id_, ToString(new_context_type),
+    log::info("group_id {}, previous_context {} context type {} ({}), {}", group->group_id_,
+              ToString(previous_context_type), ToString(new_context_type),
               ToHexString(new_context_type), ToString(reconfig_result));
     if (reconfig_result == AudioReconfigurationResult::RECONFIGURATION_NOT_NEEDED) {
       return false;
@@ -4780,9 +4786,9 @@ public:
       alarm_cancel(suspend_timeout_);
     }
 
-    /* Need to reconfigure stream */
-    group->SetPendingConfiguration();
-    groupStateMachine_->StopStream(group);
+    /* Need to reconfigure stream. At this point pre_configuration_context_type shall be set */
+
+    initReconfiguration(group, previous_context_type);
     SendAudioGroupCurrentCodecConfigChanged(group);
     return true;
   }
@@ -5700,8 +5706,6 @@ public:
   void reconfigurationComplete(void) {
     // Check which directions were suspended
     uint8_t previously_active_directions = 0;
-    auto group = aseGroups_.FindById(active_group_id_);
-
     if (audio_sender_state_ >= AudioState::READY_TO_START) {
       previously_active_directions |= bluetooth::le_audio::types::kLeAudioDirectionSink;
     }
@@ -5713,10 +5717,6 @@ public:
      * Clean state and if Audio HAL is waiting, cancel the request
      * so Audio HAL can Resume again.
      */
-    if (group) {
-      group->ClearSuspendedForReconfiguration();
-      group->SetReconfigStartPendingDirs(previously_active_directions);
-    }
     CancelStreamingRequest();
     ReconfigurationComplete(previously_active_directions);
   }
@@ -5774,9 +5774,7 @@ public:
                   "reconfigure to {}",
                   ToString(group->GetConfigurationContextType()),
                   ToString(configuration_context_type_));
-          group->SetPendingConfiguration();
-          groupStateMachine_->StopStream(group);
-          stream_setup_start_timestamp_ = bluetooth::common::time_get_os_boottime_us();
+          initReconfiguration(group, group->GetConfigurationContextType());
           return;
         }
 
@@ -5804,9 +5802,9 @@ public:
         /** Stop Audio but don't release all the Audio resources */
         SuspendAudio();
         break;
-      case GroupStreamStatus::CONFIGURED_BY_USER: {
+      case GroupStreamStatus::CONFIGURED_BY_USER:
         reconfigurationComplete();
-      } break;
+        break;
       case GroupStreamStatus::CONFIGURED_AUTONOMOUS:
         /* This state is notified only when
          * groups stays into CONFIGURED state after
@@ -5866,7 +5864,8 @@ public:
             }
 
             ApplyRemoteMetadataAudioContextPolicy(group, remote_contexts, remote_direction);
-            if (GroupStream(group->group_id_, configuration_context_type_, remote_contexts)) {
+            if ((configuration_context_type_ != pre_configuration_context_type_) &&
+                GroupStream(group->group_id_, configuration_context_type_, remote_contexts)) {
               log::info("configuration succeed, wait for new status for group {}",
                         group->group_id_);
               /* If configuration succeed wait for new status. */
@@ -5877,6 +5876,7 @@ public:
             stream_setup_end_timestamp_ = 0;
             stream_setup_start_timestamp_ = 0;
             CancelStreamingRequest();
+            reconfigurationComplete();
           } else {
             log::info(
                     "sink_monitor_mode_: {}, defer_notify_inactive_until_stop_: {}, "
@@ -5994,6 +5994,7 @@ private:
   LeAudioDeviceGroups aseGroups_;
   LeAudioGroupStateMachine* groupStateMachine_;
   int active_group_id_;
+  LeAudioContextType pre_configuration_context_type_;
   LeAudioContextType configuration_context_type_;
   static constexpr char kAllowMultipleContextsInMetadata[] =
           "persist.bluetooth.leaudio.allow.multiple.contexts";
