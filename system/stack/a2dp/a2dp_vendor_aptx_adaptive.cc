@@ -267,7 +267,7 @@ static tA2DP_STATUS A2DP_BuildInfoAptxAdaptive(uint8_t media_type,
                                                const tA2DP_APTX_ADAPTIVE_CIE* p_ie,
                                                uint8_t* p_result) {
   if (p_ie == NULL || p_result == NULL) {
-    return A2DP_INVALID_PARAMS;
+    return AVDTP_UNSUPPORTED_CONFIGURATION;
   }
 
   *p_result++ = A2DP_APTX_ADAPTIVE_CODEC_LEN;
@@ -304,7 +304,7 @@ static tA2DP_STATUS A2DP_ParseInfoAptxAdaptive(tA2DP_APTX_ADAPTIVE_CIE* p_ie,
 
   log::info("p_ie = {}, p_codec_info = {}", fmt::ptr(p_ie), fmt::ptr(p_codec_info));
   if (p_ie == NULL || p_codec_info == NULL) {
-    return A2DP_INVALID_PARAMS;
+    return AVDTP_UNSUPPORTED_CONFIGURATION;
   }
 
   // Check the codec capability length
@@ -313,7 +313,7 @@ static tA2DP_STATUS A2DP_ParseInfoAptxAdaptive(tA2DP_APTX_ADAPTIVE_CIE* p_ie,
 
   if (losc != A2DP_APTX_ADAPTIVE_CODEC_LEN) {
     log::info("A2DP_APTX_ADAPTIVE_CODEC_LEN fail");
-    return A2DP_WRONG_CODEC;
+    return AVDTP_UNSUPPORTED_CONFIGURATION;
   }
 
   media_type = (*p_codec_info++) >> 4;
@@ -322,7 +322,7 @@ static tA2DP_STATUS A2DP_ParseInfoAptxAdaptive(tA2DP_APTX_ADAPTIVE_CIE* p_ie,
   /* Check the Media Type and Media Codec Type */
   if (media_type != AVDT_MEDIA_TYPE_AUDIO || codec_type != A2DP_MEDIA_CT_NON_A2DP) {
     log::info("A2DP_MEDIA_CT_NON_A2DP ID");
-    return A2DP_WRONG_CODEC;
+    return AVDTP_UNSUPPORTED_CONFIGURATION;
   }
 
   // Check the Vendor ID and Codec ID */
@@ -336,7 +336,7 @@ static tA2DP_STATUS A2DP_ParseInfoAptxAdaptive(tA2DP_APTX_ADAPTIVE_CIE* p_ie,
   if (p_ie->vendorId != A2DP_APTX_ADAPTIVE_VENDOR_ID ||
       p_ie->codecId != A2DP_APTX_ADAPTIVE_CODEC_ID_BLUETOOTH) {
     log::info("A2DP_APTX_ADAPTIVE ID WRONG CODEC");
-    return A2DP_WRONG_CODEC;
+    return AVDTP_UNSUPPORTED_CONFIGURATION;
   }
 
   p_ie->sourceType = *p_codec_info & 0x07;
@@ -358,7 +358,7 @@ static tA2DP_STATUS A2DP_ParseInfoAptxAdaptive(tA2DP_APTX_ADAPTIVE_CIE* p_ie,
   //  if (A2DP_BitsSet(p_ie->sampleRate) != A2DP_SET_ONE_BIT)
   //    return A2DP_BAD_SAMP_FREQ;
   if (A2DP_BitsSet(p_ie->channelMode) != A2DP_SET_ONE_BIT) {
-    return A2DP_BAD_CH_MODE;
+    return AVDTP_UNSUPPORTED_CONFIGURATION;
   }
 
   log::info("btav_a2dp_codec_bits_per_sample_t: {}", sizeof(btav_a2dp_codec_bits_per_sample_t));
@@ -417,12 +417,12 @@ static tA2DP_STATUS A2DP_CodecInfoMatchesCapabilityAptxAdaptive(
 
   /* sampling frequency */
   if ((cfg_cie.sampleRate & p_cap->sampleRate) == 0) {
-    return A2DP_NS_SAMP_FREQ;
+    return A2DP_INVALID_SAMPLING_FREQUENCY;
   }
 
   /* channel mode */
   if ((cfg_cie.channelMode & p_cap->channelMode) == 0) {
-    return A2DP_NS_CH_MODE;
+    return A2DP_INVALID_CHANNEL_MODE;
   }
 
   return A2DP_SUCCESS;
