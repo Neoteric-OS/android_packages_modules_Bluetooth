@@ -20,7 +20,6 @@ import static android.Manifest.permission.BLUETOOTH_CONNECT;
 import static android.Manifest.permission.BLUETOOTH_PRIVILEGED;
 import static android.Manifest.permission.MODIFY_PHONE_STATE;
 
-import static com.android.bluetooth.Utils.enforceBluetoothPrivilegedPermission;
 import static com.android.modules.utils.build.SdkLevel.isAtLeastU;
 
 import static java.util.Objects.requireNonNull;
@@ -626,7 +625,7 @@ public class HeadsetService extends ProfileService {
                 return BluetoothProfile.CONNECTION_POLICY_UNKNOWN;
             }
 
-            enforceBluetoothPrivilegedPermission(service);
+            service.enforceCallingOrSelfPermission(BLUETOOTH_PRIVILEGED, null);
             return service.getConnectionPolicy(device);
         }
 
@@ -689,7 +688,7 @@ public class HeadsetService extends ProfileService {
                 return BluetoothHeadset.STATE_AUDIO_DISCONNECTED;
             }
 
-            enforceBluetoothPrivilegedPermission(service);
+            service.enforceCallingOrSelfPermission(BLUETOOTH_PRIVILEGED, null);
             return service.getAudioState(device);
         }
 
@@ -700,7 +699,7 @@ public class HeadsetService extends ProfileService {
                 return BluetoothStatusCodes.ERROR_PROFILE_SERVICE_NOT_BOUND;
             }
 
-            enforceBluetoothPrivilegedPermission(service);
+            service.enforceCallingOrSelfPermission(BLUETOOTH_PRIVILEGED, null);
             return service.connectAudio();
         }
 
@@ -711,7 +710,7 @@ public class HeadsetService extends ProfileService {
                 return BluetoothStatusCodes.ERROR_PROFILE_SERVICE_NOT_BOUND;
             }
 
-            enforceBluetoothPrivilegedPermission(service);
+            service.enforceCallingOrSelfPermission(BLUETOOTH_PRIVILEGED, null);
             return service.disconnectAudio();
         }
 
@@ -722,7 +721,7 @@ public class HeadsetService extends ProfileService {
                 return;
             }
 
-            enforceBluetoothPrivilegedPermission(service);
+            service.enforceCallingOrSelfPermission(BLUETOOTH_PRIVILEGED, null);
             service.setAudioRouteAllowed(allowed);
         }
 
@@ -733,7 +732,7 @@ public class HeadsetService extends ProfileService {
                 return false;
             }
 
-            enforceBluetoothPrivilegedPermission(service);
+            service.enforceCallingOrSelfPermission(BLUETOOTH_PRIVILEGED, null);
             return service.getAudioRouteAllowed();
         }
 
@@ -856,7 +855,7 @@ public class HeadsetService extends ProfileService {
                 return false;
             }
 
-            enforceBluetoothPrivilegedPermission(service);
+            service.enforceCallingOrSelfPermission(BLUETOOTH_PRIVILEGED, null);
             return service.isInbandRingingEnabled();
         }
 
@@ -881,7 +880,6 @@ public class HeadsetService extends ProfileService {
             Log.w(TAG, "getHeadsetService(): service is not available");
             return null;
         }
-        logD("getHeadsetService(): returning " + sHeadsetService);
         return sHeadsetService;
     }
 
@@ -900,7 +898,7 @@ public class HeadsetService extends ProfileService {
                             + Utils.getUidPidString());
             return false;
         }
-        ParcelUuid[] featureUuids = mAdapterService.getRemoteUuids(device);
+        final ParcelUuid[] featureUuids = mAdapterService.getRemoteUuids(device);
         if (!BluetoothUuid.containsAnyUuid(featureUuids, HEADSET_UUIDS)) {
             Log.e(
                     TAG,
@@ -1404,7 +1402,7 @@ public class HeadsetService extends ProfileService {
         synchronized (mStateMachines) {
             final HeadsetStateMachine stateMachine = mStateMachines.get(device);
             if (stateMachine == null) {
-                Log.e(TAG, "getHfpCallAudioPolicy(), " + device + " does not have a state machine");
+                Log.w(TAG, "getHfpCallAudioPolicy(), " + device + " does not have a state machine");
                 return null;
             }
             return stateMachine.getHfpCallAudioPolicy();
@@ -2789,7 +2787,9 @@ public class HeadsetService extends ProfileService {
         for (BluetoothDevice device : fallbackCandidates) {
             byte[] deviceType =
                     dbManager.getCustomMeta(device, BluetoothDevice.METADATA_DEVICE_TYPE);
-            BluetoothClass deviceClass = device.getBluetoothClass();
+            BluetoothClass deviceClass =
+                    new BluetoothClass(
+                            mAdapterService.getRemoteDevices().getBluetoothClass(device));
             if ((deviceClass != null
                             && deviceClass.getMajorDeviceClass()
                                     == BluetoothClass.Device.WEARABLE_WRIST_WATCH)

@@ -26,6 +26,7 @@ import static android.bluetooth.BluetoothGattCharacteristic.PROPERTY_WRITE_NO_RE
 
 import android.annotation.NonNull;
 import android.annotation.Nullable;
+import android.annotation.SuppressLint;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothGatt;
@@ -1209,6 +1210,7 @@ public class MediaControlGattService implements MediaControlGattServiceInterface
      * to test the correct functioning of the McpService class, the final class must be put into a
      * container that can be mocked correctly.
      */
+    @SuppressLint("AndroidFrameworkRequiresPermission") // TODO: b/350563786
     public static class BluetoothGattServerProxy {
         private BluetoothGattServer mBluetoothGattServer;
         private BluetoothManager mBluetoothManager;
@@ -1429,6 +1431,7 @@ public class MediaControlGattService implements MediaControlGattServiceInterface
         mLeAudioService = leAudioService;
     }
 
+    @SuppressLint("AndroidFrameworkRequiresPermission")
     private boolean initGattService(UUID serviceUuid) {
         mEventLogger.logd(TAG, "initGattService: uuid= " + serviceUuid);
 

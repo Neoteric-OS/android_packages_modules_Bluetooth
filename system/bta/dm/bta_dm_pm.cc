@@ -586,7 +586,7 @@ static void bta_dm_pm_cback(tBTA_SYS_CONN_STATUS status, const tBTA_SYS_ID id, u
                      peer_addr.ToString().c_str());
         if (status == BTA_SYS_SCO_OPEN) {
           bta_dm_pm_active(peer_addr);
-          BTM_block_sniff_mode_for(peer_addr);
+          get_btm_client_interface().link_policy.BTM_block_sniff_mode_for(peer_addr);
         } else if (status == BTA_SYS_SCO_CLOSE) {
           BTM_unblock_sniff_mode_for(peer_addr);
         }

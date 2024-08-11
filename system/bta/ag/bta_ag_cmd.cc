@@ -45,6 +45,7 @@
 #include "osi/include/properties.h"
 #include "stack/btm/btm_sco_hfp_hal.h"
 #include "stack/include/acl_api.h"
+#include "stack/include/btm_client_interface.h"
 #include "stack/include/port_api.h"
 
 using namespace bluetooth;
@@ -630,7 +631,7 @@ void bta_ag_send_call_inds(tBTA_AG_SCB* p_scb, tBTA_AG_RES result) {
       log::verbose("exit sniff during call for the device: {}",
                    p_scb->peer_addr.ToString().c_str());
       bta_sys_busy(BTA_ID_AG, p_scb->app_id, p_scb->peer_addr);
-      BTM_block_sniff_mode_for(p_scb->peer_addr);
+      get_btm_client_interface().link_policy.BTM_block_sniff_mode_for(p_scb->peer_addr);
     }
   }
   /* Send indicator function tracks if the values have actually changed */

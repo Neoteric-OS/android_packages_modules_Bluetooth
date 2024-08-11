@@ -17,9 +17,10 @@
 package com.android.bluetooth.bass_client;
 
 import static android.Manifest.permission.BLUETOOTH_CONNECT;
+import static android.Manifest.permission.BLUETOOTH_PRIVILEGED;
+import static android.Manifest.permission.BLUETOOTH_SCAN;
 import static android.bluetooth.IBluetoothLeAudio.LE_AUDIO_GROUP_ID_INVALID;
 
-import static com.android.bluetooth.Utils.enforceBluetoothPrivilegedPermission;
 import static com.android.bluetooth.flags.Flags.leaudioAllowedContextMask;
 import static com.android.bluetooth.flags.Flags.leaudioBigDependsOnAudioState;
 import static com.android.bluetooth.flags.Flags.leaudioBroadcastAssistantPeripheralEntrustment;
@@ -28,6 +29,8 @@ import static com.android.bluetooth.flags.Flags.leaudioBroadcastExtractPeriodicS
 import static com.android.bluetooth.flags.Flags.leaudioBroadcastFeatureSupport;
 import static com.android.bluetooth.flags.Flags.leaudioBroadcastMonitorSourceSyncStatus;
 
+import android.annotation.RequiresPermission;
+import android.annotation.SuppressLint;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothGatt;
@@ -52,6 +55,7 @@ import android.bluetooth.le.ScanFilter;
 import android.bluetooth.le.ScanRecord;
 import android.bluetooth.le.ScanResult;
 import android.bluetooth.le.ScanSettings;
+import android.content.AttributionSource;
 import android.content.Context;
 import android.os.Handler;
 import android.os.HandlerThread;
@@ -96,7 +100,7 @@ import java.util.Optional;
 import java.util.PriorityQueue;
 import java.util.concurrent.ConcurrentHashMap;
 
-/** Broacast Assistant Scan Service */
+/** Broadcast Assistant Scan Service */
 public class BassClientService extends ProfileService {
     private static final String TAG = BassClientService.class.getSimpleName();
     private static final int MAX_ACTIVE_SYNCED_SOURCES_NUM = 4;
@@ -609,6 +613,7 @@ public class BassClientService extends ProfileService {
     }
 
     @Override
+    @SuppressLint("AndroidFrameworkRequiresPermission") // TODO: b/350563786 - Fix BASS annotation
     public void stop() {
         Log.d(TAG, "stop()");
 
@@ -1074,7 +1079,7 @@ public class BassClientService extends ProfileService {
                 Log.e(
                         TAG,
                         "Couldn't find broadcast metadata for device: "
-                                + sink.getAnonymizedAddress()
+                                + sink
                                 + ", and sourceId:"
                                 + sourceId);
                 for (BluetoothDevice device : getTargetDeviceList(sink, true)) {
@@ -1569,7 +1574,7 @@ public class BassClientService extends ProfileService {
         }
         synchronized (mStateMachines) {
             for (BluetoothDevice device : bondedDevices) {
-                final ParcelUuid[] featureUuids = device.getUuids();
+                final ParcelUuid[] featureUuids = mAdapterService.getRemoteUuids(device);
                 if (!Utils.arrayContains(featureUuids, BluetoothUuid.BASS)) {
                     continue;
                 }
@@ -1673,6 +1678,7 @@ public class BassClientService extends ProfileService {
      *
      * @param filters ScanFilters for finding exact Broadcast Source
      */
+    @SuppressLint("AndroidFrameworkRequiresPermission") // TODO: b/350563786 - Fix BASS annotation
     public void startSearchingForSources(List<ScanFilter> filters) {
         log("startSearchingForSources");
         if (mBluetoothAdapter == null) {
@@ -2236,6 +2242,7 @@ public class BassClientService extends ProfileService {
         }
     }
 
+    @SuppressLint("AndroidFrameworkRequiresPermission") // TODO: b/350563786 - Fix BASS annotation
     private boolean unsyncSource(int syncHandle) {
         log("unsyncSource: syncHandle: " + syncHandle);
         if (mPeriodicAdvCallbacksMap.containsKey(syncHandle)) {
@@ -2344,6 +2351,7 @@ public class BassClientService extends ProfileService {
         handleSelectSourceRequest();
     }
 
+    @SuppressLint("AndroidFrameworkRequiresPermission") // TODO: b/350563786 - Fix BASS annotation
     private void handleSelectSourceRequest() {
         PeriodicAdvertisingCallback paCb;
         synchronized (mPeriodicAdvCallbacksMap) {
@@ -3790,17 +3798,6 @@ public class BassClientService extends ProfileService {
             implements IProfileServiceBinder {
         BassClientService mService;
 
-        private BassClientService getService() {
-            if (Utils.isInstrumentationTestMode()) {
-                return mService;
-            }
-            if (!Utils.checkServiceAvailable(mService, TAG)
-                    || !Utils.checkCallerIsSystemOrActiveOrManagedUser(mService, TAG)) {
-                return null;
-            }
-            return mService;
-        }
-
         BluetoothLeBroadcastAssistantBinder(BassClientService svc) {
             mService = svc;
         }
@@ -3810,9 +3807,49 @@ public class BassClientService extends ProfileService {
             mService = null;
         }
 
+        @RequiresPermission(allOf = {BLUETOOTH_CONNECT, BLUETOOTH_PRIVILEGED})
+        private BassClientService getService(AttributionSource source) {
+            // Cache mService because it can change while getService is called
+            BassClientService service = mService;
+
+            if (Utils.isInstrumentationTestMode()) {
+                return service;
+            }
+
+            if (!Utils.checkServiceAvailable(service, TAG)
+                    || !Utils.checkCallerIsSystemOrActiveOrManagedUser(service, TAG)
+                    || !Utils.checkConnectPermissionForDataDelivery(service, source, TAG)) {
+                return null;
+            }
+
+            service.enforceCallingOrSelfPermission(BLUETOOTH_PRIVILEGED, null);
+
+            return service;
+        }
+
+        @RequiresPermission(allOf = {BLUETOOTH_SCAN, BLUETOOTH_PRIVILEGED})
+        private BassClientService getServiceScan(AttributionSource source) {
+            // Cache mService because it can change while getService is called
+            BassClientService service = mService;
+
+            if (Utils.isInstrumentationTestMode()) {
+                return service;
+            }
+
+            if (!Utils.checkServiceAvailable(service, TAG)
+                    || !Utils.checkCallerIsSystemOrActiveOrManagedUser(service, TAG)
+                    || !Utils.checkScanPermissionForDataDelivery(service, source, TAG)) {
+                return null;
+            }
+
+            service.enforceCallingOrSelfPermission(BLUETOOTH_PRIVILEGED, null);
+
+            return service;
+        }
+
         @Override
-        public int getConnectionState(BluetoothDevice sink) {
-            BassClientService service = getService();
+        public int getConnectionState(BluetoothDevice sink, AttributionSource source) {
+            BassClientService service = getService(source);
             if (service == null) {
                 Log.e(TAG, "Service is null");
                 return BluetoothProfile.STATE_DISCONNECTED;
@@ -3821,8 +3858,9 @@ public class BassClientService extends ProfileService {
         }
 
         @Override
-        public List<BluetoothDevice> getDevicesMatchingConnectionStates(int[] states) {
-            BassClientService service = getService();
+        public List<BluetoothDevice> getDevicesMatchingConnectionStates(
+                int[] states, AttributionSource source) {
+            BassClientService service = getService(source);
             if (service == null) {
                 Log.e(TAG, "Service is null");
                 return Collections.emptyList();
@@ -3831,8 +3869,8 @@ public class BassClientService extends ProfileService {
         }
 
         @Override
-        public List<BluetoothDevice> getConnectedDevices() {
-            BassClientService service = getService();
+        public List<BluetoothDevice> getConnectedDevices(AttributionSource source) {
+            BassClientService service = getService(source);
             if (service == null) {
                 Log.e(TAG, "Service is null");
                 return Collections.emptyList();
@@ -3841,83 +3879,75 @@ public class BassClientService extends ProfileService {
         }
 
         @Override
-        public boolean setConnectionPolicy(BluetoothDevice device, int connectionPolicy) {
-            BassClientService service = getService();
+        public boolean setConnectionPolicy(
+                BluetoothDevice device, int connectionPolicy, AttributionSource source) {
+            BassClientService service = getService(source);
             if (service == null) {
                 Log.e(TAG, "Service is null");
                 return false;
             }
-
-            service.enforceCallingOrSelfPermission(BLUETOOTH_CONNECT, null);
-
             return service.setConnectionPolicy(device, connectionPolicy);
         }
 
         @Override
-        public int getConnectionPolicy(BluetoothDevice device) {
-            BassClientService service = getService();
+        public int getConnectionPolicy(BluetoothDevice device, AttributionSource source) {
+            BassClientService service = getService(source);
             if (service == null) {
                 Log.e(TAG, "Service is null");
                 return BluetoothProfile.CONNECTION_POLICY_FORBIDDEN;
             }
-
-            service.enforceCallingOrSelfPermission(BLUETOOTH_CONNECT, null);
-
             return service.getConnectionPolicy(device);
         }
 
         @Override
-        public void registerCallback(IBluetoothLeBroadcastAssistantCallback cb) {
-            BassClientService service = getService();
+        public void registerCallback(
+                IBluetoothLeBroadcastAssistantCallback cb, AttributionSource source) {
+            BassClientService service = getService(source);
             if (service == null) {
                 Log.e(TAG, "Service is null");
                 return;
             }
-            enforceBluetoothPrivilegedPermission(service);
             service.registerCallback(cb);
         }
 
         @Override
-        public void unregisterCallback(IBluetoothLeBroadcastAssistantCallback cb) {
-            BassClientService service = getService();
+        public void unregisterCallback(
+                IBluetoothLeBroadcastAssistantCallback cb, AttributionSource source) {
+            BassClientService service = getService(source);
             if (service == null) {
                 Log.e(TAG, "Service is null");
                 return;
             }
-            enforceBluetoothPrivilegedPermission(service);
             service.unregisterCallback(cb);
         }
 
         @Override
-        public void startSearchingForSources(List<ScanFilter> filters) {
-            BassClientService service = getService();
+        public void startSearchingForSources(List<ScanFilter> filters, AttributionSource source) {
+            BassClientService service = getServiceScan(source);
             if (service == null) {
                 Log.e(TAG, "Service is null");
                 return;
             }
-            enforceBluetoothPrivilegedPermission(service);
             service.startSearchingForSources(filters);
         }
 
         @Override
-        public void stopSearchingForSources() {
-            BassClientService service = getService();
+        public void stopSearchingForSources(AttributionSource source) {
+            BassClientService service = getServiceScan(source);
             if (service == null) {
                 Log.e(TAG, "Service is null");
                 return;
             }
-            enforceBluetoothPrivilegedPermission(service);
             service.stopSearchingForSources();
         }
 
         @Override
-        public boolean isSearchInProgress() {
-            BassClientService service = getService();
+        public boolean isSearchInProgress(AttributionSource source) {
+            BassClientService service = getServiceScan(source);
             if (service == null) {
                 Log.e(TAG, "Service is null");
                 return false;
             }
-            enforceBluetoothPrivilegedPermission(service);
             return service.isSearchInProgress();
         }
 
@@ -3925,58 +3955,58 @@ public class BassClientService extends ProfileService {
         public void addSource(
                 BluetoothDevice sink,
                 BluetoothLeBroadcastMetadata sourceMetadata,
-                boolean isGroupOp) {
-            BassClientService service = getService();
+                boolean isGroupOp,
+                AttributionSource source) {
+            BassClientService service = getService(source);
             if (service == null) {
                 Log.e(TAG, "Service is null");
                 return;
             }
-            enforceBluetoothPrivilegedPermission(service);
             service.addSource(sink, sourceMetadata, isGroupOp);
         }
 
         @Override
         public void modifySource(
-                BluetoothDevice sink, int sourceId, BluetoothLeBroadcastMetadata updatedMetadata) {
-            BassClientService service = getService();
+                BluetoothDevice sink,
+                int sourceId,
+                BluetoothLeBroadcastMetadata updatedMetadata,
+                AttributionSource source) {
+            BassClientService service = getService(source);
             if (service == null) {
                 Log.e(TAG, "Service is null");
                 return;
             }
-            enforceBluetoothPrivilegedPermission(service);
             service.modifySource(sink, sourceId, updatedMetadata);
         }
 
         @Override
-        public void removeSource(BluetoothDevice sink, int sourceId) {
-            BassClientService service = getService();
+        public void removeSource(BluetoothDevice sink, int sourceId, AttributionSource source) {
+            BassClientService service = getService(source);
             if (service == null) {
                 Log.e(TAG, "Service is null");
                 return;
             }
-            enforceBluetoothPrivilegedPermission(service);
             service.removeSource(sink, sourceId);
         }
 
         @Override
-        public List<BluetoothLeBroadcastReceiveState> getAllSources(BluetoothDevice sink) {
-            BassClientService service = getService();
+        public List<BluetoothLeBroadcastReceiveState> getAllSources(
+                BluetoothDevice sink, AttributionSource source) {
+            BassClientService service = getService(source);
             if (service == null) {
                 Log.e(TAG, "Service is null");
                 return Collections.emptyList();
             }
-            enforceBluetoothPrivilegedPermission(service);
             return service.getAllSources(sink);
         }
 
         @Override
-        public int getMaximumSourceCapacity(BluetoothDevice sink) {
-            BassClientService service = getService();
+        public int getMaximumSourceCapacity(BluetoothDevice sink, AttributionSource source) {
+            BassClientService service = getService(source);
             if (service == null) {
                 Log.e(TAG, "Service is null");
                 return 0;
             }
-            enforceBluetoothPrivilegedPermission(service);
             return service.getMaximumSourceCapacity(sink);
         }
     }
