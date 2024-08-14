@@ -659,7 +659,6 @@ public class AdapterService extends Service {
             mRemoteDevices = new RemoteDevices(this, mLooper);
         }
 
-        mVendor = new Vendor(this);
         clearDiscoveringPackages();
         if (!Flags.fastBindToApp()) {
             mBinder = new AdapterServiceBinder(this);
@@ -705,6 +704,7 @@ public class AdapterService extends Service {
                 isAtvDevice,
                 getApplicationInfo().dataDir);
         mNativeAvailable = true;
+        mVendor = new Vendor(this);
         // Load the name and address
         mNativeInterface.getAdapterProperty(AbstractionLayer.BT_PROPERTY_BDADDR);
         mNativeInterface.getAdapterProperty(AbstractionLayer.BT_PROPERTY_BDNAME);
