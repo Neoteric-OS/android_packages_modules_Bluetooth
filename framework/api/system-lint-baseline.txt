@@ -96,3 +96,5 @@ UnflaggedApi: android.bluetooth.le.ScanSettings.Builder#setRssiHighThreshold(int
     New API must be flagged with @FlaggedApi: method android.bluetooth.le.ScanSettings.Builder.setRssiHighThreshold(int)
 UnflaggedApi: android.bluetooth.le.ScanSettings.Builder#setRssiLowThreshold(int):
     New API must be flagged with @FlaggedApi: method android.bluetooth.le.ScanSettings.Builder.setRssiLowThreshold(int)
+UnflaggedApi: android.bluetooth.BluetoothUuid#MFI_HAS:
+    New API must be flagged with @FlaggedApi: field android.bluetooth.BluetoothUuid.MFI_HAS

@@ -89,8 +89,20 @@ java_defaults {
 java_library {
     name: "service-bluetooth-pre-jarjar",
     installable: false,
-    //defaults: ["service-bluetooth-common-defaults"],
-    srcs: [":services.bluetooth-sources"],
+    srcs: [
+        ":statslog-bluetooth-java-gen",
+        "src/**/*.java",
+        "src/ActiveLog.kt",
+        "src/AdapterBinder.kt",
+        "src/AdapterState.kt",
+        "src/AutoOnFeature.kt",
+        "src/BleScanSettingListener.kt",
+        "src/BluetoothService.kt",
+        "src/Log.kt",
+        "src/RadioModeListener.kt",
+        "src/airplane/ModeListener.kt",
+        "src/satellite/ModeListener.kt",
+    ],
 
     libs: [
         "framework-annotations-lib",
@@ -199,6 +211,8 @@ android_robolectric_test {
 
     srcs: [
         ":statslog-bluetooth-java-gen",
+        "src/ActiveLog.kt",
+        "src/ActiveLogTest.kt",
         "src/AdapterState.kt",
         "src/AdapterStateTest.kt",
         "src/AutoOnFeature.kt",
@@ -220,6 +234,9 @@ android_robolectric_test {
     static_libs: [
         "androidx.test.core",
         "androidx.test.ext.truth",
+        "bluetooth-manager-service-proto-java-gen",
+        "bluetooth-nano-protos",
+        "bluetooth-proto-enums-java-gen",
         "bluetooth_flags_java_lib",
         "flag-junit",
         "kotlin-test",

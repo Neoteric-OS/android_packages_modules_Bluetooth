@@ -278,6 +278,7 @@ cc_library_static {
         "rfcomm/rfc_port_if.cc",
         "rfcomm/rfc_ts_frames.cc",
         "rfcomm/rfc_utils.cc",
+        "rnr/remote_name_request.cc",
         "smp/p_256_curvepara.cc",
         "smp/p_256_ecc_pp.cc",
         "smp/p_256_multprecision.cc",
@@ -477,6 +478,7 @@ cc_fuzz {
     ],
     static_libs: [
         "bluetooth_flags_c_lib",
+        "libaconfig_storage_read_api_cc",
         "libbluetooth-types",
         "libbluetooth_crypto_toolbox",
         "libbluetooth_hci_pdl",
@@ -796,7 +798,6 @@ cc_test {
     ],
     static_libs: [
         "android.hardware.audio.common@5.0",
-        "android.hardware.bluetooth.a2dp@1.0",
         "android.hardware.bluetooth.audio@2.0",
         "android.hardware.bluetooth.audio@2.1",
         "android.hardware.common-V2-ndk",
@@ -804,7 +805,6 @@ cc_test {
         "android.system.suspend-V1-ndk",
         "android.system.suspend.control-V1-ndk",
         "libFraunhoferAAC",
-        "libaudio-a2dp-hw-utils",
         "libbase",
         "libbluetooth-dumpsys",
         "libbluetooth-for-tests",
@@ -915,6 +915,7 @@ cc_test {
         "libcutils",
     ],
     static_libs: [
+        "libaconfig_storage_read_api_cc",
         "libbase",
         "libbluetooth-types",
         "libbluetooth_crypto_toolbox",
@@ -935,6 +936,7 @@ cc_test {
         "libosi",
         "libprotobuf-cpp-lite",
         "libstatslog_bt",
+        "server_configurable_flags",
     ],
     target: {
         android: {
@@ -1083,6 +1085,7 @@ cc_test {
     ],
     srcs: [
         ":TestCommonMainHandler",
+        ":TestMockStackBtmInterface",
         "gatt/connection_manager.cc",
         "test/common/mock_btm_api_layer.cc",
         "test/gatt_connection_manager_test.cc",
@@ -1426,6 +1429,7 @@ cc_test {
         ":LegacyStackSdp",
         ":TestCommonMainHandler",
         ":TestCommonMockFunctions",
+        ":TestMockBta",
         ":TestMockBtif",
         ":TestMockDevice",
         ":TestMockRustFfi",
@@ -1697,6 +1701,7 @@ cc_test {
         "btm/hfp_msbc_encoder.cc",
         "btm/security_event_parser.cc",
         "metrics/stack_metrics_logging.cc",
+        "rnr/remote_name_request.cc",
         "test/btm/peer_packet_types_test.cc",
         "test/btm/sco_hci_test.cc",
         "test/btm/sco_pkt_status_test.cc",
@@ -2252,6 +2257,7 @@ cc_test {
         ":LegacyStackSdp",
         ":TestCommonMockFunctions",
         ":TestFakeOsi",
+        ":TestMockBta",
         ":TestMockBtif",
         ":TestMockStackBtm",
         ":TestMockStackL2cap",

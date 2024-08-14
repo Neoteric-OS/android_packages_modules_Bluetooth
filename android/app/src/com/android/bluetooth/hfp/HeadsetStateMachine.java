@@ -17,6 +17,9 @@
 package com.android.bluetooth.hfp;
 
 import static android.Manifest.permission.BLUETOOTH_CONNECT;
+import static android.Manifest.permission.MODIFY_PHONE_STATE;
+import static android.bluetooth.BluetoothDevice.ACCESS_ALLOWED;
+import static android.bluetooth.BluetoothDevice.ACCESS_REJECTED;
 
 import static com.android.modules.utils.build.SdkLevel.isAtLeastU;
 
@@ -147,6 +150,12 @@ class HeadsetStateMachine extends StateMachine {
     private boolean mIsCallIndDelay = false;
     private boolean mIsBlacklistedDevice = false;
     private boolean mIsBlacklistedForSCOAfterSLC = false;
+
+    private int mRetryConnectCount = 0;
+    private static final int MAX_RETRY_CONNECT_COUNT = 2;
+    /* Retry outgoing connection after this time if the first attempt fails */
+    private static final int RETRY_CONNECT_TIME_MSEC = 2500;
+
     private boolean mIsRetrySco = false;
     private boolean mIsBlacklistedDeviceforRetrySCO = false;
     // The timestamp when the device entered connecting/connected state
@@ -630,6 +639,14 @@ class HeadsetStateMachine extends StateMachine {
                                 "CONNECT failed, device=" + device + ", currentDevice=" + mDevice);
                         break;
                     }
+
+                    stateLogD("mRetryConnectCount = " + mRetryConnectCount);
+                    if (mRetryConnectCount >= MAX_RETRY_CONNECT_COUNT) {
+                        // max attempts reached, reset it to 0
+                        mRetryConnectCount = 0;
+                        break;
+                    }
+
                     if (!mNativeInterface.connectHfp(device)) {
                         stateLogE("CONNECT failed for connectHfp(" + device + ")");
                         // No state transition is involved, fire broadcast immediately
@@ -647,6 +664,7 @@ class HeadsetStateMachine extends StateMachine {
                                 MetricsLogger.getInstance().getRemoteDeviceInfoProto(mDevice));
                         break;
                     }
+                    mRetryConnectCount++;
                     transitionTo(mConnecting);
                     break;
                 case DISCONNECT:
@@ -925,6 +943,16 @@ class HeadsetStateMachine extends StateMachine {
             switch (state) {
                 case HeadsetHalConstants.CONNECTION_STATE_DISCONNECTED:
                     stateLogW("Disconnected");
+                    stateLogD("mRetryConnectCount = " + mRetryConnectCount);
+                    if (mRetryConnectCount == 1 && !hasDeferredMessages(DISCONNECT)) {
+                        stateLogD("No deferred Disconnect, retry once more ");
+                        sendMessageDelayed(CONNECT, mDevice, RETRY_CONNECT_TIME_MSEC);
+                    } else if (mRetryConnectCount >= MAX_RETRY_CONNECT_COUNT ||
+                            hasDeferredMessages(DISCONNECT)) {
+                        // we already tried twice.
+                        stateLogD("Already tried twice or has deferred Disconnect");
+                        mRetryConnectCount = 0;
+                    }
                     transitionTo(mDisconnected);
                     break;
                 case HeadsetHalConstants.CONNECTION_STATE_CONNECTED:
@@ -932,6 +960,7 @@ class HeadsetStateMachine extends StateMachine {
                     break;
                 case HeadsetHalConstants.CONNECTION_STATE_SLC_CONNECTED:
                     stateLogD("SLC connected");
+                    mRetryConnectCount = 0;
                     transitionTo(mConnected);
                     break;
                 case HeadsetHalConstants.CONNECTION_STATE_CONNECTING:
@@ -1288,6 +1317,7 @@ class HeadsetStateMachine extends StateMachine {
                     break;
                 case HeadsetHalConstants.CONNECTION_STATE_SLC_CONNECTED:
                     stateLogE("processConnectionEvent: SLC connected again, shouldn't happen");
+                    mRetryConnectCount = 0;
                     break;
                 case HeadsetHalConstants.CONNECTION_STATE_DISCONNECTING:
                     stateLogI("processConnectionEvent: Disconnecting");
@@ -2021,7 +2051,6 @@ class HeadsetStateMachine extends StateMachine {
         return commandType;
     }
 
-    @RequiresPermission(android.Manifest.permission.MODIFY_PHONE_STATE)
     private void processDialCall(String number) {
         String dialNumber;
         if (mHeadsetService.hasDeviceInitiatedDialingOut()) {
@@ -2066,7 +2095,6 @@ class HeadsetStateMachine extends StateMachine {
         mNeedDialingOutReply = true;
     }
 
-    @RequiresPermission(android.Manifest.permission.MODIFY_PHONE_STATE)
     private void processVrEvent(int state) {
         if (state == HeadsetHalConstants.VR_STATE_STARTED) {
             if (!mHeadsetService.startVoiceRecognitionByHeadset(mDevice)) {
@@ -2291,7 +2319,7 @@ class HeadsetStateMachine extends StateMachine {
         log("processSWBEvent AptX SWB config: " + prevSwbAptx + " -> " + mHasSwbAptXEnabled);
     }
 
-    @RequiresPermission(android.Manifest.permission.MODIFY_PHONE_STATE)
+    @RequiresPermission(MODIFY_PHONE_STATE)
     @VisibleForTesting
     void processAtChld(int chld, BluetoothDevice device) {
         if (mSystemInterface.processChld(chld)) {
@@ -2301,7 +2329,7 @@ class HeadsetStateMachine extends StateMachine {
         }
     }
 
-    @RequiresPermission(android.Manifest.permission.MODIFY_PHONE_STATE)
+    @RequiresPermission(MODIFY_PHONE_STATE)
     @VisibleForTesting
     void processSubscriberNumberRequest(BluetoothDevice device) {
         String number = mSystemInterface.getSubscriberNumber();
@@ -2363,7 +2391,7 @@ class HeadsetStateMachine extends StateMachine {
         phoneState.getCindBatteryCharge());
     }
 
-    @RequiresPermission(android.Manifest.permission.MODIFY_PHONE_STATE)
+    @RequiresPermission(MODIFY_PHONE_STATE)
     @VisibleForTesting
     void processAtCops(BluetoothDevice device) {
         // Get operator name suggested by Telephony
@@ -2385,7 +2413,7 @@ class HeadsetStateMachine extends StateMachine {
         mNativeInterface.copsResponse(device, operatorName);
     }
 
-    @RequiresPermission(android.Manifest.permission.MODIFY_PHONE_STATE)
+    @RequiresPermission(allOf = {BLUETOOTH_CONNECT, MODIFY_PHONE_STATE})
     @VisibleForTesting
     void processAtClcc(BluetoothDevice device) {
         if (mHeadsetService.isVirtualCallStarted()) {
@@ -2787,7 +2815,7 @@ class HeadsetStateMachine extends StateMachine {
     }
 
     // HSP +CKPD command
-    @RequiresPermission(android.Manifest.permission.MODIFY_PHONE_STATE)
+    @RequiresPermission(MODIFY_PHONE_STATE)
     private void processKeyPressed(BluetoothDevice device) {
         if (mSystemInterface.isRinging()) {
             mSystemInterface.answerCall(device);
@@ -3002,12 +3030,12 @@ class HeadsetStateMachine extends StateMachine {
                             BluetoothDevice.CONNECTION_ACCESS_NO)
                     == BluetoothDevice.CONNECTION_ACCESS_YES) {
                 if (intent.getBooleanExtra(BluetoothDevice.EXTRA_ALWAYS_ALLOWED, false)) {
-                    mDevice.setPhonebookAccessPermission(BluetoothDevice.ACCESS_ALLOWED);
+                    mAdapterService.setPhonebookAccessPermission(device, ACCESS_ALLOWED);
                 }
                 atCommandResult = mPhonebook.processCpbrCommand(device);
             } else {
                 if (intent.getBooleanExtra(BluetoothDevice.EXTRA_ALWAYS_ALLOWED, false)) {
-                    mDevice.setPhonebookAccessPermission(BluetoothDevice.ACCESS_REJECTED);
+                    mAdapterService.setPhonebookAccessPermission(device, ACCESS_REJECTED);
                 }
             }
         }

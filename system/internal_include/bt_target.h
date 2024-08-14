@@ -28,7 +28,7 @@
 #define TRUE true
 #endif
 
-//------------------Added from bdroid_buildcfg.h---------------------
+// ------------------Added from bdroid_buildcfg.h---------------------
 #ifndef L2CAP_EXTFEA_SUPPORTED_MASK
 #define L2CAP_EXTFEA_SUPPORTED_MASK                                            \
   (L2CAP_EXTFEA_ENH_RETRANS | L2CAP_EXTFEA_STREAM_MODE | L2CAP_EXTFEA_NO_CRC | \
@@ -40,8 +40,7 @@
 #endif
 
 #ifndef BTA_RFC_MTU_SIZE
-#define BTA_RFC_MTU_SIZE \
-  (L2CAP_MTU_SIZE - L2CAP_MIN_OFFSET - RFCOMM_DATA_OVERHEAD)
+#define BTA_RFC_MTU_SIZE (L2CAP_MTU_SIZE - L2CAP_MIN_OFFSET - RFCOMM_DATA_OVERHEAD)
 #endif
 
 #ifndef BTA_PAN_INCLUDED
@@ -92,7 +91,7 @@
 #define BTA_FTC_IDLE_TO_SNIFF_DELAY_MS 5000
 #endif
 
-//------------------End added from bdroid_buildcfg.h---------------------
+// ------------------End added from bdroid_buildcfg.h---------------------
 
 /******************************************************************************
  *
@@ -107,7 +106,6 @@
 #ifndef OBX_LRG_DATA_BUF_SIZE
 #define OBX_LRG_DATA_BUF_SIZE (8080 + 26)
 #endif
-
 
 #ifndef BT_SMALL_BUFFER_SIZE
 #define BT_SMALL_BUFFER_SIZE 660
@@ -208,7 +206,7 @@
 
 /* The size in bytes of the BTM inquiry database. */
 #ifndef BTM_INQ_DB_SIZE
-#define BTM_INQ_DB_SIZE 80
+#define BTM_INQ_DB_SIZE 120
 #endif
 
 /* Sets the Page_Scan_Window:  the length of time that the device is performing
@@ -328,8 +326,7 @@
 #endif
 
 #ifndef L2CAP_LAST_FIXED_CHNL
-#define L2CAP_LAST_FIXED_CHNL \
-  (L2CAP_FIRST_FIXED_CHNL + L2CAP_NUM_FIXED_CHNLS - 1)
+#define L2CAP_LAST_FIXED_CHNL (L2CAP_FIRST_FIXED_CHNL + L2CAP_NUM_FIXED_CHNLS - 1)
 #endif
 
 /* Used for conformance testing ONLY:  When TRUE lets scriptwrapper overwrite
@@ -486,7 +483,7 @@
 
 /* The maximum number of simultaneous client and server connections. */
 #ifndef SDP_MAX_CONNECTIONS
-#define SDP_MAX_CONNECTIONS 4
+#define SDP_MAX_CONNECTIONS 16
 #endif
 
 /* The MTU size for the L2CAP configuration. */
@@ -712,7 +709,7 @@
 
 /*************************************************************************
  * Definitions for Both HID-Host & Device
-*/
+ */
 #ifndef HID_MAX_SVC_NAME_LEN
 #define HID_MAX_SVC_NAME_LEN 32
 #endif
@@ -727,7 +724,7 @@
 
 /*************************************************************************
  * Definitions for HID-Host
-*/
+ */
 #ifndef HID_HOST_INCLUDED
 #define HID_HOST_INCLUDED TRUE
 #endif

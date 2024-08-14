@@ -63,8 +63,10 @@
 
 #include <cutils/properties.h>
 #include <hardware/bt_vendor.h>
+
 #include <shared_mutex>
 #include <vector>
+
 #include "com_android_bluetooth.h"
 #include "utils/Log.h"
 
@@ -78,13 +80,15 @@ static jobject mCallbacksObj = NULL;
 
 static std::shared_timed_mutex interface_mutex;
 
-static int get_properties(int num_properties, bt_vendor_property_t* properties,
-                          jintArray* types, jobjectArray* props) {
+static int get_properties(int num_properties, bt_vendor_property_t* properties, jintArray* types,
+                          jobjectArray* props) {
   CallbackEnv sCallbackEnv(__func__);
-  if (!sCallbackEnv.valid()) return -1;
+  if (!sCallbackEnv.valid()) {
+    return -1;
+  }
   for (int i = 0; i < num_properties; i++) {
-    ScopedLocalRef<jbyteArray> propVal(
-        sCallbackEnv.get(), sCallbackEnv->NewByteArray(properties[i].len));
+    ScopedLocalRef<jbyteArray> propVal(sCallbackEnv.get(),
+                                       sCallbackEnv->NewByteArray(properties[i].len));
     if (!propVal.get()) {
       log::error("Error while allocation of array in {}", __func__);
       return -1;
@@ -102,38 +106,39 @@ static void ssr_cleanup_callback(void) {
   log::info("{}", __FUNCTION__);
   CallbackEnv sCallbackEnv(__func__);
 
-  if (!sCallbackEnv.valid()) return;
+  if (!sCallbackEnv.valid()) {
+    return;
+  }
 
   sCallbackEnv->CallVoidMethod(mCallbacksObj, method_ssrCleanupCallback);
 }
 
-static void adapter_vendor_properties_callback(
-    bt_status_t status, int num_properties, bt_vendor_property_t* properties) {
+static void adapter_vendor_properties_callback(bt_status_t status, int num_properties,
+                                               bt_vendor_property_t* properties) {
   CallbackEnv sCallbackEnv(__func__);
-  if (!sCallbackEnv.valid()) return;
+  if (!sCallbackEnv.valid()) {
+    return;
+  }
   log::error("{}: Status is: {}, Properties: {}", __func__, status, num_properties);
   if (status != BT_STATUS_SUCCESS) {
     log::error("{}: Status {} is incorrect", __func__, status);
     return;
   }
-  ScopedLocalRef<jbyteArray> val(
-      sCallbackEnv.get(),
-      (jbyteArray)sCallbackEnv->NewByteArray(num_properties));
+  ScopedLocalRef<jbyteArray> val(sCallbackEnv.get(),
+                                 (jbyteArray)sCallbackEnv->NewByteArray(num_properties));
   if (!val.get()) {
     log::error("{}: Error allocating byteArray", __func__);
     return;
   }
-  ScopedLocalRef<jclass> mclass(sCallbackEnv.get(),
-                                sCallbackEnv->GetObjectClass(val.get()));
+  ScopedLocalRef<jclass> mclass(sCallbackEnv.get(), sCallbackEnv->GetObjectClass(val.get()));
   ScopedLocalRef<jobjectArray> props(
-      sCallbackEnv.get(),
-      sCallbackEnv->NewObjectArray(num_properties, mclass.get(), NULL));
+          sCallbackEnv.get(), sCallbackEnv->NewObjectArray(num_properties, mclass.get(), NULL));
   if (!props.get()) {
     log::error("{}: Error allocating object Array for properties", __func__);
     return;
   }
-  ScopedLocalRef<jintArray> types(
-      sCallbackEnv.get(), (jintArray)sCallbackEnv->NewIntArray(num_properties));
+  ScopedLocalRef<jintArray> types(sCallbackEnv.get(),
+                                  (jintArray)sCallbackEnv->NewIntArray(num_properties));
   if (!types.get()) {
     log::error("{}: Error allocating int Array for values", __func__);
     return;
@@ -143,22 +148,20 @@ static void adapter_vendor_properties_callback(
   if (get_properties(num_properties, properties, &typesPtr, &propsPtr) < 0) {
     return;
   }
-  sCallbackEnv->CallVoidMethod(mCallbacksObj,
-                               method_adapterPropertyChangedCallback,
-                               types.get(), props.get());
+  sCallbackEnv->CallVoidMethod(mCallbacksObj, method_adapterPropertyChangedCallback, types.get(),
+                               props.get());
 }
 
 static btvendor_callbacks_t sBluetoothVendorCallbacks = {
-    sizeof(sBluetoothVendorCallbacks),
-    adapter_vendor_properties_callback,
-    ssr_cleanup_callback,
+        sizeof(sBluetoothVendorCallbacks),
+        adapter_vendor_properties_callback,
+        ssr_cleanup_callback,
 };
 
 static void classInitNative(JNIEnv* env, jclass clazz) {
   method_adapterPropertyChangedCallback =
-      env->GetMethodID(clazz, "adapterPropertyChangedCallback", "([I[[B)V");
-  method_ssrCleanupCallback =
-      env->GetMethodID(clazz, "ssr_cleanup_callback", "()V");
+          env->GetMethodID(clazz, "adapterPropertyChangedCallback", "([I[[B)V");
+  method_ssrCleanupCallback = env->GetMethodID(clazz, "ssr_cleanup_callback", "()V");
 }
 
 static void initNative(JNIEnv* env, jobject object) {
@@ -179,14 +182,12 @@ static void initNative(JNIEnv* env, jobject object) {
   }
 
   if ((sBluetoothVendorInterface =
-           (btvendor_interface_t*)btInf->get_profile_interface(
-               BT_PROFILE_VENDOR_ID)) == NULL) {
+               (btvendor_interface_t*)btInf->get_profile_interface(BT_PROFILE_VENDOR_ID)) == NULL) {
     log::error("Failed to get Bluetooth Vendor Interface");
     return;
   }
 
-  if ((status = sBluetoothVendorInterface->init(&sBluetoothVendorCallbacks)) !=
-      BT_STATUS_SUCCESS) {
+  if ((status = sBluetoothVendorInterface->init(&sBluetoothVendorCallbacks)) != BT_STATUS_SUCCESS) {
     log::error("Failed to initialize Bluetooth Vendor, status: {}", status);
     sBluetoothVendorInterface = NULL;
     return;
@@ -232,7 +233,9 @@ static bool setWifiStateNative(JNIEnv* env, jobject obj, jboolean status) {
   log::info("{}", __FUNCTION__);
 
   jboolean result = JNI_FALSE;
-  if (!sBluetoothVendorInterface) return result;
+  if (!sBluetoothVendorInterface) {
+    return result;
+  }
 
   sBluetoothVendorInterface->set_wifi_state(status);
   return JNI_TRUE;
@@ -242,25 +245,27 @@ static bool setPowerBackoffNative(JNIEnv* env, jobject obj, jboolean status) {
   log::info("{}", __FUNCTION__);
 
   jboolean result = JNI_FALSE;
-  if (!sBluetoothVendorInterface) return result;
+  if (!sBluetoothVendorInterface) {
+    return result;
+  }
 
   sBluetoothVendorInterface->set_Power_back_off_state(status);
   return JNI_TRUE;
 }
 
 static JNINativeMethod sMethods[] = {
-    {"classInitNative", "()V", (void*)classInitNative},
-    {"initNative", "()V", (void*)initNative},
-    {"cleanupNative", "()V", (void*)cleanupNative},
-    {"setWifiStateNative", "(Z)V", (void*)setWifiStateNative},
-    {"setPowerBackoffNative", "(Z)V", (void*)setPowerBackoffNative},
-    {"informTimeoutToHidlNative", "()V", (void*)informTimeoutToHidlNative},
+        {"classInitNative", "()V", (void*)classInitNative},
+        {"initNative", "()V", (void*)initNative},
+        {"cleanupNative", "()V", (void*)cleanupNative},
+        {"setWifiStateNative", "(Z)V", (void*)setWifiStateNative},
+        {"setPowerBackoffNative", "(Z)V", (void*)setPowerBackoffNative},
+        {"informTimeoutToHidlNative", "()V", (void*)informTimeoutToHidlNative},
 };
 
 int register_com_android_bluetooth_btservice_vendor(JNIEnv* env) {
   log::error("{}:", __FUNCTION__);
-  return jniRegisterNativeMethods(env, "com/android/bluetooth/btservice/Vendor",
-                                  sMethods, NELEM(sMethods));
+  return jniRegisterNativeMethods(env, "com/android/bluetooth/btservice/Vendor", sMethods,
+                                  NELEM(sMethods));
 }
 
 } /* namespace android */

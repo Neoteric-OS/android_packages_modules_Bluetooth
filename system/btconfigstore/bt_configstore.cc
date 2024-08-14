@@ -44,23 +44,22 @@
  *
  *****************************************************************************/
 
-#include <vector>
-
-#include <cutils/properties.h>
 #include "bt_configstore.h"
-
-#include <utils/Log.h>
-#include <vendor/qti/hardware/btconfigstore/1.0/IBTConfigStore.h>
-#include <vendor/qti/hardware/btconfigstore/1.0/types.h>
-#include <vendor/qti/hardware/btconfigstore/2.0/IBTConfigStore.h>
-#include <vendor/qti/hardware/btconfigstore/2.0/types.h>
-#include "osi/include/compat.h"
 
 #include <cutils/properties.h>
 #include <fcntl.h>
 #include <hwbinder/IPCThreadState.h>
 #include <hwbinder/ProcessState.h>
 #include <string.h>
+#include <utils/Log.h>
+#include <vendor/qti/hardware/btconfigstore/1.0/IBTConfigStore.h>
+#include <vendor/qti/hardware/btconfigstore/1.0/types.h>
+#include <vendor/qti/hardware/btconfigstore/2.0/IBTConfigStore.h>
+#include <vendor/qti/hardware/btconfigstore/2.0/types.h>
+
+#include <vector>
+
+#include "osi/include/compat.h"
 
 using android::hardware::IPCThreadState;
 
@@ -70,14 +69,10 @@ using ::vendor::qti::hardware::btconfigstore::V2_0::HostAddOnFeatures;
 
 using Result_V1_0 = ::vendor::qti::hardware::btconfigstore::V1_0::Result;
 using Result_V2_0 = ::vendor::qti::hardware::btconfigstore::V2_0::Result;
-using VendorProperty_V1_0 =
-    ::vendor::qti::hardware::btconfigstore::V1_0::VendorProperty;
-using VendorProperty_V2_0 =
-    ::vendor::qti::hardware::btconfigstore::V2_0::VendorProperty;
-using IBTConfigStore_V1_0 =
-    ::vendor::qti::hardware::btconfigstore::V1_0::IBTConfigStore;
-using IBTConfigStore_V2_0 =
-    ::vendor::qti::hardware::btconfigstore::V2_0::IBTConfigStore;
+using VendorProperty_V1_0 = ::vendor::qti::hardware::btconfigstore::V1_0::VendorProperty;
+using VendorProperty_V2_0 = ::vendor::qti::hardware::btconfigstore::V2_0::VendorProperty;
+using IBTConfigStore_V1_0 = ::vendor::qti::hardware::btconfigstore::V1_0::IBTConfigStore;
+using IBTConfigStore_V2_0 = ::vendor::qti::hardware::btconfigstore::V2_0::IBTConfigStore;
 
 using ::android::hardware::hidl_vec;
 using ::android::hardware::ProcessState;
@@ -88,15 +83,13 @@ using std::vector;
 android::sp<IBTConfigStore_V1_0> btConfigStoreHal_1_0 = nullptr;
 android::sp<IBTConfigStore_V2_0> btConfigStoreHal_2_0 = nullptr;
 
-const bool IsLazyHalSupported(property_get_bool("ro.vendor.bt.enablelazyhal",
-                                                false));
+const bool IsLazyHalSupported(property_get_bool("ro.vendor.bt.enablelazyhal", false));
 
 /**
  *
  * To get BT controller add On features
  */
-static bool getControllerAddOnFeatures(
-    controller_add_on_features_list_t* features_list);
+static bool getControllerAddOnFeatures(controller_add_on_features_list_t* features_list);
 /**
  *
  * To get BT Host add On features
@@ -106,8 +99,7 @@ static bool getHostAddOnFeatures(host_add_on_features_list_t* features_list);
  *
  *To get vendor property
  */
-static bool getVendorProperties(uint32_t type,
-                                std::vector<vendor_property_t>& vPropList);
+static bool getVendorProperties(uint32_t type, std::vector<vendor_property_t>& vPropList);
 /**
  * To set BT Vendor Properties
  */
@@ -123,18 +115,12 @@ static bt_soc_type_t convertSocNameToBTSocType(const char* name);
 static const char* convertPropTypeToStringFormat(uint32_t propType);
 
 bt_configstore_interface_t btConfigStoreInterface = {
-    sizeof(btConfigStoreInterface),
-    getVendorProperties,
-    getControllerAddOnFeatures,
-    getHostAddOnFeatures,
-    setVendorProperty,
-    convertSocNameToBTSocType,
-    convertPropTypeToStringFormat,
+        sizeof(btConfigStoreInterface), getVendorProperties, getControllerAddOnFeatures,
+        getHostAddOnFeatures,           setVendorProperty,   convertSocNameToBTSocType,
+        convertPropTypeToStringFormat,
 };
 
-bt_configstore_interface_t* get_btConfigStore_interface() {
-  return &btConfigStoreInterface;
-}
+bt_configstore_interface_t* get_btConfigStore_interface() { return &btConfigStoreInterface; }
 
 /*******************************************************************************
 **
@@ -151,8 +137,7 @@ bt_configstore_interface_t* get_btConfigStore_interface() {
 ** Returns          bool
 **
 *******************************************************************************/
-bool getVendorProperties(uint32_t vPropType,
-                         std::vector<vendor_property_t>& vPropList) {
+bool getVendorProperties(uint32_t vPropType, std::vector<vendor_property_t>& vPropList) {
   bool status = false;
   Return<void> ret;
 
@@ -162,8 +147,7 @@ bool getVendorProperties(uint32_t vPropType,
   if (btConfigStoreHal_2_0 != nullptr) {
     hidl_vec<VendorProperty_V2_0> vendorPropList;
     auto halResult = Result_V2_0::UNKNOWN_ERROR;
-    auto cb = [&](Result_V2_0 result,
-                  hidl_vec<VendorProperty_V2_0> vendorPropListCb) {
+    auto cb = [&](Result_V2_0 result, hidl_vec<VendorProperty_V2_0> vendorPropListCb) {
       halResult = result;
       vendorPropList = vendorPropListCb;
     };
@@ -190,8 +174,7 @@ bool getVendorProperties(uint32_t vPropType,
     if (btConfigStoreHal_1_0 != nullptr) {
       hidl_vec<VendorProperty_V1_0> vendorPropList;
       auto halResult = Result_V1_0::UNKNOWN_ERROR;
-      auto cb = [&](Result_V1_0 result,
-                    hidl_vec<VendorProperty_V1_0> vendorPropListCb) {
+      auto cb = [&](Result_V1_0 result, hidl_vec<VendorProperty_V1_0> vendorPropListCb) {
         halResult = result;
         vendorPropList = vendorPropListCb;
       };
@@ -207,8 +190,8 @@ bool getVendorProperties(uint32_t vPropType,
           vProp.type = vendorProp.type;
           strlcpy(vProp.value, vendorProp.value.c_str(), sizeof(vProp.value));
           vPropList.push_back(vProp);
-          ALOGI("prop type: %s, prop_value: %s",
-                convertPropTypeToStringFormat(vProp.type), vProp.value);
+          ALOGI("prop type: %s, prop_value: %s", convertPropTypeToStringFormat(vProp.type),
+                vProp.value);
         }
         status = true;
       }
@@ -217,9 +200,9 @@ bool getVendorProperties(uint32_t vPropType,
     }
   }
 
-  if (IsLazyHalSupported &&
-      (btConfigStoreHal_2_0 != nullptr || btConfigStoreHal_1_0 != nullptr))
+  if (IsLazyHalSupported && (btConfigStoreHal_2_0 != nullptr || btConfigStoreHal_1_0 != nullptr)) {
     IPCThreadState::self()->flushCommands();
+  }
 
   btConfigStoreHal_2_0 = nullptr;
   btConfigStoreHal_1_0 = nullptr;
@@ -279,9 +262,9 @@ bool setVendorProperty(uint32_t type, const char* value) {
     }
   }
 
-  if (IsLazyHalSupported &&
-      (btConfigStoreHal_2_0 != nullptr || btConfigStoreHal_1_0 != nullptr))
+  if (IsLazyHalSupported && (btConfigStoreHal_2_0 != nullptr || btConfigStoreHal_1_0 != nullptr)) {
     IPCThreadState::self()->flushCommands();
+  }
 
   btConfigStoreHal_2_0 = nullptr;
   btConfigStoreHal_1_0 = nullptr;
@@ -302,8 +285,7 @@ bool setVendorProperty(uint32_t type, const char* value) {
 ** Returns          bool
 **
 *******************************************************************************/
-bool getControllerAddOnFeatures(
-    controller_add_on_features_list_t* features_list) {
+bool getControllerAddOnFeatures(controller_add_on_features_list_t* features_list) {
   bool status = false;
   ALOGI("%s ", __func__);
 
@@ -327,19 +309,15 @@ bool getControllerAddOnFeatures(
       features_list->product_id = featureList.product_id;
       features_list->rsp_version = featureList.rsp_version;
       features_list->feat_mask_len = featureList.feat_mask_len;
-      memcpy(features_list->features, featureList.features.data(),
-             featureList.features.size());
+      memcpy(features_list->features, featureList.features.data(), featureList.features.size());
 
-      std::copy(features_list->features,
-                features_list->features + features_list->feat_mask_len,
-                std::ostream_iterator<int>(
-                    features << std::showbase << std::hex, " "));
+      std::copy(features_list->features, features_list->features + features_list->feat_mask_len,
+                std::ostream_iterator<int>(features << std::showbase << std::hex, " "));
 
-      ALOGI(
-          "%s:: product_id = %d, version = %d, feat_mask_len = %d "
-          "features data: %s",
-          __func__, features_list->product_id, features_list->rsp_version,
-          features_list->feat_mask_len, features.str().c_str());
+      ALOGI("%s:: product_id = %d, version = %d, feat_mask_len = %d "
+            "features data: %s",
+            __func__, features_list->product_id, features_list->rsp_version,
+            features_list->feat_mask_len, features.str().c_str());
       status = true;
     }
 
@@ -363,28 +341,24 @@ bool getControllerAddOnFeatures(
         features_list->product_id = featureList.product_id;
         features_list->rsp_version = featureList.rsp_version;
         features_list->feat_mask_len = featureList.feat_mask_len;
-        memcpy(features_list->features, &featureList.features,
-               features_list->feat_mask_len);
+        memcpy(features_list->features, &featureList.features, features_list->feat_mask_len);
 
-        std::copy(features_list->features,
-                  features_list->features + features_list->feat_mask_len,
-                  std::ostream_iterator<int>(
-                      features << std::showbase << std::hex, " "));
+        std::copy(features_list->features, features_list->features + features_list->feat_mask_len,
+                  std::ostream_iterator<int>(features << std::showbase << std::hex, " "));
 
-        ALOGI(
-            "%s:: product_id = %d, version = %d, feat_mask_len = %d "
-            "features data: %s",
-            __func__, features_list->product_id, features_list->rsp_version,
-            features_list->feat_mask_len, features.str().c_str());
+        ALOGI("%s:: product_id = %d, version = %d, feat_mask_len = %d "
+              "features data: %s",
+              __func__, features_list->product_id, features_list->rsp_version,
+              features_list->feat_mask_len, features.str().c_str());
 
         status = true;
       }
     }
   }
 
-  if (IsLazyHalSupported &&
-      (btConfigStoreHal_2_0 != nullptr || btConfigStoreHal_1_0 != nullptr))
+  if (IsLazyHalSupported && (btConfigStoreHal_2_0 != nullptr || btConfigStoreHal_1_0 != nullptr)) {
     IPCThreadState::self()->flushCommands();
+  }
 
   btConfigStoreHal_2_0 = nullptr;
   btConfigStoreHal_1_0 = nullptr;
@@ -429,24 +403,22 @@ bool getHostAddOnFeatures(host_add_on_features_list_t* features_list) {
       std::stringstream features;
 
       features_list->feat_mask_len = featureList.feat_mask_len;
-      memcpy(features_list->features, featureList.features.data(),
-             featureList.features.size());
+      memcpy(features_list->features, featureList.features.data(), featureList.features.size());
 
-      std::copy(features_list->features,
-                features_list->features + features_list->feat_mask_len,
-                std::ostream_iterator<int>(
-                    features << std::showbase << std::hex, " "));
+      std::copy(features_list->features, features_list->features + features_list->feat_mask_len,
+                std::ostream_iterator<int>(features << std::showbase << std::hex, " "));
 
-      ALOGI("%s:: feat_mask_len = %d features data: %s", __func__,
-            features_list->feat_mask_len, features.str().c_str());
+      ALOGI("%s:: feat_mask_len = %d features data: %s", __func__, features_list->feat_mask_len,
+            features.str().c_str());
       status = true;
     }
   } else {
     ALOGW("%s add on features is not avaliable", __func__);
   }
 
-  if (IsLazyHalSupported && (btConfigStoreHal_2_0 != nullptr))
+  if (IsLazyHalSupported && (btConfigStoreHal_2_0 != nullptr)) {
     IPCThreadState::self()->flushCommands();
+  }
 
   btConfigStoreHal_2_0 = nullptr;
 

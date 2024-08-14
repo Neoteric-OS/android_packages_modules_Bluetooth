@@ -17,9 +17,9 @@
 package com.android.bluetooth.hfp;
 
 import static android.Manifest.permission.BLUETOOTH_CONNECT;
+import static android.Manifest.permission.BLUETOOTH_PRIVILEGED;
 import static android.Manifest.permission.MODIFY_PHONE_STATE;
 
-import static com.android.bluetooth.Utils.enforceBluetoothPrivilegedPermission;
 import static com.android.modules.utils.build.SdkLevel.isAtLeastU;
 
 import static java.util.Objects.requireNonNull;
@@ -263,7 +263,10 @@ public class HeadsetService extends ProfileService {
         unregisterReceiver(mHeadsetReceiver);
         synchronized (mStateMachines) {
             // Reset active device to null
-            mActiveDevice = null;
+            if (mActiveDevice != null) {
+                mActiveDevice = null;
+                broadcastActiveDevice(null);
+            }
             mInbandRingingRuntimeDisable = false;
             mForceScoAudio = false;
             mAudioRouteAllowed = true;
@@ -522,7 +525,7 @@ public class HeadsetService extends ProfileService {
     @VisibleForTesting
     static class BluetoothHeadsetBinder extends IBluetoothHeadset.Stub
             implements IProfileServiceBinder {
-        private volatile HeadsetService mService;
+        private HeadsetService mService;
 
         BluetoothHeadsetBinder(HeadsetService svc) {
             mService = svc;
@@ -535,15 +538,19 @@ public class HeadsetService extends ProfileService {
 
         @RequiresPermission(android.Manifest.permission.BLUETOOTH_CONNECT)
         private HeadsetService getService(AttributionSource source) {
+            // Cache mService because it can change while getService is called
+            HeadsetService service = mService;
+
             if (Utils.isInstrumentationTestMode()) {
-                return mService;
+                return service;
             }
-            if (!Utils.checkCallerIsSystemOrActiveOrManagedUser(mService, TAG)
-                    || !Utils.checkServiceAvailable(mService, TAG)
-                    || !Utils.checkConnectPermissionForDataDelivery(mService, source, TAG)) {
+
+            if (!Utils.checkServiceAvailable(service, TAG)
+                    || !Utils.checkCallerIsSystemOrActiveOrManagedUser(service, TAG)
+                    || !Utils.checkConnectPermissionForDataDelivery(service, source, TAG)) {
                 return null;
             }
-            return mService;
+            return service;
         }
 
         @Override
@@ -553,6 +560,7 @@ public class HeadsetService extends ProfileService {
                 return false;
             }
 
+            service.enforceCallingOrSelfPermission(MODIFY_PHONE_STATE, null);
             return service.connect(device);
         }
 
@@ -605,7 +613,8 @@ public class HeadsetService extends ProfileService {
                 return false;
             }
 
-            enforceBluetoothPrivilegedPermission(service);
+            service.enforceCallingOrSelfPermission(MODIFY_PHONE_STATE, null);
+            service.enforceCallingOrSelfPermission(BLUETOOTH_PRIVILEGED, null);
             return service.setConnectionPolicy(device, connectionPolicy);
         }
 
@@ -616,7 +625,7 @@ public class HeadsetService extends ProfileService {
                 return BluetoothProfile.CONNECTION_POLICY_UNKNOWN;
             }
 
-            enforceBluetoothPrivilegedPermission(service);
+            service.enforceCallingOrSelfPermission(BLUETOOTH_PRIVILEGED, null);
             return service.getConnectionPolicy(device);
         }
 
@@ -648,6 +657,7 @@ public class HeadsetService extends ProfileService {
                 return false;
             }
 
+            service.enforceCallingOrSelfPermission(MODIFY_PHONE_STATE, null);
             return service.startVoiceRecognition(device);
         }
 
@@ -659,16 +669,6 @@ public class HeadsetService extends ProfileService {
             }
 
             return service.stopVoiceRecognition(device);
-        }
-
-        @Override
-        public boolean isAudioOn(AttributionSource source) {
-            HeadsetService service = getService(source);
-            if (service == null) {
-                return false;
-            }
-
-            return service.isAudioOn();
         }
 
         @Override
@@ -688,7 +688,7 @@ public class HeadsetService extends ProfileService {
                 return BluetoothHeadset.STATE_AUDIO_DISCONNECTED;
             }
 
-            enforceBluetoothPrivilegedPermission(service);
+            service.enforceCallingOrSelfPermission(BLUETOOTH_PRIVILEGED, null);
             return service.getAudioState(device);
         }
 
@@ -699,7 +699,7 @@ public class HeadsetService extends ProfileService {
                 return BluetoothStatusCodes.ERROR_PROFILE_SERVICE_NOT_BOUND;
             }
 
-            enforceBluetoothPrivilegedPermission(service);
+            service.enforceCallingOrSelfPermission(BLUETOOTH_PRIVILEGED, null);
             return service.connectAudio();
         }
 
@@ -710,7 +710,7 @@ public class HeadsetService extends ProfileService {
                 return BluetoothStatusCodes.ERROR_PROFILE_SERVICE_NOT_BOUND;
             }
 
-            enforceBluetoothPrivilegedPermission(service);
+            service.enforceCallingOrSelfPermission(BLUETOOTH_PRIVILEGED, null);
             return service.disconnectAudio();
         }
 
@@ -721,7 +721,7 @@ public class HeadsetService extends ProfileService {
                 return;
             }
 
-            enforceBluetoothPrivilegedPermission(service);
+            service.enforceCallingOrSelfPermission(BLUETOOTH_PRIVILEGED, null);
             service.setAudioRouteAllowed(allowed);
         }
 
@@ -732,7 +732,7 @@ public class HeadsetService extends ProfileService {
                 return false;
             }
 
-            enforceBluetoothPrivilegedPermission(service);
+            service.enforceCallingOrSelfPermission(BLUETOOTH_PRIVILEGED, null);
             return service.getAudioRouteAllowed();
         }
 
@@ -753,7 +753,9 @@ public class HeadsetService extends ProfileService {
                 return false;
             }
 
-            enforceBluetoothPrivilegedPermission(service);
+            service.enforceCallingOrSelfPermission(MODIFY_PHONE_STATE, null);
+            service.enforceCallingOrSelfPermission(BLUETOOTH_PRIVILEGED, null);
+
             return service.startScoUsingVirtualVoiceCall();
         }
 
@@ -764,7 +766,9 @@ public class HeadsetService extends ProfileService {
                 return false;
             }
 
-            enforceBluetoothPrivilegedPermission(service);
+            service.enforceCallingOrSelfPermission(MODIFY_PHONE_STATE, null);
+            service.enforceCallingOrSelfPermission(BLUETOOTH_PRIVILEGED, null);
+
             return service.stopScoUsingVirtualVoiceCall();
         }
 
@@ -782,6 +786,7 @@ public class HeadsetService extends ProfileService {
                 return;
             }
 
+            service.enforceCallingOrSelfPermission(MODIFY_PHONE_STATE, null);
             service.phoneStateChangedInternal(numActive, numHeld, callState, number, type, name, false);
         }
 
@@ -800,6 +805,7 @@ public class HeadsetService extends ProfileService {
                 return;
             }
 
+            service.enforceCallingOrSelfPermission(MODIFY_PHONE_STATE, null);
             service.clccResponse(index, direction, status, mode, mpty, number, type);
         }
 
@@ -820,6 +826,8 @@ public class HeadsetService extends ProfileService {
             if (service == null) {
                 return false;
             }
+
+            service.enforceCallingOrSelfPermission(MODIFY_PHONE_STATE, null);
 
             if (Flags.audioRoutingCentralization()) {
                 return ((AudioRoutingManager) service.mAdapterService.getActiveDeviceManager())
@@ -847,7 +855,7 @@ public class HeadsetService extends ProfileService {
                 return false;
             }
 
-            enforceBluetoothPrivilegedPermission(service);
+            service.enforceCallingOrSelfPermission(BLUETOOTH_PRIVILEGED, null);
             return service.isInbandRingingEnabled();
         }
 
@@ -872,7 +880,6 @@ public class HeadsetService extends ProfileService {
             Log.w(TAG, "getHeadsetService(): service is not available");
             return null;
         }
-        logD("getHeadsetService(): returning " + sHeadsetService);
         return sHeadsetService;
     }
 
@@ -881,7 +888,6 @@ public class HeadsetService extends ProfileService {
         sHeadsetService = instance;
     }
 
-    @RequiresPermission(android.Manifest.permission.MODIFY_PHONE_STATE)
     public boolean connect(BluetoothDevice device) {
         if (getConnectionPolicy(device) == BluetoothProfile.CONNECTION_POLICY_FORBIDDEN) {
             Log.w(
@@ -892,7 +898,7 @@ public class HeadsetService extends ProfileService {
                             + Utils.getUidPidString());
             return false;
         }
-        ParcelUuid[] featureUuids = mAdapterService.getRemoteUuids(device);
+        final ParcelUuid[] featureUuids = mAdapterService.getRemoteUuids(device);
         if (!BluetoothUuid.containsAnyUuid(featureUuids, HEADSET_UUIDS)) {
             Log.e(
                     TAG,
@@ -1080,7 +1086,6 @@ public class HeadsetService extends ProfileService {
      * @param connectionPolicy is the connection policy to set to for this profile
      * @return true if connectionPolicy is set, false on error
      */
-    @RequiresPermission(android.Manifest.permission.MODIFY_PHONE_STATE)
     public boolean setConnectionPolicy(BluetoothDevice device, int connectionPolicy) {
         Log.i(
                 TAG,
@@ -1125,7 +1130,6 @@ public class HeadsetService extends ProfileService {
         return mNativeInterface.isVoiceRecognitionSupported(device);
     }
 
-    @RequiresPermission(android.Manifest.permission.MODIFY_PHONE_STATE)
     boolean startVoiceRecognition(BluetoothDevice device) {
         Log.i(TAG, "startVoiceRecognition: device=" + device + ", " + Utils.getUidPidString());
         synchronized (mStateMachines) {
@@ -1367,7 +1371,6 @@ public class HeadsetService extends ProfileService {
      * @return true on success, false on error
      */
     @VisibleForTesting
-    @RequiresPermission(android.Manifest.permission.MODIFY_PHONE_STATE)
     public boolean setSilenceMode(BluetoothDevice device, boolean silence) {
         Log.d(TAG, "setSilenceMode(" + device + "): " + silence);
 
@@ -1399,7 +1402,7 @@ public class HeadsetService extends ProfileService {
         synchronized (mStateMachines) {
             final HeadsetStateMachine stateMachine = mStateMachines.get(device);
             if (stateMachine == null) {
-                Log.e(TAG, "getHfpCallAudioPolicy(), " + device + " does not have a state machine");
+                Log.w(TAG, "getHfpCallAudioPolicy(), " + device + " does not have a state machine");
                 return null;
             }
             return stateMachine.getHfpCallAudioPolicy();
@@ -1455,6 +1458,9 @@ public class HeadsetService extends ProfileService {
             mActiveDevice = null;
             mNativeInterface.setActiveDevice(null);
             broadcastActiveDevice(null);
+            if (Flags.updateActiveDeviceInBandRingtone()) {
+                updateInbandRinging(null, true);
+            }
         }
     }
 
@@ -1464,7 +1470,6 @@ public class HeadsetService extends ProfileService {
      * @param device the active device
      * @return true on success, otherwise false
      */
-    @RequiresPermission(android.Manifest.permission.MODIFY_PHONE_STATE)
     public boolean setActiveDevice(BluetoothDevice device) {
         boolean deferConnectAudio = false;
         Log.i(TAG, "setActiveDevice: device=" + device + ", " + Utils.getUidPidString());
@@ -1534,6 +1539,9 @@ public class HeadsetService extends ProfileService {
                                     BluetoothProfileConnectionInfo.createHfpInfo());
                 }
                 broadcastActiveDevice(mActiveDevice);
+                if (Flags.updateActiveDeviceInBandRingtone()) {
+                    updateInbandRinging(device, true);
+                }
             } else if (shouldPersistAudio()) {
                 /* If HFP is getting active for a phonecall and there is LeAudio device active,
                  * Lets inactive LeAudio device as soon as possible so there is no CISes connected
@@ -1591,6 +1599,9 @@ public class HeadsetService extends ProfileService {
                                     BluetoothProfileConnectionInfo.createHfpInfo());
                 }
                 broadcastActiveDevice(mActiveDevice);
+                if (Flags.updateActiveDeviceInBandRingtone()) {
+                    updateInbandRinging(device, true);
+                }
             }
         }
         return true;
@@ -1742,7 +1753,6 @@ public class HeadsetService extends ProfileService {
         }
     }
 
-    @RequiresPermission(android.Manifest.permission.MODIFY_PHONE_STATE)
     @VisibleForTesting
     boolean startScoUsingVirtualVoiceCall() {
         Log.i(TAG, "startScoUsingVirtualVoiceCall: " + Utils.getUidPidString());
@@ -1818,7 +1828,6 @@ public class HeadsetService extends ProfileService {
         lock.unlock();
     }
 
-    @RequiresPermission(android.Manifest.permission.MODIFY_PHONE_STATE)
     boolean stopScoUsingVirtualVoiceCall() {
         Log.i(TAG, "stopScoUsingVirtualVoiceCall: " + Utils.getUidPidString());
         synchronized (mStateMachines) {
@@ -1871,7 +1880,6 @@ public class HeadsetService extends ProfileService {
      * @return true on successful dial out
      */
     @VisibleForTesting(visibility = VisibleForTesting.Visibility.PACKAGE)
-    @RequiresPermission(android.Manifest.permission.MODIFY_PHONE_STATE)
     public boolean dialOutgoingCall(BluetoothDevice fromDevice, String dialNumber) {
         synchronized (mStateMachines) {
             Log.i(TAG, "dialOutgoingCall: from " + fromDevice);
@@ -1952,7 +1960,6 @@ public class HeadsetService extends ProfileService {
         }
     }
 
-    @RequiresPermission(android.Manifest.permission.MODIFY_PHONE_STATE)
     boolean startVoiceRecognitionByHeadset(BluetoothDevice fromDevice) {
         synchronized (mStateMachines) {
             Log.i(TAG, "startVoiceRecognitionByHeadset: from " + fromDevice);
@@ -2130,7 +2137,6 @@ public class HeadsetService extends ProfileService {
        phoneStateChanged(numActive, numHeld, callState, number, type, name, isVirtualCall);
     }
 
-    @RequiresPermission(android.Manifest.permission.MODIFY_PHONE_STATE)
     @VisibleForTesting
     void phoneStateChanged(
             int numActive,
@@ -2140,7 +2146,6 @@ public class HeadsetService extends ProfileService {
             int type,
             String name,
             boolean isVirtualCall) {
-        enforceCallingOrSelfPermission(MODIFY_PHONE_STATE, "Need MODIFY_PHONE_STATE permission");
         synchronized (mStateMachines) {
              // Should stop all other audio mode in this case
              if ((numActive + numHeld) > 0 || callState != HeadsetHalConstants.CALL_STATE_IDLE) {
@@ -2299,10 +2304,8 @@ public class HeadsetService extends ProfileService {
         }
     }
 
-    @RequiresPermission(android.Manifest.permission.MODIFY_PHONE_STATE)
     void clccResponse(
             int index, int direction, int status, int mode, boolean mpty, String number, int type) {
-        enforceCallingOrSelfPermission(MODIFY_PHONE_STATE, "Need MODIFY_PHONE_STATE permission");
         mPendingClccResponses.add(
                 stateMachine ->
                         stateMachine.sendMessage(
@@ -2391,7 +2394,6 @@ public class HeadsetService extends ProfileService {
      * @param toState to which connection state is the change
      */
     @VisibleForTesting
-    @RequiresPermission(android.Manifest.permission.MODIFY_PHONE_STATE)
     public void onConnectionStateChangedFromStateMachine(
             BluetoothDevice device, int fromState, int toState) {
         if (fromState != BluetoothProfile.STATE_CONNECTED
@@ -2428,16 +2430,14 @@ public class HeadsetService extends ProfileService {
     /** Called from {@link HeadsetClientStateMachine} to update inband ringing status. */
     public void updateInbandRinging(BluetoothDevice device, boolean connected) {
         synchronized (mStateMachines) {
-            List<BluetoothDevice> audioConnectableDevices = getConnectedDevices();
-            final int enabled;
             final boolean inbandRingingRuntimeDisable = mInbandRingingRuntimeDisable;
 
-            if (audioConnectableDevices.size() > 1 || isHeadsetClientConnected()) {
+            if (getConnectedDevices().size() > 1
+                    || isHeadsetClientConnected()
+                    || (Flags.updateActiveDeviceInBandRingtone() && mActiveDevice == null)) {
                 mInbandRingingRuntimeDisable = true;
-                enabled = 0;
             } else {
                 mInbandRingingRuntimeDisable = false;
-                enabled = 1;
             }
 
             final boolean updateAll = inbandRingingRuntimeDisable != mInbandRingingRuntimeDisable;
@@ -2447,8 +2447,10 @@ public class HeadsetService extends ProfileService {
                     "updateInbandRinging():"
                             + " Device="
                             + device
+                            + " ActiveDevice="
+                            + mActiveDevice
                             + " enabled="
-                            + enabled
+                            + !mInbandRingingRuntimeDisable
                             + " connected="
                             + connected
                             + " Update all="
@@ -2456,7 +2458,9 @@ public class HeadsetService extends ProfileService {
 
             StateMachineTask sendBsirTask =
                     stateMachine ->
-                            stateMachine.sendMessage(HeadsetStateMachine.SEND_BSIR, enabled);
+                            stateMachine.sendMessage(
+                                    HeadsetStateMachine.SEND_BSIR,
+                                    mInbandRingingRuntimeDisable ? 0 : 1);
 
             if (updateAll) {
                 doForEachConnectedStateMachine(sendBsirTask);
@@ -2547,7 +2551,6 @@ public class HeadsetService extends ProfileService {
      * @param toState to which audio connection state is the change
      */
     @VisibleForTesting
-    @RequiresPermission(android.Manifest.permission.MODIFY_PHONE_STATE)
     public void onAudioStateChangedFromStateMachine(
             BluetoothDevice device, int fromState, int toState) {
         synchronized (mStateMachines) {
@@ -2784,7 +2787,9 @@ public class HeadsetService extends ProfileService {
         for (BluetoothDevice device : fallbackCandidates) {
             byte[] deviceType =
                     dbManager.getCustomMeta(device, BluetoothDevice.METADATA_DEVICE_TYPE);
-            BluetoothClass deviceClass = device.getBluetoothClass();
+            BluetoothClass deviceClass =
+                    new BluetoothClass(
+                            mAdapterService.getRemoteDevices().getBluetoothClass(device));
             if ((deviceClass != null
                             && deviceClass.getMajorDeviceClass()
                                     == BluetoothClass.Device.WEARABLE_WRIST_WATCH)
