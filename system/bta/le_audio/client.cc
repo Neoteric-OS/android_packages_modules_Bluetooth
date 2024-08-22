@@ -263,6 +263,7 @@ public:
         defer_notify_active_until_stop_(false),
         defer_sink_suspend_ack_until_stop_(false),
         defer_source_suspend_ack_until_stop_(false),
+        is_local_sink_metadata_available_(false),
         le_audio_source_hal_client_(nullptr),
         le_audio_sink_hal_client_(nullptr),
         close_vbc_timeout_(alarm_new("LeAudioCloseVbcTimeout")),
@@ -611,6 +612,7 @@ public:
                                             kLogAfCancel + "LocalSink",
                                             "s_state: " + ToString(audio_receiver_state_));
 
+     is_local_sink_metadata_available_ = false;
     audio_receiver_state_ = AudioState::IDLE;
   }
 
@@ -4090,6 +4092,8 @@ public:
                                      : bluetooth::le_audio::types::kLeAudioDirectionSink);
 
     log::debug("configuration_context_type_= {}.", ToString(configuration_context_type_));
+    log::debug(" is_local_sink_metadata_available_= {}.",
+                               is_local_sink_metadata_available_);
     log::debug("remote_direction= {}",
                (remote_direction == bluetooth::le_audio::types::kLeAudioDirectionSource ? "Source"
                                                                                         : "Sink"));
@@ -4104,7 +4108,8 @@ public:
       if (is_sink_config_supported_curr_context) {
         remote_contexts = DirectionalRealignMetadataAudioContexts(group, local_direction);
       }
-    } else if (configuration_context_type_ == LeAudioContextType::GAME &&
+    } else if (( is_local_sink_metadata_available_ == false) &&
+               (configuration_context_type_ == LeAudioContextType::GAME) &&
                (remote_direction == bluetooth::le_audio::types::kLeAudioDirectionSource)) {
       log::debug("Ensuring to saty in VBC path.");
       remote_contexts = DirectionalRealignMetadataAudioContexts(group, local_direction);
@@ -4526,6 +4531,7 @@ public:
      */
     auto group = aseGroups_.FindById(active_group_id_);
     if (!group) {
+       is_local_sink_metadata_available_ = false;
       log::error("Invalid group: {}", static_cast<int>(active_group_id_));
       return;
     }
@@ -4533,14 +4539,17 @@ public:
     group->ClearReconfigStartPendingDirs(bluetooth::le_audio::types::kLeAudioDirectionSource);
 
     log::debug("configuration_context_type_= {}.", ToString(configuration_context_type_));
+    log::debug(" is_local_sink_metadata_available_= {}.",
+                               is_local_sink_metadata_available_);
     /* We need new configuration_context_type_ to be selected before we go any
      * further.
      */
     if (audio_receiver_state_ == AudioState::IDLE) {
-      // Below condition is not to allow reconfig to LIVE when
-      // configuration_context_type_ is GAME as there is no UpdateMetadata
-      // update on decoding session. This ensures to be stay in VBC path.
-      if ((audio_sender_state_ == AudioState::IDLE) &&
+      //Below condition is not to allow reconfig to LIVE when
+      //configuration_context_type_ is GAME as there is no UpdateMetadata
+      //update on decoding session. This ensures to be stay in VBC path.
+      if (( is_local_sink_metadata_available_ == false) &&
+          (audio_sender_state_ == AudioState::IDLE) &&
           (configuration_context_type_ == LeAudioContextType::GAME)) {
         ReconfigureOrUpdateRemote(group, bluetooth::le_audio::types::kLeAudioDirectionSink);
       } else {
@@ -4697,6 +4706,7 @@ public:
         /* Wait until releasing is completed */
         break;
     }
+     is_local_sink_metadata_available_ = false;
   }
 
   /* Chooses a single context type to use as a key for selecting a single
@@ -4983,6 +4993,8 @@ public:
       log::error("Invalid group: {}", static_cast<int>(active_group_id_));
       return;
     }
+
+     is_local_sink_metadata_available_ = true;
 
     log::info(
             "group_id {} state={}, target_state={}, audio_receiver_state_: {}, "
@@ -6024,6 +6036,8 @@ private:
   /*To track MM issued suspend progress */
   bool defer_sink_suspend_ack_until_stop_;
   bool defer_source_suspend_ack_until_stop_;
+  /* To know whether MM sent sink track update Metadata */
+  bool  is_local_sink_metadata_available_;
 
   /* Reconnection mode */
   tBTM_BLE_CONN_TYPE reconnection_mode_;
