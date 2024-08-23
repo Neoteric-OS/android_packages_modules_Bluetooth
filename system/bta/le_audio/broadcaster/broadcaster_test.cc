@@ -84,14 +84,6 @@ static base::Callback<void(BT_OCTET8)> generator_cb;
 
 void btsnd_hcic_ble_rand(base::Callback<void(BT_OCTET8)> cb) { generator_cb = cb; }
 
-namespace server_configurable_flags {
-std::string GetServerConfigurableFlag(const std::string& experiment_category_name,
-                                      const std::string& experiment_flag_name,
-                                      const std::string& default_value) {
-  return "";
-}
-}  // namespace server_configurable_flags
-
 std::atomic<int> num_async_tasks;
 bluetooth::common::MessageLoopThread message_loop_thread("test message loop");
 bluetooth::common::MessageLoopThread* get_main_thread() { return &message_loop_thread; }
@@ -493,6 +485,28 @@ TEST_F(BroadcasterTest, CreateAudioBroadcast) {
     ASSERT_EQ(types::LeAudioLtvMap(subgroup.metadata).RawPacket(), default_metadata);
   }
   // Note: There shall be a separate test to verify audio parameters
+}
+
+TEST_F(BroadcasterTest, CreateAudioBroadcastInvalidBroadcastCode) {
+  std::optional<bluetooth::le_audio::BroadcastCode> invalid_broadcast_code =
+          bluetooth::le_audio::BroadcastCode({0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+                                              0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF});
+
+  std::vector<std::vector<uint8_t>> metadata_array;
+  for (uint8_t i = 0; i < default_subgroup_qualities.size(); i++) {
+    // use the same default_metadata for each subgroup
+    metadata_array.push_back(default_metadata);
+  }
+
+  EXPECT_CALL(mock_broadcaster_callbacks_,
+              OnBroadcastCreated(bluetooth::le_audio::kBroadcastIdInvalid, false))
+          .Times(1);
+  // Add multiple subgroup settings with the same content
+  LeAudioBroadcaster::Get()->CreateAudioBroadcast(true, test_broadcast_name, invalid_broadcast_code,
+                                                  default_public_metadata,
+                                                  default_subgroup_qualities, metadata_array);
+
+  Mock::VerifyAndClearExpectations(&mock_broadcaster_callbacks_);
 }
 
 TEST_F(BroadcasterTest, CreateAudioBroadcastMultiGroups) {

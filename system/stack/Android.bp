@@ -300,6 +300,7 @@ cc_library_static {
         "-fvisibility=default",
     ],
     static_libs: [
+        "bluetooth_flags_c_lib",
         "libaconfig_storage_read_api_cc",
         "libbluetooth_core_rs",
         "libbluetooth_crypto_toolbox",
@@ -412,7 +413,6 @@ cc_fuzz {
         ":TestFakeOsi",
         ":TestMockBtif",
         ":TestMockDevice",
-        ":TestMockGdOsLoggingLogRedaction",
         ":TestMockStackBtm",
         ":TestMockStackL2cap",
         ":TestMockStackMetrics",
@@ -456,7 +456,6 @@ cc_fuzz {
         ":TestFakeOsi",
         ":TestMockBtif",
         ":TestMockDevice",
-        ":TestMockGdOsLoggingLogRedaction",
         ":TestMockMainShim",
         ":TestMockMainShimEntry",
         ":TestMockRustFfi",
@@ -512,7 +511,6 @@ cc_fuzz {
         ":TestFakeOsi",
         ":TestMockBtif",
         ":TestMockDevice",
-        ":TestMockGdOsLoggingLogRedaction",
         ":TestMockMainShim",
         ":TestMockMainShimEntry",
         ":TestMockRustFfi",
@@ -567,7 +565,6 @@ cc_fuzz {
         ":TestFakeOsi",
         ":TestMockBtif",
         ":TestMockDevice",
-        ":TestMockGdOsLoggingLogRedaction",
         ":TestMockMainShim",
         ":TestMockMainShimEntry",
         ":TestMockStackAcl",
@@ -619,7 +616,6 @@ cc_fuzz {
         ":TestFakeOsi",
         ":TestMockBtif",
         ":TestMockDevice",
-        ":TestMockGdOsLoggingLogRedaction",
         ":TestMockMainShim",
         ":TestMockMainShimEntry",
         ":TestMockStackAcl",
@@ -663,7 +659,6 @@ cc_fuzz {
         ":TestFakeOsi",
         ":TestMockBtif",
         ":TestMockDevice",
-        ":TestMockGdOsLoggingLogRedaction",
         ":TestMockMainShim",
         ":TestMockMainShimEntry",
         ":TestMockStackAcl",
@@ -716,7 +711,6 @@ cc_fuzz {
         ":TestFakeOsi",
         ":TestMockBtif",
         ":TestMockDevice",
-        ":TestMockGdOsLoggingLogRedaction",
         ":TestMockMainShim",
         ":TestMockMainShimEntry",
         ":TestMockStackAcl",
@@ -915,6 +909,7 @@ cc_test {
         "libcutils",
     ],
     static_libs: [
+        "bluetooth_flags_c_lib",
         "libaconfig_storage_read_api_cc",
         "libbase",
         "libbluetooth-types",
@@ -1007,6 +1002,7 @@ cc_test {
         "server_configurable_flags",
     ],
     static_libs: [
+        "bluetooth_flags_c_lib",
         "libbase",
         "libbluetooth-types",
         "libbluetooth_crypto_toolbox",
@@ -1150,6 +1146,7 @@ cc_test {
         "server_configurable_flags",
     ],
     static_libs: [
+        "bluetooth_flags_c_lib",
         "libbase",
         "libbluetooth-types",
         "libbluetooth_crypto_toolbox",
@@ -1454,6 +1451,7 @@ cc_test {
         "server_configurable_flags",
     ],
     static_libs: [
+        "bluetooth_flags_c_lib",
         "libbase",
         "libbluetooth-types",
         "libbluetooth_crypto_toolbox",
@@ -1718,6 +1716,7 @@ cc_test {
         "test/stack_include_test.cc",
     ],
     static_libs: [
+        "bluetooth_flags_c_lib",
         "libbase",
         "libbluetooth-types",
         "libbluetooth_crypto_toolbox",
@@ -1826,7 +1825,6 @@ cc_test {
         "packages/modules/Bluetooth/system/stack/btm",
     ],
     srcs: [
-        ":BluetoothLogRedactionSources",
         ":TestCommonMockFunctions",
         ":TestMockStackBtm",
         ":TestMockStackL2cap",
@@ -2102,6 +2100,7 @@ cc_test {
         "test/stack_l2cap_test.cc",
     ],
     static_libs: [
+        "bluetooth_flags_c_lib",
         "libbluetooth-types",
         "libbluetooth_gd",
         "libbluetooth_log",
@@ -2196,6 +2195,7 @@ cc_test {
         "test/stack_acl_test.cc",
     ],
     static_libs: [
+        "bluetooth_flags_c_lib",
         "libbluetooth-types",
         "libbluetooth_gd",
         "libbluetooth_log",

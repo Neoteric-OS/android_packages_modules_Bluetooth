@@ -476,7 +476,6 @@ cc_test {
         "BluetoothGeneratedDumpsysDataSchema_h",
     ],
     srcs: [
-        ":BluetoothLogRedactionSources",
         ":TestCommonMockFunctions",
         ":TestFakeOsi",
         ":TestMockBtaSys",
@@ -568,6 +567,7 @@ cc_test {
         "server_configurable_flags",
     ],
     static_libs: [
+        "bluetooth_flags_c_lib",
         "libbluetooth-types",
         "libbluetooth_crypto_toolbox",
         "libbluetooth_gd",
@@ -831,10 +831,12 @@ cc_test {
     shared_libs: [
         "libbase",
         "libcrypto",
+        "libcutils",
         "libhidlbase",
         "liblog", // __android_log_print
     ],
     static_libs: [
+        "bluetooth_flags_c_lib",
         "libbluetooth-types",
         "libbluetooth_crypto_toolbox",
         "libbluetooth_gd",
@@ -849,6 +851,7 @@ cc_test {
         "libflatbuffers-cpp",
         "libgmock",
         "libosi",
+        "server_configurable_flags",
     ],
     sanitize: {
         cfi: false,
@@ -946,6 +949,7 @@ cc_test {
         "server_configurable_flags",
     ],
     static_libs: [
+        "bluetooth_flags_c_lib",
         "libbluetooth-types",
         "libbluetooth_crypto_toolbox",
         "libbluetooth_gd",
@@ -1029,11 +1033,12 @@ cc_test {
         "libaconfig_storage_read_api_cc",
         "libbase",
         "libcrypto",
+        "libcutils",
         "libhidlbase",
         "liblog",
-        "server_configurable_flags",
     ],
     static_libs: [
+        "bluetooth_flags_c_lib",
         "libbluetooth-types",
         "libbluetooth_crypto_toolbox",
         "libbluetooth_gd",
@@ -1051,6 +1056,7 @@ cc_test {
         "libgtest",
         "liblc3",
         "libosi",
+        "server_configurable_flags",
     ],
     data: [
         ":audio_set_configurations_bfbs",
@@ -1129,6 +1135,7 @@ cc_test {
         "server_configurable_flags",
     ],
     static_libs: [
+        "bluetooth_flags_c_lib",
         "libbluetooth-types",
         "libbluetooth_crypto_toolbox",
         "libbluetooth_gd",
@@ -1198,11 +1205,14 @@ cc_test {
         "libbase",
         "libbinder_ndk",
         "libcrypto",
+        "libcutils",
         "libfmq",
         "libhidlbase",
         "liblog",
+        "server_configurable_flags",
     ],
     static_libs: [
+        "bluetooth_flags_c_lib",
         "libbluetooth-types",
         "libbluetooth_gd",
         "libbluetooth_hci_pdl",
@@ -1220,6 +1230,7 @@ cc_test {
         "libgtest",
         "liblc3",
         "libosi",
+        "server_configurable_flags",
     ],
     sanitize: {
         cfi: true,
@@ -1346,6 +1357,7 @@ cc_test {
         "server_configurable_flags",
     ],
     static_libs: [
+        "bluetooth_flags_c_lib",
         "libbluetooth-types",
         "libbluetooth_crypto_toolbox",
         "libbluetooth_gd",
@@ -1418,6 +1430,7 @@ cc_test {
         "server_configurable_flags",
     ],
     static_libs: [
+        "bluetooth_flags_c_lib",
         "libbluetooth-types",
         "libbluetooth_crypto_toolbox",
         "libbluetooth_gd",
