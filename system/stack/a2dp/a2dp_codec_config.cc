@@ -1083,6 +1083,21 @@ tA2DP_CODEC_TYPE A2DP_GetCodecType(const uint8_t* p_codec_info) {
   return (tA2DP_CODEC_TYPE)(p_codec_info[AVDT_CODEC_TYPE_INDEX]);
 }
 
+bool A2DP_IsCodecTypeValid(tA2DP_CODEC_TYPE codec_type) {
+  switch (codec_type) {
+    case A2DP_MEDIA_CT_SBC:
+    case A2DP_MEDIA_CT_MPEG_AUDIO:
+    case A2DP_MEDIA_CT_AAC:
+    case A2DP_MEDIA_CT_MPEG_USAC:
+    case A2DP_MEDIA_CT_ATRAC:
+    case A2DP_MEDIA_CT_NON_A2DP:
+      return true;
+    default:
+      break;
+  }
+  return false;
+}
+
 bool A2DP_IsSourceCodecValid(const uint8_t* p_codec_info) {
   tA2DP_CODEC_TYPE codec_type = A2DP_GetCodecType(p_codec_info);
 
@@ -1140,7 +1155,7 @@ bool A2DP_IsPeerSinkCodecValid(const uint8_t* p_codec_info) {
   return false;
 }
 
-bool A2DP_IsSinkCodecSupported(const uint8_t* p_codec_info) {
+tA2DP_STATUS A2DP_IsSinkCodecSupported(const uint8_t* p_codec_info) {
   tA2DP_CODEC_TYPE codec_type = A2DP_GetCodecType(p_codec_info);
 
   switch (codec_type) {
@@ -1156,8 +1171,7 @@ bool A2DP_IsSinkCodecSupported(const uint8_t* p_codec_info) {
       break;
   }
 
-  log::error("unsupported codec type 0x{:x}", codec_type);
-  return false;
+  return A2DP_NOT_SUPPORTED_CODEC_TYPE;
 }
 
 void A2DP_InitDefaultCodec(uint8_t* p_codec_info) { A2DP_InitDefaultCodecSbc(p_codec_info); }

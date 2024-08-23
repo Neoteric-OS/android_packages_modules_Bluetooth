@@ -100,9 +100,9 @@ bool A2DP_IsPeerSourceCodecValid(const uint8_t* /* p_codec_info */) {
   inc_func_call_count(__func__);
   return false;
 }
-bool A2DP_IsSinkCodecSupported(const uint8_t* /* p_codec_info */) {
+tA2DP_STATUS A2DP_IsSinkCodecSupported(const uint8_t* /* p_codec_info */) {
   inc_func_call_count(__func__);
-  return false;
+  return A2DP_NOT_SUPPORTED_CODEC_TYPE;
 }
 bool A2DP_IsSourceCodecValid(const uint8_t* /* p_codec_info */) {
   inc_func_call_count(__func__);
@@ -298,6 +298,10 @@ std::string A2dpCodecConfig::codecSampleRate2Str(
 tA2DP_CODEC_TYPE A2DP_GetCodecType(const uint8_t* /* p_codec_info */) {
   inc_func_call_count(__func__);
   return A2DP_MEDIA_CT_SBC;
+}
+bool A2DP_IsCodecTypeValid(tA2DP_CODEC_TYPE /* codec_type */) {
+  inc_func_call_count(__func__);
+  return false;
 }
 uint8_t A2DP_GetMediaType(const uint8_t* /* p_codec_info */) {
   inc_func_call_count(__func__);

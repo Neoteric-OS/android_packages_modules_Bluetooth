@@ -28,6 +28,7 @@
 
 #include "audio_hal_client/audio_hal_client.h"
 #include "audio_hal_interface/le_audio_software.h"
+#include "bt_types.h"
 #include "bta/csis/csis_types.h"
 #include "bta_gatt_api.h"
 #include "bta_gatt_queue.h"
@@ -43,6 +44,7 @@
 #include "common/time_util.h"
 #include "content_control_id_keeper.h"
 #include "devices.h"
+#include "gatt_api.h"
 #include "hci/controller_interface.h"
 #include "internal_include/stack_config.h"
 #include "le_audio_health_status.h"
@@ -371,6 +373,8 @@ public:
     int ases_num = leAudioDevice->ases_.size();
     void* notify_flag_ptr = NULL;
 
+    tBTA_GATTC_MULTI multi_read{};
+
     for (int i = 0; i < ases_num; i++) {
       /* Last read ase characteristic should issue connected state callback
        * to upper layer
@@ -380,9 +384,26 @@ public:
         notify_flag_ptr = INT_TO_PTR(leAudioDevice->notify_connected_after_read_);
       }
 
-      BtaGattQueue::ReadCharacteristic(leAudioDevice->conn_id_,
-                                       leAudioDevice->ases_[i].hdls.val_hdl, OnGattReadRspStatic,
-                                       notify_flag_ptr);
+      if (!com::android::bluetooth::flags::le_ase_read_multiple_variable()) {
+        BtaGattQueue::ReadCharacteristic(leAudioDevice->conn_id_,
+                                         leAudioDevice->ases_[i].hdls.val_hdl, OnGattReadRspStatic,
+                                         notify_flag_ptr);
+        continue;
+      }
+
+      if (i != 0 && (i % GATT_MAX_READ_MULTI_HANDLES == 0)) {
+        multi_read.num_attr = GATT_MAX_READ_MULTI_HANDLES;
+        BtaGattQueue::ReadMultiCharacteristic(leAudioDevice->conn_id_, multi_read,
+                                              OnGattReadMultiRspStatic, notify_flag_ptr);
+        memset(multi_read.handles, 0, GATT_MAX_READ_MULTI_HANDLES * sizeof(uint16_t));
+      }
+      multi_read.handles[i % GATT_MAX_READ_MULTI_HANDLES] = leAudioDevice->ases_[i].hdls.val_hdl;
+    }
+
+    if (ases_num % GATT_MAX_READ_MULTI_HANDLES != 0) {
+      multi_read.num_attr = ases_num % GATT_MAX_READ_MULTI_HANDLES;
+      BtaGattQueue::ReadMultiCharacteristic(leAudioDevice->conn_id_, multi_read,
+                                            OnGattReadMultiRspStatic, notify_flag_ptr);
     }
   }
 
@@ -1106,6 +1127,42 @@ public:
   void SetInCall(bool in_call) override {
     log::debug("in_call: {}", in_call);
     in_call_ = in_call;
+    if (!com::android::bluetooth::flags::leaudio_speed_up_reconfiguration_between_call()) {
+      log::debug("leaudio_speed_up_reconfiguration_between_call flag is not enabled");
+      return;
+    }
+
+    if (active_group_id_ == bluetooth::groups::kGroupUnknown) {
+      return;
+    }
+
+    LeAudioDeviceGroup* group = aseGroups_.FindById(active_group_id_);
+    if (!group || !group->IsStreaming()) {
+      return;
+    }
+
+    bool reconfigure = false;
+
+    if (in_call_) {
+      auto audio_set_conf = group->GetConfiguration(LeAudioContextType::CONVERSATIONAL);
+      if (audio_set_conf && group->IsGroupConfiguredTo(*audio_set_conf)) {
+        log::info("Call is coming, but CIG already set for a call");
+        return;
+      }
+      log::info("Call is coming, speed up reconfiguration for a call");
+      reconfigure = true;
+    } else {
+      if (configuration_context_type_ == LeAudioContextType::CONVERSATIONAL) {
+        log::info("Call is ended, speed up reconfiguration for media");
+        local_metadata_context_types_.sink.unset(LeAudioContextType::CONVERSATIONAL);
+        local_metadata_context_types_.source.unset(LeAudioContextType::CONVERSATIONAL);
+        reconfigure = true;
+      }
+    }
+
+    if (reconfigure) {
+      initReconfiguration(group, configuration_context_type_);
+    }
     ProcessCallAvailbilityToUpdateMetadata(in_call);
   }
 
@@ -4292,9 +4349,9 @@ public:
 
     log::debug(
             "active_group_id: {}\n audio_receiver_state: {}\n audio_sender_state: "
-            "{}\n configuration_context_type_: {}\n group {}\n",
+            "{}\n configuration_context_type_: {}\n",
             active_group_id_, audio_receiver_state_, audio_sender_state_,
-            ToHexString(configuration_context_type_), group ? " exist " : " does not exist ");
+            ToHexString(configuration_context_type_));
 
     switch (audio_sender_state_) {
       case AudioState::STARTED:
@@ -5429,6 +5486,51 @@ public:
     }
   }
 
+  static void OnGattReadMultiRspStatic(uint16_t conn_id, tGATT_STATUS status,
+                                       tBTA_GATTC_MULTI& handles, uint16_t total_len,
+                                       uint8_t* value, void* data) {
+    if (!instance) {
+      return;
+    }
+
+    if (status == GATT_DATABASE_OUT_OF_SYNC) {
+      LeAudioDevice* leAudioDevice = instance->leAudioDevices_.FindByConnId(conn_id);
+      instance->ClearDeviceInformationAndStartSearch(leAudioDevice);
+      return;
+    }
+    if (status != GATT_SUCCESS) {
+      log::error("Failed to read multiple attributes, conn_id: 0x{:04x}, status: 0x{:02x}", conn_id,
+                 +status);
+      return;
+    }
+
+    size_t position = 0;
+    int index = 0;
+    while (position != total_len) {
+      uint8_t* ptr = value + position;
+      uint16_t len;
+      STREAM_TO_UINT16(len, ptr);
+      uint16_t hdl = handles.handles[index];
+
+      if (position + len >= total_len) {
+        log::warn("Multi read was too long, value truncated conn_id: 0x{:04x} handle: 0x{:04x}",
+                  conn_id, hdl);
+        break;
+      }
+
+      OnGattReadRspStatic(conn_id, status, hdl, len, ptr,
+                          ((index == (handles.num_attr - 1)) ? data : nullptr));
+
+      position += len + 2; /* skip the length of data */
+      index++;
+    }
+
+    if (handles.num_attr - 1 != index) {
+      log::warn("Attempted to read {} handles, but received just {} values", +handles.num_attr,
+                index + 1);
+    }
+  }
+
   void LeAudioHealthSendRecommendation(const RawAddress& address, int group_id,
                                        LeAudioHealthBasedAction action) {
     log::debug("{}, {}, {}", address, group_id, ToString(action));
@@ -6184,9 +6286,11 @@ private:
          tmpDevice = group->GetNextDevice(tmpDevice)) {
       log::info("tmpDevice->acl_asymmetric_: {}, asymmetric: {}, address: {}, acl_connected: {}",
                 tmpDevice->acl_asymmetric_ == asymmetric, asymmetric, tmpDevice->address_,
-                BTM_IsAclConnectionUp(tmpDevice->address_, BT_TRANSPORT_LE));
+                get_btm_client_interface().peer.BTM_IsAclConnectionUp(tmpDevice->address_,
+                                                                      BT_TRANSPORT_LE));
       if (tmpDevice->acl_asymmetric_ == asymmetric ||
-          !BTM_IsAclConnectionUp(tmpDevice->address_, BT_TRANSPORT_LE)) {
+          !get_btm_client_interface().peer.BTM_IsAclConnectionUp(tmpDevice->address_,
+                                                                 BT_TRANSPORT_LE)) {
         continue;
       }
 
@@ -6255,11 +6359,11 @@ void le_audio_gattc_callback(tBTA_GATTC_EVT event, tBTA_GATTC* p_data) {
       break;
 
     case BTA_GATTC_SRVC_DISC_DONE_EVT:
-      instance->OnGattServiceDiscoveryDone(p_data->service_changed.remote_bda);
+      instance->OnGattServiceDiscoveryDone(p_data->service_discovery_done.remote_bda);
       break;
 
     case BTA_GATTC_SRVC_CHG_EVT:
-      instance->OnServiceChangeEvent(p_data->remote_bda);
+      instance->OnServiceChangeEvent(p_data->service_changed.remote_bda);
       break;
     case BTA_GATTC_CFG_MTU_EVT:
       instance->OnMtuChanged(p_data->cfg_mtu.conn_id, p_data->cfg_mtu.mtu);

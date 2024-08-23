@@ -3808,7 +3808,7 @@ public class BassClientService extends ProfileService {
         }
 
         @RequiresPermission(allOf = {BLUETOOTH_CONNECT, BLUETOOTH_PRIVILEGED})
-        private BassClientService getService(AttributionSource source) {
+        private BassClientService getServiceAndEnforceConnect(AttributionSource source) {
             // Cache mService because it can change while getService is called
             BassClientService service = mService;
 
@@ -3828,7 +3828,7 @@ public class BassClientService extends ProfileService {
         }
 
         @RequiresPermission(allOf = {BLUETOOTH_SCAN, BLUETOOTH_PRIVILEGED})
-        private BassClientService getServiceScan(AttributionSource source) {
+        private BassClientService getServiceAndEnforceScan(AttributionSource source) {
             // Cache mService because it can change while getService is called
             BassClientService service = mService;
 
@@ -3849,7 +3849,7 @@ public class BassClientService extends ProfileService {
 
         @Override
         public int getConnectionState(BluetoothDevice sink, AttributionSource source) {
-            BassClientService service = getService(source);
+            BassClientService service = getServiceAndEnforceConnect(source);
             if (service == null) {
                 Log.e(TAG, "Service is null");
                 return BluetoothProfile.STATE_DISCONNECTED;
@@ -3860,7 +3860,7 @@ public class BassClientService extends ProfileService {
         @Override
         public List<BluetoothDevice> getDevicesMatchingConnectionStates(
                 int[] states, AttributionSource source) {
-            BassClientService service = getService(source);
+            BassClientService service = getServiceAndEnforceConnect(source);
             if (service == null) {
                 Log.e(TAG, "Service is null");
                 return Collections.emptyList();
@@ -3870,7 +3870,7 @@ public class BassClientService extends ProfileService {
 
         @Override
         public List<BluetoothDevice> getConnectedDevices(AttributionSource source) {
-            BassClientService service = getService(source);
+            BassClientService service = getServiceAndEnforceConnect(source);
             if (service == null) {
                 Log.e(TAG, "Service is null");
                 return Collections.emptyList();
@@ -3881,7 +3881,7 @@ public class BassClientService extends ProfileService {
         @Override
         public boolean setConnectionPolicy(
                 BluetoothDevice device, int connectionPolicy, AttributionSource source) {
-            BassClientService service = getService(source);
+            BassClientService service = getServiceAndEnforceConnect(source);
             if (service == null) {
                 Log.e(TAG, "Service is null");
                 return false;
@@ -3891,7 +3891,7 @@ public class BassClientService extends ProfileService {
 
         @Override
         public int getConnectionPolicy(BluetoothDevice device, AttributionSource source) {
-            BassClientService service = getService(source);
+            BassClientService service = getServiceAndEnforceConnect(source);
             if (service == null) {
                 Log.e(TAG, "Service is null");
                 return BluetoothProfile.CONNECTION_POLICY_FORBIDDEN;
@@ -3902,7 +3902,7 @@ public class BassClientService extends ProfileService {
         @Override
         public void registerCallback(
                 IBluetoothLeBroadcastAssistantCallback cb, AttributionSource source) {
-            BassClientService service = getService(source);
+            BassClientService service = getServiceAndEnforceConnect(source);
             if (service == null) {
                 Log.e(TAG, "Service is null");
                 return;
@@ -3913,7 +3913,7 @@ public class BassClientService extends ProfileService {
         @Override
         public void unregisterCallback(
                 IBluetoothLeBroadcastAssistantCallback cb, AttributionSource source) {
-            BassClientService service = getService(source);
+            BassClientService service = getServiceAndEnforceConnect(source);
             if (service == null) {
                 Log.e(TAG, "Service is null");
                 return;
@@ -3923,7 +3923,7 @@ public class BassClientService extends ProfileService {
 
         @Override
         public void startSearchingForSources(List<ScanFilter> filters, AttributionSource source) {
-            BassClientService service = getServiceScan(source);
+            BassClientService service = getServiceAndEnforceScan(source);
             if (service == null) {
                 Log.e(TAG, "Service is null");
                 return;
@@ -3933,7 +3933,7 @@ public class BassClientService extends ProfileService {
 
         @Override
         public void stopSearchingForSources(AttributionSource source) {
-            BassClientService service = getServiceScan(source);
+            BassClientService service = getServiceAndEnforceScan(source);
             if (service == null) {
                 Log.e(TAG, "Service is null");
                 return;
@@ -3943,7 +3943,7 @@ public class BassClientService extends ProfileService {
 
         @Override
         public boolean isSearchInProgress(AttributionSource source) {
-            BassClientService service = getServiceScan(source);
+            BassClientService service = getServiceAndEnforceScan(source);
             if (service == null) {
                 Log.e(TAG, "Service is null");
                 return false;
@@ -3957,7 +3957,7 @@ public class BassClientService extends ProfileService {
                 BluetoothLeBroadcastMetadata sourceMetadata,
                 boolean isGroupOp,
                 AttributionSource source) {
-            BassClientService service = getService(source);
+            BassClientService service = getServiceAndEnforceConnect(source);
             if (service == null) {
                 Log.e(TAG, "Service is null");
                 return;
@@ -3971,7 +3971,7 @@ public class BassClientService extends ProfileService {
                 int sourceId,
                 BluetoothLeBroadcastMetadata updatedMetadata,
                 AttributionSource source) {
-            BassClientService service = getService(source);
+            BassClientService service = getServiceAndEnforceConnect(source);
             if (service == null) {
                 Log.e(TAG, "Service is null");
                 return;
@@ -3981,7 +3981,7 @@ public class BassClientService extends ProfileService {
 
         @Override
         public void removeSource(BluetoothDevice sink, int sourceId, AttributionSource source) {
-            BassClientService service = getService(source);
+            BassClientService service = getServiceAndEnforceConnect(source);
             if (service == null) {
                 Log.e(TAG, "Service is null");
                 return;
@@ -3992,7 +3992,7 @@ public class BassClientService extends ProfileService {
         @Override
         public List<BluetoothLeBroadcastReceiveState> getAllSources(
                 BluetoothDevice sink, AttributionSource source) {
-            BassClientService service = getService(source);
+            BassClientService service = getServiceAndEnforceConnect(source);
             if (service == null) {
                 Log.e(TAG, "Service is null");
                 return Collections.emptyList();
@@ -4002,7 +4002,7 @@ public class BassClientService extends ProfileService {
 
         @Override
         public int getMaximumSourceCapacity(BluetoothDevice sink, AttributionSource source) {
-            BassClientService service = getService(source);
+            BassClientService service = getServiceAndEnforceConnect(source);
             if (service == null) {
                 Log.e(TAG, "Service is null");
                 return 0;

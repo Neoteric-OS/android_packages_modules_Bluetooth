@@ -286,6 +286,13 @@ public interface BluetoothProfile {
 
 
     /**
+     * Gaming Audio Profile
+     *
+     * @hide
+     */
+    int GMAP = 31;
+
+    /**
      * Max profile ID. This value should be updated whenever a new profile is added to match the
      * largest value assigned to a profile.
      *
