@@ -1572,6 +1572,12 @@ public class AdapterService extends Service {
                 addProfile(profileService);
                 profileService.start();
                 profileService.setAvailable(true);
+                // With `Flags.scanManagerRefactor()` GattService initialization is pushed back to
+                // `ON` state instead of `BLE_ON`. Here we ensure mGattService is set prior
+                // to other Profiles using it.
+                if (profileId == BluetoothProfile.GATT && Flags.scanManagerRefactor()) {
+                    mGattService = GattService.getGattService();
+                }
                 onProfileServiceStateChanged(profileService, BluetoothAdapter.STATE_ON);
             } else {
                 Log.e(
@@ -2018,9 +2024,6 @@ public class AdapterService extends Service {
         mLeAudioService = LeAudioService.getLeAudioService();
         mBassClientService = BassClientService.getBassClientService();
         mBatteryService = BatteryService.getBatteryService();
-        if (Flags.scanManagerRefactor()) {
-            mGattService = GattService.getGattService();
-        }
     }
 
     @BluetoothAdapter.RfcommListenerResult
