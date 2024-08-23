@@ -26,6 +26,7 @@
 #define LOG_TAG "bluetooth-a2dp"
 
 #include <bluetooth/log.h>
+#include <com_android_bluetooth_flags.h>
 #include <string.h>
 
 #include "a2dp_codec_api.h"
@@ -554,105 +555,53 @@ void avdt_scb_hdl_setconfig_cmd(AvdtpScb* p_scb, tAVDT_SCB_EVT* p_data) {
                p_scb->stream_config.scb_index);
   tA2DP_CODEC_TYPE codec_type;
 
-  if (!p_scb->in_use) {
-    log::verbose("codec: {}", A2DP_CodecInfoString(p_scb->stream_config.cfg.codec_info));
-    log::verbose("codec: {}", A2DP_CodecInfoString(p_data->msg.config_cmd.p_cfg->codec_info));
-    AvdtpSepConfig* p_cfg = p_data->msg.config_cmd.p_cfg;
-    codec_type = A2DP_GetCodecType(p_cfg->codec_info);
-    if (A2DP_GetCodecType(p_scb->stream_config.cfg.codec_info) == codec_type) {  // check
-      /* copy info to scb */
-      AvdtpCcb* p_ccb = avdt_ccb_by_idx(p_data->msg.config_cmd.hdr.ccb_idx);
-      if (p_scb->p_ccb != p_ccb) {
-        log::error(
-                "mismatch in AVDTP SCB/CCB state: (p_scb->p_ccb={} != p_ccb={}): "
-                "p_scb={} scb_handle={} ccb_idx={}",
-                fmt::ptr(p_scb->p_ccb), fmt::ptr(p_ccb), fmt::ptr(p_scb), p_scb->ScbHandle(),
-                p_data->msg.config_cmd.hdr.ccb_idx);
-        avdt_scb_rej_not_in_use(p_scb, p_data);
-        return;
-      }
-      /* set sep as in use */
-      p_scb->in_use = true;
-
-      p_scb->peer_seid = p_data->msg.config_cmd.int_seid;
-      p_scb->req_cfg = *p_cfg;
-      if (codec_type == A2DP_MEDIA_CT_SBC) {
-        if (p_scb->stream_config.tsep == AVDT_TSEP_SNK) {
-          // SNK minbitool > 86, then set minbitpool = 86
-          if ((p_cfg->codec_info[A2DP_SBC_IE_MIN_BITPOOL_OFFSET]) > A2DP_SBC_SINK_MAX_BITPOOL) {
-            p_cfg->codec_info[A2DP_SBC_IE_MIN_BITPOOL_OFFSET] = A2DP_SBC_SINK_MAX_BITPOOL;
-          }
-          // SNK maxbitool > 86, then set maxbitpool = 86
-          if ((p_cfg->codec_info[A2DP_SBC_IE_MAX_BITPOOL_OFFSET]) > A2DP_SBC_SINK_MAX_BITPOOL) {
-            p_cfg->codec_info[A2DP_SBC_IE_MAX_BITPOOL_OFFSET] = A2DP_SBC_SINK_MAX_BITPOOL;
-          }
-          log::verbose("SNK min/max bitpool: {}/{}",
-                       p_cfg->codec_info[A2DP_SBC_IE_MIN_BITPOOL_OFFSET],
-                       p_cfg->codec_info[A2DP_SBC_IE_MAX_BITPOOL_OFFSET]);
-        }
-        // minbitpool < 2, then set minbitpool = 2
-        if ((p_cfg->codec_info[A2DP_SBC_IE_MIN_BITPOOL_OFFSET]) < A2DP_SBC_IE_MIN_BITPOOL) {
-          p_cfg->codec_info[A2DP_SBC_IE_MIN_BITPOOL_OFFSET] = A2DP_SBC_IE_MIN_BITPOOL;
-          log::verbose("Incoming connection set min bitpool: {}",
-                       p_cfg->codec_info[A2DP_SBC_IE_MIN_BITPOOL_OFFSET]);
-        }
-
-        if (p_scb->stream_config.tsep == AVDT_TSEP_SRC) {
-          // minbitpool > 250, then set minbitpool = 250
-          if ((p_cfg->codec_info[A2DP_SBC_IE_MIN_BITPOOL_OFFSET]) > A2DP_SBC_IE_MAX_BITPOOL) {
-            p_cfg->codec_info[A2DP_SBC_IE_MIN_BITPOOL_OFFSET] = A2DP_SBC_IE_MAX_BITPOOL;
-            log::verbose("Incoming connection set min bitpool: {}",
-                         p_cfg->codec_info[A2DP_SBC_IE_MIN_BITPOOL_OFFSET]);
-          }
-
-          // maxbitpool > 250, then set maxbitpool = 250
-          if ((p_cfg->codec_info[A2DP_SBC_IE_MAX_BITPOOL_OFFSET]) > A2DP_SBC_IE_MAX_BITPOOL) {
-            p_cfg->codec_info[A2DP_SBC_IE_MAX_BITPOOL_OFFSET] = A2DP_SBC_IE_MAX_BITPOOL;
-            log::verbose("Incoming connection set max bitpool: {}",
-                         p_cfg->codec_info[A2DP_SBC_IE_MAX_BITPOOL_OFFSET]);
-          }
-        }
-
-        // minbitpool > maxbitpool, then set maxbitpool = minbitpool
-        if ((p_cfg->codec_info[A2DP_SBC_IE_MIN_BITPOOL_OFFSET]) >
-            (p_cfg->codec_info[A2DP_SBC_IE_MAX_BITPOOL_OFFSET])) {
-          p_cfg->codec_info[A2DP_SBC_IE_MAX_BITPOOL_OFFSET] =
-                  p_cfg->codec_info[A2DP_SBC_IE_MIN_BITPOOL_OFFSET];
-          log::verbose(
-                  "Incoming connection minbitpool set by remote exceeds"
-                  "maxbitpool value, So set maxbitbool to minbitpool: {} to {}",
-                  p_cfg->codec_info[A2DP_SBC_IE_MAX_BITPOOL_OFFSET],
-                  p_cfg->codec_info[A2DP_SBC_IE_MIN_BITPOOL_OFFSET]);
-        }
-      }
-      /* call app callback */
-      /* handle of scb- which is same as sep handle of bta_av_cb.p_scb*/
-      (*p_scb->stream_config.p_avdt_ctrl_cback)(
-              avdt_scb_to_hdl(p_scb), p_scb->p_ccb ? p_scb->p_ccb->peer_addr : RawAddress::kEmpty,
-              AVDT_CONFIG_IND_EVT, (tAVDT_CTRL*)&p_data->msg.config_cmd,
-              p_scb->stream_config.scb_index);
-    } else {
-      p_data->msg.hdr.err_code = AVDT_ERR_UNSUP_CFG;
-
-      uint8_t error_code = 0;
-      error_code = A2dp_SendSetConfigRspErrorCodeForPTS();
-      log::info("error_code: {}", error_code);
-
-      // error_code is valid for PTS only as of now.
-      if (error_code != 0) {
-        log::info("Overwrite setconf errorcode passed by prop for PTS.");
-        p_data->msg.hdr.err_code = error_code;
-      }
-
-      p_data->msg.hdr.err_param = 0;
-      log::info("called avdt_msg_send_rej()");
-      avdt_msg_send_rej(avdt_ccb_by_idx(p_data->msg.hdr.ccb_idx), p_data->msg.hdr.sig_id,
-                        &p_data->msg);
-    }
-  } else {
-    log::verbose("calling avdt_scb_rej_in_use()");
+  if (p_scb->in_use) {
+    log::error("configuration rejected because SEP is already in use");
     avdt_scb_rej_in_use(p_scb, p_data);
+    return;
   }
+
+  AvdtpSepConfig* p_cfg = p_data->msg.config_cmd.p_cfg;
+  auto local_codec_type = A2DP_GetCodecType(p_scb->stream_config.cfg.codec_info);
+  auto remote_codec_type = A2DP_GetCodecType(p_cfg->codec_info);
+
+  // Reject the configuration with error code NOT_SUPPORTED_CODEC_TYPE if
+  // the codec type differs from the type of the SEP, or INVALID_CODEC_TYPE
+  // if the codec type does not match the values defined by Assigned Numbers.
+  if (local_codec_type != remote_codec_type) {
+    p_data->msg.hdr.err_code =
+            !com::android::bluetooth::flags::avdtp_error_codes() ? AVDTP_UNSUPPORTED_CONFIGURATION
+            : !A2DP_IsCodecTypeValid(remote_codec_type)          ? A2DP_INVALID_CODEC_TYPE
+                                                                 : A2DP_NOT_SUPPORTED_CODEC_TYPE;
+    p_data->msg.hdr.err_param = 0;
+    avdt_msg_send_rej(avdt_ccb_by_idx(p_data->msg.hdr.ccb_idx), p_data->msg.hdr.sig_id,
+                      &p_data->msg);
+    return;
+  }
+
+  /* copy info to scb */
+  AvdtpCcb* p_ccb = avdt_ccb_by_idx(p_data->msg.config_cmd.hdr.ccb_idx);
+  if (p_scb->p_ccb != p_ccb) {
+    log::error(
+            "mismatch in AVDTP SCB/CCB state: (p_scb->p_ccb={} != p_ccb={}): "
+            "p_scb={} scb_handle={} ccb_idx={}",
+            fmt::ptr(p_scb->p_ccb), fmt::ptr(p_ccb), fmt::ptr(p_scb), p_scb->ScbHandle(),
+            p_data->msg.config_cmd.hdr.ccb_idx);
+    avdt_scb_rej_not_in_use(p_scb, p_data);
+    return;
+  }
+
+  /* set sep as in use */
+  p_scb->in_use = true;
+  p_scb->peer_seid = p_data->msg.config_cmd.int_seid;
+  p_scb->req_cfg = *p_cfg;
+
+  /* call app callback */
+  /* handle of scb- which is same as sep handle of bta_av_cb.p_scb*/
+  (*p_scb->stream_config.p_avdt_ctrl_cback)(
+          avdt_scb_to_hdl(p_scb), p_scb->p_ccb ? p_scb->p_ccb->peer_addr : RawAddress::kEmpty,
+          AVDT_CONFIG_IND_EVT, (tAVDT_CTRL*)&p_data->msg.config_cmd,
+          p_scb->stream_config.scb_index);
 }
 
 /*******************************************************************************
