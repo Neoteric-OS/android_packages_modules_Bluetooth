@@ -6795,6 +6795,9 @@ public:
            */
           log::error("Internal state machine error");
           group->PrintDebugState();
+          if (group->GetState() != AseState::BTA_LE_AUDIO_ASE_STATE_IDLE) {
+            defer_notify_inactive_until_stop_ = true;
+          }
           groupSetAndNotifyInactive();
         }
 
