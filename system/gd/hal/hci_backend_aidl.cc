@@ -81,7 +81,7 @@ public:
           common::StopWatch::DumpStopWatchLog();
           // At shutdown, sometimes the HAL service gets killed before Bluetooth.
           std::this_thread::sleep_for(std::chrono::seconds(1));
-          log::fatal("The Bluetooth HAL died.");
+          log::warn("The Bluetooth HAL died.");
         }));
 
     auto death_link = AIBinder_linkToDeath(hci_->asBinder().get(), death_recipient_.get(), this);

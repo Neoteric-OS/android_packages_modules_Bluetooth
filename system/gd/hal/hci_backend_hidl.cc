@@ -24,6 +24,8 @@
 #include "os/alarm.h"
 #include "os/system_properties.h"
 
+#define SIGKILL 9
+
 using ::android::hardware::hidl_vec;
 using ::android::hardware::Return;
 using ::android::hardware::Void;
@@ -42,7 +44,10 @@ public:
 
   using HidlStatus = ::android::hardware::bluetooth::V1_0::Status;
   Return<void> initializationComplete(HidlStatus status) override {
-    log::assert_that(status == HidlStatus::SUCCESS, "status == HidlStatus::SUCCESS");
+    if (status != HidlStatus::SUCCESS) {
+      log::warn( "status != HidlStatus::SUCCESS");
+      kill(getpid(), SIGKILL);
+    }
     callbacks_->initializationComplete();
     return Void();
   }
@@ -80,7 +85,7 @@ class HidlHci : public HciBackend {
       common::StopWatch::DumpStopWatchLog();
       // At shutdown, sometimes the HAL service gets killed before Bluetooth.
       std::this_thread::sleep_for(std::chrono::seconds(1));
-      log::fatal("The Bluetooth HAL died.");
+      log::warn("The Bluetooth HAL died.");
     }
   };
 
@@ -103,7 +108,7 @@ public:
                                             "Bluetooth");
                                     return;
                                   }
-                                  log::fatal(
+                                  log::error(
                                           "Unable to get a Bluetooth service after 500ms, start "
                                           "the HAL before starting "
                                           "Bluetooth");
@@ -120,15 +125,24 @@ public:
     get_service_alarm->Cancel();
     delete get_service_alarm;
 
-    log::assert_that(hci_ != nullptr, "assert failed: hci_ != nullptr");
+    if (hci_ == nullptr) {
+      log::warn( "assert failed: hci_ != nullptr");
+      kill(getpid(), SIGKILL);
+    }
 
     death_recipient_ = new DeathRecipient();
     auto death_link = hci_->linkToDeath(death_recipient_, 0);
-    log::assert_that(death_link.isOk(), "Unable to set the death recipient for the Bluetooth HAL");
+    if (!death_link.isOk()) {
+        log::warn( "Unable to set the death recipient for the Bluetooth HAL");
+        kill(getpid(), SIGKILL);
+    }
   }
 
   ~HidlHci() {
-    log::assert_that(hci_ != nullptr, "assert failed: hci_ != nullptr");
+    if (hci_ == nullptr) {
+      log::warn( "assert failed: hci_ != nullptr");
+      kill(getpid(), SIGKILL);
+    }
     auto death_unlink = hci_->unlinkToDeath(death_recipient_);
     if (!death_unlink.isOk()) {
       log::error("Error unlinking death recipient from the Bluetooth HAL");
