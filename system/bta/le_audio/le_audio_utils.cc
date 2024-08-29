@@ -910,14 +910,31 @@ bool IsAseConfigMatchedWithPreferredRequirements(
         const std::vector<struct types::AseConfiguration>& ase_confs,
         const std::vector<
                 CodecManager::UnicastConfigurationRequirements::DeviceDirectionRequirements>& reqs,
-        uint8_t channel_cnt_per_ase) {
-  if (ase_confs.empty() || reqs.empty() || ase_confs.size() != reqs.size()) {
+        uint8_t channel_cnt_per_ase, btle_audio_codec_index_t PreferCodecType) {
+  log::debug("ase_confs.size: {}, reqs.size: {}", ase_confs.size(), reqs.size());
+  if (ase_confs.empty() || reqs.empty() || ase_confs.size() < reqs.size()) {
     return false;
   }
 
-  for (auto i = 0; i < static_cast<int>(ase_confs.size()); ++i) {
+  for (auto i = 0; i < static_cast<int>(reqs.size()); ++i) {
     const auto& ase_config = ase_confs.at(i).codec.params.GetAsCoreCodecConfig();
     const auto& req_config = reqs.at(i).params.GetAsCoreCodecConfig();
+
+    const auto& ent = ase_confs.at(i);
+    log::debug("ent.codec.id.vendor_codec_id= {}", ent.codec.id.vendor_codec_id);
+    log::debug("PreferCodecType= {}", PreferCodecType);
+    if ((ent.codec.id.coding_format == types::kLeAudioCodingFormatLC3 &&
+         PreferCodecType !=
+                 bluetooth::le_audio::btle_audio_codec_index_t::LE_AUDIO_CODEC_INDEX_SOURCE_LC3) ||
+        (ent.codec.id.vendor_codec_id == types::kLeAudioCodingFormatAptxLe &&
+         PreferCodecType != bluetooth::le_audio::btle_audio_codec_index_t::
+                                    LE_AUDIO_CODEC_INDEX_SOURCE_APTX_LE) ||
+        (ent.codec.id.vendor_codec_id == types::kLeAudioCodingFormatAptxLeX &&
+         PreferCodecType != bluetooth::le_audio::btle_audio_codec_index_t::
+                                    LE_AUDIO_CODEC_INDEX_SOURCE_APTX_LEX)) {
+      log::debug("Missing codec type");
+      return false;
+    }
 
     /* Sampling frequency */
     if (!ase_config.sampling_frequency || !req_config.sampling_frequency) {
@@ -955,12 +972,12 @@ bool IsAseConfigMatchedWithPreferredRequirements(
     /* Octets per frame */
     if (!ase_config.octets_per_codec_frame || !req_config.octets_per_codec_frame) {
       log::debug("Missing octets per codec frame");
-      return false;
+      //return false;
     }
     if (ase_config.octets_per_codec_frame.value() != req_config.octets_per_codec_frame.value()) {
       log::debug("Ase cfg: Octets per frame={}", ase_config.octets_per_codec_frame.value());
       log::debug("Req cfg: Octets per frame={}", req_config.octets_per_codec_frame.value());
-      return false;
+      //return false;
     }
   }
 

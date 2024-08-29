@@ -1748,7 +1748,8 @@ bool LeAudioDeviceGroup::IsAudioSetConfigurationSupported(
       if (!utils::IsAseConfigMatchedWithPreferredRequirements(
                   ase_confs, direction_req.value(),
                   codec_spec_conf::SingleChannelCountCapability2Config(
-                          preferred_config_.get(direction)->channel_count))) {
+                          preferred_config_.get(direction)->channel_count),
+                  preferred_config_.get(direction)->codec_type)) {
         return false;
       }
     }

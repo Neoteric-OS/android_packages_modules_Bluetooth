@@ -1448,7 +1448,7 @@ public:
       return;
     }
 
-    if (SetConfigurationAndStopStreamWhenNeeded(group, group->GetConfigurationContextType())) {
+    if (SetConfigurationAndStopStreamWhenNeeded(group, configuration_context_type_)) {
       log::debug("Group id {} do the reconfiguration based on preferred codec config", group_id);
     } else {
       log::debug("Group id {} preferred codec config is not changed", group_id);
@@ -5594,6 +5594,7 @@ public:
     }
 
     if (group->GetState() != AseState::BTA_LE_AUDIO_ASE_STATE_STREAMING) {
+      SendAudioGroupCurrentCodecConfigChanged(group);
       log::debug("Group is not streaming");
       return false;
     }
