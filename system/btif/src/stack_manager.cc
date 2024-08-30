@@ -34,7 +34,6 @@
 #include "btif/include/stack_manager_t.h"
 #include "common/message_loop_thread.h"
 #include "main/shim/shim.h"
-#include "os/log.h"
 #include "stack/include/acl_api.h"
 #include "stack/include/btm_client_interface.h"
 #include "stack/include/main_thread.h"
@@ -419,6 +418,8 @@ static void event_clean_up_stack(std::promise<void> promise, ProfileStopCallback
 
   btif_cleanup_bluetooth();
 
+  main_thread_shut_down();
+
   module_clean_up(get_local_module(STACK_CONFIG_MODULE));
   module_clean_up(get_local_module(INTEROP_MODULE));
 
@@ -428,8 +429,6 @@ static void event_clean_up_stack(std::promise<void> promise, ProfileStopCallback
   module_clean_up(get_local_module(OSI_MODULE));
   info("Gd shim module disabled");
   module_shut_down(get_local_module(GD_SHIM_MODULE));
-
-  main_thread_shut_down();
 
   module_management_stop();
   info("finished");

@@ -757,8 +757,18 @@ void bta_gattc_cfg_mtu(tBTA_GATTC_CLCB* p_clcb, const tBTA_GATTC_DATA* p_data) {
       /* Check if MTU is not already set, if so, just report it back to the user
        * and continue with other requests.
        */
-      GATTC_UpdateUserAttMtuIfNeeded(p_clcb->bda, p_clcb->transport, p_data->api_mtu.mtu);
+      log::info(" MTU_EXCHANGE_ALREADY_DONE  {}", p_clcb->bda);
+      GATTC_UpdateUserAttMtuIfNeeded(p_clcb->bda, p_clcb->transport,
+                                     p_data->api_mtu.mtu);
       bta_gattc_send_mtu_response(p_clcb, p_data, current_mtu);
+      if (!p_clcb->p_q_cmd_queue.empty()) {
+        const tBTA_GATTC_DATA* p_q_cmd = p_clcb->p_q_cmd_queue.front();
+        if (p_q_cmd->hdr.event == BTA_GATTC_API_CFG_MTU_EVT) {
+          log::info("Removing the MTU packet from the command queue ");
+          p_clcb->p_q_cmd_queue.pop_front();
+        }
+        bta_gattc_continue(p_clcb);
+      }
       return;
     case MTU_EXCHANGE_IN_PROGRESS:
       log::info("Enqueue MTU Request  - waiting for response on p_clcb {}", fmt::ptr(p_clcb));
@@ -770,6 +780,7 @@ void bta_gattc_cfg_mtu(tBTA_GATTC_CLCB* p_clcb, const tBTA_GATTC_DATA* p_data) {
       return;
 
     case MTU_EXCHANGE_NOT_DONE_YET:
+      log::info(" MTU_EXCHANGE_NOT_DONE_YET  {}", p_clcb->bda);
       /* OK to proceed */
       break;
   }
@@ -971,8 +982,9 @@ void bta_gattc_disc_cmpl(tBTA_GATTC_CLCB* p_clcb, const tBTA_GATTC_DATA* /* p_da
   }
 
   if (p_clcb->p_rcb->p_cback) {
-    tBTA_GATTC bta_gattc;
-    bta_gattc.remote_bda = p_clcb->p_srcb->server_bda;
+    tBTA_GATTC bta_gattc = {
+            .service_discovery_done.remote_bda = p_clcb->p_srcb->server_bda,
+    };
     (*p_clcb->p_rcb->p_cback)(BTA_GATTC_SRVC_DISC_DONE_EVT, &bta_gattc);
   }
 
@@ -1509,9 +1521,10 @@ static bool bta_gattc_process_srvc_chg_ind(uint16_t conn_id, tBTA_GATTC_RCB* p_c
 
   /* notify applicationf or service change */
   if (p_clrcb->p_cback) {
-    tBTA_GATTC bta_gattc;
-    bta_gattc.service_changed.remote_bda = p_srcb->server_bda;
-    bta_gattc.service_changed.conn_id = conn_id;
+    tBTA_GATTC bta_gattc = {.service_changed = {
+                                    .remote_bda = p_srcb->server_bda,
+                                    .conn_id = conn_id,
+                            }};
     (*p_clrcb->p_cback)(BTA_GATTC_SRVC_CHG_EVT, &bta_gattc);
   }
 

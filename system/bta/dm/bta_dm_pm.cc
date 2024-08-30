@@ -572,7 +572,7 @@ static void bta_dm_pm_cback(tBTA_SYS_CONN_STATUS status, const tBTA_SYS_ID id, u
     uint16_t manufacturer = 0;
     uint16_t lmp_sub_version = 0;
     uint8_t lmp_version = 0;
-    if (BTM_ReadRemoteVersion(peer_addr, &lmp_version, &manufacturer, &lmp_sub_version)) {
+    if (get_btm_client_interface().peer.BTM_ReadRemoteVersion(peer_addr, &lmp_version, &manufacturer, &lmp_sub_version)) {
       bool is_blacklisted =
               (interop_match_addr_or_name(INTEROP_DISABLE_SNIFF_LINK_DURING_SCO, &peer_addr,
                                           &btif_storage_get_remote_device_property) ||
