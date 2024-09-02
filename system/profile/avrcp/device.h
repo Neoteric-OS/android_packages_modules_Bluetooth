@@ -114,6 +114,16 @@ public:
   bool IsActive() const;
 
   /**
+   * Returns true if passthrough PLAY is pending.
+   */
+  bool IsPendingPlay();
+
+  /**
+   * Handle pending passthrough PLAY command.
+   */
+  void HandlePendingPlay();
+
+  /**
    * Register the interfaces that the device uses to get information. If the
    * Volume Interface is null, then absolute volume is disabled.
    * TODO (apanicke): Add these to the constructor/factory so that each device
@@ -334,6 +344,8 @@ private:
 
   // TODO (apanicke): Initialize all the variables in the constructor.
   RawAddress address_;
+
+  bool IsPendingPlay_ = false;
 
   // Enables AVRCP 1.3 Compatibility mode. This disables any AVRCP 1.4+ features
   // such as browsing and playlists but has the highest chance of working.

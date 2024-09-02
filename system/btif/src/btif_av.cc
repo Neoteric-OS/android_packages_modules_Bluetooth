@@ -3708,6 +3708,11 @@ bt_status_t btif_av_source_set_active_device(const RawAddress& peer_address) {
                                            peer_address, std::move(peer_ready_promise)));
   if (status == BT_STATUS_SUCCESS) {
     peer_ready_future.wait();
+    if (!peer_address.IsEmpty() &&
+         bluetooth::avrcp::AvrcpService::Get() != nullptr) {
+        log::info("check pending play cmd");
+        bluetooth::avrcp::AvrcpService::Get()->HandlePendingPlay();
+    }
   } else {
     log::warn("BTIF AV Source fails to change peer");
   }
