@@ -1811,6 +1811,10 @@ public:
       log::warn("Could not load ases");
     }
 
+    //For BT reboot cases, remotes need PACS discover.
+    leAudioDevice->known_service_handles_ = false;
+    btif_storage_leaudio_clear_service_data(address);
+
     leAudioDevice->autoconnect_flag_ = autoconnect;
     /* When adding from storage, make sure that autoconnect is used
      * by all the devices in the group.
@@ -2600,6 +2604,7 @@ public:
 
   void OnGattDisconnected(uint16_t conn_id, tGATT_IF client_if, RawAddress address,
                           tGATT_DISCONN_REASON reason) {
+    log::info("OnGattDisconnected");
     LeAudioDevice* leAudioDevice = leAudioDevices_.FindByConnId(conn_id);
 
     if (!leAudioDevice) {
@@ -2619,6 +2624,10 @@ public:
     leAudioDevice->closing_stream_for_disconnection_ = false;
     leAudioDevice->encrypted_ = false;
     leAudioDevice->acl_phy_update_done_ = false;
+
+    log::info("Remove service data, addr: {}", address);
+    leAudioDevice->known_service_handles_ = false;
+    btif_storage_leaudio_clear_service_data(address);
 
     groupStateMachine_->ProcessHciNotifAclDisconnected(group, leAudioDevice);
 
@@ -6373,7 +6382,9 @@ void le_audio_gattc_callback(tBTA_GATTC_EVT event, tBTA_GATTC* p_data) {
       break;
 
     case BTA_GATTC_SRVC_DISC_DONE_EVT:
-      instance->OnGattServiceDiscoveryDone(p_data->service_discovery_done.remote_bda);
+      /*PACS read would be done when encryption complete*/
+      log::warn("Needn't do PACS when BTA_GATTC_SRVC_DISC_DONE_EVT.");
+      //instance->OnGattServiceDiscoveryDone(p_data->service_discovery_done.remote_bda);
       break;
 
     case BTA_GATTC_SRVC_CHG_EVT:
