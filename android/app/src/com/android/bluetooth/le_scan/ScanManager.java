@@ -646,6 +646,10 @@ public class ScanManager {
                 return;
             }
             client.updateScanMode(ScanSettings.SCAN_MODE_SCREEN_OFF);
+            Log.d(
+                    TAG,
+                    "Scan mode update during setAutoBatchScanClient() to "
+                            + ScanSettings.SCAN_MODE_SCREEN_OFF);
             if (client.stats != null) {
                 client.stats.setAutoBatchScan(client.scannerId, true);
             }
@@ -656,6 +660,9 @@ public class ScanManager {
                 return;
             }
             client.updateScanMode(client.scanModeApp);
+            Log.d(
+                    TAG,
+                    "Scan mode update during clearAutoBatchScanClient() to " + client.scanModeApp);
             if (client.stats != null) {
                 client.stats.setAutoBatchScan(client.scannerId, false);
             }
@@ -666,7 +673,6 @@ public class ScanManager {
             for (ScanClient client : mRegularScanClients) {
                 if (updateScanModeScreenOff(client)) {
                     updatedScanParams = true;
-                    Log.d(TAG, "Scan mode update during screen off" + client);
                 }
             }
             if (updatedScanParams) {

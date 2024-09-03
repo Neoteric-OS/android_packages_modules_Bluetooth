@@ -3397,8 +3397,7 @@ public class LeAudioService extends ProfileService {
             int groupId = stackEvent.valueInt1;
             int nodeStatus = stackEvent.valueInt2;
 
-            Objects.requireNonNull(
-                    stackEvent.device, "Device should never be null, event: " + stackEvent);
+            Objects.requireNonNull(stackEvent.device);
 
             switch (nodeStatus) {
                 case LeAudioStackEvent.GROUP_NODE_ADDED:
@@ -3555,8 +3554,7 @@ public class LeAudioService extends ProfileService {
                 mGroupReadLock.unlock();
             }
         } else if (stackEvent.type == LeAudioStackEvent.EVENT_TYPE_SINK_AUDIO_LOCATION_AVAILABLE) {
-            Objects.requireNonNull(
-                    stackEvent.device, "Device should never be null, event: " + stackEvent);
+            Objects.requireNonNull(stackEvent.device);
 
             int sink_audio_location = stackEvent.valueInt1;
 
