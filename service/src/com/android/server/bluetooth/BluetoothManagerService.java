@@ -1383,13 +1383,6 @@ class BluetoothManagerService {
                 Log.e(TAG, "Unable to unregister BluetoothCallback", e);
             }
 
-            if (!Flags.explicitKillFromSystemServer()) {
-                mAdapter = null;
-                mContext.unbindService(mConnection);
-                mHandler.removeMessages(MESSAGE_TIMEOUT_BIND);
-                return;
-            }
-
             CompletableFuture<Void> binderDead = new CompletableFuture<>();
             try {
                 mAdapter.getAdapterBinder()
