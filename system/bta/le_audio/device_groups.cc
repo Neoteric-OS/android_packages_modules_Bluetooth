@@ -1235,6 +1235,12 @@ types::LeAudioConfigurationStrategy LeAudioDeviceGroup::GetGroupSinkStrategy() c
     /* Choose the group configuration strategy based on PAC records */
     auto strategy_selector = [&, this](uint8_t direction) {
       int expected_group_size = Size();
+      /*
+      * CAP/INI/UST/BV-16-C
+      * CAP/INI/UST/BV-18-C
+      */
+      bool mCapNoAudioLocPts =
+            osi_property_get_bool("persist.bluetooth.cap_no_audio_loc", false);
 
       if (!audio_locations_.get(direction)) {
         log::error("No audio locations for direction: {} available in the group", +direction);
@@ -1250,9 +1256,9 @@ types::LeAudioConfigurationStrategy LeAudioDeviceGroup::GetGroupSinkStrategy() c
        /* Check supported audio locations */
       auto const& locations = audio_locations_.get(direction).value();
       log::debug("audio location 0x{:04x}", locations.to_ulong());
-      if (!(locations.to_ulong() & codec_spec_conf::kLeAudioLocationAnyLeft) ||
+      if ((!(locations.to_ulong() & codec_spec_conf::kLeAudioLocationAnyLeft) ||
           !(locations.to_ulong() & codec_spec_conf::kLeAudioLocationAnyRight) ||
-          locations.none()) {
+          locations.none()) && !mCapNoAudioLocPts) {
         log::debug("startgy set to MONO_ONE_CIS_PER_DEVICE");
         return types::LeAudioConfigurationStrategy::MONO_ONE_CIS_PER_DEVICE;
       }
@@ -1260,10 +1266,11 @@ types::LeAudioConfigurationStrategy LeAudioDeviceGroup::GetGroupSinkStrategy() c
       auto device = GetFirstDevice();
       /* Note: Currently, the audio channel counts LTV is only mandatory for
        * LC3. */
-      auto channel_count_bitmap = device->GetSupportedAudioChannelCounts(direction);
-      log::debug("Supported channel counts for group {} (device {}) is {}", group_id_,
-                 device->address_, channel_count_bitmap);
-      if (channel_count_bitmap == 1) {
+      auto channel_count_bitmap =
+          device->GetSupportedAudioChannelCounts(types::kLeAudioDirectionSink);
+      log::debug("Supported channel counts for group {} (device {}) is {}",
+                 group_id_, device->address_, channel_count_bitmap);
+      if (channel_count_bitmap == 1 || mCapNoAudioLocPts) {
         return types::LeAudioConfigurationStrategy::STEREO_TWO_CISES_PER_DEVICE;
       }
 
