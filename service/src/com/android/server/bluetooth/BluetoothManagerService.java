@@ -1383,13 +1383,6 @@ class BluetoothManagerService {
                 Log.e(TAG, "Unable to unregister BluetoothCallback", e);
             }
 
-            if (!Flags.explicitKillFromSystemServer()) {
-                mAdapter = null;
-                mContext.unbindService(mConnection);
-                mHandler.removeMessages(MESSAGE_TIMEOUT_BIND);
-                return;
-            }
-
             CompletableFuture<Void> binderDead = new CompletableFuture<>();
             try {
                 mAdapter.getAdapterBinder()
@@ -1668,18 +1661,7 @@ class BluetoothManagerService {
                         if (mAdapter == null && !isBinding()) {
                             Log.d(TAG, "Binding to service to get name and address");
                             mGetNameAddressOnly = true;
-                            mHandler.sendEmptyMessageDelayed(MESSAGE_TIMEOUT_BIND, TIMEOUT_BIND_MS);
-                            Intent i = new Intent(IBluetooth.class.getName());
-                            if (!doBind(
-                                    i,
-                                    mConnection,
-                                    Context.BIND_AUTO_CREATE | Context.BIND_IMPORTANT,
-                                    UserHandle.CURRENT)) {
-                                mHandler.removeMessages(MESSAGE_TIMEOUT_BIND);
-                            } else {
-                                mBindingUserID = ActivityManager.getCurrentUser();
-                                Log.d(TAG, "Binding BT service. Current user: " + mBindingUserID);
-                            }
+                            bindToAdapter();
                         } else if (mAdapter != null) {
                             try {
                                 storeNameAndAddress(
@@ -1925,7 +1907,6 @@ class BluetoothManagerService {
                             "MESSAGE_BLUETOOTH_STATE_CHANGE:"
                                     + (" prevState=" + BluetoothAdapter.nameForState(prevState))
                                     + (" newState=" + BluetoothAdapter.nameForState(newState)));
-                    mState.set(newState);
                     bluetoothStateChangeHandler(prevState, newState);
                     // handle error state transition case from TURNING_ON to OFF
                     // unbind and rebind bluetooth service and enable bluetooth
@@ -2013,7 +1994,6 @@ class BluetoothManagerService {
                     // the BT icon correctly
                     if (mState.oneOf(STATE_TURNING_ON, STATE_ON)) {
                         bluetoothStateChangeHandler(STATE_ON, STATE_TURNING_OFF);
-                        mState.set(STATE_TURNING_OFF);
                     }
                     if (mState.oneOf(STATE_TURNING_OFF)) {
                         bluetoothStateChangeHandler(STATE_TURNING_OFF, STATE_OFF);
@@ -2196,7 +2176,6 @@ class BluetoothManagerService {
             }
 
             mHandler.removeMessages(MESSAGE_BLUETOOTH_STATE_CHANGE);
-            mState.set(STATE_OFF);
             // enable
             ActiveLogs.add(ENABLE_DISABLE_REASON_USER_SWITCH, true);
             // mEnable flag could have been reset on stopBle. Reenable it.
@@ -2309,26 +2288,33 @@ class BluetoothManagerService {
         }
     }
 
+    private void bindToAdapter() {
+        UserHandle user = UserHandle.CURRENT;
+        int flags = Context.BIND_AUTO_CREATE | Context.BIND_IMPORTANT;
+        Intent intent = new Intent(IBluetooth.class.getName());
+        ComponentName comp = resolveSystemService(intent);
+        if (comp == null) {
+            Log.e(TAG, "No ComponentName found for intent=" + intent);
+            return;
+        }
+        intent.setComponent(comp);
+
+        mHandler.sendEmptyMessageDelayed(MESSAGE_TIMEOUT_BIND, TIMEOUT_BIND_MS);
+        Log.d(TAG, "Start binding to the Bluetooth service with intent=" + intent);
+        if (!mContext.bindServiceAsUser(intent, mConnection, flags, user)) {
+            Log.e(TAG, "Fail to bind to intent=" + intent);
+            mContext.unbindService(mConnection);
+            mHandler.removeMessages(MESSAGE_TIMEOUT_BIND);
+        }
+    }
+
     private void handleEnable(boolean quietMode) {
         mQuietEnable = quietMode;
 
         mAdapterLock.writeLock().lock();
         try {
             if (mAdapter == null && !isBinding()) {
-                Log.d(TAG, "binding Bluetooth service");
-                // Start bind timeout and bind
-                mHandler.sendEmptyMessageDelayed(MESSAGE_TIMEOUT_BIND, TIMEOUT_BIND_MS);
-                Intent i = new Intent(IBluetooth.class.getName());
-                if (!doBind(
-                        i,
-                        mConnection,
-                        Context.BIND_AUTO_CREATE | Context.BIND_IMPORTANT,
-                        UserHandle.CURRENT)) {
-                    mHandler.removeMessages(MESSAGE_TIMEOUT_BIND);
-                } else {
-                    mBindingUserID = ActivityManager.getCurrentUser();
-                    Log.d(TAG, "Binding BT service. Current user: " + mBindingUserID);
-                }
+                bindToAdapter();
             } else if (!Flags.fastBindToApp() && mAdapter != null) {
                 // Enable bluetooth
                 try {
@@ -2340,16 +2326,6 @@ class BluetoothManagerService {
         } finally {
             mAdapterLock.writeLock().unlock();
         }
-    }
-
-    boolean doBind(Intent intent, ServiceConnection conn, int flags, UserHandle user) {
-        ComponentName comp = resolveSystemService(intent);
-        intent.setComponent(comp);
-        if (comp == null || !mContext.bindServiceAsUser(intent, conn, flags, user)) {
-            Log.e(TAG, "Fail to bind to: " + intent);
-            return false;
-        }
-        return true;
     }
 
     private void handleDisable() {
@@ -2401,6 +2377,7 @@ class BluetoothManagerService {
         if (prevState == newState) { // No change. Nothing to do.
             return;
         }
+        mState.set(newState);
 
         if (prevState == STATE_ON) {
             autoOnSetupTimer();
