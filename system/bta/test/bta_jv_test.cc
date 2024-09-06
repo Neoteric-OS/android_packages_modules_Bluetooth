@@ -139,7 +139,8 @@ protected:
 
 TEST_F(BtaJvTest, bta_jv_start_discovery_cback__no_callback) {
   bta_jv_enable(nullptr);
-  bluetooth::legacy::testing::bta_jv_start_discovery_cback(0x12345678, kRawAddress, SDP_SUCCESS);
+  bluetooth::legacy::testing::bta_jv_start_discovery_cback(0x12345678, kRawAddress,
+                                                           tSDP_STATUS::SDP_SUCCESS);
 }
 
 TEST_F(BtaJvTest, bta_jv_start_discovery_cback__with_callback_success_no_record) {
@@ -165,7 +166,8 @@ TEST_F(BtaJvTest, bta_jv_start_discovery_cback__with_callback_success_no_record)
         FAIL();
     }
   });
-  bluetooth::legacy::testing::bta_jv_start_discovery_cback(kSlotId, kRawAddress, SDP_SUCCESS);
+  bluetooth::legacy::testing::bta_jv_start_discovery_cback(kSlotId, kRawAddress,
+                                                           tSDP_STATUS::SDP_SUCCESS);
 }
 
 TEST_F(BtaJvTest, bta_jv_start_discovery_cback__with_callback_success_with_record) {
@@ -210,11 +212,12 @@ TEST_F(BtaJvTest, bta_jv_start_discovery_cback__with_callback_success_with_recor
         FAIL();
     }
   });
-  bluetooth::legacy::testing::bta_jv_start_discovery_cback(kSlotId, kRawAddress, SDP_SUCCESS);
+  bluetooth::legacy::testing::bta_jv_start_discovery_cback(kSlotId, kRawAddress,
+                                                           tSDP_STATUS::SDP_SUCCESS);
 }
 
 TEST_F(BtaJvTest, bta_jv_start_discovery_cback__with_callback_failure) {
-  tSDP_RESULT result = SDP_CONN_FAILED;
+  tSDP_RESULT result = tSDP_STATUS::SDP_CONN_FAILED;
 
   // Ensure that there was an sdp active
   bta_jv_cb.sdp_cb = {

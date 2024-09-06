@@ -1826,6 +1826,7 @@ public class HeadsetClientStateMachine extends StateMachine {
                                     break;
                                 case SEND_ANDROID_AT_COMMAND:
                                     debug("Connected: Received OK for AT+ANDROID");
+                                    break;
                                 default:
                                     warn("Unhandled AT OK " + event);
                                     break;

@@ -649,7 +649,7 @@ public final class BluetoothHeadset implements BluetoothProfile {
     @UnsupportedAppUsage(maxTargetSdk = Build.VERSION_CODES.R, trackingBug = 170729553)
     @RequiresLegacyBluetoothPermission
     @RequiresBluetoothConnectPermission
-    @RequiresPermission(BLUETOOTH_CONNECT)
+    @RequiresPermission(allOf = {BLUETOOTH_CONNECT, BLUETOOTH_PRIVILEGED})
     public int getPriority(BluetoothDevice device) {
         if (VDBG) log("getPriority(" + device + ")");
         return BluetoothAdapter.connectionPolicyToPriority(getConnectionPolicy(device));
@@ -667,11 +667,7 @@ public final class BluetoothHeadset implements BluetoothProfile {
      */
     @SystemApi
     @RequiresBluetoothConnectPermission
-    @RequiresPermission(
-            allOf = {
-                BLUETOOTH_CONNECT,
-                BLUETOOTH_PRIVILEGED,
-            })
+    @RequiresPermission(allOf = {BLUETOOTH_CONNECT, BLUETOOTH_PRIVILEGED})
     public @ConnectionPolicy int getConnectionPolicy(@NonNull BluetoothDevice device) {
         if (VDBG) log("getConnectionPolicy(" + device + ")");
         final IBluetoothHeadset service = getService();
@@ -878,7 +874,6 @@ public final class BluetoothHeadset implements BluetoothProfile {
                 return service.getAudioState(device, mAttributionSource);
             } catch (RemoteException e) {
                 Log.e(TAG, e.toString() + "\n" + Log.getStackTraceString(new Throwable()));
-                throw e.rethrowAsRuntimeException();
             }
         }
         return BluetoothHeadset.STATE_AUDIO_DISCONNECTED;
@@ -937,7 +932,6 @@ public final class BluetoothHeadset implements BluetoothProfile {
                 return BluetoothStatusCodes.SUCCESS;
             } catch (RemoteException e) {
                 Log.e(TAG, e.toString() + "\n" + Log.getStackTraceString(new Throwable()));
-                throw e.rethrowAsRuntimeException();
             }
         }
 
@@ -972,7 +966,6 @@ public final class BluetoothHeadset implements BluetoothProfile {
                         : BluetoothStatusCodes.NOT_ALLOWED;
             } catch (RemoteException e) {
                 Log.e(TAG, e.toString() + "\n" + Log.getStackTraceString(new Throwable()));
-                throw e.rethrowAsRuntimeException();
             }
         }
 
@@ -1054,7 +1047,6 @@ public final class BluetoothHeadset implements BluetoothProfile {
                 return service.connectAudio(mAttributionSource);
             } catch (RemoteException e) {
                 Log.e(TAG, e.toString() + "\n" + Log.getStackTraceString(new Throwable()));
-                throw e.rethrowAsRuntimeException();
             }
         }
 
@@ -1105,7 +1097,6 @@ public final class BluetoothHeadset implements BluetoothProfile {
                 return service.disconnectAudio(mAttributionSource);
             } catch (RemoteException e) {
                 Log.e(TAG, e.toString() + "\n" + Log.getStackTraceString(new Throwable()));
-                throw e.rethrowAsRuntimeException();
             }
         }
 

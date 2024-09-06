@@ -1169,7 +1169,9 @@ public class AdapterService extends Service {
     }
 
     private void invalidateBluetoothGetStateCache() {
-        BluetoothAdapter.invalidateBluetoothGetStateCache();
+        if (!Flags.broadcastAdapterStateWithCallback()) {
+            BluetoothAdapter.invalidateBluetoothGetStateCache();
+        }
     }
 
     void updateLeAudioProfileServiceState() {
@@ -1200,7 +1202,9 @@ public class AdapterService extends Service {
 
     void updateAdapterState(int prevState, int newState) {
         mAdapterProperties.setState(newState);
-        invalidateBluetoothGetStateCache();
+        if (!Flags.broadcastAdapterStateWithCallback()) {
+            invalidateBluetoothGetStateCache();
+        }
 
         // Only BluetoothManagerService should be registered
         int n = mRemoteCallbacks.beginBroadcast();
@@ -1278,7 +1282,7 @@ public class AdapterService extends Service {
                             .orElse(BluetoothProperties.snoop_log_filter_profile_map_values.EMPTY);
 
             if (!(sSnoopLogSettingAtEnable == snoopLogSetting)
-                    || !(sDefaultSnoopLogSettingAtEnable == snoopDefaultModeSetting)
+                    || !(Objects.equals(sDefaultSnoopLogSettingAtEnable, snoopDefaultModeSetting))
                     || !(sSnoopLogFilterHeadersSettingAtEnable
                             == snoopLogFilterHeadersSettingAtEnable)
                     || !(sSnoopLogFilterProfileA2dpSettingAtEnable
@@ -1502,7 +1506,9 @@ public class AdapterService extends Service {
         BluetoothAdapter.invalidateGetProfileConnectionStateCache();
         BluetoothAdapter.invalidateIsOffloadedFilteringSupportedCache();
         BluetoothDevice.invalidateBluetoothGetBondStateCache();
-        BluetoothAdapter.invalidateBluetoothGetStateCache();
+        if (!Flags.broadcastAdapterStateWithCallback()) {
+            BluetoothAdapter.invalidateBluetoothGetStateCache();
+        }
         BluetoothAdapter.invalidateGetAdapterConnectionStateCache();
         BluetoothMap.invalidateBluetoothGetConnectionStateCache();
         BluetoothSap.invalidateBluetoothGetConnectionStateCache();
@@ -2260,7 +2266,9 @@ public class AdapterService extends Service {
 
         AdapterServiceBinder(AdapterService svc) {
             mService = svc;
-            mService.invalidateBluetoothGetStateCache();
+            if (!Flags.broadcastAdapterStateWithCallback()) {
+                mService.invalidateBluetoothGetStateCache();
+            }
             BluetoothAdapter.getDefaultAdapter().disableBluetoothGetStateCache();
         }
 
@@ -2271,6 +2279,7 @@ public class AdapterService extends Service {
             return mService;
         }
 
+        // TODO: b/357645528 - delete getState method
         @Override
         public int getState() {
             AdapterService service = getService();
@@ -2870,7 +2879,7 @@ public class AdapterService extends Service {
         @Override
         public int connectAllEnabledProfiles(BluetoothDevice device, AttributionSource source) {
             AdapterService service = getService();
-            if (service == null) {
+            if (service == null || !service.isEnabled()) {
                 return BluetoothStatusCodes.ERROR_BLUETOOTH_NOT_ENABLED;
             }
             if (!callerIsSystemOrActiveOrManagedUser(service, TAG, "connectAllEnabledProfiles")) {
@@ -3750,7 +3759,7 @@ public class AdapterService extends Service {
 
             service.enforceCallingOrSelfPermission(BLUETOOTH_PRIVILEGED, null);
 
-            return service.mDatabaseManager.getCustomMeta(device, key);
+            return service.getMetadata(device, key);
         }
 
         @Override
@@ -4038,6 +4047,24 @@ public class AdapterService extends Service {
         }
 
         @Override
+        public int isDualModeAudioEnabled(AttributionSource source) {
+            AdapterService service = getService();
+            if (service == null) {
+                return BluetoothStatusCodes.ERROR_BLUETOOTH_NOT_ENABLED;
+            }
+            if (!Utils.checkConnectPermissionForDataDelivery(service, source, TAG)) {
+                return BluetoothStatusCodes.ERROR_MISSING_BLUETOOTH_CONNECT_PERMISSION;
+            }
+            service.enforceCallingOrSelfPermission(BLUETOOTH_PRIVILEGED, null);
+
+            if (!Utils.isDualModeAudioEnabled()) {
+                return BluetoothStatusCodes.FEATURE_NOT_SUPPORTED;
+            }
+
+            return BluetoothStatusCodes.SUCCESS;
+        }
+
+        @Override
         public int registerPreferredAudioProfilesChangedCallback(
                 IBluetoothPreferredAudioProfilesCallback callback, AttributionSource source) {
             AdapterService service = getService();
@@ -4055,7 +4082,7 @@ public class AdapterService extends Service {
             service.enforceCallingOrSelfPermission(BLUETOOTH_PRIVILEGED, null);
 
             // If LE only mode is enabled, the dual mode audio feature is disabled
-            if (!isDualModeAudioEnabled()) {
+            if (!Utils.isDualModeAudioEnabled()) {
                 return BluetoothStatusCodes.FEATURE_NOT_SUPPORTED;
             }
 
@@ -4745,7 +4772,7 @@ public class AdapterService extends Service {
             return Utils.getBytesFromAddress(deviceProp.getIdentityAddress());
         }
 
-        if (Flags.identityAddressNullIfUnknown()) {
+        if (Flags.identityAddressNullIfNotKnown()) {
             // Return null if identity address unknown
             return null;
         } else {
@@ -4768,7 +4795,7 @@ public class AdapterService extends Service {
         if (deviceProp != null && deviceProp.getIdentityAddress() != null) {
             return deviceProp.getIdentityAddress();
         } else {
-            if (Flags.identityAddressNullIfUnknown()) {
+            if (Flags.identityAddressNullIfNotKnown()) {
                 // Return null if identity address unknown
                 return null;
             } else {

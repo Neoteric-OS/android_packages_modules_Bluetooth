@@ -464,12 +464,14 @@ static bthh_connection_state_t hh_get_state_on_disconnect(tAclLinkSpec& link_spe
   }
 }
 
-static void hh_connect_complete(uint8_t handle, tAclLinkSpec& link_spec,
-                                bthh_connection_state_t state) {
+static void hh_connect_complete(tBTA_HH_CONN& conn, bthh_connection_state_t state) {
   if (state != BTHH_CONN_STATE_CONNECTED) {
-    BTA_HhClose(handle);
+    if (!com::android::bluetooth::flags::close_hid_only_if_connected() ||
+        conn.status == BTA_HH_OK) {
+      BTA_HhClose(conn.handle);
+    }
   }
-  BTHH_STATE_UPDATE(link_spec, state);
+  BTHH_STATE_UPDATE(conn.link_spec, state);
 }
 
 /*******************************************************************************
@@ -590,7 +592,7 @@ static void hh_open_handler(tBTA_HH_CONN& conn) {
       }
 
       if (!com::android::bluetooth::flags::suppress_hid_rejection_broadcast()) {
-        hh_connect_complete(conn.handle, conn.link_spec, BTHH_CONN_STATE_DISCONNECTED);
+        hh_connect_complete(conn, BTHH_CONN_STATE_DISCONNECTED);
         return;
       }
       BTA_HhClose(conn.handle);
@@ -612,14 +614,14 @@ static void hh_open_handler(tBTA_HH_CONN& conn) {
 
       p_dev->dev_status = hh_get_state_on_disconnect(p_dev->link_spec);
     }
-    hh_connect_complete(conn.handle, conn.link_spec, BTHH_CONN_STATE_DISCONNECTED);
+    hh_connect_complete(conn, BTHH_CONN_STATE_DISCONNECTED);
     return;
   }
 
   /* Initialize device driver */
   if (!bta_hh_co_open(conn.handle, conn.sub_class, conn.attr_mask, conn.app_id, conn.link_spec)) {
     log::warn("Failed to find the uhid driver");
-    hh_connect_complete(conn.handle, conn.link_spec, BTHH_CONN_STATE_DISCONNECTED);
+    hh_connect_complete(conn, BTHH_CONN_STATE_DISCONNECTED);
     return;
   }
 
@@ -628,7 +630,7 @@ static void hh_open_handler(tBTA_HH_CONN& conn) {
     /* The connect request must have come from device side and exceeded the
      * connected HID device number. */
     log::warn("Cannot find device with handle {}", conn.handle);
-    hh_connect_complete(conn.handle, conn.link_spec, BTHH_CONN_STATE_DISCONNECTED);
+    hh_connect_complete(conn, BTHH_CONN_STATE_DISCONNECTED);
     return;
   }
 
@@ -639,7 +641,7 @@ static void hh_open_handler(tBTA_HH_CONN& conn) {
     p_dev->link_spec = conn.link_spec;
     p_dev->dev_status = BTHH_CONN_STATE_CONNECTED;
   }
-  hh_connect_complete(conn.handle, conn.link_spec, BTHH_CONN_STATE_CONNECTED);
+  hh_connect_complete(conn, BTHH_CONN_STATE_CONNECTED);
   // Send set_idle if the peer_device is a keyboard
   if (check_cod_hid_major(conn.link_spec.addrt.bda, COD_HID_KEYBOARD) ||
       check_cod_hid_major(conn.link_spec.addrt.bda, COD_HID_COMBO)) {
@@ -2190,6 +2192,7 @@ void DumpsysHid(int fd) {
                   p_dev->reconnect_allowed ? "T" : "F");
     }
   }
+  BTA_HhDump(fd);
 }
 
 namespace bluetooth {

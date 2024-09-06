@@ -16,6 +16,8 @@
 
 package com.android.bluetooth.le_scan;
 
+import static android.bluetooth.le.ScanSettings.getScanModeString;
+
 import android.app.ActivityManager;
 import android.app.AlarmManager;
 import android.app.PendingIntent;
@@ -370,6 +372,7 @@ public class ScanManager {
                     break;
                 case MSG_BT_PROFILE_CONN_STATE_CHANGED:
                     handleProfileConnectionStateChanged(msg);
+                    break;
                 default:
                     // Shouldn't happen.
                     Log.e(TAG, "received an unknown message : " + msg.what);
@@ -649,7 +652,7 @@ public class ScanManager {
             Log.d(
                     TAG,
                     "Scan mode update during setAutoBatchScanClient() to "
-                            + ScanSettings.SCAN_MODE_SCREEN_OFF);
+                            + getScanModeString(ScanSettings.SCAN_MODE_SCREEN_OFF));
             if (client.stats != null) {
                 client.stats.setAutoBatchScan(client.scannerId, true);
             }
@@ -662,7 +665,8 @@ public class ScanManager {
             client.updateScanMode(client.scanModeApp);
             Log.d(
                     TAG,
-                    "Scan mode update during clearAutoBatchScanClient() to " + client.scanModeApp);
+                    "Scan mode update during clearAutoBatchScanClient() to "
+                            + getScanModeString(client.scanModeApp));
             if (client.stats != null) {
                 client.stats.setAutoBatchScan(client.scannerId, false);
             }
@@ -941,10 +945,9 @@ public class ScanManager {
             if (this == obj) {
                 return true;
             }
-            if (obj == null || getClass() != obj.getClass()) {
+            if (!(obj instanceof BatchScanParams other)) {
                 return false;
             }
-            BatchScanParams other = (BatchScanParams) obj;
             return scanMode == other.scanMode
                     && fullScanscannerId == other.fullScanscannerId
                     && truncatedScanscannerId == other.truncatedScanscannerId;
