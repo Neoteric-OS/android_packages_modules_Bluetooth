@@ -203,7 +203,7 @@ final class BondStateMachine extends StateMachine {
                         Log.e(
                                 TAG,
                                 "In stable state, received invalid newState: "
-                                        + state2str(newState));
+                                        + bondStateToString(newState));
                     }
                     break;
                 case BONDED_INTENT_DELAY:
@@ -600,9 +600,9 @@ final class BondStateMachine extends StateMachine {
                 "Bond State Change Intent:"
                         + device
                         + " "
-                        + state2str(oldState)
+                        + bondStateToString(oldState)
                         + " => "
-                        + state2str(newState));
+                        + bondStateToString(newState));
     }
 
     void bondStateChangeCallback(int status, byte[] address, int newState, int hciReason) {
@@ -807,7 +807,7 @@ final class BondStateMachine extends StateMachine {
              InteropUtil.InteropFeature.INTEROP_DISABLE_ABSOLUTE_VOLUME, device.getAddress());
     }
 
-    private String state2str(int state) {
+    public static String bondStateToString(int state) {
         if (state == BluetoothDevice.BOND_NONE) {
             return "BOND_NONE";
         } else if (state == BluetoothDevice.BOND_BONDING) {

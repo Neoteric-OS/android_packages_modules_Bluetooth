@@ -252,6 +252,7 @@ public:
         callbacks_(callbacks_),
         active_group_id_(bluetooth::groups::kGroupUnknown),
         configuration_context_type_(LeAudioContextType::UNINITIALIZED),
+        in_call_metadata_context_types_({.sink = AudioContexts(), .source = AudioContexts()}),
         local_metadata_context_types_({.sink = AudioContexts(), .source = AudioContexts()}),
         stream_setup_start_timestamp_(0),
         stream_setup_end_timestamp_(0),
@@ -1129,6 +1130,11 @@ public:
 
   void SetInCall(bool in_call) override {
     log::debug("in_call: {}", in_call);
+    if (in_call == in_call_) {
+      log::verbose("no state change {}", in_call);
+      return;
+    }
+
     in_call_ = in_call;
     if (!com::android::bluetooth::flags::leaudio_speed_up_reconfiguration_between_call()) {
       log::debug("leaudio_speed_up_reconfiguration_between_call flag is not enabled");
@@ -1136,17 +1142,25 @@ public:
     }
 
     if (active_group_id_ == bluetooth::groups::kGroupUnknown) {
+      log::debug("There is no active group");
       return;
     }
 
     LeAudioDeviceGroup* group = aseGroups_.FindById(active_group_id_);
     if (!group || !group->IsStreaming()) {
+      log::debug("{} is not streaming", active_group_id_);
       return;
     }
 
     bool reconfigure = false;
 
     if (in_call_) {
+      in_call_metadata_context_types_ = local_metadata_context_types_;
+
+      log::debug("in_call_metadata_context_types_ sink: {}  source: {}",
+                 in_call_metadata_context_types_.sink.to_string(),
+                 in_call_metadata_context_types_.source.to_string());
+
       auto audio_set_conf = group->GetConfiguration(LeAudioContextType::CONVERSATIONAL);
       if (audio_set_conf && group->IsGroupConfiguredTo(*audio_set_conf)) {
         log::info("Call is coming, but CIG already set for a call");
@@ -1157,14 +1171,18 @@ public:
     } else {
       if (configuration_context_type_ == LeAudioContextType::CONVERSATIONAL) {
         log::info("Call is ended, speed up reconfiguration for media");
-        local_metadata_context_types_.sink.unset(LeAudioContextType::CONVERSATIONAL);
-        local_metadata_context_types_.source.unset(LeAudioContextType::CONVERSATIONAL);
+        local_metadata_context_types_ = in_call_metadata_context_types_;
+        log::debug("restored local_metadata_context_types_ sink: {}  source: {}",
+                   local_metadata_context_types_.sink.to_string(),
+                   local_metadata_context_types_.source.to_string());
+        in_call_metadata_context_types_.sink.clear();
+        in_call_metadata_context_types_.source.clear();
         reconfigure = true;
       }
     }
 
     if (reconfigure) {
-      initReconfiguration(group, configuration_context_type_);
+      ReconfigureOrUpdateRemote(group, bluetooth::le_audio::types::kLeAudioDirectionSink);
     }
     ProcessCallAvailbilityToUpdateMetadata(in_call);
   }
@@ -5307,7 +5325,7 @@ public:
             LeAudioContextType::NOTIFICATIONS | LeAudioContextType::SOUNDEFFECTS |
             LeAudioContextType::INSTRUCTIONAL | LeAudioContextType::ALERTS |
             LeAudioContextType::EMERGENCYALARM | LeAudioContextType::UNSPECIFIED;
-    if (group->IsStreaming() && config_context_candids.any() &&
+    if (group->IsStreaming() && !group->IsReleasingOrIdle() && config_context_candids.any() &&
         (config_context_candids & ~no_reconfigure_contexts).none() &&
         (configuration_context_type_ != LeAudioContextType::UNINITIALIZED) &&
         (configuration_context_type_ != LeAudioContextType::UNSPECIFIED) &&
@@ -6099,6 +6117,7 @@ private:
   LeAudioContextType configuration_context_type_;
   static constexpr char kAllowMultipleContextsInMetadata[] =
           "persist.bluetooth.leaudio.allow.multiple.contexts";
+  BidirectionalPair<AudioContexts> in_call_metadata_context_types_;
   BidirectionalPair<AudioContexts> local_metadata_context_types_;
   uint64_t stream_setup_start_timestamp_;
   uint64_t stream_setup_end_timestamp_;
