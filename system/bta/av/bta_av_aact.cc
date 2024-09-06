@@ -3168,7 +3168,7 @@ void bta_qti_av_vendor_offload_stop() {
   param[0] = HCI_VSQC_CONTROLLER_A2DP_STOP_OPCODE;
   param[1] = 0;
 
-  BTM_VendorSpecificCommand(HCI_QTI_CONTROLLER_A2DP_OPCODE, 2, param, offload_vendor_callback);
+  get_btm_client_interface().vendor.BTM_VendorSpecificCommand(HCI_QTI_CONTROLLER_A2DP_OPCODE, 2, param, offload_vendor_callback);
 }
 
 void bta_av_vendor_offload_start_v2(tBTA_AV_SCB* p_scb, A2dpCodecConfigExt* offload_codec) {
@@ -3315,7 +3315,7 @@ void bta_av_set_codec_mode(tBTA_AV_DATA* p_data) {
 
   update_sub_band_info(&p_param, &param_len, BTA_AV_ENCODER_MODE_CHANGE_ID, enc_mode);
   *num_sub_band += 1;
-  BTM_VendorSpecificCommand(HCI_QTI_CONTROLLER_A2DP_OPCODE, param_len, param, NULL);
+  get_btm_client_interface().vendor.BTM_VendorSpecificCommand(HCI_QTI_CONTROLLER_A2DP_OPCODE, param_len, param, NULL);
 }
 
 void bta_av_update_aptx_data(tBTA_AV_DATA* p_data) {
@@ -3333,7 +3333,7 @@ void bta_av_update_aptx_data(tBTA_AV_DATA* p_data) {
   param_len++;
   update_sub_band_info(&p_param, &param_len, subband_id, &subband_data, 1);
   *num_sub_band += 1;
-  BTM_VendorSpecificCommand(HCI_VSQC_CONTROLLER_A2DP_OPCODE, param_len, param,
+  get_btm_client_interface().vendor.BTM_VendorSpecificCommand(HCI_VSQC_CONTROLLER_A2DP_OPCODE, param_len, param,
                             enc_mode_change_callback);
 }
 
@@ -3431,7 +3431,7 @@ void bta_av_qti_offload_req(tBTA_AV_SCB* p_scb, tBTA_AV_DATA* p_data) {
 
   bta_av_cb.offload_start_pending_hndl = p_scb->hndl;
 
-  BTM_VendorSpecificCommand(HCI_QTI_CONTROLLER_A2DP_OPCODE, (p_param - param) - 1, param,
+  get_btm_client_interface().vendor.BTM_VendorSpecificCommand(HCI_QTI_CONTROLLER_A2DP_OPCODE, (p_param - param) - 1, param,
                             offload_vendor_callback);
 }
 

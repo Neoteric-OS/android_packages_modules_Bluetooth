@@ -60,6 +60,7 @@
 #include "stack/include/acl_api.h"
 #include "stack/include/bt_types.h"
 #include "stack/include/btm_client_interface.h"
+#include "stack/include/btm_status.h"
 #include "stack/include/main_thread.h"
 #include "state_machine.h"
 #include "storage_helper.h"
@@ -2373,7 +2374,8 @@ public:
       return;
     }
 
-    int result = BTM_SetEncryption(address, BT_TRANSPORT_LE, nullptr, nullptr, BTM_BLE_SEC_ENCRYPT);
+    tBTM_STATUS result =
+            BTM_SetEncryption(address, BT_TRANSPORT_LE, nullptr, nullptr, BTM_BLE_SEC_ENCRYPT);
 
     log::info("Encryption required for {}. Request result: 0x{:02x}", address, result);
 
@@ -2450,7 +2452,7 @@ public:
     }
   }
 
-  void OnEncryptionComplete(const RawAddress& address, uint8_t status) {
+  void OnEncryptionComplete(const RawAddress& address, tBTM_STATUS status) {
     log::info("{} status 0x{:02x}", address, status);
     LeAudioDevice* leAudioDevice = leAudioDevices_.FindByAddress(address);
     if (leAudioDevice == NULL || (leAudioDevice->conn_id_ == GATT_INVALID_CONN_ID)) {
@@ -2460,7 +2462,7 @@ public:
     }
 
     if (status != BTM_SUCCESS) {
-      log::error("Encryption failed status: {}", int{status});
+      log::error("Encryption failed status: {}", btm_status_text(status));
       if (leAudioDevice->GetConnectionState() ==
           DeviceConnectState::CONNECTED_BY_USER_GETTING_READY) {
         callbacks_->OnConnectionState(ConnectionState::DISCONNECTED, address);
@@ -5288,28 +5290,33 @@ public:
     }
   }
 
+  bool ReconfigureOrUpdateRemoteForPTS(LeAudioDeviceGroup* group, int remote_direction) {
+    log::info("{}", group->group_id_);
+    // Use common audio stream contexts exposed by the PTS
+    auto override_contexts = AudioContexts(0xFFFF);
+    for (auto device = group->GetFirstDevice(); device != nullptr;
+         device = group->GetNextDevice(device)) {
+      override_contexts &= device->GetAvailableContexts();
+    }
+    if (override_contexts.value() == 0xFFFF) {
+      override_contexts = AudioContexts(LeAudioContextType::UNSPECIFIED);
+    }
+    log::warn("Overriding local_metadata_context_types_: {} with: {}",
+              local_metadata_context_types_.source.to_string(), override_contexts.to_string());
+
+    /* Choose the right configuration context */
+    auto new_configuration_context = ChooseConfigurationContextType(override_contexts);
+
+    log::debug("new_configuration_context= {}.", ToString(new_configuration_context));
+    BidirectionalPair<AudioContexts> remote_contexts = {.sink = override_contexts,
+                                                        .source = override_contexts};
+    return GroupStream(active_group_id_, new_configuration_context, remote_contexts);
+  }
+
   /* Return true if stream is started */
   bool ReconfigureOrUpdateRemote(LeAudioDeviceGroup* group, int remote_direction) {
     if (stack_config_get_interface()->get_pts_force_le_audio_multiple_contexts_metadata()) {
-      // Use common audio stream contexts exposed by the PTS
-      auto override_contexts = AudioContexts(0xFFFF);
-      for (auto device = group->GetFirstDevice(); device != nullptr;
-           device = group->GetNextDevice(device)) {
-        override_contexts &= device->GetAvailableContexts();
-      }
-      if (override_contexts.value() == 0xFFFF) {
-        override_contexts = AudioContexts(LeAudioContextType::UNSPECIFIED);
-      }
-      log::warn("Overriding local_metadata_context_types_: {} with: {}",
-                local_metadata_context_types_.source.to_string(), override_contexts.to_string());
-
-      /* Choose the right configuration context */
-      auto new_configuration_context = ChooseConfigurationContextType(override_contexts);
-
-      log::debug("new_configuration_context= {}.", ToString(new_configuration_context));
-      BidirectionalPair<AudioContexts> remote_contexts = {.sink = override_contexts,
-                                                          .source = override_contexts};
-      return GroupStream(active_group_id_, new_configuration_context, remote_contexts);
+      return ReconfigureOrUpdateRemoteForPTS(group, remote_direction);
     }
 
     /* When the local sink and source update their metadata, we need to come up
@@ -6375,7 +6382,7 @@ void le_audio_gattc_callback(tBTA_GATTC_EVT event, tBTA_GATTC* p_data) {
       break;
 
     case BTA_GATTC_ENC_CMPL_CB_EVT: {
-      uint8_t encryption_status;
+      tBTM_STATUS encryption_status;
       if (BTM_IsEncrypted(p_data->enc_cmpl.remote_bda, BT_TRANSPORT_LE)) {
         encryption_status = BTM_SUCCESS;
       } else {

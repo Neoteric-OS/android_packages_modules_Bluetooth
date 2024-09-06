@@ -36,7 +36,10 @@
 
 #include <base/logging.h>
 #include <bluetooth/log.h>
+#include <com_android_bluetooth_flags.h>
 #include <string.h>
+
+#include <algorithm>
 
 #include "hal/snoop_logger.h"
 #include "hci/controller_interface.h"
@@ -84,7 +87,7 @@ tL2C_LCB* l2cu_allocate_lcb(const RawAddress& p_bd_addr, bool is_bonding, tBT_TR
     if (!p_lcb->in_use) {
       alarm_free(p_lcb->l2c_lcb_timer);
       alarm_free(p_lcb->info_resp_timer);
-      memset(p_lcb, 0, sizeof(tL2C_LCB));
+      *p_lcb = {};
 
       p_lcb->remote_bd_addr = p_bd_addr;
 
@@ -229,6 +232,8 @@ void l2cu_release_lcb(tL2C_LCB* p_lcb) {
 
     l2c_link_adjust_allocation();
   }
+
+  p_lcb->suspended.clear();
 
   /* Check and release all the LE COC connections waiting for security */
   if (p_lcb->le_sec_pending_q) {
@@ -1682,6 +1687,37 @@ void l2cu_release_ccb(tL2C_CCB* p_ccb) {
   }
 }
 
+void l2cu_fixed_channel_restore(tL2C_LCB* p_lcb, uint16_t fixed_cid) {
+  if (!com::android::bluetooth::flags::transmit_smp_packets_before_release()) {
+    return;
+  }
+  auto it = p_lcb->suspended.begin();
+  while (it != p_lcb->suspended.end()) {
+    if (*it == fixed_cid) {
+      it = p_lcb->suspended.erase(it);
+    } else {
+      it++;
+    }
+  }
+}
+
+bool l2cu_fixed_channel_suspended(tL2C_LCB* p_lcb, uint16_t fixed_cid) {
+  if (!com::android::bluetooth::flags::transmit_smp_packets_before_release()) {
+    return false;
+  }
+  return std::find(p_lcb->suspended.begin(), p_lcb->suspended.end(), fixed_cid) !=
+         p_lcb->suspended.end();
+}
+
+void l2cu_fixed_channel_data_cb(tL2C_LCB* p_lcb, uint16_t fixed_cid, BT_HDR* p_buf) {
+  if (l2cu_fixed_channel_suspended(p_lcb, fixed_cid)) {
+    log::warn("Packet received for disconnecting fixed CID: 0x{:04x} BDA: {}", fixed_cid,
+              p_lcb->remote_bd_addr);
+  }
+  (*l2cb.fixed_reg[fixed_cid - L2CAP_FIRST_FIXED_CHNL].pL2CA_FixedData_Cb)(
+          fixed_cid, p_lcb->remote_bd_addr, p_buf);
+}
+
 /*******************************************************************************
  *
  * Function         l2cu_find_ccb_by_remote_cid
@@ -2176,7 +2212,8 @@ void l2cu_create_conn_br_edr(tL2C_LCB* p_lcb) {
       p_lcb->link_state = LST_CONNECTING_WAIT_SWITCH;
       p_lcb->SetLinkRoleAsCentral();
 
-      if (BTM_SwitchRoleToCentral(p_lcb_cur->remote_bd_addr) == BTM_CMD_STARTED) {
+      if (get_btm_client_interface().link_policy.BTM_SwitchRoleToCentral(
+                  p_lcb_cur->remote_bd_addr) == BTM_CMD_STARTED) {
         alarm_set_on_mloop(p_lcb->l2c_lcb_timer, L2CAP_LINK_ROLE_SWITCH_TIMEOUT_MS,
                            l2c_lcb_timer_timeout, p_lcb);
         return;

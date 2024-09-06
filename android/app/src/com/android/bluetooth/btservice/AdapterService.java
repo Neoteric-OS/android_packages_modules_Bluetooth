@@ -2879,7 +2879,7 @@ public class AdapterService extends Service {
         @Override
         public int connectAllEnabledProfiles(BluetoothDevice device, AttributionSource source) {
             AdapterService service = getService();
-            if (service == null) {
+            if (service == null || !service.isEnabled()) {
                 return BluetoothStatusCodes.ERROR_BLUETOOTH_NOT_ENABLED;
             }
             if (!callerIsSystemOrActiveOrManagedUser(service, TAG, "connectAllEnabledProfiles")) {
@@ -3759,7 +3759,7 @@ public class AdapterService extends Service {
 
             service.enforceCallingOrSelfPermission(BLUETOOTH_PRIVILEGED, null);
 
-            return service.mDatabaseManager.getCustomMeta(device, key);
+            return service.getMetadata(device, key);
         }
 
         @Override
