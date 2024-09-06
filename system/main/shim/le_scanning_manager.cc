@@ -39,13 +39,13 @@
 #include "main/shim/helpers.h"
 #include "main/shim/le_scanning_manager.h"
 #include "main/shim/shim.h"
-#include "os/log.h"
 #include "stack/btm/btm_int_types.h"
 #include "stack/include/advertise_data_parser.h"
 #include "stack/include/ble_hci_link_interface.h"
 #include "stack/include/bt_dev_class.h"
 #include "stack/include/btm_ble_addr.h"
 #include "stack/include/btm_log_history.h"
+#include "stack/include/btm_status.h"
 #include "storage/device.h"
 #include "storage/le_device.h"
 #include "storage/storage_module.h"
@@ -223,7 +223,7 @@ void BleScannerInterfaceImpl::ScanFilterParamSetup(
   bluetooth::shim::GetScanning()->ScanFilterParameterSetup(apcf_action, filter_index,
                                                            advertising_filter_parameter);
   // TODO refactor callback mechanism
-  do_in_jni_thread(base::BindOnce(cb, 0, 0, btm_status_value(BTM_SUCCESS)));
+  do_in_jni_thread(base::BindOnce(cb, 0, 0, btm_status_value(tBTM_STATUS::BTM_SUCCESS)));
 }
 
 /** Configure a scan filter condition  */
@@ -240,7 +240,7 @@ void BleScannerInterfaceImpl::ScanFilterAdd(int filter_index, std::vector<ApcfCo
     new_filters.push_back(command);
   }
   bluetooth::shim::GetScanning()->ScanFilterAdd(filter_index, new_filters);
-  do_in_jni_thread(base::BindOnce(cb, 0, 0, 0, btm_status_value(BTM_SUCCESS)));
+  do_in_jni_thread(base::BindOnce(cb, 0, 0, 0, btm_status_value(tBTM_STATUS::BTM_SUCCESS)));
 }
 
 /** Clear all scan filter conditions for specific filter index*/
@@ -256,7 +256,7 @@ void BleScannerInterfaceImpl::ScanFilterEnable(bool enable, EnableCallback cb) {
   bluetooth::shim::GetScanning()->ScanFilterEnable(enable);
 
   uint8_t action = enable ? 1 : 0;
-  do_in_jni_thread(base::BindOnce(cb, action, btm_status_value(BTM_SUCCESS)));
+  do_in_jni_thread(base::BindOnce(cb, action, btm_status_value(tBTM_STATUS::BTM_SUCCESS)));
 }
 
 #if TARGET_FLOSS
@@ -349,7 +349,7 @@ void BleScannerInterfaceImpl::BatchscanConfigStorage(int client_if, int batch_sc
   log::info("in shim layer");
   bluetooth::shim::GetScanning()->BatchScanConifgStorage(batch_scan_full_max, batch_scan_trunc_max,
                                                          batch_scan_notify_threshold, client_if);
-  do_in_jni_thread(base::BindOnce(cb, btm_status_value(BTM_SUCCESS)));
+  do_in_jni_thread(base::BindOnce(cb, btm_status_value(tBTM_STATUS::BTM_SUCCESS)));
 }
 
 /* Enable batchscan */
@@ -360,14 +360,14 @@ void BleScannerInterfaceImpl::BatchscanEnable(int scan_mode, int scan_interval, 
   auto batch_scan_discard_rule = static_cast<bluetooth::hci::BatchScanDiscardRule>(discard_rule);
   bluetooth::shim::GetScanning()->BatchScanEnable(batch_scan_mode, scan_window, scan_interval,
                                                   batch_scan_discard_rule);
-  do_in_jni_thread(base::BindOnce(cb, btm_status_value(BTM_SUCCESS)));
+  do_in_jni_thread(base::BindOnce(cb, btm_status_value(tBTM_STATUS::BTM_SUCCESS)));
 }
 
 /* Disable batchscan */
 void BleScannerInterfaceImpl::BatchscanDisable(Callback cb) {
   log::info("in shim layer");
   bluetooth::shim::GetScanning()->BatchScanDisable();
-  do_in_jni_thread(base::BindOnce(cb, btm_status_value(BTM_SUCCESS)));
+  do_in_jni_thread(base::BindOnce(cb, btm_status_value(tBTM_STATUS::BTM_SUCCESS)));
 }
 
 /* Read out batchscan reports */

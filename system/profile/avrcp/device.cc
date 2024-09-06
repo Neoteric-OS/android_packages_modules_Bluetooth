@@ -213,10 +213,6 @@ void Device::VendorPacketHandler(uint8_t label, std::shared_ptr<VendorPacket> pk
     } break;
 
     case CommandPdu::SET_ADDRESSED_PLAYER: {
-      // TODO (apanicke): Implement set addressed player. We don't need
-      // this currently since the current implementation only has one
-      // player and the player will never change, but we need it for a
-      // more complete implementation.
       auto set_addressed_player_request = Packet::Specialize<SetAddressedPlayerRequest>(pkt);
 
       if (!set_addressed_player_request->IsValid()) {
@@ -226,9 +222,10 @@ void Device::VendorPacketHandler(uint8_t label, std::shared_ptr<VendorPacket> pk
         return;
       }
 
-      media_interface_->GetMediaPlayerList(base::Bind(&Device::HandleSetAddressedPlayer,
-                                                      weak_ptr_factory_.GetWeakPtr(), label,
-                                                      set_addressed_player_request));
+      media_interface_->SetAddressedPlayer(
+              set_addressed_player_request->GetPlayerId(),
+              base::Bind(&Device::HandleSetAddressedPlayer, weak_ptr_factory_.GetWeakPtr(), label,
+                         set_addressed_player_request));
     } break;
 
     case CommandPdu::LIST_PLAYER_APPLICATION_SETTING_ATTRIBUTES: {
@@ -503,7 +500,7 @@ void Device::HandleNotification(uint8_t label,
     } break;
 
     case Event::ADDRESSED_PLAYER_CHANGED: {
-      media_interface_->GetMediaPlayerList(base::Bind(&Device::AddressedPlayerNotificationResponse,
+      media_interface_->GetAddressedPlayer(base::Bind(&Device::AddressedPlayerNotificationResponse,
                                                       weak_ptr_factory_.GetWeakPtr(), label, true));
     } break;
 
@@ -791,10 +788,8 @@ void Device::PlaybackPosNotificationResponse(uint8_t label, bool interim, PlaySt
   }
 }
 
-// TODO (apanicke): Finish implementing when we add support for more than one
-// player
-void Device::AddressedPlayerNotificationResponse(uint8_t label, bool interim, uint16_t curr_player,
-                                                 std::vector<MediaPlayerInfo> /* unused */) {
+void Device::AddressedPlayerNotificationResponse(uint8_t label, bool interim,
+                                                 uint16_t curr_player) {
   log::verbose("curr_player_id={}", (unsigned int)curr_player);
 
   if (interim) {
@@ -1012,7 +1007,7 @@ void Device::HandlePlayItem(uint8_t label, std::shared_ptr<PlayItemRequest> pkt)
 }
 
 void Device::HandleSetAddressedPlayer(uint8_t label, std::shared_ptr<SetAddressedPlayerRequest> pkt,
-                                      uint16_t curr_player, std::vector<MediaPlayerInfo> players) {
+                                      uint16_t curr_player) {
   log::verbose("PlayerId={}", pkt->GetPlayerId());
 
   if (curr_player != pkt->GetPlayerId()) {
@@ -1830,7 +1825,7 @@ void Device::HandleAddressedPlayerUpdate() {
     log::warn("{}: Device is not registered for addressed player updates", address_);
     return;
   }
-  media_interface_->GetMediaPlayerList(base::Bind(&Device::AddressedPlayerNotificationResponse,
+  media_interface_->GetAddressedPlayer(base::Bind(&Device::AddressedPlayerNotificationResponse,
                                                   weak_ptr_factory_.GetWeakPtr(),
                                                   addr_player_changed_.second, false));
 }

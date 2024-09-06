@@ -2370,7 +2370,7 @@ public:
     /* verify bond */
     if (BTM_IsEncrypted(address, BT_TRANSPORT_LE)) {
       /* if link has been encrypted */
-      OnEncryptionComplete(address, BTM_SUCCESS);
+      OnEncryptionComplete(address, tBTM_STATUS::BTM_SUCCESS);
       return;
     }
 
@@ -2461,7 +2461,7 @@ public:
       return;
     }
 
-    if (status != BTM_SUCCESS) {
+    if (status != tBTM_STATUS::BTM_SUCCESS) {
       log::error("Encryption failed status: {}", btm_status_text(status));
       if (leAudioDevice->GetConnectionState() ==
           DeviceConnectState::CONNECTED_BY_USER_GETTING_READY) {
@@ -6384,7 +6384,7 @@ void le_audio_gattc_callback(tBTA_GATTC_EVT event, tBTA_GATTC* p_data) {
     case BTA_GATTC_ENC_CMPL_CB_EVT: {
       tBTM_STATUS encryption_status;
       if (BTM_IsEncrypted(p_data->enc_cmpl.remote_bda, BT_TRANSPORT_LE)) {
-        encryption_status = BTM_SUCCESS;
+        encryption_status = tBTM_STATUS::BTM_SUCCESS;
       } else {
         encryption_status = BTM_FAILED_ON_SECURITY;
       }

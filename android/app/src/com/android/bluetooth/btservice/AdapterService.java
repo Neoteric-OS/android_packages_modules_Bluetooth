@@ -4772,7 +4772,7 @@ public class AdapterService extends Service {
             return Utils.getBytesFromAddress(deviceProp.getIdentityAddress());
         }
 
-        if (Flags.identityAddressNullIfUnknown()) {
+        if (Flags.identityAddressNullIfNotKnown()) {
             // Return null if identity address unknown
             return null;
         } else {
@@ -4795,7 +4795,7 @@ public class AdapterService extends Service {
         if (deviceProp != null && deviceProp.getIdentityAddress() != null) {
             return deviceProp.getIdentityAddress();
         } else {
-            if (Flags.identityAddressNullIfUnknown()) {
+            if (Flags.identityAddressNullIfNotKnown()) {
                 // Return null if identity address unknown
                 return null;
             } else {

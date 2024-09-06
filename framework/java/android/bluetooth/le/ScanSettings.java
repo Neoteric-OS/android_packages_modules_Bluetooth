@@ -246,6 +246,7 @@ public final class ScanSettings implements Parcelable {
             android.Manifest.permission.BLUETOOTH_SCAN,
             android.Manifest.permission.BLUETOOTH_PRIVILEGED,
     })
+    @SuppressLint("AndroidFrameworkRequiresPermission")
     public int getRssiHighThreshold() {
         return mRssiHighThreshold;
     }
@@ -260,6 +261,7 @@ public final class ScanSettings implements Parcelable {
             android.Manifest.permission.BLUETOOTH_SCAN,
             android.Manifest.permission.BLUETOOTH_PRIVILEGED,
     })
+    @SuppressLint("AndroidFrameworkRequiresPermission")
     public int getRssiLowThreshold() {
         return mRssiLowThreshold;
     }
@@ -504,7 +506,7 @@ public final class ScanSettings implements Parcelable {
                 android.Manifest.permission.BLUETOOTH_SCAN,
                 android.Manifest.permission.BLUETOOTH_PRIVILEGED,
         })
-        @SuppressLint("MissingNullability")
+        @SuppressLint({"AndroidFrameworkRequiresPermission","MissingNullability"})
         public Builder setRssiHighThreshold(int rssiHighThreshold) {
             mRssiHighThreshold = rssiHighThreshold;
             return this;
@@ -519,7 +521,7 @@ public final class ScanSettings implements Parcelable {
                 android.Manifest.permission.BLUETOOTH_SCAN,
                 android.Manifest.permission.BLUETOOTH_PRIVILEGED,
         })
-        @SuppressLint("MissingNullability")
+        @SuppressLint({"AndroidFrameworkRequiresPermission","MissingNullability"})
         public Builder setRssiLowThreshold(int rssiLowThreshold) {
             mRssiLowThreshold = rssiLowThreshold;
             return this;
@@ -548,6 +550,32 @@ public final class ScanSettings implements Parcelable {
                     mPhy,
                     mRssiLowThreshold,
                     mRssiHighThreshold);
+        }
+    }
+
+    /**
+     * Converts scan mode integer into string. For internal use only when logging.
+     *
+     * @hide
+     */
+    public static String getScanModeString(int scanMode) {
+        switch (scanMode) {
+            case SCAN_MODE_OPPORTUNISTIC:
+                return "SCAN_MODE_OPPORTUNISTIC";
+            case SCAN_MODE_LOW_POWER:
+                return "SCAN_MODE_LOW_POWER";
+            case SCAN_MODE_BALANCED:
+                return "SCAN_MODE_BALANCED";
+            case SCAN_MODE_LOW_LATENCY:
+                return "SCAN_MODE_LOW_LATENCY";
+            case SCAN_MODE_AMBIENT_DISCOVERY:
+                return "SCAN_MODE_AMBIENT_DISCOVERY";
+            case SCAN_MODE_SCREEN_OFF:
+                return "SCAN_MODE_SCREEN_OFF";
+            case SCAN_MODE_SCREEN_OFF_BALANCED:
+                return "SCAN_MODE_SCREEN_OFF_BALANCED";
+            default:
+                return "UNKNOWN value=" + scanMode;
         }
     }
 }

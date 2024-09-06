@@ -1195,7 +1195,6 @@ public final class BluetoothGatt implements BluetoothProfile {
      * @return true, if the connection attempt was initiated successfully
      */
     @UnsupportedAppUsage(maxTargetSdk = Build.VERSION_CODES.R, trackingBug = 170729553)
-    @RequiresLegacyBluetoothPermission
     @RequiresBluetoothConnectPermission
     @RequiresPermission(BLUETOOTH_CONNECT)
     /*package*/ boolean connect(
@@ -1232,6 +1231,8 @@ public final class BluetoothGatt implements BluetoothProfile {
      * @hide
      */
     @UnsupportedAppUsage
+    @RequiresBluetoothConnectPermission
+    @RequiresPermission(BLUETOOTH_CONNECT)
     /*package*/ boolean connect(Boolean autoConnect, BluetoothGattCallback callback,
             Handler handler, boolean eattSupport) {
         if (DBG) {
