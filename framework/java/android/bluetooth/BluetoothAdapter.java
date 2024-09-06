@@ -876,6 +876,8 @@ public final class BluetoothAdapter {
     @GuardedBy("mServiceLock")
     private IBluetooth mService;
 
+    private static int sAdapterState = BluetoothAdapter.STATE_OFF;
+
     private final ReentrantReadWriteLock mServiceLock = new ReentrantReadWriteLock();
 
     @GuardedBy("sServiceLock")
@@ -1495,6 +1497,9 @@ public final class BluetoothAdapter {
 
     /** Fetch the current bluetooth state. If the service is down, return OFF. */
     private @InternalAdapterState int getStateInternal() {
+        if (Flags.broadcastAdapterStateWithCallback()) {
+            return sAdapterState;
+        }
         mServiceLock.readLock().lock();
         try {
             if (mService != null) {
@@ -4017,6 +4022,10 @@ public final class BluetoothAdapter {
                         }
                     }
                 }
+
+                public void onBluetoothAdapterStateChange(int newState) {
+                    sAdapterState = newState;
+                }
             };
 
     private final IBluetoothManagerCallback mManagerCallback =
@@ -4109,6 +4118,10 @@ public final class BluetoothAdapter {
                                             }
                                         });
                             });
+                }
+
+                public void onBluetoothAdapterStateChange(int newState) {
+                    // Nothing to do, this is entirely handled by sManagerCallback.
                 }
             };
 

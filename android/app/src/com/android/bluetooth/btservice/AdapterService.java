@@ -1169,7 +1169,9 @@ public class AdapterService extends Service {
     }
 
     private void invalidateBluetoothGetStateCache() {
-        BluetoothAdapter.invalidateBluetoothGetStateCache();
+        if (!Flags.broadcastAdapterStateWithCallback()) {
+            BluetoothAdapter.invalidateBluetoothGetStateCache();
+        }
     }
 
     void updateLeAudioProfileServiceState() {
@@ -1200,7 +1202,9 @@ public class AdapterService extends Service {
 
     void updateAdapterState(int prevState, int newState) {
         mAdapterProperties.setState(newState);
-        invalidateBluetoothGetStateCache();
+        if (!Flags.broadcastAdapterStateWithCallback()) {
+            invalidateBluetoothGetStateCache();
+        }
 
         // Only BluetoothManagerService should be registered
         int n = mRemoteCallbacks.beginBroadcast();
@@ -1278,7 +1282,7 @@ public class AdapterService extends Service {
                             .orElse(BluetoothProperties.snoop_log_filter_profile_map_values.EMPTY);
 
             if (!(sSnoopLogSettingAtEnable == snoopLogSetting)
-                    || !(sDefaultSnoopLogSettingAtEnable == snoopDefaultModeSetting)
+                    || !(Objects.equals(sDefaultSnoopLogSettingAtEnable, snoopDefaultModeSetting))
                     || !(sSnoopLogFilterHeadersSettingAtEnable
                             == snoopLogFilterHeadersSettingAtEnable)
                     || !(sSnoopLogFilterProfileA2dpSettingAtEnable
@@ -1502,7 +1506,9 @@ public class AdapterService extends Service {
         BluetoothAdapter.invalidateGetProfileConnectionStateCache();
         BluetoothAdapter.invalidateIsOffloadedFilteringSupportedCache();
         BluetoothDevice.invalidateBluetoothGetBondStateCache();
-        BluetoothAdapter.invalidateBluetoothGetStateCache();
+        if (!Flags.broadcastAdapterStateWithCallback()) {
+            BluetoothAdapter.invalidateBluetoothGetStateCache();
+        }
         BluetoothAdapter.invalidateGetAdapterConnectionStateCache();
         BluetoothMap.invalidateBluetoothGetConnectionStateCache();
         BluetoothSap.invalidateBluetoothGetConnectionStateCache();
@@ -2260,7 +2266,9 @@ public class AdapterService extends Service {
 
         AdapterServiceBinder(AdapterService svc) {
             mService = svc;
-            mService.invalidateBluetoothGetStateCache();
+            if (!Flags.broadcastAdapterStateWithCallback()) {
+                mService.invalidateBluetoothGetStateCache();
+            }
             BluetoothAdapter.getDefaultAdapter().disableBluetoothGetStateCache();
         }
 
@@ -2271,6 +2279,7 @@ public class AdapterService extends Service {
             return mService;
         }
 
+        // TODO: b/357645528 - delete getState method
         @Override
         public int getState() {
             AdapterService service = getService();
