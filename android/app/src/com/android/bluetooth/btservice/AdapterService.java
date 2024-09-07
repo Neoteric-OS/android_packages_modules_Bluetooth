@@ -186,6 +186,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Executor;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
@@ -257,6 +258,8 @@ public class AdapterService extends Service {
             mBluetoothQualityReportReadyCallbacks = new RemoteCallbackList<>();
     private final RemoteCallbackList<IBluetoothCallback> mRemoteCallbacks =
             new RemoteCallbackList<>();
+    private final RemoteCallbackList<IBluetoothConnectionCallback> mBluetoothConnectionCallbacks =
+            new RemoteCallbackList<>();
 
     private final EvictingQueue<String> mScanModeChanges = EvictingQueue.create(10);
 
@@ -283,7 +286,6 @@ public class AdapterService extends Service {
 
     private boolean mNativeAvailable;
     private boolean mCleaningUp;
-    private Set<IBluetoothConnectionCallback> mBluetoothConnectionCallbacks = new HashSet<>();
     private boolean mQuietmode = false;
     private Map<String, CallerInfo> mBondAttemptCallerInfo = new HashMap<>();
 
@@ -1153,6 +1155,10 @@ public class AdapterService extends Service {
     }
 
     private void invalidateBluetoothGetStateCache() {
+        if (Flags.getStateFromSystemServer()) {
+            // State is managed by the system server
+            return;
+        }
         BluetoothAdapter.invalidateBluetoothGetStateCache();
     }
 
@@ -1475,6 +1481,8 @@ public class AdapterService extends Service {
 
         mBluetoothQualityReportReadyCallbacks.kill();
 
+        mBluetoothConnectionCallbacks.kill();
+
         mRemoteCallbacks.kill();
     }
 
@@ -1482,7 +1490,9 @@ public class AdapterService extends Service {
         BluetoothAdapter.invalidateGetProfileConnectionStateCache();
         BluetoothAdapter.invalidateIsOffloadedFilteringSupportedCache();
         BluetoothDevice.invalidateBluetoothGetBondStateCache();
-        BluetoothAdapter.invalidateBluetoothGetStateCache();
+        if (!Flags.getStateFromSystemServer()) {
+            BluetoothAdapter.invalidateBluetoothGetStateCache();
+        }
         BluetoothAdapter.invalidateGetAdapterConnectionStateCache();
         BluetoothMap.invalidateBluetoothGetConnectionStateCache();
         BluetoothSap.invalidateBluetoothGetConnectionStateCache();
@@ -2240,6 +2250,9 @@ public class AdapterService extends Service {
 
         AdapterServiceBinder(AdapterService svc) {
             mService = svc;
+            if (Flags.getStateFromSystemServer()) {
+                return;
+            }
             mService.invalidateBluetoothGetStateCache();
             BluetoothAdapter.getDefaultAdapter().disableBluetoothGetStateCache();
         }
@@ -2281,7 +2294,7 @@ public class AdapterService extends Service {
 
             try {
                 // Wait for Bluetooth to be killed from its main thread
-                Thread.sleep(950); // SystemServer is waiting 1000 ms, we need to wait less here
+                Thread.sleep(1_000); // SystemServer is waiting 2000 ms, we need to wait less here
             } catch (InterruptedException e) {
                 Log.e(TAG, "killBluetoothProcess: Interrupted while waiting for kill");
             }
@@ -3443,7 +3456,7 @@ public class AdapterService extends Service {
                 return;
             }
             service.enforceCallingOrSelfPermission(BLUETOOTH_PRIVILEGED, null);
-            service.mBluetoothConnectionCallbacks.add(callback);
+            service.mBluetoothConnectionCallbacks.register(callback);
         }
 
         @Override
@@ -3457,7 +3470,7 @@ public class AdapterService extends Service {
                 return;
             }
             service.enforceCallingOrSelfPermission(BLUETOOTH_PRIVILEGED, null);
-            service.mBluetoothConnectionCallbacks.remove(callback);
+            service.mBluetoothConnectionCallbacks.unregister(callback);
         }
 
         @Override
@@ -5508,8 +5521,13 @@ public class AdapterService extends Service {
         return mRemoteDevices.getUuids(device);
     }
 
-    public Set<IBluetoothConnectionCallback> getBluetoothConnectionCallbacks() {
-        return mBluetoothConnectionCallbacks;
+    void aclStateChangeBroadcastCallback(Consumer<IBluetoothConnectionCallback> cb) {
+        int n = mBluetoothConnectionCallbacks.beginBroadcast();
+        Log.d(TAG, "aclStateChangeBroadcastCallback() - Broadcasting to " + n + " receivers.");
+        for (int i = 0; i < n; i++) {
+            cb.accept(mBluetoothConnectionCallbacks.getBroadcastItem(i));
+        }
+        mRemoteCallbacks.finishBroadcast();
     }
 
     /**
@@ -6266,6 +6284,9 @@ public class AdapterService extends Service {
             final boolean testModeEnabled = "enabled".equalsIgnoreCase(args[1]);
             for (ProfileService profile : mRunningProfiles) {
                 profile.setTestModeEnabled(testModeEnabled);
+            }
+            if (Flags.scanManagerRefactor() && mScanController != null) {
+                mScanController.setTestModeEnabled(testModeEnabled);
             }
             mTestModeEnabled = testModeEnabled;
             return;
