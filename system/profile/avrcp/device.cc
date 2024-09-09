@@ -156,12 +156,15 @@ void Device::VendorPacketHandler(uint8_t label, std::shared_ptr<VendorPacket> pk
           return;
         }
 
-        if (register_notification->GetEvent() != Event::VOLUME_CHANGED) {
+        // The rejected packet doesn't have an event field, so we just have to assume it is indeed
+        // for the volume changed event since that's the only one we possibly register.
+        if (pkt->GetCType() == CType::REJECTED ||
+            register_notification->GetEvent() == Event::VOLUME_CHANGED) {
+          HandleVolumeChanged(label, register_notification);
+        } else {
           log::warn("{}: Unhandled register notification received: {}", address_,
                     register_notification->GetEvent());
-          return;
         }
-        HandleVolumeChanged(label, register_notification);
         break;
       }
       case CommandPdu::SET_ABSOLUTE_VOLUME:
@@ -210,10 +213,6 @@ void Device::VendorPacketHandler(uint8_t label, std::shared_ptr<VendorPacket> pk
     } break;
 
     case CommandPdu::SET_ADDRESSED_PLAYER: {
-      // TODO (apanicke): Implement set addressed player. We don't need
-      // this currently since the current implementation only has one
-      // player and the player will never change, but we need it for a
-      // more complete implementation.
       auto set_addressed_player_request = Packet::Specialize<SetAddressedPlayerRequest>(pkt);
 
       if (!set_addressed_player_request->IsValid()) {
@@ -223,9 +222,10 @@ void Device::VendorPacketHandler(uint8_t label, std::shared_ptr<VendorPacket> pk
         return;
       }
 
-      media_interface_->GetMediaPlayerList(base::Bind(&Device::HandleSetAddressedPlayer,
-                                                      weak_ptr_factory_.GetWeakPtr(), label,
-                                                      set_addressed_player_request));
+      media_interface_->SetAddressedPlayer(
+              set_addressed_player_request->GetPlayerId(),
+              base::Bind(&Device::HandleSetAddressedPlayer, weak_ptr_factory_.GetWeakPtr(), label,
+                         set_addressed_player_request));
     } break;
 
     case CommandPdu::LIST_PLAYER_APPLICATION_SETTING_ATTRIBUTES: {
@@ -500,7 +500,7 @@ void Device::HandleNotification(uint8_t label,
     } break;
 
     case Event::ADDRESSED_PLAYER_CHANGED: {
-      media_interface_->GetMediaPlayerList(base::Bind(&Device::AddressedPlayerNotificationResponse,
+      media_interface_->GetAddressedPlayer(base::Bind(&Device::AddressedPlayerNotificationResponse,
                                                       weak_ptr_factory_.GetWeakPtr(), label, true));
     } break;
 
@@ -623,13 +623,42 @@ void Device::SetVolume(int8_t volume) {
     }
   }
 
-  volume_ = volume;
   send_message_cb_.Run(label, false, std::move(request));
+
+  if (stack_config_get_interface()->get_pts_avrcp_test()) {
+    label = MAX_TRANSACTION_LABEL;
+    for (uint8_t i = 0; i < MAX_TRANSACTION_LABEL; i++) {
+      if (active_labels_.find(i) == active_labels_.end()) {
+        active_labels_.insert(i);
+        label = i;
+        break;
+      }
+    }
+
+    auto vol_cmd_push = PassThroughPacketBuilder::MakeBuilder(
+         false, true, (volume_ < volume) ? 0x41 : 0x42);
+    send_message(label, false, std::move(vol_cmd_push));
+
+    label = MAX_TRANSACTION_LABEL;
+    for (uint8_t i = 0; i < MAX_TRANSACTION_LABEL; i++) {
+      if (active_labels_.find(i) == active_labels_.end()) {
+        active_labels_.insert(i);
+        label = i;
+        break;
+      }
+    }
+
+    auto vol_cmd_release = PassThroughPacketBuilder::MakeBuilder(
+         false, false, (volume_ < volume) ? 0x41 : 0x42);
+    send_message(label, false, std::move(vol_cmd_release));
+  }
+
+  volume_ = volume;
 }
 
 void Device::TrackChangedNotificationResponse(uint8_t label, bool interim, std::string curr_song_id,
                                               std::vector<SongInfo> song_list) {
-  log::verbose("");
+  log::verbose(" Current song ID: {}", curr_song_id);
 
   if (interim) {
     track_changed_ = Notification(true, label);
@@ -652,8 +681,11 @@ void Device::TrackChangedNotificationResponse(uint8_t label, bool interim, std::
   // PTS BV-04-C and BV-5-C assume browsing not supported
   if (stack_config_get_interface()->get_pts_avrcp_test()) {
     log::warn("{}: pts test mode", address_);
-    uint64_t uid = curr_song_id.empty() ? 0xffffffffffffffff : 0;
-    auto response = RegisterNotificationResponseBuilder::MakeTrackChangedBuilder(interim, uid);
+    uint64_t uid = (curr_song_id.empty() || curr_song_id == "currsong" ||
+                       curr_song_id == "Not Provided") ? 0xffffffffffffffff : 0;
+    log::verbose(" uid: {}", uid);
+    auto response =
+        RegisterNotificationResponseBuilder::MakeTrackChangedBuilder(interim, uid);
     send_message_cb_.Run(label, false, std::move(response));
     return;
   }
@@ -756,10 +788,8 @@ void Device::PlaybackPosNotificationResponse(uint8_t label, bool interim, PlaySt
   }
 }
 
-// TODO (apanicke): Finish implementing when we add support for more than one
-// player
-void Device::AddressedPlayerNotificationResponse(uint8_t label, bool interim, uint16_t curr_player,
-                                                 std::vector<MediaPlayerInfo> /* unused */) {
+void Device::AddressedPlayerNotificationResponse(uint8_t label, bool interim,
+                                                 uint16_t curr_player) {
   log::verbose("curr_player_id={}", (unsigned int)curr_player);
 
   if (interim) {
@@ -977,7 +1007,7 @@ void Device::HandlePlayItem(uint8_t label, std::shared_ptr<PlayItemRequest> pkt)
 }
 
 void Device::HandleSetAddressedPlayer(uint8_t label, std::shared_ptr<SetAddressedPlayerRequest> pkt,
-                                      uint16_t curr_player, std::vector<MediaPlayerInfo> players) {
+                                      uint16_t curr_player) {
   log::verbose("PlayerId={}", pkt->GetPlayerId());
 
   if (curr_player != pkt->GetPlayerId()) {
@@ -1217,7 +1247,7 @@ void Device::HandleChangePath(uint8_t label, std::shared_ptr<ChangePathRequest> 
       current_path_.pop();
     } else {
       log::error("{}: Trying to change directory up past root.", address_);
-      auto builder = ChangePathResponseBuilder::MakeBuilder(Status::DOES_NOT_EXIST, 0);
+      auto builder = ChangePathResponseBuilder::MakeBuilder(Status::INVALID_DIRECTION, 0);
       send_message(label, true, std::move(builder));
       return;
     }
@@ -1580,8 +1610,8 @@ void Device::SetBrowsedPlayerResponse(uint8_t label, std::shared_ptr<SetBrowsedP
   current_path_ = std::stack<std::string>();
   current_path_.push(root_id);
 
-  auto response =
-          SetBrowsedPlayerResponseBuilder::MakeBuilder(Status::NO_ERROR, 0x0000, num_items, 0, "");
+  auto response = SetBrowsedPlayerResponseBuilder::MakeBuilder(Status::NO_ERROR, 0x0000, num_items,
+                                                               0, root_id);
   send_message(label, true, std::move(response));
 }
 
@@ -1795,7 +1825,7 @@ void Device::HandleAddressedPlayerUpdate() {
     log::warn("{}: Device is not registered for addressed player updates", address_);
     return;
   }
-  media_interface_->GetMediaPlayerList(base::Bind(&Device::AddressedPlayerNotificationResponse,
+  media_interface_->GetAddressedPlayer(base::Bind(&Device::AddressedPlayerNotificationResponse,
                                                   weak_ptr_factory_.GetWeakPtr(),
                                                   addr_player_changed_.second, false));
 }

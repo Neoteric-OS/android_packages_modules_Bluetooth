@@ -45,6 +45,7 @@
 #include "stack/include/btm_api.h"
 #include "stack/include/btm_ble_privacy.h"
 #include "stack/include/btm_inq.h"
+#include "stack/include/btm_status.h"
 #include "stack/include/hcidefs.h"
 #include "stack/include/l2cap_controller_interface.h"
 #include "types/raw_address.h"
@@ -303,11 +304,11 @@ static void decode_controller_support() {
 
   if (bluetooth::shim::GetController()->SupportsRssiWithInquiryResults()) {
     if (bluetooth::shim::GetController()->SupportsExtendedInquiryResponse()) {
-      if (BTM_SetInquiryMode(BTM_INQ_RESULT_EXTENDED) != BTM_SUCCESS) {
+      if (BTM_SetInquiryMode(BTM_INQ_RESULT_EXTENDED) != tBTM_STATUS::BTM_SUCCESS) {
         log::warn("Unable to set inquiry mode BTM_INQ_RESULT_EXTENDED");
       }
     } else {
-      if (BTM_SetInquiryMode(BTM_INQ_RESULT_WITH_RSSI) != BTM_SUCCESS) {
+      if (BTM_SetInquiryMode(BTM_INQ_RESULT_WITH_RSSI) != tBTM_STATUS::BTM_SUCCESS) {
         log::warn("Unable to set inquiry mode BTM_INQ_RESULT_WITH_RSSI");
       }
     }
@@ -340,7 +341,7 @@ tBTM_STATUS BTM_SetLocalDeviceName(const char* p_name) {
   bd_name_from_char_pointer(btm_sec_cb.cfg.bd_name, p_name);
 
   bluetooth::shim::GetController()->WriteLocalName(p_name);
-  return BTM_CMD_STARTED;
+  return tBTM_STATUS::BTM_CMD_STARTED;
 }
 
 /*******************************************************************************
@@ -350,7 +351,7 @@ tBTM_STATUS BTM_SetLocalDeviceName(const char* p_name) {
  * Description      This function is called to read the local device name.
  *
  * Returns          status of the operation
- *                  If success, BTM_SUCCESS is returned and p_name points stored
+ *                  If success, tBTM_STATUS::BTM_SUCCESS is returned and p_name points stored
  *                              local device name
  *                  If BTM doesn't store local device name, BTM_NO_RESOURCES is
  *                              is returned and p_name is set to NULL
@@ -358,7 +359,7 @@ tBTM_STATUS BTM_SetLocalDeviceName(const char* p_name) {
  ******************************************************************************/
 tBTM_STATUS BTM_ReadLocalDeviceName(const char** p_name) {
   *p_name = (const char*)btm_sec_cb.cfg.bd_name;
-  return BTM_SUCCESS;
+  return tBTM_STATUS::BTM_SUCCESS;
 }
 
 /*******************************************************************************
@@ -368,7 +369,7 @@ tBTM_STATUS BTM_ReadLocalDeviceName(const char** p_name) {
  * Description      Get local device name from controller. Do not use cached
  *                  name (used to get chip-id prior to btm reset complete).
  *
- * Returns          BTM_CMD_STARTED if successful, otherwise an error
+ * Returns          tBTM_STATUS::BTM_CMD_STARTED if successful, otherwise an error
  *
  ******************************************************************************/
 tBTM_STATUS BTM_ReadLocalDeviceNameFromController(tBTM_CMPL_CB* p_rln_cmpl_cback) {
@@ -384,7 +385,7 @@ tBTM_STATUS BTM_ReadLocalDeviceNameFromController(tBTM_CMPL_CB* p_rln_cmpl_cback
   alarm_set_on_mloop(btm_cb.devcb.read_local_name_timer, BTM_DEV_NAME_REPLY_TIMEOUT_MS,
                      btm_read_local_name_timeout, NULL);
 
-  return BTM_CMD_STARTED;
+  return tBTM_STATUS::BTM_CMD_STARTED;
 }
 
 /*******************************************************************************
@@ -428,7 +429,7 @@ void btm_read_local_name_complete(uint8_t* p, uint16_t /* evt_len */) {
  ******************************************************************************/
 tBTM_STATUS BTM_SetDeviceClass(DEV_CLASS dev_class) {
   if (btm_cb.devcb.dev_class == dev_class) {
-    return BTM_SUCCESS;
+    return tBTM_STATUS::BTM_SUCCESS;
   }
 
   btm_cb.devcb.dev_class = dev_class;
@@ -439,7 +440,7 @@ tBTM_STATUS BTM_SetDeviceClass(DEV_CLASS dev_class) {
 
   btsnd_hcic_write_dev_class(dev_class);
 
-  return BTM_SUCCESS;
+  return tBTM_STATUS::BTM_SUCCESS;
 }
 
 /*******************************************************************************
@@ -510,7 +511,7 @@ void BTM_WriteVoiceSettings(uint16_t settings) {
  *                      resetting the controller.
  *
  * Returns
- *      BTM_SUCCESS         Command sent.
+ *      tBTM_STATUS::BTM_SUCCESS         Command sent.
  *      BTM_NO_RESOURCES    If out of resources to send the command.
  *
  *
@@ -527,12 +528,12 @@ tBTM_STATUS BTM_EnableTestMode(void) {
                               sizeof(cond));
 
   /* put device to connectable mode */
-  if (BTM_SetConnectability(BTM_CONNECTABLE) != BTM_SUCCESS) {
+  if (BTM_SetConnectability(BTM_CONNECTABLE) != tBTM_STATUS::BTM_SUCCESS) {
     return BTM_NO_RESOURCES;
   }
 
   /* put device to discoverable mode */
-  if (BTM_SetDiscoverability(BTM_GENERAL_DISCOVERABLE) != BTM_SUCCESS) {
+  if (BTM_SetDiscoverability(BTM_GENERAL_DISCOVERABLE) != tBTM_STATUS::BTM_SUCCESS) {
     return BTM_NO_RESOURCES;
   }
 
@@ -541,7 +542,7 @@ tBTM_STATUS BTM_EnableTestMode(void) {
 
   /* Send the HCI command */
   btsnd_hcic_enable_test_mode();
-  return BTM_SUCCESS;
+  return tBTM_STATUS::BTM_SUCCESS;
 }
 
 /*******************************************************************************
@@ -565,7 +566,7 @@ tBTM_STATUS BTM_DeleteStoredLinkKey(const RawAddress* bd_addr, tBTM_CMPL_CB* p_c
 #if !defined(TARGET_FLOSS)
   /* Check if the previous command is completed */
   if (btm_sec_cb.devcb.p_stored_link_key_cmpl_cb) {
-    return BTM_BUSY;
+    return tBTM_STATUS::BTM_BUSY;
   }
 
   bool delete_all_flag = !bd_addr;
@@ -583,7 +584,7 @@ tBTM_STATUS BTM_DeleteStoredLinkKey(const RawAddress* bd_addr, tBTM_CMPL_CB* p_c
   }
 #endif
 
-  return BTM_SUCCESS;
+  return tBTM_STATUS::BTM_SUCCESS;
 }
 
 /*******************************************************************************

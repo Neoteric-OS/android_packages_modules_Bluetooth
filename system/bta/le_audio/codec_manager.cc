@@ -398,7 +398,7 @@ public:
 
   std::unique_ptr<AudioSetConfiguration> GetCodecConfig(
           const CodecManager::UnicastConfigurationRequirements& requirements,
-          CodecManager::UnicastConfigurationVerifier verifier) {
+          CodecManager::UnicastConfigurationProvider provider) {
     if (IsUsingCodecExtensibility()) {
       auto hal_config = unicast_local_source_hal_client->GetUnicastConfig(requirements);
       if (hal_config) {
@@ -445,8 +445,7 @@ public:
     //       configuration with group capabilities. Note that this path only
     //       supports the LC3 codec format. For the multicodec support we should
     //       rely on the configuration matcher behind the AIDL interface.
-    auto conf = verifier(requirements, &configs);
-    return conf ? std::make_unique<AudioSetConfiguration>(*conf) : nullptr;
+    return provider(requirements, &configs);
   }
 
   bool CheckCodecConfigIsBiDirSwb(const AudioSetConfiguration& config) {
@@ -1418,9 +1417,9 @@ bool CodecManager::UpdateActiveBroadcastAudioHalClient(
 
 std::unique_ptr<AudioSetConfiguration> CodecManager::GetCodecConfig(
         const CodecManager::UnicastConfigurationRequirements& requirements,
-        CodecManager::UnicastConfigurationVerifier verifier) {
+        CodecManager::UnicastConfigurationProvider provider) {
   if (pimpl_->IsRunning()) {
-    return pimpl_->codec_manager_impl_->GetCodecConfig(requirements, verifier);
+    return pimpl_->codec_manager_impl_->GetCodecConfig(requirements, provider);
   }
 
   return nullptr;

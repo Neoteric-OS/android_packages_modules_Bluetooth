@@ -641,7 +641,7 @@ void bta_ag_send_call_inds(tBTA_AG_SCB* p_scb, tBTA_AG_RES result) {
   if (is_blacklisted) {
     if ((result == BTA_AG_END_CALL_RES || result == BTA_AG_CALL_CANCEL_RES) && p_scb) {
       log::verbose("Enable sniff mode for device: {}", p_scb->peer_addr.ToString().c_str());
-      BTM_unblock_sniff_mode_for(p_scb->peer_addr);
+      get_btm_client_interface().link_policy.BTM_unblock_sniff_mode_for(p_scb->peer_addr);
     }
   }
 }
@@ -1771,6 +1771,8 @@ static void bta_ag_hfp_result(tBTA_AG_SCB* p_scb, const tBTA_AG_API_RESULT& resu
       break;
 
     case BTA_AG_CALL_CANCEL_RES:
+      alarm_cancel(p_scb->ring_timer);
+
       /* send indicators */
       bta_ag_send_call_inds(p_scb, result.result);
       break;

@@ -17,6 +17,16 @@
  ******************************************************************************/
 
 /******************************************************************************
+ * Changes from Qualcomm Innovation Center are provided under the following
+ * license:
+ *
+ * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ *
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
+ *
+ ******************************************************************************/
+
+/******************************************************************************
  *
  *  This file contains L2CAP internal definitions
  *
@@ -53,11 +63,11 @@ constexpr uint16_t L2CAP_CREDIT_BASED_MIN_MPS = 64;
  * Timeout values (in milliseconds).
  */
 #define L2CAP_LINK_ROLE_SWITCH_TIMEOUT_MS (10 * 1000)  /* 10 seconds */
-#define L2CAP_LINK_CONNECT_TIMEOUT_MS (60 * 1000)      /* 60 seconds */
+#define L2CAP_LINK_CONNECT_TIMEOUT_MS (20 * 1000)      /* 20 seconds */
 #define L2CAP_LINK_CONNECT_EXT_TIMEOUT_MS (120 * 1000) /* 120 seconds */
 #define L2CAP_LINK_FLOW_CONTROL_TIMEOUT_MS (2 * 1000)  /* 2 seconds */
 #define L2CAP_LINK_DISCONNECT_TIMEOUT_MS (30 * 1000)   /* 30 seconds */
-#define L2CAP_CHNL_CONNECT_TIMEOUT_MS (60 * 1000)      /* 60 seconds */
+#define L2CAP_CHNL_CONNECT_TIMEOUT_MS (20 * 1000)      /* 20 seconds */
 #define L2CAP_CHNL_CONNECT_EXT_TIMEOUT_MS (120 * 1000) /* 120 seconds */
 #define L2CAP_CHNL_CFG_TIMEOUT_MS (30 * 1000)          /* 30 seconds */
 #define L2CAP_CHNL_DISCONNECT_TIMEOUT_MS (10 * 1000)   /* 10 seconds */
@@ -485,6 +495,8 @@ public:
   }
 
   tL2C_CCB* p_fixed_ccbs[L2CAP_NUM_FIXED_CHNLS];
+  std::vector<uint16_t> suspended; /* List of fixed channel CIDs which are suspended but not
+                                    * removed */
 
 private:
   tHCI_REASON disc_reason_{HCI_ERR_UNDEFINED};
@@ -670,6 +682,11 @@ extern tL2C_CB l2cb;
  ***********************************
  */
 
+void l2cu_adj_id(tL2C_LCB* p_lcb);
+
+void l2cu_send_peer_echo_req(tL2C_LCB* p_lcb, uint8_t* p_data,
+                             uint16_t data_len);
+
 void l2c_receive_hold_timer_timeout(void* data);
 void l2c_ccb_timer_timeout(void* data);
 void l2c_lcb_timer_timeout(void* data);
@@ -692,6 +709,9 @@ void l2cu_change_pri_ccb(tL2C_CCB* p_ccb, tL2CAP_CHNL_PRIORITY priority);
 
 tL2C_CCB* l2cu_allocate_ccb(tL2C_LCB* p_lcb, uint16_t cid, bool is_eatt = false);
 void l2cu_release_ccb(tL2C_CCB* p_ccb);
+void l2cu_fixed_channel_restore(tL2C_LCB* p_lcb, uint16_t fixed_cid);
+bool l2cu_fixed_channel_suspended(tL2C_LCB* p_lcb, uint16_t fixed_cid);
+void l2cu_fixed_channel_data_cb(tL2C_LCB* p_lcb, uint16_t fixed_cid, BT_HDR* p_buf);
 tL2C_CCB* l2cu_find_ccb_by_cid(tL2C_LCB* p_lcb, uint16_t local_cid);
 tL2C_CCB* l2cu_find_ccb_by_remote_cid(tL2C_LCB* p_lcb, uint16_t remote_cid);
 bool l2c_is_cmd_rejected(uint8_t cmd_code, uint8_t id, tL2C_LCB* p_lcb);

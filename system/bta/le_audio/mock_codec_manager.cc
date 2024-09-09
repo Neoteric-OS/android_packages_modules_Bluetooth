@@ -103,7 +103,7 @@ void CodecManager::UpdateActiveAudioConfig(
 
 std::unique_ptr<set_configurations::AudioSetConfiguration> CodecManager::GetCodecConfig(
         const CodecManager::UnicastConfigurationRequirements& requirements,
-        CodecManager::UnicastConfigurationVerifier verifier) {
+        CodecManager::UnicastConfigurationProvider verifier) {
   if (!pimpl_) {
     return nullptr;
   }

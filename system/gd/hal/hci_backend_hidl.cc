@@ -24,6 +24,8 @@
 #include "os/alarm.h"
 #include "os/system_properties.h"
 
+#define SIGKILL 9
+
 using ::android::hardware::hidl_vec;
 using ::android::hardware::Return;
 using ::android::hardware::Void;
@@ -42,7 +44,10 @@ public:
 
   using HidlStatus = ::android::hardware::bluetooth::V1_0::Status;
   Return<void> initializationComplete(HidlStatus status) override {
-    log::assert_that(status == HidlStatus::SUCCESS, "status == HidlStatus::SUCCESS");
+    if (status != HidlStatus::SUCCESS) {
+      log::warn( "status != HidlStatus::SUCCESS");
+      kill(getpid(), SIGKILL);
+    }
     callbacks_->initializationComplete();
     return Void();
   }
@@ -80,35 +85,41 @@ class HidlHci : public HciBackend {
       common::StopWatch::DumpStopWatchLog();
       // At shutdown, sometimes the HAL service gets killed before Bluetooth.
       std::this_thread::sleep_for(std::chrono::seconds(1));
-      log::fatal("The Bluetooth HAL died.");
+      log::warn("The Bluetooth HAL died.");
     }
   };
 
 public:
   HidlHci(Handler* module_handler) {
     log::info("Trying to find a HIDL interface");
+    const int32_t timeout_ms = get_adjusted_timeout(500);
 
     auto get_service_alarm = new os::Alarm(module_handler);
-    get_service_alarm->Schedule(BindOnce([] {
-                                  const std::string kBoardProperty = "ro.product.board";
-                                  const std::string kCuttlefishBoard = "cutf";
-                                  auto board_name = os::GetSystemProperty(kBoardProperty);
-                                  bool emulator = board_name.has_value() &&
-                                                  board_name.value() == kCuttlefishBoard;
-                                  if (emulator) {
-                                    log::error("board_name: {}", board_name.value());
-                                    log::error(
-                                            "Unable to get a Bluetooth service after 500ms, start "
-                                            "the HAL before starting "
-                                            "Bluetooth");
-                                    return;
-                                  }
-                                  log::fatal(
-                                          "Unable to get a Bluetooth service after 500ms, start "
-                                          "the HAL before starting "
-                                          "Bluetooth");
-                                }),
-                                std::chrono::milliseconds(500));
+    get_service_alarm->Schedule(
+            BindOnce(
+                    [](uint32_t timeout_ms) {
+                      const std::string kBoardProperty = "ro.product.board";
+                      const std::string kCuttlefishBoard = "cutf";
+                      auto board_name = os::GetSystemProperty(kBoardProperty);
+                      bool emulator =
+                              board_name.has_value() && board_name.value() == kCuttlefishBoard;
+                      if (emulator) {
+                        log::error("board_name: {}", board_name.value());
+                        log::error(
+                                "Unable to get a Bluetooth service after {}ms, start "
+                                "the HAL before starting "
+                                "Bluetooth",
+                                timeout_ms);
+                        return;
+                      }
+                      log::error(
+                              "Unable to get a Bluetooth service after {}ms, start "
+                              "the HAL before starting "
+                              "Bluetooth",
+                              timeout_ms);
+                    },
+                    timeout_ms),
+            std::chrono::milliseconds(timeout_ms));
 
     hci_1_1_ = IBluetoothHci_1_1::getService();
     if (hci_1_1_) {
@@ -120,15 +131,24 @@ public:
     get_service_alarm->Cancel();
     delete get_service_alarm;
 
-    log::assert_that(hci_ != nullptr, "assert failed: hci_ != nullptr");
+    if (hci_ == nullptr) {
+      log::warn( "assert failed: hci_ != nullptr");
+      kill(getpid(), SIGKILL);
+    }
 
     death_recipient_ = new DeathRecipient();
     auto death_link = hci_->linkToDeath(death_recipient_, 0);
-    log::assert_that(death_link.isOk(), "Unable to set the death recipient for the Bluetooth HAL");
+    if (!death_link.isOk()) {
+        log::warn( "Unable to set the death recipient for the Bluetooth HAL");
+        kill(getpid(), SIGKILL);
+    }
   }
 
   ~HidlHci() {
-    log::assert_that(hci_ != nullptr, "assert failed: hci_ != nullptr");
+    if (hci_ == nullptr) {
+      log::warn( "assert failed: hci_ != nullptr");
+      kill(getpid(), SIGKILL);
+    }
     auto death_unlink = hci_->unlinkToDeath(death_recipient_);
     if (!death_unlink.isOk()) {
       log::error("Error unlinking death recipient from the Bluetooth HAL");
@@ -167,6 +187,20 @@ public:
   }
 
 private:
+  static int32_t get_adjusted_timeout(int32_t timeout) {
+    // Slower devices set this property.  While waiting longer for bluetooth
+    // is a poor user experience, it's not unexpected on these devices.
+    // At the same time, we don't get arbitrarily long to start up bluetooth.
+    // There are other, more concretely set timeouts which can get triggered,
+    // and having a timeout here helps narrow down the problematic area.
+    // As a pragmatic compromise, we cap this multiplier at 2.
+    const uint32_t multiplier = os::GetSystemPropertyUint32("ro.hw_timeout_multiplier", 1);
+    if (multiplier > 1) {
+      return timeout * 2;
+    }
+    return timeout;
+  }
+
   android::sp<DeathRecipient> death_recipient_;
   android::sp<HidlHciCallbacks> hci_callbacks_;
   android::sp<IBluetoothHci_1_0> hci_;
