@@ -1252,6 +1252,8 @@ struct ase {
 
   std::vector<uint8_t> metadata;
 
+  bool is_vsmetadata_available;
+
   AseState state;
 };
 
