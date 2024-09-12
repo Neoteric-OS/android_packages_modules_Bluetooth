@@ -148,7 +148,7 @@ public:
   virtual size_t SendData(uint8_t* data, uint16_t size) = 0;
 
   virtual void ConfirmSuspendRequest() = 0;
-  virtual void ConfirmStreamingRequest() = 0;
+  virtual void ConfirmStreamingRequest(bool force) = 0;
   virtual void CancelStreamingRequest() = 0;
 
   virtual void UpdateRemoteDelay(uint16_t remote_delay_ms) = 0;
@@ -188,7 +188,7 @@ public:
   virtual void Stop() = 0;
   virtual size_t SendData(uint8_t* data, uint16_t size) { return 0; }
   virtual void ConfirmSuspendRequest() = 0;
-  virtual void ConfirmStreamingRequest() = 0;
+  virtual void ConfirmStreamingRequest(bool force) = 0;
   virtual void CancelStreamingRequest() = 0;
   virtual void UpdateRemoteDelay(uint16_t remote_delay_ms) = 0;
   virtual void UpdateAudioConfigToHal(const ::bluetooth::le_audio::offload_config& config) = 0;

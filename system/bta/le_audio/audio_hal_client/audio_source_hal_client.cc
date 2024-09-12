@@ -63,7 +63,7 @@ public:
              LeAudioSourceAudioHalClient::Callbacks* audioReceiver, DsaModes dsa_modes) override;
   void Stop() override;
   void ConfirmSuspendRequest() override;
-  void ConfirmStreamingRequest() override;
+  void ConfirmStreamingRequest(bool force) override;
   void CancelStreamingRequest() override;
   void UpdateRemoteDelay(uint16_t remote_delay_ms) override;
   void UpdateAudioConfigToHal(const ::bluetooth::le_audio::offload_config& config) override;
@@ -394,14 +394,14 @@ void SourceImpl::ConfirmSuspendRequest() {
   halSinkInterface_->ConfirmSuspendRequest();
 }
 
-void SourceImpl::ConfirmStreamingRequest() {
+void SourceImpl::ConfirmStreamingRequest(bool force) {
   if ((halSinkInterface_ == nullptr) || (le_audio_sink_hal_state_ != HAL_STARTED)) {
     log::error("Audio HAL Audio sink was not started!");
     return;
   }
 
   log::info("");
-  halSinkInterface_->ConfirmStreamingRequest();
+  halSinkInterface_->ConfirmStreamingRequest(force);
 
   if (CodecManager::GetInstance()->GetCodecLocation() != types::CodecLocation::HOST) {
     return;

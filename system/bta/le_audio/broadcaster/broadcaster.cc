@@ -1362,14 +1362,14 @@ private:
           broadcast->ProcessMessage(BroadcastStateMachine::Message::START, nullptr);
         }
 
-        instance->le_audio_source_hal_client_->ConfirmStreamingRequest();
+        instance->le_audio_source_hal_client_->ConfirmStreamingRequest(false);
       } else {
         if (!IsAnyoneStreaming()) {
           instance->le_audio_source_hal_client_->CancelStreamingRequest();
           return;
         }
 
-        instance->le_audio_source_hal_client_->ConfirmStreamingRequest();
+        instance->le_audio_source_hal_client_->ConfirmStreamingRequest(false);
       }
     }
 

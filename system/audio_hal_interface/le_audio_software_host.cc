@@ -245,7 +245,7 @@ void LeAudioClientInterface::Sink::ConfirmSuspendRequest() {
   // TODO
 }
 
-void LeAudioClientInterface::Sink::ConfirmStreamingRequest() {
+void LeAudioClientInterface::Sink::ConfirmStreamingRequest(bool force) {
   if (!host::le_audio::LeAudioSinkTransport::instance) {
     log::warn("instance is null");
     return;
@@ -401,7 +401,7 @@ void LeAudioClientInterface::Source::ConfirmSuspendRequest() {
   // TODO
 }
 
-void LeAudioClientInterface::Source::ConfirmStreamingRequest() {
+void LeAudioClientInterface::Source::ConfirmStreamingRequest(bool force) {
   if (!host::le_audio::LeAudioSourceTransport::instance) {
     log::warn("instance is null");
     return;
