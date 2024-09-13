@@ -135,7 +135,7 @@ void BTM_db_reset(void) {
 
     if (p_cb) {
       tBTM_RSSI_RESULT btm_rssi_result;
-      btm_rssi_result.status = BTM_DEV_RESET;
+      btm_rssi_result.status = tBTM_STATUS::BTM_DEV_RESET;
       (*p_cb)(&btm_rssi_result);
     }
   }
@@ -146,7 +146,7 @@ void BTM_db_reset(void) {
 
     if (p_cb) {
       tBTM_FAILED_CONTACT_COUNTER_RESULT btm_failed_contact_counter_result;
-      btm_failed_contact_counter_result.status = BTM_DEV_RESET;
+      btm_failed_contact_counter_result.status = tBTM_STATUS::BTM_DEV_RESET;
       (*p_cb)(&btm_failed_contact_counter_result);
     }
   }
@@ -157,7 +157,7 @@ void BTM_db_reset(void) {
 
     if (p_cb) {
       tBTM_AUTOMATIC_FLUSH_TIMEOUT_RESULT btm_automatic_flush_timeout_result;
-      btm_automatic_flush_timeout_result.status = BTM_DEV_RESET;
+      btm_automatic_flush_timeout_result.status = tBTM_STATUS::BTM_DEV_RESET;
       (*p_cb)(&btm_automatic_flush_timeout_result);
     }
   }
@@ -334,7 +334,7 @@ tBTM_STATUS BTM_SetLocalDeviceName(const char* p_name) {
   }
 
   if (bluetooth::shim::GetController() == nullptr) {
-    return BTM_DEV_RESET;
+    return tBTM_STATUS::BTM_DEV_RESET;
   }
   /* Save the device name if local storage is enabled */
 
@@ -435,7 +435,7 @@ tBTM_STATUS BTM_SetDeviceClass(DEV_CLASS dev_class) {
   btm_cb.devcb.dev_class = dev_class;
 
   if (bluetooth::shim::GetController() == nullptr) {
-    return BTM_DEV_RESET;
+    return tBTM_STATUS::BTM_DEV_RESET;
   }
 
   btsnd_hcic_write_dev_class(dev_class);
