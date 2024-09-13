@@ -2904,6 +2904,13 @@ public class AdapterService extends Service {
                             + device
                             + ", from "
                             + Utils.getUidPidString());
+            MetricsLogger.getInstance()
+                    .logBluetoothEvent(
+                            device,
+                            BluetoothStatsLog
+                                    .BLUETOOTH_CROSS_LAYER_EVENT_REPORTED__EVENT_TYPE__INITIATOR_CONNECTION,
+                            BluetoothStatsLog.BLUETOOTH_CROSS_LAYER_EVENT_REPORTED__STATE__START,
+                            source.getUid());
 
             try {
                 return service.connectAllEnabledProfiles(device);
@@ -4856,6 +4863,14 @@ public class AdapterService extends Service {
         }
         if (setData) {
             msg.setData(remoteOobDatasBundle);
+        } else {
+            MetricsLogger.getInstance()
+                    .logBluetoothEvent(
+                            device,
+                            BluetoothStatsLog
+                                    .BLUETOOTH_CROSS_LAYER_EVENT_REPORTED__EVENT_TYPE__BONDING,
+                            BluetoothStatsLog.BLUETOOTH_CROSS_LAYER_EVENT_REPORTED__STATE__START,
+                            Binder.getCallingUid());
         }
         mBondStateMachine.sendMessage(msg);
         return true;
