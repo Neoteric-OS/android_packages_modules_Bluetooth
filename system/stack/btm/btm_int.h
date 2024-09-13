@@ -26,7 +26,6 @@
 #define BTM_INT_H
 
 #include "bt_target.h"
-#include "btm_api.h"
 #include "btm_ble_int.h"
 #include "btm_int_types.h"
 #include "device/include/esco_parameters.h"
@@ -37,6 +36,7 @@
 #include "osi/include/list.h"
 #include "rfcdefs.h"
 #include "smp_api.h"
+#include "stack/btm/internal/btm_api.h"
 
 extern void btm_flow_spec_complete(uint8_t status, uint16_t handle, tBT_FLOW_SPEC* p_flow);
 

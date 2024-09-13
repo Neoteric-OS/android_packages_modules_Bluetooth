@@ -127,7 +127,7 @@ void bta_dm_bond(const RawAddress& bd_addr, tBLE_ADDR_TYPE addr_type, tBT_TRANSP
   tBTM_STATUS status = get_btm_client_interface().security.BTM_SecBond(bd_addr, addr_type,
                                                                        transport, device_type);
 
-  if (status == BTM_BUSY) {
+  if (status == tBTM_STATUS::BTM_BUSY) {
     tBTA_DM_API_BOND* p_msg = (tBTA_DM_API_BOND*)osi_malloc(sizeof(tBTA_DM_API_BOND));
     if (p_msg) {
       p_msg->bd_addr = bd_addr;
@@ -1017,7 +1017,7 @@ static void bta_dm_bond_retrail_cback(void* data) {
   tBTM_STATUS status = get_btm_client_interface().security.BTM_SecBond(bd_addr, addr_type,
                                                                        transport, device_type);
 
-  if (bta_dm_sec_cb.p_sec_cback && (status != BTM_CMD_STARTED)) {
+  if (bta_dm_sec_cb.p_sec_cback && (status != tBTM_STATUS::BTM_CMD_STARTED)) {
     memset(&sec_event, 0, sizeof(tBTA_DM_SEC));
     sec_event.auth_cmpl.bd_addr = bd_addr;
     bd_name_from_char_pointer(sec_event.auth_cmpl.bd_name,
@@ -1028,7 +1028,7 @@ static void bta_dm_bond_retrail_cback(void* data) {
             sec_event.auth_cmpl.success = false;
     */
     sec_event.auth_cmpl.fail_reason = HCI_ERR_ILLEGAL_COMMAND;
-    if (status == BTM_SUCCESS) {
+    if (status == tBTM_STATUS::BTM_SUCCESS) {
       sec_event.auth_cmpl.success = true;
     } else {
       /* delete this device entry from Sec Dev DB */

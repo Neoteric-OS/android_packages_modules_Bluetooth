@@ -584,7 +584,7 @@ static void btif_a2dp_source_setup_codec_delayed(const RawAddress& peer_address)
       flow_spec.peak_bandwidth = (165 * 1000) / 8; /* bytes/second */
     }
     tBTM_STATUS status = BTM_FlowSpec(peer_address, &flow_spec, NULL);
-    if (status != BTM_CMD_STARTED) {
+    if (status != tBTM_STATUS::BTM_CMD_STARTED) {
       log::warn("Cannot send FlowSpec: status {}", status);
     }
   } else if (codec_config.codec_type == BTAV_A2DP_CODEC_INDEX_SOURCE_LDAC) {
@@ -593,7 +593,7 @@ static void btif_a2dp_source_setup_codec_delayed(const RawAddress& peer_address)
     bitrate = a2dp_codec_config->getTrackBitRate();
     flow_spec.peak_bandwidth = bitrate / 8; /* bytes/second */
     tBTM_STATUS status = BTM_FlowSpec(peer_address, &flow_spec, NULL);
-    if (status != BTM_CMD_STARTED) {
+    if (status != tBTM_STATUS::BTM_CMD_STARTED) {
       log::warn("Cannot send FlowSpec: status {}", status);
     }
   }

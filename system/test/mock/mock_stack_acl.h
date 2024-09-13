@@ -859,7 +859,7 @@ extern struct btm_flow_spec_complete btm_flow_spec_complete;
 struct BTM_FlowSpec {
   std::function<tBTM_STATUS(const RawAddress& addr, tBT_FLOW_SPEC* p_flow, tBTM_CMPL_CB* p_cb)>
           body{[](const RawAddress& /*addr*/, tBT_FLOW_SPEC* /*p_flow*/, tBTM_CMPL_CB* /*p_cb*/) {
-            return BTM_SUCCESS;
+            return tBTM_STATUS::BTM_SUCCESS;
           }};
   tBTM_STATUS operator()(const RawAddress& addr, tBT_FLOW_SPEC* p_flow, tBTM_CMPL_CB* p_cb) {
     return body(addr, p_flow, p_cb);

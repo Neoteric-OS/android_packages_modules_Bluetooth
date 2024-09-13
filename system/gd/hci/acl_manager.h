@@ -34,9 +34,7 @@
 
 namespace bluetooth {
 namespace shim {
-namespace legacy {
 class Acl;
-}  // namespace legacy
 
 class Btm;
 bool L2CA_SetAclPriority(uint16_t, bool);
@@ -45,7 +43,7 @@ bool L2CA_SetAclPriority(uint16_t, bool);
 namespace hci {
 
 class AclManager : public Module {
-  friend class bluetooth::shim::legacy::Acl;
+  friend class bluetooth::shim::Acl;
   friend bool bluetooth::shim::L2CA_SetAclPriority(uint16_t, bool);
   friend class bluetooth::hci::LeScanningManager;
   friend class bluetooth::hci::DistanceMeasurementManager;

@@ -860,7 +860,7 @@ void btm_process_remote_ext_features(tACL_CONN* p_acl_cb, uint8_t max_page_numbe
 
   if (!(p_dev_rec->sec_rec.sec_flags & BTM_SEC_NAME_KNOWN) || p_dev_rec->is_originator) {
     log::debug("Calling Next Security Procedure");
-    if ((status = btm_sec_execute_procedure(p_dev_rec)) != BTM_CMD_STARTED) {
+    if ((status = btm_sec_execute_procedure(p_dev_rec)) != tBTM_STATUS::BTM_CMD_STARTED) {
       btm_sec_dev_rec_cback_event(p_dev_rec, status, FALSE);
     }
   }
@@ -2640,7 +2640,7 @@ tBTM_STATUS BTM_FlowSpec(const RawAddress& addr, tBT_FLOW_SPEC* p_flow, tBTM_CMP
 
   /* If someone already waiting on the version, do not allow another */
   if (btm_cb.devcb.p_flow_spec_cmpl_cb) {
-    return BTM_BUSY;
+    return tBTM_STATUS::BTM_BUSY;
   }
 
   p = internal_.btm_bda_to_acl(addr, BT_TRANSPORT_BR_EDR);
@@ -2650,11 +2650,11 @@ tBTM_STATUS BTM_FlowSpec(const RawAddress& addr, tBT_FLOW_SPEC* p_flow, tBTM_CMP
     btsnd_hcic_flow_spec(p->hci_handle, p_flow->qos_unused, p_flow->flow_direction,
                          p_flow->service_type, p_flow->token_rate, p_flow->token_bucket_size,
                          p_flow->peak_bandwidth, p_flow->latency);
-    return BTM_CMD_STARTED;
+    return tBTM_STATUS::BTM_CMD_STARTED;
   }
 
   /* If here, no BD Addr found */
-  return BTM_UNKNOWN_ADDR;
+  return tBTM_STATUS::BTM_UNKNOWN_ADDR;
 }
 
 /*******************************************************************************

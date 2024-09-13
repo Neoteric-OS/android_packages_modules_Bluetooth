@@ -53,8 +53,6 @@
 #include "types/bluetooth/uuid.h"
 #include "types/raw_address.h"
 
-using bluetooth::ToGdAddress;
-using bluetooth::ToRawAddress;
 using namespace bluetooth;
 
 extern tBTM_CB btm_cb;
@@ -424,7 +422,8 @@ void BleScannerInterfaceImpl::TransferSync(RawAddress address, uint16_t service_
   if (p_acl == NULL ||
       !HCI_LE_PERIODIC_ADVERTISING_SYNC_TRANSFER_RECIPIENT(p_acl->peer_le_features)) {
     log::error("[PAST] Remote doesn't support PAST");
-    scanning_callbacks_->OnPeriodicSyncTransferred(pa_source, BTM_MODE_UNSUPPORTED, address);
+    scanning_callbacks_->OnPeriodicSyncTransferred(
+            pa_source, static_cast<uint8_t>(tBTM_STATUS::BTM_MODE_UNSUPPORTED), address);
     return;
   }
 
@@ -444,7 +443,8 @@ void BleScannerInterfaceImpl::TransferSetInfo(RawAddress address, uint16_t servi
   if (p_acl == NULL ||
       !HCI_LE_PERIODIC_ADVERTISING_SYNC_TRANSFER_RECIPIENT(p_acl->peer_le_features)) {
     log::error("[PAST] Remote doesn't support PAST");
-    scanning_callbacks_->OnPeriodicSyncTransferred(pa_source, BTM_MODE_UNSUPPORTED, address);
+    scanning_callbacks_->OnPeriodicSyncTransferred(
+            pa_source, static_cast<uint8_t>(tBTM_STATUS::BTM_MODE_UNSUPPORTED), address);
     return;
   }
 
