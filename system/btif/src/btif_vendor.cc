@@ -87,12 +87,13 @@
 #include "btif_api.h"
 #include "btif_common.h"
 #include "btif_vendor.h"
-#include "btm_api.h"
 #include "os/log.h"
 #include "osi/include/allocator.h"
 #include "osi/include/osi.h"
 #include "osi/include/properties.h"
+#include "stack/btm/internal/btm_api.h"
 #include "stack/include/btm_client_interface.h"
+
 
 using namespace bluetooth;
 

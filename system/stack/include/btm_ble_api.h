@@ -35,7 +35,6 @@
 #include <cstdint>
 #include <memory>
 
-#include "btm_api.h"
 #include "btm_ble_api_types.h"
 #include "stack/btm/neighbor_inquiry.h"
 #include "types/bt_transport.h"

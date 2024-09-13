@@ -139,7 +139,7 @@ bool btm_sec_is_a_bonded_dev_by_transport::return_value = false;
 tBTM_STATUS btm_sec_l2cap_access_req::return_value = tBTM_STATUS::BTM_SUCCESS;
 tBTM_STATUS btm_sec_l2cap_access_req_by_requirement::return_value = tBTM_STATUS::BTM_SUCCESS;
 tBTM_STATUS btm_sec_mx_access_request::return_value = tBTM_STATUS::BTM_SUCCESS;
-tBTM_STATUS btm_sec_execute_procedure::return_value = BTM_SUCCESS;
+tBTM_STATUS btm_sec_execute_procedure::return_value = tBTM_STATUS::BTM_SUCCESS;
 
 bool BTM_IsRemoteNameKnown::return_value = false;
 
