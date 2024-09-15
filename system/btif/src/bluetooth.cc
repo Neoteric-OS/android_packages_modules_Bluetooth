@@ -109,6 +109,7 @@
 #include "stack/include/hfp_msbc_decoder.h"
 #include "stack/include/hfp_msbc_encoder.h"
 #include "stack/include/hidh_api.h"
+#include "stack/include/l2cap_module.h"
 #include "stack/include/main_thread.h"
 #include "stack/include/pan_api.h"
 #include "stack/include/sdp_api.h"
@@ -909,6 +910,7 @@ static void dump(int fd, const char** arguments) {
   DumpsysBtaDm(fd);
   SDP_Dumpsys(fd);
   DumpsysRecord(fd);
+  L2CA_Dumpsys(fd);
   bluetooth::shim::Dump(fd, arguments);
   power_telemetry::GetInstance().Dumpsys(fd);
   log::debug("Finished bluetooth dumpsys");
