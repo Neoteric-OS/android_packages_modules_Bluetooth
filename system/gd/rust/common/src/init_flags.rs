@@ -207,8 +207,8 @@ pub fn set_all_for_testing() {
 init_flags!(
     name: InitFlags
     flags: {
-        hci_adapter: i32,
         leaudio_multicodec_support = true,
+        hci_adapter: i32,
         use_unified_connection_manager,
     }
     extra_parsed_flags: {

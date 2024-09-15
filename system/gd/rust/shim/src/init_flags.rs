@@ -12,8 +12,8 @@ mod ffi {
 
         fn dump() -> Vec<InitFlagWithValue>;
 
-        fn get_hci_adapter() -> i32;
         fn leaudio_multicodec_support_is_enabled() -> bool;
+        fn get_hci_adapter() -> i32;
         fn use_unified_connection_manager_is_enabled() -> bool;
     }
 }

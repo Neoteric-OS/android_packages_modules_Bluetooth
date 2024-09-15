@@ -1919,6 +1919,7 @@ cc_test {
         "test/stack_btu_test.cc",
     ],
     static_libs: [
+        "bluetooth_flags_c_lib_for_test",
         "libbase",
         "libbluetooth-types",
         "libbluetooth_gd",
@@ -1933,6 +1934,7 @@ cc_test {
         "libgmock",
         "liblog",
         "libosi",
+        "server_configurable_flags",
     ],
     shared_libs: [
         "libbinder_ndk",
