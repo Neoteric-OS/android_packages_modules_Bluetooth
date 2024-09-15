@@ -1130,10 +1130,11 @@ public class BluetoothInCallService extends InCallService {
     @RequiresPermission(allOf = {BLUETOOTH_CONNECT, MODIFY_PHONE_STATE})
     public void onCallAdded(BluetoothCall call) {
         if (call.isExternalCall()) {
+            Log.d(TAG, "onCallAdded: external call");
             return;
         }
         if (!mBluetoothCallHashMap.containsKey(call.getId())) {
-            Log.d(TAG, "onCallAdded");
+            Log.i(TAG, "onCallAdded");
             CallStateCallback callback = new CallStateCallback(call.getState());
             mCallbacks.put(call.getId(), callback);
             call.registerCallback(callback);
@@ -1152,6 +1153,8 @@ public class BluetoothInCallService extends InCallService {
             if (mBluetoothLeCallControl != null && tbsCall != null) {
                 mBluetoothLeCallControl.onCallAdded(tbsCall);
             }
+        } else {
+            Log.i(TAG, "onCallAdded: call already exists");
         }
     }
 
@@ -1200,7 +1203,7 @@ public class BluetoothInCallService extends InCallService {
      */
     @RequiresPermission(allOf = {BLUETOOTH_CONNECT, MODIFY_PHONE_STATE})
     public void onCallRemoved(BluetoothCall call, boolean forceRemoveCallback) {
-        Log.d(TAG, "onCallRemoved");
+        Log.i(TAG, "onCallRemoved, forceRemoveCallback=" + forceRemoveCallback);
         CallStateCallback callback = getCallback(call);
         if (callback != null && (forceRemoveCallback || !call.isExternalCall())) {
             call.unregisterCallback(callback);
@@ -1950,6 +1953,8 @@ public class BluetoothInCallService extends InCallService {
             mDsdaActiveCalls = mNumActiveCalls;
             mDsDaHeldCalls = mNumHeldCalls;
             Log.d(TAG, "LastBt Headset State is : "+ mLastBtHeadsetState);
+        } else {
+            Log.i(TAG, "updateHeadsetWithCallState skipped");
         }
     }
 
