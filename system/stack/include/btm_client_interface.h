@@ -169,3 +169,5 @@ struct btm_client_interface_t {
 };
 
 struct btm_client_interface_t& get_btm_client_interface();
+
+void DumpsysBtm(int fd);
