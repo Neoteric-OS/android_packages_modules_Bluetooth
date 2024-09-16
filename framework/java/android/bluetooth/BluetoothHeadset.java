@@ -753,11 +753,7 @@ public final class BluetoothHeadset implements BluetoothProfile {
      */
     @RequiresLegacyBluetoothPermission
     @RequiresBluetoothConnectPermission
-    @RequiresPermission(
-            allOf = {
-                BLUETOOTH_CONNECT,
-                MODIFY_PHONE_STATE,
-            })
+    @RequiresPermission(BLUETOOTH_CONNECT)
     public boolean startVoiceRecognition(BluetoothDevice device) {
         if (DBG) log("startVoiceRecognition()");
         final IBluetoothHeadset service = getService();
@@ -816,7 +812,6 @@ public final class BluetoothHeadset implements BluetoothProfile {
     public boolean isAudioConnected(BluetoothDevice device) {
         if (VDBG) log("isAudioConnected()");
         final IBluetoothHeadset service = getService();
-        final boolean defaultValue = false;
         try {
             mServiceLock.readLock().lock();
             if (service == null) {

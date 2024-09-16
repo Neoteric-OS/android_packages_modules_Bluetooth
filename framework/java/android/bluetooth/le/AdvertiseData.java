@@ -356,7 +356,7 @@ public final class AdvertiseData implements Parcelable {
         dest.writeByte((byte) (getIncludeDeviceName() ? 1 : 0));
         dest.writeByte((byte) (getDeviceNameEnc() ? 1 : 0));
         dest.writeByte((byte) (getIncludePublicBroadcastDeviceName() ? 1 : 0));
-        dest.writeString(getPublicBroadcastDeviceName());
+        android.bluetooth.BluetoothUtils.writeStringToParcel(dest, getPublicBroadcastDeviceName());
         dest.writeByte((byte) (getPublicBroadcastDeviceNameEnc() ? 1 : 0));
     }
 

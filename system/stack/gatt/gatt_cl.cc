@@ -342,7 +342,7 @@ void gatt_send_prepare_write(tGATT_TCB& tcb, tGATT_CLCB* p_clcb) {
   uint16_t to_send = p_attr->len - p_attr->offset;
 
   uint16_t payload_size = gatt_tcb_get_payload_size(tcb, p_clcb->cid);
-  if (to_send > (payload_size - GATT_WRITE_LONG_HDR_SIZE)) { /* 2 = uint16_t offset bytes  */
+  if (to_send > (uint16_t)(payload_size - GATT_WRITE_LONG_HDR_SIZE)) { /* 2 = uint16_t offset bytes  */
     to_send = payload_size - GATT_WRITE_LONG_HDR_SIZE;
   }
 
@@ -1126,7 +1126,7 @@ void gatt_process_mtu_rsp(tGATT_TCB& tcb, tGATT_CLCB* p_clcb, uint16_t len, uint
     log::info("MTU Exchange resulted in: {}", tcb.payload_size);
 
     if (get_btm_client_interface().ble.BTM_SetBleDataLength(
-                tcb.peer_bda, tcb.max_user_mtu + L2CAP_PKT_OVERHEAD) != BTM_SUCCESS) {
+                tcb.peer_bda, tcb.max_user_mtu + L2CAP_PKT_OVERHEAD) != tBTM_STATUS::BTM_SUCCESS) {
       log::warn("Unable to set BLE data length peer:{} mtu:{}", tcb.peer_bda,
                 tcb.max_user_mtu + L2CAP_PKT_OVERHEAD);
     }

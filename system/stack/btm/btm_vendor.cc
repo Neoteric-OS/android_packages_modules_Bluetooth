@@ -22,7 +22,6 @@
 #include "acl_api.h"
 #include "btconfigstore/bt_configstore.h"
 #include "btif/include/btif_config.h"
-#include "btm_api.h"
 #include "btm_int_types.h"
 #include "os/log.h"
 #include "stack/acl/acl.h"
@@ -31,6 +30,7 @@
 #include "stack/include/btm_iso_api.h"
 #include "stack/include/btm_vendor_api.h"
 #include "stack/include/btm_vendor_types.h"
+#include "stack/btm/internal/btm_api.h"
 
 #define QHS_TRANSPORT_BREDR 0
 #define QHS_TRANSPORT_LE 1

@@ -153,8 +153,8 @@ public final class DeviceGroup implements Parcelable {
     public void writeToParcel(Parcel dest, int flags) {
         dest.writeInt(mGroupId);
         dest.writeInt(mSize);
-        dest.writeList(mGroupDevices);
-        dest.writeParcelable(mIncludingSrvcUUID, 0);
+        dest.writeTypedList(mGroupDevices);
+        mIncludingSrvcUUID.writeToParcel(dest, flags);
         dest.writeBoolean(mExclusiveAccessSupport);
     }
 

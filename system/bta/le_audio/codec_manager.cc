@@ -118,7 +118,6 @@ public:
     uint8_t qll_supported_feat_len = 0;
     uint8_t soc_add_on_features_len = 0;
     bool is_apx_lossless_le_supported = false;
-    bool is_apx_lossless_le_supported_local = false;
     bool is_qhs_enabled_locally = false;
 
     bt_device_qll_local_supported_features_t* qll_feature_list =
@@ -137,12 +136,6 @@ public:
       is_apx_lossless_le_supported = true;
     }
 
-    // To-Do remove below property once FW change merges
-    if (osi_property_get_bool("bluetooth.aptx_adaptive_le.enabled", false)) {
-      log::debug("Aptx LE codec enabled at local level");
-      is_apx_lossless_le_supported_local = true;
-    }
-
     char qhs_value[PROPERTY_VALUE_MAX] = "0";
     osi_property_get("persist.vendor.btstack.qhs_support", qhs_value, "255");
     uint8_t qhs_support_mask = (uint8_t)atoi(qhs_value);
@@ -152,9 +145,9 @@ public:
       is_qhs_enabled_locally = true;
     }
 
-    is_aptx_adaptive_le_supported_ = is_dynamic_bn_over_qhs && is_dynamic_ft_change_supported &&
-                                     is_apx_lossless_le_supported &&
-                                     is_apx_lossless_le_supported_local;
+    is_aptx_adaptive_le_supported_ = is_dynamic_bn_over_qhs &&
+                                     is_dynamic_ft_change_supported &&
+                                     is_apx_lossless_le_supported;
     is_aptx_adaptive_lex_supported_ = /*(IsAptxLeXSuppoerted(check sysprop, QLL feat)*/ true;
 
     is_enhanced_le_gaming_supported_ =

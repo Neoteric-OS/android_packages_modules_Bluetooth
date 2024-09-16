@@ -261,7 +261,6 @@ public final class BluetoothQualityReport implements Parcelable {
             String remoteName,
             BluetoothClass bluetoothClass,
             byte[] rawData) {
-        mVersionSupported = versionSupported;
         mAddr = remoteAddr;
         mLmpVer = lmpVer;
         mLmpSubVer = lmpSubVer;
@@ -476,11 +475,11 @@ public final class BluetoothQualityReport implements Parcelable {
     @Override
     public void writeToParcel(@NonNull Parcel out, int flags) {
         out.writeInt(mVersionSupported);
-        out.writeString(mAddr);
+        BluetoothUtils.writeStringToParcel(out, mAddr);
         out.writeInt(mLmpVer);
         out.writeInt(mLmpSubVer);
         out.writeInt(mManufacturerId);
-        out.writeString(mName);
+        BluetoothUtils.writeStringToParcel(out, mName);
         out.writeInt(mBluetoothClass.getClassOfDevice());
         mBqrCommon.writeToParcel(out, flags);
         int id = mBqrCommon.getQualityReportId();
@@ -502,35 +501,28 @@ public final class BluetoothQualityReport implements Parcelable {
         String str;
         str =
                 "BQR: {\n"
-                        + "  mVersion: "
-                        + mVersionSupported
-                        + ", mAddr: "
-                        + mAddr
-                        + ", mLmpVer: "
-                        + String.format("0x%02X", mLmpVer)
-                        + ", mLmpSubVer: "
-                        + String.format("0x%04X", mLmpSubVer)
-                        + ", mManufacturerId: "
-                        + String.format("0x%04X", mManufacturerId)
-                        + ", mName: "
-                        + mName
-                        + ", mBluetoothClass: "
-                        + mBluetoothClass.toString()
+                        + ("  mVersion: " + mVersionSupported)
+                        + ("  mAddr: " + mAddr)
+                        + (", mLmpVer: " + String.format("0x%02X", mLmpVer))
+                        + (", mLmpSubVer: " + String.format("0x%04X", mLmpSubVer))
+                        + (", mManufacturerId: " + String.format("0x%04X", mManufacturerId))
+                        + (", mName: " + mName)
+                        + (", mBluetoothClass: " + mBluetoothClass.toString())
                         + ",\n"
                         + mBqrCommon
                         + "\n";
 
         int id = mBqrCommon.getQualityReportId();
         if (id == QUALITY_REPORT_ID_APPROACH_LSTO) {
-            str += mBqrVsLsto + "\n}";
+            str = str + mBqrVsLsto + "\n}";
         } else if (id == QUALITY_REPORT_ID_A2DP_CHOPPY) {
-            str += mBqrVsA2dpChoppy + "\n}";
+            str = str + mBqrVsA2dpChoppy + "\n}";
         } else if (id == QUALITY_REPORT_ID_SCO_CHOPPY) {
-            str += mBqrVsScoChoppy + "\n}";
+            str = str + mBqrVsScoChoppy + "\n}";
         } else if (id == QUALITY_REPORT_ID_CONN_FAIL) {
-            str += mBqrConnectFail + "\n}";
+            str = str + mBqrConnectFail + "\n}";
         } else if (id == QUALITY_REPORT_ID_MONITOR) {
-            str += "}";
+            str = str + "}";
         }
 
         return str;
@@ -703,7 +695,6 @@ public final class BluetoothQualityReport implements Parcelable {
     public static final class BqrCommon implements Parcelable {
         private static final String TAG = BluetoothQualityReport.TAG + ".BqrCommon";
 
-        private int mVersionSupported;
         private int mQualityReportId;
         private int mPacketType;
         private int mConnectionHandle;
@@ -731,7 +722,6 @@ public final class BluetoothQualityReport implements Parcelable {
             if (rawData == null || rawData.length < offset + commonLen) {
                 throw new IllegalArgumentException(TAG + ": BQR raw data length is abnormal.");
             }
-            mVersionSupported = versionSupported;
 
             ByteBuffer bqrBuf =
                     ByteBuffer.wrap(rawData, offset, rawData.length - offset).asReadOnlyBuffer();
@@ -1120,7 +1110,7 @@ public final class BluetoothQualityReport implements Parcelable {
             dest.writeLong(mLastFlowOnTimestamp);
             dest.writeLong(mOverflowCount);
             dest.writeLong(mUnderflowCount);
-            dest.writeString(mAddr);
+            BluetoothUtils.writeStringToParcel(dest, mAddr);
             dest.writeInt(mCalFailedItemCount);
         }
 
