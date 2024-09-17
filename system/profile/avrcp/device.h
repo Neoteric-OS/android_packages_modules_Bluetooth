@@ -99,6 +99,11 @@ public:
   bool HasBipClient() const;
 
   /**
+   * Returns true if the current device supports cover art feature.
+   */
+  bool HasCoverArtSupport() const;
+
+  /**
    * Returns true if the current device is silenced.
    */
   bool IsInSilenceMode() const;

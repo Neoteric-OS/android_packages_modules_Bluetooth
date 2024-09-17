@@ -42,6 +42,8 @@
 #include "packet/avrcp/set_addressed_player.h"
 #include "packet/avrcp/set_player_application_setting_value.h"
 #include "types/raw_address.h"
+#include "btif/include/btif_config.h"
+#include "storage/config_keys.h"
 
 // TODO(b/369381361) Enfore -Wmissing-prototypes
 #pragma GCC diagnostic ignored "-Wmissing-prototypes"
@@ -96,6 +98,54 @@ void Device::SetBipClientStatus(bool connected) {
 }
 
 bool Device::HasBipClient() const { return has_bip_client_; }
+
+bool Device::HasCoverArtSupport() const {
+  log::verbose(" address_: {}", address_);
+  bool coverart_supported = false;
+  uint16_t ver = AVRC_REV_INVALID;
+  // Read the remote device's AVRC Controller version from local storage
+  size_t version_value_size = btif_config_get_bin_length(
+      address_.ToString(), BTIF_STORAGE_KEY_AVRCP_CONTROLLER_VERSION);
+  if (version_value_size != sizeof(ver)) {
+    log::error("cached value len wrong, address_={}. Len is {} but should be {}.",
+               address_.ToString(), version_value_size, sizeof(ver));
+    return coverart_supported;
+  }
+
+  if (!btif_config_get_bin(address_.ToString(),
+                           BTIF_STORAGE_KEY_AVRCP_CONTROLLER_VERSION,
+                           (uint8_t*)&ver, &version_value_size)) {
+    log::info("no cached AVRC Controller version for {}", address_);
+    return coverart_supported;
+  }
+  log::verbose(" Remote's AVRCP version: {}", ver);
+  if(ver < AVRC_REV_1_6) {
+    log::info(" AVRCP version is < 1.6, no cover art support");
+    return coverart_supported;
+  }
+
+  // Read the remote device's AVRCP features from local storage
+  uint16_t avrcp_peer_features = 0;
+  size_t features_value_size = btif_config_get_bin_length(
+      address_.ToString(), BTIF_STORAGE_KEY_AV_REM_CTRL_FEATURES);
+  if (features_value_size != sizeof(avrcp_peer_features)) {
+    log::error("cached value len wrong, bdaddr={}. Len is {} but should be {}.",
+               address_, features_value_size, sizeof(avrcp_peer_features));
+    return coverart_supported;
+  }
+
+  if (!btif_config_get_bin(
+          address_.ToString(), BTIF_STORAGE_KEY_AV_REM_CTRL_FEATURES,
+          (uint8_t*)&avrcp_peer_features, &features_value_size)) {
+    log::error("Unable to fetch cached AVRC features");
+    return coverart_supported;
+  }
+
+  coverart_supported =
+      ((AVRCP_FEAT_CA_BIT & avrcp_peer_features) == AVRCP_FEAT_CA_BIT);
+  log::verbose(" Remote's cover art support: {}", coverart_supported);
+  return coverart_supported;
+}
 
 void filter_cover_art(SongInfo& s) {
   for (auto it = s.attributes.begin(); it != s.attributes.end(); it++) {
@@ -904,8 +954,9 @@ void Device::GetElementAttributesResponse(uint8_t label,
 
   auto response = GetElementAttributesResponseBuilder::MakeBuilder(ctrl_mtu_);
 
-  // Filter out DEFAULT_COVER_ART handle if this device has no client
-  if (!HasBipClient()) {
+  // Filter out DEFAULT_COVER_ART handle if this device has no client OR Cover art not supported
+  if (!HasBipClient() || !HasCoverArtSupport()) {
+    log::verbose("Remove cover art element if remote doesn't support coverart or has BIP connection");
     filter_cover_art(info);
   }
 
