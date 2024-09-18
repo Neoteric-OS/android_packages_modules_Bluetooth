@@ -75,6 +75,7 @@
 #include "main/shim/helpers.h"
 #include "main/shim/le_advertising_manager.h"
 #include "main_thread.h"
+#include "metrics/bluetooth_event.h"
 #include "os/logging/log_adapter.h"
 #include "osi/include/properties.h"
 #include "osi/include/stack_power_telemetry.h"
@@ -95,6 +96,7 @@
 #include "stack/include/btm_log_history.h"
 #include "stack/include/btm_sec_api.h"
 #include "stack/include/btm_sec_api_types.h"
+#include "stack/include/rnr_interface.h"
 #include "stack/include/smp_api.h"
 #include "stack/include/srvc_api.h"  // tDIS_VALUE
 #include "storage/config_keys.h"
@@ -1661,6 +1663,7 @@ static void btif_on_service_discovery_results(RawAddress bd_addr,
     if (pairing_cb.sdp_attempts) {
       log::warn("SDP failed after bonding re-attempting for {}", bd_addr);
       pairing_cb.sdp_attempts++;
+      bluetooth::metrics::LogSDPComplete(bd_addr, result);
       btif_dm_get_remote_services(bd_addr, BT_TRANSPORT_BR_EDR);
     } else {
       log::warn("SDP triggered by someone failed when bonding");
@@ -1669,6 +1672,8 @@ static void btif_on_service_discovery_results(RawAddress bd_addr,
   }
 
   if (results_for_bonding_device) {
+    // success for SDP
+    bluetooth::metrics::LogSDPComplete(bd_addr, tBTA_STATUS::BTA_SUCCESS);
     log::info("SDP finished for {}:", bd_addr);
     pairing_cb.sdp_over_classic = btif_dm_pairing_cb_t::ServiceDiscoveryState::FINISHED;
   }
@@ -2053,7 +2058,7 @@ void BTIF_dm_enable() {
   BTA_DmBleConfigLocalPrivacy(ble_privacy_enabled);
 
   if (com::android::bluetooth::flags::separate_service_and_device_discovery()) {
-    get_security_client_interface().BTM_SecAddRmtNameNotifyCallback(btif_on_name_read_from_btm);
+    get_stack_rnr_interface().BTM_SecAddRmtNameNotifyCallback(btif_on_name_read_from_btm);
   }
 
   /* for each of the enabled services in the mask, trigger the profile
@@ -2082,7 +2087,7 @@ void BTIF_dm_enable() {
 
 void BTIF_dm_disable() {
   if (com::android::bluetooth::flags::separate_service_and_device_discovery()) {
-    get_security_client_interface().BTM_SecDeleteRmtNameNotifyCallback(&btif_on_name_read_from_btm);
+    get_stack_rnr_interface().BTM_SecDeleteRmtNameNotifyCallback(&btif_on_name_read_from_btm);
   }
 
   /* for each of the enabled services in the mask, trigger the profile

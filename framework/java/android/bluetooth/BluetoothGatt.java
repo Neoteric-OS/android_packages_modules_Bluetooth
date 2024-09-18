@@ -1012,14 +1012,17 @@ public final class BluetoothGatt implements BluetoothProfile {
 
     /** @hide */
     @Override
+    @RequiresNoPermission
     public void onServiceConnected(IBinder service) {}
 
     /** @hide */
     @Override
+    @RequiresNoPermission
     public void onServiceDisconnected() {}
 
     /** @hide */
     @Override
+    @RequiresNoPermission
     public BluetoothAdapter getAdapter() {
         return null;
     }

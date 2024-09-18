@@ -1009,6 +1009,7 @@ void Device::HandlePlayItem(uint8_t label, std::shared_ptr<PlayItemRequest> pkt)
 void Device::HandleSetAddressedPlayer(uint8_t label, std::shared_ptr<SetAddressedPlayerRequest> pkt,
                                       uint16_t curr_player) {
   log::verbose("PlayerId={}", pkt->GetPlayerId());
+  log::verbose("curr_player={}", curr_player);
 
   if (curr_player != pkt->GetPlayerId()) {
     log::verbose("Reject invalid addressed player ID");
@@ -1669,16 +1670,14 @@ void Device::HandlePlayStatusUpdate() {
   media_interface_->GetPlayStatus(base::Bind(
           [](base::WeakPtr<Device> d, PlayStatus s) {
             if (d && s.state == PlayState::PLAYING && s.state != d->last_play_status_.state) {
-              bool is_le_audio_in_idle = LeAudioClient::IsLeAudioClientRunning()
-                                                 ? LeAudioClient::IsLeAudioClientInIdle()
-                                                 : false;
-              int remote_suspend = 0x2;
-              log::info("is_leaudio_in_idle: {}", is_le_audio_in_idle);
-              log::info("Clear Remote Supend if already set");
-              if (btif_av_check_flag(A2dpType::kSource, remote_suspend)) {
+              int remote_suspended = 0x2;
+              if (btif_av_check_flag(A2dpType::kSource, remote_suspended)) {
+                bool is_le_audio_in_idle = LeAudioClient::IsLeAudioClientRunning() ?
+                    LeAudioClient::IsLeAudioClientInIdle() : true;
+                log::info("is_leaudio_in_idle: {}", is_le_audio_in_idle);
                 btif_av_clear_remote_suspend_flag(A2dpType::kSource);
-                if (bluetooth::headset::IsCallIdle() && is_le_audio_in_idle &&
-                    (btif_av_stream_ready(A2dpType::kSource))) {
+                log::info("Clear Remote Supend that's already set");
+                if (bluetooth::headset::IsCallIdle() && is_le_audio_in_idle) {
                   btif_av_stream_start(A2dpType::kSource);
                 }
               }

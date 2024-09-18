@@ -2967,7 +2967,12 @@ public class LeAudioService extends ProfileService {
                             + " ringtone supported: "
                             + ringtoneContextAvailable);
 
-            boolean isRingtoneEnabled = (groupDescriptor.isActive() && ringtoneContextAvailable);
+            /* Enable ringtone for active Unciast group or in broadcast handover mode */
+            boolean isRingtoneEnabled =
+                    ((groupDescriptor.isActive()
+                                    || isPrimaryGroup(groupId)
+                                    || isBroadcastReadyToBeReActivated())
+                            && ringtoneContextAvailable);
 
             Log.d(
                     TAG,
@@ -4590,7 +4595,7 @@ public class LeAudioService extends ProfileService {
 
             BassClientService bassClientService = getBassClientService();
             if (bassClientService != null) {
-                activeBroadcastSinks = bassClientService.getActiveBroadcastSinks();
+                activeBroadcastSinks = bassClientService.getSyncedBroadcastSinks();
             }
 
             if (activeBroadcastSinks.isEmpty()) {
