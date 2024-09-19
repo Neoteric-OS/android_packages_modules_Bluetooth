@@ -154,6 +154,8 @@ void Stack::Stop() {
   log::assert_that(is_running_, "Gd stack not running");
   is_running_ = false;
 
+  //stop gd_stack_thread firstly, prevent race condition between gd_stack_thread and management_thread
+  stack_thread_->Stop();
   stack_handler_->Clear();
 
   stack_manager_.ShutDown();
@@ -161,7 +163,6 @@ void Stack::Stop() {
   delete stack_handler_;
   stack_handler_ = nullptr;
 
-  stack_thread_->Stop();
   delete stack_thread_;
   stack_thread_ = nullptr;
 
