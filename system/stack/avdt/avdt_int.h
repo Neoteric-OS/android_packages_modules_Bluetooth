@@ -429,6 +429,7 @@ public:
         curr_evt(0),
         cong(false),
         close_code(0),
+        curr_stream(false),
         scb_handle_(0) {}
 
   /**
@@ -477,6 +478,7 @@ public:
     curr_evt = 0;
     cong = false;
     close_code = 0;
+    curr_stream = false;
     scb_handle_ = scb_handle;
   }
 
@@ -956,8 +958,6 @@ extern const tL2CAP_APPL_INFO avdt_l2c_appl;
 
 /* reject message event lookup table */
 extern const uint8_t avdt_msg_rej_2_evt[];
-
-void avdt_l2c_disconnect(uint16_t lcid);
 
 constexpr uint16_t kAvdtpMtu = 1024;
 

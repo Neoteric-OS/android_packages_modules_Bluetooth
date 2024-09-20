@@ -328,6 +328,7 @@ cc_test {
         "libchrome",
         "libcom.android.sysprop.bluetooth.wrapped",
         "libevent",
+        "libflags_rust_cpp_bridge",
         "libflagtest",
         "libflatbuffers-cpp",
         "libfmq",
