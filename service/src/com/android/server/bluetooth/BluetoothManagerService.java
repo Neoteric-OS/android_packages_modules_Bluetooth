@@ -789,16 +789,6 @@ class BluetoothManagerService {
     IBluetooth registerAdapter(IBluetoothManagerCallback callback) {
         synchronized (mCallbacks) {
             mCallbacks.register(callback);
-            if (Flags.broadcastAdapterStateWithCallback()) {
-                try {
-                    callback.onBluetoothAdapterStateChange(getState());
-                } catch (RemoteException e) {
-                    Log.e(
-                            TAG,
-                            "registerAdapter: Unable to call onBluetoothAdapterStateChange()",
-                            e);
-                }
-            }
         }
         return mAdapter != null ? mAdapter.getAdapterBinder() : null;
     }
@@ -1095,10 +1085,6 @@ class BluetoothManagerService {
         return appCount;
     }
 
-    boolean enableBleFromBinder(String packageName, IBinder token) {
-        return postAndWait(() -> enableBle(packageName, token));
-    }
-
     boolean enableBle(String packageName, IBinder token) {
         Log.i(
                 TAG,
@@ -1129,6 +1115,7 @@ class BluetoothManagerService {
             return false;
         }
 
+        // TODO(b/262605980): enableBle/disableBle should be on handler thread
         updateBleAppCount(token, true, packageName);
 
         if (mState.oneOf(
@@ -1141,13 +1128,10 @@ class BluetoothManagerService {
             return true;
         }
         synchronized (mReceiver) {
+            // waive WRITE_SECURE_SETTINGS permission check
             sendEnableMsg(false, ENABLE_DISABLE_REASON_APPLICATION_REQUEST, packageName, true);
         }
         return true;
-    }
-
-    boolean disableBleFromBinder(String packageName, IBinder token) {
-        return postAndWait(() -> disableBle(packageName, token));
     }
 
     boolean disableBle(String packageName, IBinder token) {
@@ -1172,6 +1156,7 @@ class BluetoothManagerService {
             Log.i(TAG, "disableBle: Already disabled");
             return false;
         }
+        // TODO(b/262605980): enableBle/disableBle should be on handler thread
         updateBleAppCount(token, false, packageName);
 
         if (mState.oneOf(STATE_BLE_ON) && !isBleAppPresent()) {
@@ -1278,10 +1263,6 @@ class BluetoothManagerService {
         return Unit.INSTANCE;
     }
 
-    boolean enableNoAutoConnectFromBinder(String packageName) {
-        return postAndWait(() -> enableNoAutoConnect(packageName));
-    }
-
     boolean enableNoAutoConnect(String packageName) {
         if (isSatelliteModeOn()) {
             Log.d(TAG, "enableNoAutoConnect(" + packageName + "): Blocked by satellite mode");
@@ -1294,10 +1275,6 @@ class BluetoothManagerService {
             sendEnableMsg(true, ENABLE_DISABLE_REASON_APPLICATION_REQUEST, packageName);
         }
         return true;
-    }
-
-    boolean enableFromBinder(String packageName) {
-        return postAndWait(() -> enable(packageName));
     }
 
     boolean enable(String packageName) {
@@ -1316,15 +1293,17 @@ class BluetoothManagerService {
         synchronized (mReceiver) {
             mQuietEnableExternal = false;
             mEnableExternal = true;
-            AirplaneModeListener.notifyUserToggledBluetooth(
-                    mContentResolver, mCurrentUserContext, true);
+            // TODO(b/288450479): Remove clearCallingIdentity when threading is fixed
+            final long callingIdentity = Binder.clearCallingIdentity();
+            try {
+                AirplaneModeListener.notifyUserToggledBluetooth(
+                        mContentResolver, mCurrentUserContext, true);
+            } finally {
+                Binder.restoreCallingIdentity(callingIdentity);
+            }
             sendEnableMsg(false, ENABLE_DISABLE_REASON_APPLICATION_REQUEST, packageName);
         }
         return true;
-    }
-
-    boolean disableFromBinder(String packageName, boolean persist) {
-        return postAndWait(() -> disable(packageName, persist));
     }
 
     boolean disable(String packageName, boolean persist) {
@@ -1336,8 +1315,14 @@ class BluetoothManagerService {
                         + (" mState=" + mState));
 
         synchronized (mReceiver) {
-            AirplaneModeListener.notifyUserToggledBluetooth(
-                    mContentResolver, mCurrentUserContext, false);
+            // TODO(b/288450479): Remove clearCallingIdentity when threading is fixed
+            final long callingIdentity = Binder.clearCallingIdentity();
+            try {
+                AirplaneModeListener.notifyUserToggledBluetooth(
+                        mContentResolver, mCurrentUserContext, false);
+            } finally {
+                Binder.restoreCallingIdentity(callingIdentity);
+            }
 
             if (persist) {
                 sendDisableMsg(ENABLE_DISABLE_REASON_APPLICATION_REQUEST,
@@ -1572,27 +1557,6 @@ class BluetoothManagerService {
                         mCallbacks.getBroadcastItem(i).onBluetoothServiceDown();
                     } catch (RemoteException e) {
                         Log.e(TAG, "Unable to call onBluetoothServiceDown() on callback #" + i, e);
-                    }
-                }
-            } finally {
-                mCallbacks.finishBroadcast();
-            }
-        }
-    }
-
-    private void sendBluetoothAdapterStateChangeCallback(int newState) {
-        if (!Flags.broadcastAdapterStateWithCallback()) {
-            return;
-        }
-        synchronized (mCallbacks) {
-            try {
-                int n = mCallbacks.beginBroadcast();
-                Log.d(TAG, "sendBluetoothAdapterStateChangeCallback(): to " + n + " receivers");
-                for (int i = 0; i < n; i++) {
-                    try {
-                        mCallbacks.getBroadcastItem(i).onBluetoothAdapterStateChange(newState);
-                    } catch (RemoteException e) {
-                        Log.e(TAG, "onBluetoothAdapterStateChange: failed for callback #" + i, e);
                     }
                 }
             } finally {
@@ -2428,7 +2392,6 @@ class BluetoothManagerService {
             return;
         }
         mState.set(newState);
-        sendBluetoothAdapterStateChangeCallback(newState);
 
         if (prevState == STATE_ON) {
             autoOnSetupTimer();

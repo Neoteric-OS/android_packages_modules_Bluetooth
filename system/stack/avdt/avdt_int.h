@@ -429,6 +429,7 @@ public:
         curr_evt(0),
         cong(false),
         close_code(0),
+        curr_stream(false),
         scb_handle_(0) {}
 
   /**
@@ -477,6 +478,7 @@ public:
     curr_evt = 0;
     cong = false;
     close_code = 0;
+    curr_stream = false;
     scb_handle_ = scb_handle;
   }
 
