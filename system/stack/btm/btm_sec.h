@@ -701,7 +701,7 @@ bool btm_sec_is_a_bonded_dev(const RawAddress& bda);
  *
  ******************************************************************************/
 
-bool btm_sec_is_a_bonded_dev_by_transport(const RawAddress& bda, uint8_t transport);
+bool btm_sec_is_a_bonded_dev_by_transport(const RawAddress& bda, tBT_TRANSPORT transport);
 
 /*******************************************************************************
  *

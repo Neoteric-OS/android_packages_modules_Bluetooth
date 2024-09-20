@@ -318,12 +318,7 @@ void unregister_vse();
 
 static void ConfigureBqr(const BqrConfiguration& bqr_config);
 
-void EnableBtQualityReport(common::PostableContext* to_bind) {
-  log::info("is_enable: {}", to_bind != nullptr);
-  if (to_bind != nullptr) {
-    to_bind_ = to_bind;
-  }
-
+static void EnableDisableBtQualityReport(bool enable) {
   char bqr_prop_evtmask[PROPERTY_VALUE_MAX] = {0};
   char bqr_prop_interval_ms[PROPERTY_VALUE_MAX] = {0};
   char bqr_prop_vnd_quality_mask[PROPERTY_VALUE_MAX] = {0};
@@ -345,7 +340,7 @@ void EnableBtQualityReport(common::PostableContext* to_bind) {
 
   BqrConfiguration bqr_config = {};
 
-  if (to_bind) {
+  if (enable) {
     vse_callback_registered_ = true;
     bqr_config.report_action = REPORT_ACTION_ADD;
     bqr_config.quality_event_mask = static_cast<uint32_t>(atoi(bqr_prop_evtmask));
@@ -373,12 +368,26 @@ void EnableBtQualityReport(common::PostableContext* to_bind) {
   BTM_BleGetVendorCapabilities(&cmn_vsc_cb);
   vendor_cap_supported_version = cmn_vsc_cb.version_supported;
 
-  log::info(
-          "Event Mask: 0x{:x}, Interval: {}, Multiple: {}, "
-          "vendor_cap_supported_version: {}",
-          bqr_config.quality_event_mask, bqr_config.minimum_report_interval_ms,
-          bqr_config.report_interval_multiple, vendor_cap_supported_version);
+  log::info("Event Mask: 0x{:x}, Interval: {}, Multiple: {}, vendor_cap_supported_version: {}",
+            bqr_config.quality_event_mask, bqr_config.minimum_report_interval_ms,
+            bqr_config.report_interval_multiple, vendor_cap_supported_version);
   ConfigureBqr(bqr_config);
+}
+
+void EnableBtQualityReport(common::PostableContext* to_bind) {
+  log::info("");
+  to_bind_ = to_bind;
+  EnableDisableBtQualityReport(true);
+}
+
+void DisableBtQualityReport() {
+  log::info("");
+  if (to_bind_ == nullptr) {
+    log::warn("Skipping second call (Lifecycle issue).");
+    return;
+  }
+  EnableDisableBtQualityReport(false);
+  to_bind_ = nullptr;
 }
 
 static void BqrVscCompleteCallback(hci::CommandCompleteView complete);
