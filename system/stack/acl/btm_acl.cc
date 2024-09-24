@@ -34,12 +34,12 @@
 #define LOG_TAG "btm_acl"
 
 #include <bluetooth/log.h>
+#include <com_android_bluetooth_flags.h>
 
 #include <cstdint>
 
 #include "bta/include/bta_dm_acl.h"
 #include "bta/sys/bta_sys.h"
-#include "common/init_flags.h"
 #include "common/metrics.h"
 #include "device/include/device_iot_config.h"
 #include "device/include/interop.h"
@@ -84,6 +84,10 @@
 
 #ifndef PROPERTY_LINK_SUPERVISION_TIMEOUT
 #define PROPERTY_LINK_SUPERVISION_TIMEOUT "bluetooth.core.acl.link_supervision_timeout"
+#endif
+
+#ifndef PROPERTY_AUTO_FLUSH_TIMEOUT
+#define PROPERTY_AUTO_FLUSH_TIMEOUT "bluetooth.core.classic.auto_flush_timeout"
 #endif
 
 using namespace bluetooth;
@@ -188,6 +192,10 @@ void NotifyAclRoleSwitchComplete(const RawAddress& bda, tHCI_ROLE new_role,
 void NotifyAclFeaturesReadComplete(tACL_CONN& p_acl, uint8_t max_page_number) {
   btm_process_remote_ext_features(&p_acl, max_page_number);
   btm_set_link_policy(&p_acl, btm_cb.acl_cb_.DefaultLinkPolicy());
+  int32_t flush_timeout = osi_property_get_int32(PROPERTY_AUTO_FLUSH_TIMEOUT, 0);
+  if (flush_timeout != 0) {
+    acl_write_automatic_flush_timeout(p_acl.remote_addr, static_cast<uint16_t>(flush_timeout));
+  }
   BTA_dm_notify_remote_features_complete(p_acl.remote_addr);
 }
 
@@ -2501,7 +2509,7 @@ bool acl_create_le_connection_with_id(uint8_t id, const RawAddress& bd_addr,
     return false;
   }
 
-  if (bluetooth::common::init_flags::use_unified_connection_manager_is_enabled()) {
+  if (com::android::bluetooth::flags::unified_connection_manager()) {
     bluetooth::connection::GetConnectionManager().start_direct_connection(
             id, bluetooth::core::ToRustAddress(address_with_type));
   } else {

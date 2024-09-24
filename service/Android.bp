@@ -54,6 +54,7 @@ java_defaults {
             "-Xep:InvalidBlockTag:ERROR",
             "-Xep:InvalidInlineTag:ERROR",
             "-Xep:InvalidParam:ERROR",
+            "-Xep:LongFloatConversion:ERROR",
             "-Xep:MockNotUsedInProduction:ERROR",
             "-Xep:NonApiType:ERROR",
             "-Xep:NonCanonicalType:ERROR",
@@ -125,9 +126,6 @@ java_library {
         "modules-utils-shell-command-handler",
     ],
 
-    lint: {
-        baseline_filename: "lint-baseline.xml",
-    },
 
     kotlincflags: [
         "-Werror",
@@ -246,6 +244,7 @@ android_robolectric_test {
         "mockito-robolectric-prebuilt",
         "modules-utils-expresslog",
         "platform-test-annotations",
+        "service-bluetooth-binder-aidl",
         "testng",
         "truth",
     ],
