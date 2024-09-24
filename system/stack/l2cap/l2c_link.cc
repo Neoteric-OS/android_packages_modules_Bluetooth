@@ -364,8 +364,9 @@ bool l2c_link_hci_disc_comp(uint16_t handle, tHCI_REASON reason) {
     if (p_lcb->ccb_queue.p_first_ccb != NULL || p_lcb->p_pending_ccb) {
       log::warn("l2c_link_hci_disc_comp: Restarting pending ACL request");
       /* Release any held buffers */
-      while (!list_is_empty(p_lcb->link_xmit_data_q)) {
-        BT_HDR* p_buf = static_cast<BT_HDR*>(list_front(p_lcb->link_xmit_data_q));
+      while (p_lcb->link_xmit_data_q != NULL && !list_is_empty(p_lcb->link_xmit_data_q)) {
+        BT_HDR* p_buf =
+            static_cast<BT_HDR*>(list_front(p_lcb->link_xmit_data_q));
         list_remove(p_lcb->link_xmit_data_q, p_buf);
         osi_free(p_buf);
       }
@@ -666,13 +667,12 @@ void l2c_link_adjust_allocation(void) {
       /* There is a special case where we have readjusted the link quotas and */
       /* this link may have sent anything but some other link sent packets so */
       /* so we may need a timer to kick off this link's transmissions. */
-      if (p_lcb->link_xmit_data_q != nullptr) {
-        if ((p_lcb->link_state == LST_CONNECTED) &&
-            !list_is_empty(p_lcb->link_xmit_data_q) &&
-            (p_lcb->sent_not_acked < p_lcb->link_xmit_quota)) {
-              alarm_set_on_mloop(p_lcb->l2c_lcb_timer, L2CAP_LINK_FLOW_CONTROL_TIMEOUT_MS,
+      if ((p_lcb->link_state == LST_CONNECTED) &&
+          (p_lcb->link_xmit_data_q != NULL && !list_is_empty(p_lcb->link_xmit_data_q)) &&
+          (p_lcb->sent_not_acked < p_lcb->link_xmit_quota)) {
+        alarm_set_on_mloop(p_lcb->l2c_lcb_timer,
+                           L2CAP_LINK_FLOW_CONTROL_TIMEOUT_MS,
                            l2c_lcb_timer_timeout, p_lcb);
-        }
       } else {
         log::warn("link_xmit_data_q is null");
       }
@@ -805,8 +805,10 @@ static bool l2c_link_check_power_mode(tL2C_LCB* p_lcb) {
   /*
    * We only switch park to active only if we have unsent packets
    */
-  if (list_is_empty(p_lcb->link_xmit_data_q)) {
-    for (tL2C_CCB* p_ccb = p_lcb->ccb_queue.p_first_ccb; p_ccb; p_ccb = p_ccb->p_next_ccb) {
+
+  if (p_lcb->link_xmit_data_q != NULL && list_is_empty(p_lcb->link_xmit_data_q)) {
+    for (tL2C_CCB* p_ccb = p_lcb->ccb_queue.p_first_ccb; p_ccb;
+         p_ccb = p_ccb->p_next_ccb) {
       if (!fixed_queue_is_empty(p_ccb->xmit_hold_q)) {
         need_to_active = true;
         break;
@@ -967,10 +969,12 @@ void l2c_link_check_send_pkts(tL2C_LCB* p_lcb, uint16_t local_cid, BT_HDR* p_buf
         log::verbose("No transmit data, skipping");
         break;
       }
-      log::verbose("Sending to lower layer");
-      p_buf = (BT_HDR*)list_front(p_lcb->link_xmit_data_q);
-      list_remove(p_lcb->link_xmit_data_q, p_buf);
-      l2c_link_send_to_lower(p_lcb, p_buf, NULL);
+      if (p_lcb->link_xmit_data_q != NULL) {
+        log::verbose("Sending to lower layer");
+        p_buf = (BT_HDR*)list_front(p_lcb->link_xmit_data_q);
+        list_remove(p_lcb->link_xmit_data_q, p_buf);
+        l2c_link_send_to_lower(p_lcb, p_buf, NULL);
+      }
     }
 
     if (!single_write) {
@@ -1144,6 +1148,46 @@ void l2c_packets_completed(uint16_t handle, uint16_t num_sent) {
         break;
     }
   }
+}
+
+/*******************************************************************************
+ *
+ * Function         l2c_link_segments_xmitted
+ *
+ * Description      This function is called from the HCI Interface when an ACL
+ *                  data packet segment is transmitted.
+ *
+ * Returns          void
+ *
+ ******************************************************************************/
+void l2c_link_segments_xmitted(BT_HDR* p_msg) {
+  uint8_t* p = (uint8_t*)(p_msg + 1) + p_msg->offset;
+
+  /* Extract the handle */
+  uint16_t handle{HCI_INVALID_HANDLE};
+  STREAM_TO_UINT16(handle, p);
+  handle = HCID_GET_HANDLE(handle);
+
+  /* Find the LCB based on the handle */
+  tL2C_LCB* p_lcb = l2cu_find_lcb_by_handle(handle);
+  if (p_lcb == nullptr) {
+    log::warn("Received segment complete for unknown connection handle:{}", handle);
+    osi_free(p_msg);
+    return;
+  }
+
+  if (p_lcb->link_state != LST_CONNECTED) {
+    log::info("Received segment complete for unconnected connection handle:{}:", handle);
+    osi_free(p_msg);
+    return;
+  }
+
+  /* Enqueue the buffer to the head of the transmit queue, and see */
+  /* if we can transmit anything more.                             */
+  if (p_lcb->link_xmit_data_q != NULL) {
+    list_prepend(p_lcb->link_xmit_data_q, p_msg);
+  }
+  l2c_link_check_send_pkts(p_lcb, 0, NULL);
 }
 
 tBTM_STATUS l2cu_ConnectAclForSecurity(const RawAddress& bd_addr) {

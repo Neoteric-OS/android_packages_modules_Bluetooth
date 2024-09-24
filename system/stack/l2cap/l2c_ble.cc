@@ -1058,10 +1058,11 @@ void l2c_ble_link_adjust_allocation(void) {
       /* this link may have sent anything but some other link sent packets so */
       /* so we may need a timer to kick off this link's transmissions. */
       if (p_lcb->link_xmit_data_q != nullptr) {
-        if ((p_lcb->link_state == LST_CONNECTED) &&
-            !list_is_empty(p_lcb->link_xmit_data_q) &&
-            (p_lcb->sent_not_acked < p_lcb->link_xmit_quota)) {
-              alarm_set_on_mloop(p_lcb->l2c_lcb_timer, L2CAP_LINK_FLOW_CONTROL_TIMEOUT_MS,
+      if ((p_lcb->link_state == LST_CONNECTED) &&
+          (p_lcb->link_xmit_data_q != NULL && !list_is_empty(p_lcb->link_xmit_data_q)) &&
+          (p_lcb->sent_not_acked < p_lcb->link_xmit_quota)) {
+        alarm_set_on_mloop(p_lcb->l2c_lcb_timer,
+                           L2CAP_LINK_FLOW_CONTROL_TIMEOUT_MS,
                            l2c_lcb_timer_timeout, p_lcb);
         }
       } else {
