@@ -1501,6 +1501,8 @@ public class AdapterService extends Service {
 
         mBluetoothQualityReportReadyCallbacks.kill();
 
+        mBluetoothConnectionCallbacks.kill();
+
         mRemoteCallbacks.kill();
     }
 
@@ -6367,6 +6369,9 @@ public class AdapterService extends Service {
             final boolean testModeEnabled = "enabled".equalsIgnoreCase(args[1]);
             for (ProfileService profile : mRunningProfiles) {
                 profile.setTestModeEnabled(testModeEnabled);
+            }
+            if (Flags.scanManagerRefactor() && mScanController != null) {
+                mScanController.setTestModeEnabled(testModeEnabled);
             }
             mTestModeEnabled = testModeEnabled;
             return;

@@ -1050,6 +1050,10 @@ private:
             instance->UpdateAudioActiveStateInPublicAnnouncement();
           }
           break;
+        case BroadcastStateMachine::State::ENABLING:
+          break;
+        case BroadcastStateMachine::State::DISABLING:
+          break;
         case BroadcastStateMachine::State::STOPPING:
           break;
         case BroadcastStateMachine::State::STREAMING:
@@ -1322,13 +1326,6 @@ private:
       if (com::android::bluetooth::flags::leaudio_big_depends_on_audio_state()) {
         instance->UpdateAudioActiveStateInPublicAnnouncement();
         instance->setBroadcastTimers();
-
-        for (auto& broadcast_pair : instance->broadcasts_) {
-          auto& broadcast = broadcast_pair.second;
-          if (broadcast->GetState() == BroadcastStateMachine::State::CONFIGURED) {
-            broadcast->ProcessMessage(BroadcastStateMachine::Message::SUSPEND, nullptr);
-          }
-        }
       }
     }
 
