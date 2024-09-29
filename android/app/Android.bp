@@ -257,7 +257,7 @@ android_app {
         "unsupportedappusage",
 
         // Need to link the class at runtime
-        "framework-bluetooth",
+        "framework-bluetooth.stubs.module_lib",
         "framework-annotations-lib",
         "error_prone_annotations",
     ],
