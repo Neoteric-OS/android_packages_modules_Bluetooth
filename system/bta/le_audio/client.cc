@@ -1178,6 +1178,20 @@ public:
       log::error("Unknown group id: %d", group_id);
     }
 
+    if (output_codec_config.codec_type ==
+        bluetooth::le_audio::btle_audio_codec_index_t::LE_AUDIO_CODEC_INDEX_SOURCE_APTX_LEX) {
+      group->DisableLeXCodec(false);
+      log::debug("Enabling LeX Codec");
+      group->UpdateAudioSetConfigurationCache(LeAudioContextType::MEDIA);
+      group->UpdateAudioSetConfigurationCache(LeAudioContextType::CONVERSATIONAL);
+    } else if (output_codec_config.codec_type ==
+        bluetooth::le_audio::btle_audio_codec_index_t::LE_AUDIO_CODEC_INDEX_SOURCE_DEFAULT) {
+      group->DisableLeXCodec(true);
+      log::debug("Disabling LeX Codec");
+      group->UpdateAudioSetConfigurationCache(LeAudioContextType::MEDIA);
+      group->UpdateAudioSetConfigurationCache(LeAudioContextType::CONVERSATIONAL);
+    }
+
     if (group->SetPreferredAudioSetConfiguration(input_codec_config, output_codec_config)) {
       log::info("group id: {}, setting preferred codec is successful.", group_id);
     } else {
