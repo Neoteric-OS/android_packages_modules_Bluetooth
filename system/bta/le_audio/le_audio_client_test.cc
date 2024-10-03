@@ -11089,7 +11089,6 @@ TEST_F(UnicastTest, DisconnectAclBeforeGettingReadResponses) {
 }
 
 TEST_F(UnicastTest, GroupStreamStatus) {
-  com::android::bluetooth::flags::provider_->leaudio_callback_on_group_stream_status(true);
   int group_id = bluetooth::groups::kGroupUnknown;
 
   InSequence s;
@@ -11176,8 +11175,6 @@ TEST_F(UnicastTest, GroupStreamStatus) {
 }
 
 TEST_F(UnicastTest, GroupStreamStatusManyGroups) {
-  com::android::bluetooth::flags::provider_->leaudio_callback_on_group_stream_status(true);
-
   uint8_t group_size = 2;
   int group_id_1 = 1;
   int group_id_2 = 2;
@@ -11257,8 +11254,6 @@ TEST_F(UnicastTest, GroupStreamStatusManyGroups) {
 }
 
 TEST_F(UnicastTest, GroupStreamStatusResendAfterRemove) {
-  com::android::bluetooth::flags::provider_->leaudio_callback_on_group_stream_status(true);
-
   uint8_t group_size = 2;
   int group_id = 1;
 
