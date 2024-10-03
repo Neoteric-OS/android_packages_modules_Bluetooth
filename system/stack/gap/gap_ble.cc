@@ -378,7 +378,7 @@ bool send_cl_disc_request(tGAP_CLCB& clcb) {
 }
 
 /**
- * utility function to send a read request for a GAP charactersitic.
+ * Utility function to send a read request for GAP characteristics.
  * Returns true if read started, else false if GAP is busy.
  */
 bool send_cl_read_request(tGAP_CLCB& clcb) {
@@ -763,9 +763,9 @@ void gap_cl_get_enc_key_info(tGAP_CLCB* p_clcb) {
 
 /*******************************************************************************
  *
- * Function         btm_ble_att_db_init
+ * Function         gap_attr_db_init
  *
- * Description      GAP ATT database initalization.
+ * Description      GAP ATT database initialization.
  *
  * Returns          void.
  *

@@ -66,15 +66,15 @@ import com.android.internal.util.StateMachine;
 import java.io.FileDescriptor;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
-import java.util.Hashtable;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.Queue;
+import java.util.Map;
 import java.util.Scanner;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.UUID;
 
 public class HeadsetClientStateMachine extends StateMachine {
@@ -140,10 +140,10 @@ public class HeadsetClientStateMachine extends StateMachine {
 
     // Set of calls that represent the accurate state of calls that exists on AG and the calls that
     // are currently in process of being notified to the AG from HF.
-    @VisibleForTesting final Hashtable<Integer, HfpClientCall> mCalls = new Hashtable<>();
+    @VisibleForTesting final Map<Integer, HfpClientCall> mCalls = new ConcurrentHashMap<>();
     // Set of calls received from AG via the AT+CLCC command. We use this map to update the mCalls
     // which is eventually used to inform the telephony stack of any changes to call on HF.
-    private final Hashtable<Integer, HfpClientCall> mCallsUpdate = new Hashtable<>();
+    private final Map<Integer, HfpClientCall> mCallsUpdate = new ConcurrentHashMap<>();
 
     private int mIndicatorNetworkState;
     private int mIndicatorNetworkType;
@@ -158,7 +158,7 @@ public class HeadsetClientStateMachine extends StateMachine {
     private static int sMinAmVcVol;
 
     // queue of send actions (pair action, action_data)
-    @VisibleForTesting Queue<Pair<Integer, Object>> mQueuedActions;
+    @VisibleForTesting ArrayDeque<Pair<Integer, Object>> mQueuedActions;
 
     @VisibleForTesting int mAudioState;
     // Indicates whether audio can be routed to the device
@@ -433,7 +433,7 @@ public class HeadsetClientStateMachine extends StateMachine {
         // 1. If from the above procedure we get N extra calls (i.e. {3}):
         // choose the first call as the one to associate with the HF call.
 
-        // Create set of IDs for added calls, removed calls and consitent calls.
+        // Create set of IDs for added calls, removed calls and consistent calls.
         // WARN!!! Java Map -> Set has association hence changes to Set are reflected in the Map
         // itself (i.e. removing an element from Set removes it from the Map hence use copy).
         Set<Integer> currCallIdSet = new HashSet<Integer>();
@@ -968,7 +968,7 @@ public class HeadsetClientStateMachine extends StateMachine {
         mOperatorName = null;
         mSubscriberInfo = null;
 
-        mQueuedActions = new LinkedList<Pair<Integer, Object>>();
+        mQueuedActions = new ArrayDeque<>();
 
         mCalls.clear();
         mCallsUpdate.clear();
@@ -1104,7 +1104,7 @@ public class HeadsetClientStateMachine extends StateMachine {
             mOperatorName = null;
             mSubscriberInfo = null;
 
-            mQueuedActions = new LinkedList<Pair<Integer, Object>>();
+            mQueuedActions = new ArrayDeque<>();
 
             mCalls.clear();
             mCallsUpdate.clear();
