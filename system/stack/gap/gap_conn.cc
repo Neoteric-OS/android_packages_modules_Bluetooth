@@ -28,8 +28,6 @@
 #include "gap_api.h"
 #include "hci/controller_interface.h"
 #include "internal_include/bt_target.h"
-#include "l2c_api.h"
-#include "l2cdefs.h"
 #include "main/shim/entry.h"
 #include "main/shim/le_advertising_manager.h"
 #include "osi/include/allocator.h"

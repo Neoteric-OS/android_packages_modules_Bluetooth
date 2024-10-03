@@ -53,6 +53,7 @@
 #include "stack/include/gap_api.h"
 #include "stack/include/l2cap_interface.h"
 #include "stack/include/main_thread.h"
+#include "stack/l2cap/l2c_api.h"
 #include "types/bluetooth/uuid.h"
 #include "types/raw_address.h"
 
