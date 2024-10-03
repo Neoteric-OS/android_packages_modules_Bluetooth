@@ -39,6 +39,7 @@ android_test {
 
     static_libs: [
         "androidx.test.rules",
+        "flag-junit",
         "frameworks-base-testutils",
         "libprotobuf-java-nano",
         "mockito-target-extended-minus-junit4",
