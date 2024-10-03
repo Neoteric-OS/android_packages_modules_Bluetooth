@@ -29,7 +29,6 @@ import static java.util.Objects.requireNonNull;
 
 import android.annotation.BroadcastBehavior;
 import android.annotation.CallbackExecutor;
-import android.annotation.FlaggedApi;
 import android.annotation.IntDef;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
@@ -756,7 +755,6 @@ public final class BluetoothAdapter {
      * @hide
      */
     @SystemApi
-    @FlaggedApi(Flags.FLAG_AUTO_ON_FEATURE)
     @RequiresPermission(BLUETOOTH_PRIVILEGED)
     @SdkConstant(SdkConstantType.BROADCAST_INTENT_ACTION)
     @BroadcastBehavior(registeredOnly = true, protectedBroadcast = true)
@@ -771,7 +769,6 @@ public final class BluetoothAdapter {
      * @hide
      */
     @SystemApi
-    @FlaggedApi(Flags.FLAG_AUTO_ON_FEATURE)
     public static final String EXTRA_AUTO_ON_STATE = "android.bluetooth.extra.AUTO_ON_STATE";
 
     /**
@@ -780,7 +777,6 @@ public final class BluetoothAdapter {
      * @hide
      */
     @SystemApi
-    @FlaggedApi(Flags.FLAG_AUTO_ON_FEATURE)
     public static final int AUTO_ON_STATE_DISABLED = 1;
 
     /**
@@ -789,7 +785,6 @@ public final class BluetoothAdapter {
      * @hide
      */
     @SystemApi
-    @FlaggedApi(Flags.FLAG_AUTO_ON_FEATURE)
     public static final int AUTO_ON_STATE_ENABLED = 2;
 
     /**
@@ -5724,7 +5719,6 @@ public final class BluetoothAdapter {
      * @hide
      */
     @SystemApi
-    @FlaggedApi(Flags.FLAG_AUTO_ON_FEATURE)
     @RequiresPermission(BLUETOOTH_PRIVILEGED)
     public boolean isAutoOnSupported() {
         try {
@@ -5742,7 +5736,6 @@ public final class BluetoothAdapter {
      * @hide
      */
     @SystemApi
-    @FlaggedApi(Flags.FLAG_AUTO_ON_FEATURE)
     @RequiresPermission(BLUETOOTH_PRIVILEGED)
     public boolean isAutoOnEnabled() {
         try {
@@ -5761,7 +5754,6 @@ public final class BluetoothAdapter {
      * @hide
      */
     @SystemApi
-    @FlaggedApi(Flags.FLAG_AUTO_ON_FEATURE)
     @RequiresPermission(BLUETOOTH_PRIVILEGED)
     public void setAutoOnEnabled(boolean status) {
         try {

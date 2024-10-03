@@ -549,9 +549,6 @@ class HeadsetStateMachine extends StateMachine {
         abstract int getAudioStateInt();
 
         protected void setAptxVoice(HeadsetCallState callState) {
-            if (!Flags.hfpCodecAptxVoice()) {
-                return;
-            }
             if (!mHeadsetService.isAptXSwbEnabled()) {
                 return;
             }
@@ -1448,8 +1445,7 @@ class HeadsetStateMachine extends StateMachine {
                         mSystemInterface.getAudioManager().setLeAudioSuspended(true);
                     }
 
-                    if (Flags.hfpCodecAptxVoice()
-                            && mHeadsetService.isAptXSwbEnabled()
+                    if (mHeadsetService.isAptXSwbEnabled()
                             && mHeadsetService.isAptXSwbPmEnabled()) {
                         if (!mHeadsetService.isVirtualCallStarted()
                                 && mSystemInterface.isHighDefCallInProgress()) {
@@ -2010,7 +2006,7 @@ class HeadsetStateMachine extends StateMachine {
                         + (" hasSwbEnabled=" + mHasSwbLc3Enabled)
                         + (" hasAptXSwbEnabled=" + mHasSwbAptXEnabled));
         am.setParameters("bt_lc3_swb=" + (mHasSwbLc3Enabled ? "on" : "off"));
-        if (Flags.hfpCodecAptxVoice() && mHeadsetService.isAptXSwbEnabled()) {
+        if (mHeadsetService.isAptXSwbEnabled()) {
             /* AptX bt_swb: 0 -> on, 65535 -> off */
             am.setParameters("bt_swb=" + (mHasSwbAptXEnabled ? "0" : "65535"));
         }
@@ -2269,7 +2265,7 @@ class HeadsetStateMachine extends StateMachine {
         switch (wbsConfig) {
             case HeadsetHalConstants.BTHF_WBS_YES:
                 mHasWbsEnabled = true;
-                if (Flags.hfpCodecAptxVoice() && mHeadsetService.isAptXSwbEnabled()) {
+                if (mHeadsetService.isAptXSwbEnabled()) {
                     mHasSwbAptXEnabled = false;
                 }
                 break;

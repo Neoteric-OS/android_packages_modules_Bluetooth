@@ -2029,13 +2029,13 @@ public:
   /* This is a generic read/notify/indicate handler for gatt. Here messages
    * are dispatched to correct elements e.g. ASEs, PACs, audio locations etc.
    */
-  void LeAudioCharValueHandle(uint16_t conn_id, uint16_t hdl, uint16_t len, uint8_t* value,
+  void LeAudioCharValueHandle(tCONN_ID conn_id, uint16_t hdl, uint16_t len, uint8_t* value,
                               bool notify = false) {
     LeAudioDevice* leAudioDevice = leAudioDevices_.FindByConnId(conn_id);
     struct ase* ase;
 
     if (!leAudioDevice) {
-      log::error("no leAudioDevice assigned to connection id: {}", static_cast<int>(conn_id));
+      log::error("no leAudioDevice assigned to connection id: {}", conn_id);
       return;
     }
 
@@ -2214,7 +2214,7 @@ public:
     }
   }
 
-  void OnGattReadRsp(uint16_t conn_id, tGATT_STATUS status, uint16_t hdl, uint16_t len,
+  void OnGattReadRsp(tCONN_ID conn_id, tGATT_STATUS status, uint16_t hdl, uint16_t len,
                      uint8_t* value, void* data) {
     LeAudioCharValueHandle(conn_id, hdl, len, value);
   }
@@ -2256,7 +2256,7 @@ public:
     }
   }
 
-  void OnGattConnected(tGATT_STATUS status, uint16_t conn_id, tGATT_IF client_if,
+  void OnGattConnected(tGATT_STATUS status, tCONN_ID conn_id, tGATT_IF client_if,
                        RawAddress address, tBT_TRANSPORT transport, uint16_t mtu) {
     LeAudioDevice* leAudioDevice = leAudioDevices_.FindByAddress(address);
 
@@ -2613,7 +2613,7 @@ public:
                               std::chrono::milliseconds(kCsisGroupMemberDelayMs));
   }
 
-  void OnGattDisconnected(uint16_t conn_id, tGATT_IF client_if, RawAddress address,
+  void OnGattDisconnected(tCONN_ID conn_id, tGATT_IF client_if, RawAddress address,
                           tGATT_DISCONN_REASON reason) {
     log::info("OnGattDisconnected");
     LeAudioDevice* leAudioDevice = leAudioDevices_.FindByConnId(conn_id);
@@ -2714,7 +2714,7 @@ public:
     }
   }
 
-  bool subscribe_for_notification(uint16_t conn_id, const RawAddress& address,
+  bool subscribe_for_notification(tCONN_ID conn_id, const RawAddress& address,
                                   struct bluetooth::le_audio::types::hdl_pair handle_pair,
                                   bool gatt_register = true, bool write_ccc = true) {
     std::vector<uint8_t> value(2);
@@ -2739,7 +2739,7 @@ public:
 
     BtaGattQueue::WriteDescriptor(
             conn_id, ccc_handle, std::move(value), GATT_WRITE,
-            [](uint16_t conn_id, tGATT_STATUS status, uint16_t handle, uint16_t len,
+            [](tCONN_ID conn_id, tGATT_STATUS status, uint16_t handle, uint16_t len,
                const uint8_t* value, void* data) {
               if (instance) {
                 instance->OnGattWriteCcc(conn_id, status, handle, data);
@@ -2807,7 +2807,7 @@ public:
     btif_storage_leaudio_clear_service_data(address);
   }
 
-  void OnMtuChanged(uint16_t conn_id, uint16_t mtu) {
+  void OnMtuChanged(tCONN_ID conn_id, uint16_t mtu) {
     LeAudioDevice* leAudioDevice = leAudioDevices_.FindByConnId(conn_id);
     if (!leAudioDevice) {
       log::debug("Unknown connectect id {}", conn_id);
@@ -2832,7 +2832,7 @@ public:
     leAudioDevice->mtu_ = mtu;
   }
 
-  void OnPhyUpdate(uint16_t conn_id, uint8_t tx_phy, uint8_t rx_phy, tGATT_STATUS status) {
+  void OnPhyUpdate(tCONN_ID conn_id, uint8_t tx_phy, uint8_t rx_phy, tGATT_STATUS status) {
     LeAudioDevice* leAudioDevice = leAudioDevices_.FindByConnId(conn_id);
     if (leAudioDevice == nullptr) {
       log::debug("Unknown conn_id {:#x}", conn_id);
@@ -2880,7 +2880,7 @@ public:
    * a le audio device. Any missing mandatory attribute will result in reverting
    * and cleaning up device.
    */
-  void OnServiceSearchComplete(uint16_t conn_id, tGATT_STATUS status) {
+  void OnServiceSearchComplete(tCONN_ID conn_id, tGATT_STATUS status) {
     LeAudioDevice* leAudioDevice = leAudioDevices_.FindByConnId(conn_id);
 
     if (!leAudioDevice) {
@@ -3236,7 +3236,7 @@ public:
                                    bluetooth::le_audio::uuid::kCapServiceUuid);
   }
 
-  void OnGattWriteCcc(uint16_t conn_id, tGATT_STATUS status, uint16_t hdl, void* data) {
+  void OnGattWriteCcc(tCONN_ID conn_id, tGATT_STATUS status, uint16_t hdl, void* data) {
     LeAudioDevice* leAudioDevice = leAudioDevices_.FindByConnId(conn_id);
     std::vector<struct ase>::iterator ase_it;
 
@@ -5438,7 +5438,7 @@ public:
     return false;
   }
 
-  static void OnGattCtpCccReadRspStatic(uint16_t conn_id, tGATT_STATUS status, uint16_t hdl,
+  static void OnGattCtpCccReadRspStatic(tCONN_ID conn_id, tGATT_STATUS status, uint16_t hdl,
                                         uint16_t len, uint8_t* value, void* data) {
     if (!instance) {
       return;
@@ -5474,7 +5474,7 @@ public:
     }
   }
 
-  static void OnGattReadRspStatic(uint16_t conn_id, tGATT_STATUS status, uint16_t hdl, uint16_t len,
+  static void OnGattReadRspStatic(tCONN_ID conn_id, tGATT_STATUS status, uint16_t hdl, uint16_t len,
                                   uint8_t* value, void* data) {
     if (!instance) {
       return;
@@ -5510,7 +5510,7 @@ public:
     }
   }
 
-  static void OnGattReadMultiRspStatic(uint16_t conn_id, tGATT_STATUS status,
+  static void OnGattReadMultiRspStatic(tCONN_ID conn_id, tGATT_STATUS status,
                                        tBTA_GATTC_MULTI& handles, uint16_t total_len,
                                        uint8_t* value, void* data) {
     if (!instance) {
