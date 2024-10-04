@@ -1328,6 +1328,7 @@ static void initializeNative(JNIEnv* env, jobject object) {
   }
 
   if (com::android::bluetooth::flags::scan_manager_refactor()) {
+    log::info("Starting rust module");
     btIf->start_rust_module();
   }
 
@@ -1346,6 +1347,7 @@ static void cleanupNative(JNIEnv* env, jobject /* object */) {
   }
 
   if (com::android::bluetooth::flags::scan_manager_refactor()) {
+    log::info("Stopping rust module");
     btIf->stop_rust_module();
   }
 

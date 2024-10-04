@@ -80,7 +80,7 @@ typedef struct {
 typedef struct {
   RawAddress bda;
   tGAP_BLE_CMPL_CBACK* p_cback;
-  uint16_t conn_id;
+  tCONN_ID conn_id;
   uint16_t cl_op_uuid;
   bool connected;
   std::queue<tGAP_REQUEST> requests;
@@ -99,10 +99,10 @@ typedef struct {
   tGAP_BLE_ATTR_VALUE attr_value;
 } tGAP_ATTR;
 
-void server_attr_request_cback(uint16_t, uint32_t, tGATTS_REQ_TYPE, tGATTS_DATA*);
-void client_connect_cback(tGATT_IF, const RawAddress&, uint16_t, bool, tGATT_DISCONN_REASON,
+void server_attr_request_cback(tCONN_ID, uint32_t, tGATTS_REQ_TYPE, tGATTS_DATA*);
+void client_connect_cback(tGATT_IF, const RawAddress&, tCONN_ID, bool, tGATT_DISCONN_REASON,
                           tBT_TRANSPORT);
-void client_cmpl_cback(uint16_t, tGATTC_OPTYPE, tGATT_STATUS, tGATT_CL_COMPLETE*);
+void client_cmpl_cback(tCONN_ID, tGATTC_OPTYPE, tGATT_STATUS, tGATT_CL_COMPLETE*);
 void client_disc_res_cback(uint16_t, tGATT_DISC_TYPE, tGATT_DISC_RES*);
 void client_disc_cmpl_cback(uint16_t, tGATT_DISC_TYPE, tGATT_STATUS);
 void gap_cl_get_enc_key_info(tGAP_CLCB* p_clcb);
@@ -140,7 +140,7 @@ tGAP_CLCB* find_clcb_by_bd_addr(const RawAddress& bda) {
 }
 
 /** returns LCB with matching connection ID, or nullptr if not found  */
-tGAP_CLCB* ble_find_clcb_by_conn_id(uint16_t conn_id) {
+tGAP_CLCB* ble_find_clcb_by_conn_id(tCONN_ID conn_id) {
   for (auto& cb : gap_clcbs) {
     if (cb.connected && cb.conn_id == conn_id) {
       return &cb;
@@ -296,7 +296,7 @@ tGATT_STATUS proc_write_req(tGATTS_REQ_TYPE, tGATT_WRITE_REQ* p_data, uint16_t c
       uint8_t* p = p_data->value;
       STREAM_TO_UINT8(value, p);
 
-      tGATT_TCB& tcb = gatt_cb.tcb[GATT_GET_TCB_IDX(conn_id)];
+      tGATT_TCB& tcb = gatt_cb.tcb[gatt_get_tcb_idx(conn_id)];
       btif_storage_set_encr_data_cccd(tcb.peer_bda, value);
       return GATT_SUCCESS;
     } else {
@@ -307,7 +307,7 @@ tGATT_STATUS proc_write_req(tGATTS_REQ_TYPE, tGATT_WRITE_REQ* p_data, uint16_t c
 }
 
 /** GAP ATT server attribute access request callback */
-void server_attr_request_cback(uint16_t conn_id, uint32_t trans_id, tGATTS_REQ_TYPE type,
+void server_attr_request_cback(tCONN_ID conn_id, uint32_t trans_id, tGATTS_REQ_TYPE type,
                                tGATTS_DATA* p_data) {
   tGATT_STATUS status = GATT_INVALID_PDU;
   bool ignore = false;
@@ -378,7 +378,7 @@ bool send_cl_disc_request(tGAP_CLCB& clcb) {
 }
 
 /**
- * utility function to send a read request for a GAP charactersitic.
+ * Utility function to send a read request for GAP characteristics.
  * Returns true if read started, else false if GAP is busy.
  */
 bool send_cl_read_request(tGAP_CLCB& clcb) {
@@ -486,7 +486,7 @@ void cl_op_cmpl(tGAP_CLCB& clcb, bool status, uint16_t len, uint8_t* p_name) {
 }
 
 /** Client connection callback */
-void client_connect_cback(tGATT_IF, const RawAddress& bda, uint16_t conn_id, bool connected,
+void client_connect_cback(tGATT_IF, const RawAddress& bda, tCONN_ID conn_id, bool connected,
                           tGATT_DISCONN_REASON /* reason */, tBT_TRANSPORT) {
   tGAP_CLCB* p_clcb = find_clcb_by_bd_addr(bda);
   if (p_clcb == NULL) {
@@ -574,7 +574,7 @@ void client_disc_cmpl_cback(uint16_t conn_id, tGATT_DISC_TYPE disc_type, tGATT_S
 }
 
 /** Client operation complete callback */
-void client_cmpl_cback(uint16_t conn_id, tGATTC_OPTYPE op, tGATT_STATUS status,
+void client_cmpl_cback(tCONN_ID conn_id, tGATTC_OPTYPE op, tGATT_STATUS status,
                        tGATT_CL_COMPLETE* p_data) {
   tGAP_CLCB* p_clcb = ble_find_clcb_by_conn_id(conn_id);
   uint16_t op_type;
@@ -763,9 +763,9 @@ void gap_cl_get_enc_key_info(tGAP_CLCB* p_clcb) {
 
 /*******************************************************************************
  *
- * Function         btm_ble_att_db_init
+ * Function         gap_attr_db_init
  *
- * Description      GAP ATT database initalization.
+ * Description      GAP ATT database initialization.
  *
  * Returns          void.
  *

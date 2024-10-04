@@ -296,6 +296,11 @@ public class HfpClientConnection extends Connection {
     }
 
     @Override
+    public int hashCode() {
+        return Objects.hash(getAddress());
+    }
+
+    @Override
     public String toString() {
         return "HfpClientConnection{"
                 + getAddress()
