@@ -734,6 +734,7 @@ static jmethodID method_onBroadcastCreated;
 static jmethodID method_onBroadcastDestroyed;
 static jmethodID method_onBroadcastStateChanged;
 static jmethodID method_onBroadcastMetadataChanged;
+static jmethodID method_onBroadcastAudioSessionCreated;
 
 static LeAudioBroadcasterInterface* sLeAudioBroadcasterInterface = nullptr;
 static std::shared_timed_mutex sBroadcasterInterfaceMutex;
@@ -1145,6 +1146,19 @@ public:
     sCallbackEnv->CallVoidMethod(sBroadcasterCallbacksObj, method_onBroadcastMetadataChanged,
                                  (jint)broadcast_id, metadata_obj.get());
   }
+
+  void OnBroadcastAudioSessionCreated(bool success) override {
+    log::info("");
+
+    std::shared_lock<std::shared_timed_mutex> lock(sBroadcasterCallbacksMutex);
+    CallbackEnv sCallbackEnv(__func__);
+
+    if (!sCallbackEnv.valid() || sBroadcasterCallbacksObj == nullptr) {
+      return;
+    }
+    sCallbackEnv->CallVoidMethod(sBroadcasterCallbacksObj, method_onBroadcastAudioSessionCreated,
+                                 success ? JNI_TRUE : JNI_FALSE);
+  }
 };
 
 static LeAudioBroadcasterCallbacksImpl sLeAudioBroadcasterCallbacks;
@@ -1462,6 +1476,7 @@ static int register_com_android_bluetooth_le_audio_broadcaster(JNIEnv* env) {
           {"onBroadcastStateChanged", "(II)V", &method_onBroadcastStateChanged},
           {"onBroadcastMetadataChanged", "(ILandroid/bluetooth/BluetoothLeBroadcastMetadata;)V",
            &method_onBroadcastMetadataChanged},
+          {"onBroadcastAudioSessionCreated", "(Z)V", &method_onBroadcastAudioSessionCreated},
   };
   GET_JAVA_METHODS(env, "com/android/bluetooth/le_audio/LeAudioBroadcasterNativeInterface",
                    javaMethods);

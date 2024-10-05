@@ -431,6 +431,9 @@ public:
   types::BidirectionalPair<types::AudioContexts> GetLatestAvailableContexts(void) const;
 
   bool IsInTransition(void) const;
+  bool IsInTransitionTo(types::AseState state) const {
+    return (GetTargetState() == state) && IsInTransition();
+  }
   bool IsStreaming(void) const;
   bool IsReleasingOrIdle(void) const;
 

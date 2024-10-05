@@ -246,7 +246,6 @@ public class PairingTest {
                 hasAction(BluetoothDevice.ACTION_ACL_CONNECTED),
                 hasExtra(BluetoothDevice.EXTRA_DEVICE, mBumbleDevice));
 
-
         assertThat(mBumbleDevice.createBond()).isTrue();
         verifyIntentReceived(
                 hasAction(BluetoothDevice.ACTION_BOND_STATE_CHANGED),
@@ -460,7 +459,7 @@ public class PairingTest {
 
         // Wait for GATT service discovery to complete on Android
         // so that ACTION_UUID is received here.
-        verifyIntentReceived(
+        verifyIntentReceivedUnordered(
                 hasAction(BluetoothDevice.ACTION_UUID),
                 hasExtra(BluetoothDevice.EXTRA_UUID, Matchers.hasItemInArray(BATTERY_UUID)));
 

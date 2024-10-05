@@ -3,7 +3,6 @@
 //! This crate provides the API implementation of the Fluoride/GD Bluetooth
 //! stack, independent of any RPC projection.
 
-pub mod async_helper;
 pub mod battery_manager;
 pub mod battery_provider_manager;
 pub mod battery_service;
@@ -107,7 +106,6 @@ pub enum Message {
     ConnectionCallbackDisconnected(u32),
 
     // Some delayed actions for the adapter.
-    TriggerUpdateConnectableMode,
     DelayedAdapterActions(DelayedActions),
 
     // Follows IBluetooth's on_device_(dis)connected and bond_state callbacks
@@ -429,13 +427,6 @@ impl Stack {
 
                 Message::ConnectionCallbackDisconnected(id) => {
                     bluetooth.lock().unwrap().connection_callback_disconnected(id);
-                }
-
-                Message::TriggerUpdateConnectableMode => {
-                    let is_listening = bluetooth_socketmgr.lock().unwrap().is_listening();
-                    bluetooth.lock().unwrap().handle_delayed_actions(
-                        DelayedActions::UpdateConnectableMode(is_listening),
-                    );
                 }
 
                 Message::DelayedAdapterActions(action) => {

@@ -96,12 +96,12 @@ void cleanup() {
 }
 
 // Set up the codec into BluetoothAudio HAL
-bool setup_codec() {
-  LOG(INFO) << __func__;
+bool setup_codec(A2dpCodecConfig* a2dp_config, uint16_t peer_mtu,
+                 int preferred_encoding_interval_us) {
   if (HalVersionManager::GetHalTransport() == BluetoothAudioHalTransport::HIDL) {
-    return hidl::a2dp::setup_codec();
+    return hidl::a2dp::setup_codec(a2dp_config, peer_mtu, preferred_encoding_interval_us);
   } else if (HalVersionManager::GetHalTransport() == BluetoothAudioHalTransport::AIDL) {
-    return aidl::a2dp::setup_codec();
+    return aidl::a2dp::setup_codec(a2dp_config, peer_mtu, preferred_encoding_interval_us);
   } else if (HalVersionManager::GetHalTransport() == BluetoothAudioHalTransport::QTI_HIDL) {
     LOG(INFO) << __func__ << ": qti_hidl setup_codec";
     return qti_hidl::a2dp::setup_codec();

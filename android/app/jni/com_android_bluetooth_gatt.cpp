@@ -61,7 +61,6 @@
 
 #include "com_android_bluetooth.h"
 #include "com_android_bluetooth_flags.h"
-#include "common/init_flags.h"
 #include "hardware/bt_gatt.h"
 #include "hardware/bt_gatt_types.h"
 #include "main/shim/le_scanning_manager.h"
@@ -1329,6 +1328,7 @@ static void initializeNative(JNIEnv* env, jobject object) {
   }
 
   if (com::android::bluetooth::flags::scan_manager_refactor()) {
+    log::info("Starting rust module");
     btIf->start_rust_module();
   }
 
@@ -1347,6 +1347,7 @@ static void cleanupNative(JNIEnv* env, jobject /* object */) {
   }
 
   if (com::android::bluetooth::flags::scan_manager_refactor()) {
+    log::info("Stopping rust module");
     btIf->stop_rust_module();
   }
 

@@ -6,10 +6,10 @@ java_defaults {
     name: "BluetoothInstrumentationTestsDefaults",
 
     libs: [
-        "android.test.base",
-        "android.test.mock",
-        "android.test.runner",
-        "javax.obex",
+        "android.test.base.stubs",
+        "android.test.mock.stubs",
+        "android.test.runner.stubs",
+        "javax.obex.stubs",
         "libprotobuf-java-micro",
         "telephony-common",
     ],
