@@ -71,6 +71,9 @@
 
 using namespace bluetooth;
 
+// TODO(b/369381361) Enfore -Wmissing-prototypes
+#pragma GCC diagnostic ignored "-Wmissing-prototypes"
+
 using base::Closure;
 using bluetooth::Uuid;
 using bluetooth::common::ToString;

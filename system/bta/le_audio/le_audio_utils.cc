@@ -341,7 +341,8 @@ void fillStreamParamsToBtLeAudioCodecConfig(
                                                                    config.id.vendor_codec_id);
   out_config.sample_rate =
           translateToBtLeAudioCodecConfigSampleRate(config.GetSamplingFrequencyHz());
-  out_config.bits_per_sample = translateToBtLeAudioCodecConfigBitPerSample(16);
+  out_config.bits_per_sample =
+          translateToBtLeAudioCodecConfigBitPerSample(config.GetBitsPerSample());
   out_config.frame_duration =
           translateToBtLeAudioCodecConfigFrameDuration(config.GetDataIntervalUs());
   out_config.octets_per_frame = config.GetOctectsPerFrame();

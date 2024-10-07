@@ -203,12 +203,9 @@ cc_library {
         "libbluetooth-types",
     ],
     cflags: [
-        /* we export all classes, so change default visibility, instead of having EXPORT_SYMBOL on each class*/
+        // we export all classes, so change default visibility,
+        // instead of having EXPORT_SYMBOL on each class
         "-fvisibility=default",
-        "-Wall",
-        "-Werror",
-        "-Wextra",
-        "-Wno-unused-parameter",
     ],
     sanitize: {
         scs: true,
