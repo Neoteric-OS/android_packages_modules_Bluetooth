@@ -314,7 +314,7 @@ public:
   }
 
   void OnMetadataUpdate(uint16_t context) override {
-    LOG(INFO) << __func__;
+    log::info("");
     std::shared_lock<std::shared_timed_mutex> lock(callbacks_mutex);
     CallbackEnv sCallbackEnv(__func__);
     if (!sCallbackEnv.valid() || mCallbacksObj == nullptr) {
