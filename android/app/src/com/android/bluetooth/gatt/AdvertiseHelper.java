@@ -113,7 +113,7 @@ class AdvertiseHelper {
         }
 
         if (data.getServiceUuids() != null
-                && (!encrypt && !data.getServiceUuidsEnc()
+                && ((!encrypt && !data.getServiceUuidsEnc())
                         || (encrypt && data.getServiceUuidsEnc()))) {
             ByteArrayOutputStream serviceUuids16 = new ByteArrayOutputStream();
             ByteArrayOutputStream serviceUuids32 = new ByteArrayOutputStream();
@@ -154,7 +154,7 @@ class AdvertiseHelper {
         }
 
         if (!data.getServiceData().isEmpty()
-                && (!encrypt && !data.getServiceDataEnc()
+                && ((!encrypt && !data.getServiceDataEnc())
                         || (encrypt && data.getServiceDataEnc()))) {
             for (ParcelUuid parcelUuid : data.getServiceData().keySet()) {
                 byte[] serviceData = data.getServiceData().get(parcelUuid);

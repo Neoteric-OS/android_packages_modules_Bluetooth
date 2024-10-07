@@ -20,6 +20,7 @@
 
 package com.android.bluetooth.btservice.storage;
 
+import android.annotation.SuppressLint;
 import android.bluetooth.BluetoothA2dp;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothProfile;
@@ -64,7 +65,6 @@ public final class BluetoothDatabaseU2VMigration {
 
         markMigrationStatus(ctx, MIGRATION_STATUS_COMPLETED);
         Log.d(TAG, "BT database U2V: completed");
-        return;
     }
 
     private static void doU2VMigration(Context ctx) {
@@ -314,6 +314,7 @@ public final class BluetoothDatabaseU2VMigration {
         }
     }
 
+    @SuppressLint("AndroidFrameworkCompatChange")
     private static boolean isAndroidV() {
         int apiLevel = Build.VERSION.SDK_INT;
         if (!"REL".equals(Build.VERSION.CODENAME))

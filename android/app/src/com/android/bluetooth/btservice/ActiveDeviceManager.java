@@ -476,8 +476,7 @@ public class ActiveDeviceManager implements AdapterService.BluetoothStateCallbac
                 return;
             }
 
-            Integer[] profile_values = new Integer[2];
-            profile_values = contextToModeBundle.get(METADATA_UNSPECIFIED);
+            Integer[] profile_values = contextToModeBundle.get(METADATA_UNSPECIFIED);
 
             Log.d(TAG, "Sending native profile Values for Default context type: OUTPUT_ONLY mode: "
                 + profile_values[0] + ", DUPLEX mode: " + profile_values[1] + " for device " + device);
@@ -952,7 +951,6 @@ public class ActiveDeviceManager implements AdapterService.BluetoothStateCallbac
 
         final boolean is_dual_mode_bredr_le_enabled =
             SystemProperties.getBoolean(DUAL_MODE_BREDR_LE_MODES_ENABLED_PROPERTY, false);
-        int[] profile_values = new int[2];
 
         if (is_dual_mode_bredr_le_enabled == false) {
           Integer[] profile_val_le_audio = new Integer[2];
@@ -967,7 +965,7 @@ public class ActiveDeviceManager implements AdapterService.BluetoothStateCallbac
         }
 
         Integer[] profile_val_conv = new Integer[2];
-        profile_values = res.getIntArray(R.array.conversational_use_case_policy);
+        int[] profile_values = res.getIntArray(R.array.conversational_use_case_policy);
         profile_val_conv[0] = profile_values[0];
         profile_val_conv[1] = profile_values[1];
         contextToModeBundle.put(METADATA_CONVERSATIONAL, profile_val_conv);

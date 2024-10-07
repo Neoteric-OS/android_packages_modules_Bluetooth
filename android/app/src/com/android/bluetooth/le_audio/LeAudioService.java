@@ -3012,7 +3012,7 @@ public class LeAudioService extends ProfileService {
     }
 
     private void notifyGroupStreamStatusChanged(int groupId, int groupStreamStatus) {
-        if (mLeAudioCallbacks != null) {
+        synchronized (mLeAudioCallbacks) {
             try {
                 mutex.lock();
                 int n = mLeAudioCallbacks.beginBroadcast();
@@ -5054,7 +5054,7 @@ public class LeAudioService extends ProfileService {
         if (volumeControlService != null) {
             volumeControlService.handleGroupNodeAdded(groupId, device);
         }
-        if (mLeAudioCallbacks != null) {
+        synchronized (mLeAudioCallbacks) {
             try {
                 mutex.lock();
                 int n = mLeAudioCallbacks.beginBroadcast();
@@ -5134,7 +5134,7 @@ public class LeAudioService extends ProfileService {
     }
 
     private void notifyGroupNodeRemoved(BluetoothDevice device, int groupId) {
-        if (mLeAudioCallbacks != null) {
+        synchronized (mLeAudioCallbacks) {
             try {
                 mutex.lock();
                 int n = mLeAudioCallbacks.beginBroadcast();
@@ -5153,7 +5153,7 @@ public class LeAudioService extends ProfileService {
     }
 
     private void notifyGroupStatusChanged(int groupId, int status) {
-        if (mLeAudioCallbacks != null) {
+        synchronized (mLeAudioCallbacks) {
             try {
                 mutex.lock();
                 int n = mLeAudioCallbacks.beginBroadcast();
@@ -5275,7 +5275,7 @@ public class LeAudioService extends ProfileService {
     }
 
     private void notifyBroadcastUpdated(int broadcastId, int reason) {
-        if (mBroadcastCallbacks != null) {
+        synchronized (mBroadcastCallbacks) {
             int n = mBroadcastCallbacks.beginBroadcast();
             for (int i = 0; i < n; i++) {
                 try {

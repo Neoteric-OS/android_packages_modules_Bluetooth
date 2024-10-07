@@ -1155,11 +1155,10 @@ public class A2dpService extends ProfileService {
     /**
      * Gets the context of Update Metadata
      * @param context_type context type from Update Metadata
-     * @param is_src Metadata is for source/sink
      * @hide
      */
     public void setMetadataContext(int context_type) {
-        BluetoothDevice device = mActiveDevice;
+        BluetoothDevice device = getActiveDevice();
         Log.w(TAG, "setMetadataContext Type: " + context_type + " for device = " + device);
         mAdapterService
                 .getActiveDeviceManager()

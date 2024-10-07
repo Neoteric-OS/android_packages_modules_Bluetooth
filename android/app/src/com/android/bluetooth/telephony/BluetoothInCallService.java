@@ -27,6 +27,7 @@ import static java.util.Objects.requireNonNull;
 
 import android.annotation.NonNull;
 import android.annotation.RequiresPermission;
+import android.annotation.SuppressLint;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothHeadset;
 import android.bluetooth.BluetoothLeCall;
@@ -2180,6 +2181,7 @@ public class BluetoothInCallService extends InCallService {
        }
      }
 
+    @SuppressLint("AndroidFrameworkRequiresPermission")
     private void processOnStateChanged(BluetoothCall call) {
 
        int bluetoothLastState    = mLastBtHeadsetState;
@@ -2381,6 +2383,7 @@ public class BluetoothInCallService extends InCallService {
          }
      }
 
+     @SuppressLint("AndroidFrameworkRequiresPermission")
      private void updateHeadsetWithDSDACallState(boolean force, int event) {
       if ((event == DSDS_EVENT) && (!mDsDaEventsHadlingInProgress)) {
           updateHeadsetWithCallState(force);

@@ -18,6 +18,7 @@ package com.android.bluetooth.le_scan;
 
 import static android.bluetooth.le.ScanSettings.getScanModeString;
 
+import android.annotation.SuppressLint;
 import android.app.ActivityManager;
 import android.app.AlarmManager;
 import android.app.PendingIntent;
@@ -1747,6 +1748,7 @@ public class ScanManager {
         }
 
         // Get Low RSSI Threashhold for the scan client
+        @SuppressLint("AndroidFrameworkRequiresPermission")
         private int getLowRssiThreshold(ScanClient client) {
             if (client == null || client.settings == null) {
                 Log.d(TAG, "getLowRssiThreshold: client is null");
@@ -1760,6 +1762,7 @@ public class ScanManager {
         }
 
         // Get High RSSI Threashhold for the scan client
+        @SuppressLint("AndroidFrameworkRequiresPermission")
         private int getHighRssiThreshold(ScanClient client) {
             if (client == null || client.settings == null) {
                 Log.d(TAG, "getHighRssiThreshold: client is null");

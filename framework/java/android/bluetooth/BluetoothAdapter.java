@@ -3631,35 +3631,6 @@ public final class BluetoothAdapter {
         return null;
     }
 
-    private void closeBCProfile(BluetoothProfile proxy) {
-        Class<?> bshClass = null;
-        Method bshClose = null;
-        try {
-            bshClass = Class.forName("android.bluetooth.BluetoothSyncHelper");
-        } catch (ClassNotFoundException ex) {
-            Log.e(TAG, "no BSH: exists");
-            bshClass = null;
-        }
-        if (bshClass != null) {
-            Log.d(TAG, "Able to get BSH class handle");
-            try {
-                bshClose =  bshClass.getDeclaredMethod("close", null);
-            } catch (NoSuchMethodException e) {
-                Log.e(TAG, "no BSH:isSupported method exists");
-            }
-            if (bshClose != null) {
-                try {
-                   bshClose.invoke(proxy, null);
-                } catch(IllegalAccessException e) {
-                   Log.e(TAG, "bshClose IllegalAccessException");
-                } catch (InvocationTargetException e) {
-                   Log.e(TAG, "bshClose InvocationTargetException");
-                }
-            }
-        }
-        Log.d(TAG, "CloseBCProfile returns");
-    }
-
     private boolean getBCProfile(Context context, BluetoothProfile.ServiceListener sl) {
         boolean ret = true;
         boolean isProfileSupported = false;
@@ -3715,35 +3686,6 @@ public final class BluetoothAdapter {
         }
         Log.d(TAG, "getBCService returns" + ret);
         return ret;
-    }
-
-    private void closeCSProfile(BluetoothProfile proxy) {
-        Class<?> csClass = null;
-        Method csClose = null;
-        try {
-            csClass = Class.forName("android.bluetooth.BluetoothCsClient");
-        } catch (ClassNotFoundException ex) {
-            Log.e(TAG, "no CS: exists");
-            csClass = null;
-        }
-        if (csClass != null) {
-            Log.d(TAG, "Able to get CS class handle");
-            try {
-                csClose =  csClass.getDeclaredMethod("close", null);
-            } catch (NoSuchMethodException e) {
-                Log.e(TAG, "no CS:isSupported method exists");
-            }
-            if (csClose != null) {
-                try {
-                   csClose.invoke(proxy, null);
-                } catch(IllegalAccessException e) {
-                   Log.e(TAG, "csClose IllegalAccessException");
-                } catch (InvocationTargetException e) {
-                   Log.e(TAG, "csClose InvocationTargetException");
-                }
-            }
-        }
-        Log.d(TAG, "CloseCSProfile returns");
     }
 
     private boolean getCSProfile(Context context, BluetoothProfile.ServiceListener sl) {
@@ -3961,37 +3903,13 @@ public final class BluetoothAdapter {
                 broadcastObj = bcastConstructor.newInstance(context, listener);
             } catch (InstantiationException | IllegalAccessException |
                 InvocationTargetException ex) {
-                ex.printStackTrace();
+                Log.e(TAG, ex.toString() + "\n" + Log.getStackTraceString(new Throwable()));
             }
         }
         if (broadcastObj == null) {
             return false;
         }
         return true;
-    }
-
-    private void closeBroadcastProfile(BluetoothProfile proxy) {
-        Class<?> broadcastClass = null;
-        Method broadcastClose = null;
-        try {
-            broadcastClass = Class.forName("android.bluetooth.BluetootBroadcast");
-        } catch (ClassNotFoundException ex) {
-            Log.e(TAG, "no BluetoothBroadcast: exists");
-        }
-        if (broadcastClass != null) {
-            try {
-                broadcastClose =  broadcastClass.getDeclaredMethod("close", null);
-            } catch (NoSuchMethodException e) {
-                Log.e(TAG, "no Broadcast:close method exists");
-            }
-            if (broadcastClose != null) {
-                try {
-                    broadcastClose.invoke(proxy, null);
-                } catch(IllegalAccessException | InvocationTargetException ex) {
-                    ex.printStackTrace();
-                }
-            }
-        }
     }
 
     private static final IBluetoothManagerCallback sManagerCallback =

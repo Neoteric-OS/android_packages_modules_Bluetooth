@@ -27,6 +27,7 @@ import static java.util.Objects.requireNonNull;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.annotation.RequiresPermission;
+import android.annotation.SuppressLint;
 import android.bluetooth.BluetoothClass;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothHeadset;
@@ -858,11 +859,13 @@ public class HeadsetService extends ProfileService {
         }
 
         @Override
+        @SuppressLint("AndroidFrameworkRequiresPermission")
         public void phoneStateChangedDsDa(int numActive, int numHeld, int callState, String number,
                                           int type, String name, AttributionSource source) {
         }
 
         @Override
+        @SuppressLint("AndroidFrameworkRequiresPermission")
         public void clccResponseDsDa(int index, int direction, int status, int mode, boolean mpty,
                                      String number, int type, AttributionSource source) {
         }
@@ -1639,7 +1642,7 @@ public class HeadsetService extends ProfileService {
             }
             if (stateMachine.getAudioState() != BluetoothHeadset.STATE_AUDIO_DISCONNECTED) {
                 logD("connectAudio: audio is not idle for device " + device);
-                /**
+                /*
                  * add for case that device disconnecting audio has been set active again,
                  * then send CONNECT_AUDIO if not contained in queue and should persist audio
                  */
@@ -1788,6 +1791,7 @@ public class HeadsetService extends ProfileService {
     }
 
     @RequiresPermission(android.Manifest.permission.MODIFY_PHONE_STATE)
+    @SuppressLint("AndroidFrameworkRequiresPermission")
     public void updateLeStreamStatus(BluetoothDevice device, int streamStatus) {
         Log.i(TAG, "updateLeStreamStatus: received ");
         lock.lock();
@@ -2074,6 +2078,7 @@ public class HeadsetService extends ProfileService {
         }
     }
 
+    @SuppressLint("AndroidFrameworkRequiresPermission")
     void phoneStateChangedInternal(
              int numActive,
              int numHeld,
@@ -2120,6 +2125,7 @@ public class HeadsetService extends ProfileService {
     }
 
     @VisibleForTesting
+    @SuppressLint("WaitNotInLoop")
     void phoneStateChanged(
             int numActive,
             int numHeld,
