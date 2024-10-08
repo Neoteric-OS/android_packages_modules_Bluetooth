@@ -3628,8 +3628,9 @@ public class LeAudioService extends ProfileService {
 
             if (descriptor.isActive() && (outputCodecOrFreqChanged || inputCodecOrFreqChanged)) {
                 // Audio framework needs to be notified so it get new codec config
-                notifyAudioFrameworkForCodecConfigUpdate(
-                        groupId, descriptor, outputCodecOrFreqChanged, inputCodecOrFreqChanged);
+                // Commenting this AF update as it causes blip in speaker->ble tranistion.
+                /*notifyAudioFrameworkForCodecConfigUpdate(
+                        groupId, descriptor, outputCodecOrFreqChanged, inputCodecOrFreqChanged);*/
             }
         } else if (stackEvent.type == LeAudioStackEvent.EVENT_TYPE_AUDIO_CONF_CHANGED) {
             int direction = stackEvent.valueInt1;
