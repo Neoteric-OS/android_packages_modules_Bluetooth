@@ -706,8 +706,7 @@ public class AdapterService extends Service {
                 mUserManager.isGuestUser(),
                 isCommonCriteriaMode,
                 configCompareResult,
-                isAtvDevice,
-                getApplicationInfo().dataDir);
+                isAtvDevice);
         mNativeAvailable = true;
         mVendor = new Vendor(this);
         // Load the name and address
