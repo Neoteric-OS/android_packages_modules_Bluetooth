@@ -27,6 +27,7 @@ import static java.util.Objects.requireNonNull;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.annotation.RequiresPermission;
+import android.annotation.SuppressLint;
 import android.bluetooth.BluetoothClass;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothHeadset;
@@ -85,10 +86,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.concurrent.FutureTask;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.Iterator;
-
 
 
 /**
@@ -858,11 +857,13 @@ public class HeadsetService extends ProfileService {
         }
 
         @Override
+        @SuppressLint("AndroidFrameworkRequiresPermission")
         public void phoneStateChangedDsDa(int numActive, int numHeld, int callState, String number,
                                           int type, String name, AttributionSource source) {
         }
 
         @Override
+        @SuppressLint("AndroidFrameworkRequiresPermission")
         public void clccResponseDsDa(int index, int direction, int status, int mode, boolean mpty,
                                      String number, int type, AttributionSource source) {
         }
@@ -1216,31 +1217,39 @@ public class HeadsetService extends ProfileService {
             } else {
                 stateMachine.sendMessage(HeadsetStateMachine.VOICE_RECOGNITION_START, device);
             }
-            if (Utils.isScoManagedByAudioEnabled()) {
-                // when isScoManagedByAudio is on, tell AudioManager to connect SCO
-                AudioManager am = mSystemInterface.getAudioManager();
-                BluetoothDevice finalDevice = device;
-                Optional<AudioDeviceInfo> audioDeviceInfo =
-                        am.getAvailableCommunicationDevices().stream()
-                                .filter(
-                                        x ->
-                                                x.getType() == AudioDeviceInfo.TYPE_BLUETOOTH_SCO
-                                                        && x.getAddress()
-                                                                .equals(finalDevice.getAddress()))
-                                .findFirst();
-                if (audioDeviceInfo.isPresent()) {
-                    am.setCommunicationDevice(audioDeviceInfo.get());
-                    Log.i(TAG, "Audio Manager will initiate the SCO connection");
-                    return true;
-                }
+            if (!Utils.isScoManagedByAudioEnabled()) {
+                stateMachine.sendMessage(HeadsetStateMachine.CONNECT_AUDIO, device);
+            }
+        }
+
+        if (Utils.isScoManagedByAudioEnabled()) {
+            BluetoothDevice voiceRecognitionDevice = device;
+            // when isScoManagedByAudio is on, tell AudioManager to connect SCO
+            AudioManager am = mSystemInterface.getAudioManager();
+            Optional<AudioDeviceInfo> audioDeviceInfo =
+                    am.getAvailableCommunicationDevices().stream()
+                            .filter(
+                                    x ->
+                                            x.getType() == AudioDeviceInfo.TYPE_BLUETOOTH_SCO
+                                                    && x.getAddress()
+                                                            .equals(
+                                                                    voiceRecognitionDevice
+                                                                            .getAddress()))
+                            .findFirst();
+            if (audioDeviceInfo.isPresent()) {
+                mHandler.post(
+                        () -> {
+                            am.setCommunicationDevice(audioDeviceInfo.get());
+                            Log.i(TAG, "Audio Manager will initiate the SCO for Voice Recognition");
+                        });
+            } else {
                 Log.w(
                         TAG,
                         "Cannot find audioDeviceInfo that matches device="
-                                + device
+                                + voiceRecognitionDevice
                                 + " to create the SCO");
                 return false;
             }
-            stateMachine.sendMessage(HeadsetStateMachine.CONNECT_AUDIO, device);
         }
         enableSwbCodec(HeadsetHalConstants.BTHF_SWB_CODEC_VENDOR_APTX, true, device);
         return true;
@@ -1276,11 +1285,17 @@ public class HeadsetService extends ProfileService {
             }
             mVoiceRecognitionStarted = false;
             stateMachine.sendMessage(HeadsetStateMachine.VOICE_RECOGNITION_STOP, device);
-            if (Utils.isScoManagedByAudioEnabled()) {
-                mSystemInterface.getAudioManager().clearCommunicationDevice();
-                return true;
+            if (!Utils.isScoManagedByAudioEnabled()) {
+                stateMachine.sendMessage(HeadsetStateMachine.DISCONNECT_AUDIO, device);
             }
-            stateMachine.sendMessage(HeadsetStateMachine.DISCONNECT_AUDIO, device);
+        }
+
+        if (Utils.isScoManagedByAudioEnabled()) {
+            // do the task outside synchronized to avoid deadlock with Audio Fwk
+            mHandler.post(
+                    () -> {
+                        mSystemInterface.getAudioManager().clearCommunicationDevice();
+                    });
         }
         enableSwbCodec(HeadsetHalConstants.BTHF_SWB_CODEC_VENDOR_APTX, false, device);
         return true;
@@ -1639,7 +1654,7 @@ public class HeadsetService extends ProfileService {
             }
             if (stateMachine.getAudioState() != BluetoothHeadset.STATE_AUDIO_DISCONNECTED) {
                 logD("connectAudio: audio is not idle for device " + device);
-                /**
+                /*
                  * add for case that device disconnecting audio has been set active again,
                  * then send CONNECT_AUDIO if not contained in queue and should persist audio
                  */
@@ -1788,6 +1803,7 @@ public class HeadsetService extends ProfileService {
     }
 
     @RequiresPermission(android.Manifest.permission.MODIFY_PHONE_STATE)
+    @SuppressLint("AndroidFrameworkRequiresPermission")
     public void updateLeStreamStatus(BluetoothDevice device, int streamStatus) {
         Log.i(TAG, "updateLeStreamStatus: received ");
         lock.lock();
@@ -2074,6 +2090,7 @@ public class HeadsetService extends ProfileService {
         }
     }
 
+    @SuppressLint("AndroidFrameworkRequiresPermission")
     void phoneStateChangedInternal(
              int numActive,
              int numHeld,
@@ -2120,6 +2137,7 @@ public class HeadsetService extends ProfileService {
     }
 
     @VisibleForTesting
+    @SuppressLint("WaitNotInLoop")
     void phoneStateChanged(
             int numActive,
             int numHeld,
@@ -2222,23 +2240,6 @@ public class HeadsetService extends ProfileService {
                                 HeadsetStateMachine.CALL_STATE_CHANGED,
                                 new HeadsetCallState(
                                         numActive, numHeld, callState, number, type, name)));
-        if (Utils.isScoManagedByAudioEnabled()) {
-            if (mActiveDevice == null) {
-                Log.i(TAG, "HeadsetService's active device is null");
-            } else {
-                // wait until mActiveDevice's state machine processed CALL_STATE_CHANGED message,
-                // then Audio Framework starts the SCO connection
-                FutureTask task = new FutureTask(() -> {}, null);
-                mStateMachines.get(mActiveDevice).getHandler().post(task);
-                try {
-                    task.get();
-                } catch (Exception e) {
-                    Log.e(
-                            TAG,
-                            "Exception when waiting for CALL_STATE_CHANGED message" + e.toString());
-                }
-            }
-        }
         mStateMachinesThreadHandler.post(
                 () -> {
                     if (callState == HeadsetHalConstants.CALL_STATE_IDLE

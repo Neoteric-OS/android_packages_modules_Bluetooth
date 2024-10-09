@@ -1740,7 +1740,8 @@ public class LeAudioService extends ProfileService {
         if (device != null && mActiveAudioInDevice != null) {
             LeAudioDeviceDescriptor deviceDescriptor = getDeviceDescriptor(mActiveAudioInDevice);
             if (deviceDescriptor == null) {
-                Log.e(TAG, "updateActiveInDevice: No valid descriptor for device: " + device);
+                Log.e(TAG, "updateActiveInDevice: No valid descriptor for device: "
+                        + mActiveAudioInDevice);
                 return false;
             }
 
@@ -1807,7 +1808,8 @@ public class LeAudioService extends ProfileService {
         if (device != null && mActiveAudioOutDevice != null) {
             LeAudioDeviceDescriptor deviceDescriptor = getDeviceDescriptor(mActiveAudioOutDevice);
             if (deviceDescriptor == null) {
-                Log.e(TAG, "updateActiveOutDevice: No valid descriptor for device: " + device);
+                Log.e(TAG, "updateActiveOutDevice: No valid descriptor for device: "
+                        + mActiveAudioOutDevice);
                 return false;
             }
 
@@ -2470,31 +2472,45 @@ public class LeAudioService extends ProfileService {
                         + ", isBroadcastPlaying: "
                         + isBroadcastPlaying);
 
-        LeAudioGroupDescriptor groupDescriptor = getGroupDescriptor(currentlyActiveGroupId);
         if (isBroadcastActive()
                 && currentlyActiveGroupId == LE_AUDIO_GROUP_ID_INVALID
                 && (mUnicastGroupIdDeactivatedForBroadcastTransition != LE_AUDIO_GROUP_ID_INVALID
                 || isBroadcastPlaying)) {
+
+            LeAudioGroupDescriptor fallbackGroupDescriptor = getGroupDescriptor(groupId);
             // If broadcast is ongoing and need to update unicast fallback active group
             // we need to update the cached group id and skip changing the active device
             updateFallbackUnicastGroupIdForBroadcast(groupId);
 
-            /* In case of removing fallback unicast group, monitoring input device should be
-             * removed from active devices.
-             */
-            if (groupDescriptor != null && groupId == LE_AUDIO_GROUP_ID_INVALID) {
-                updateActiveDevices(
-                        groupId,
-                        groupDescriptor.mDirection,
-                        AUDIO_DIRECTION_NONE,
-                        false,
-                        groupDescriptor.mHasFallbackDeviceWhenGettingInactive,
-                        false);
+            if (fallbackGroupDescriptor != null) {
+                if (groupId == LE_AUDIO_GROUP_ID_INVALID) {
+                    /* In case of removing fallback unicast group, monitoring input device should be
+                     * removed from active devices.
+                     */
+                    updateActiveDevices(
+                            groupId,
+                            fallbackGroupDescriptor.mDirection,
+                            AUDIO_DIRECTION_NONE,
+                            false,
+                            fallbackGroupDescriptor.mHasFallbackDeviceWhenGettingInactive,
+                            false);
+                } else {
+                    if (mActiveAudioInDevice != null) {
+                        updateActiveDevices(
+                                groupId,
+                                fallbackGroupDescriptor.mDirection,
+                                AUDIO_DIRECTION_INPUT_BIT,
+                                false,
+                                fallbackGroupDescriptor.mHasFallbackDeviceWhenGettingInactive,
+                                true);
+                    }
+                }
             }
 
             return true;
         }
 
+        LeAudioGroupDescriptor groupDescriptor = getGroupDescriptor(currentlyActiveGroupId);
         if (groupDescriptor != null && groupId == currentlyActiveGroupId) {
             /* Make sure active group is already exposed to audio framework.
              * If not, lets wait for it and don't sent additional intent.
@@ -2996,7 +3012,7 @@ public class LeAudioService extends ProfileService {
     }
 
     private void notifyGroupStreamStatusChanged(int groupId, int groupStreamStatus) {
-        if (mLeAudioCallbacks != null) {
+        synchronized (mLeAudioCallbacks) {
             try {
                 mutex.lock();
                 int n = mLeAudioCallbacks.beginBroadcast();
@@ -4915,9 +4931,12 @@ public class LeAudioService extends ProfileService {
                 return;
             }
             for (BluetoothDevice device : mDeviceDescriptors.keySet()) {
-                if (getConnectionPolicy(device) != BluetoothProfile.CONNECTION_POLICY_FORBIDDEN) {
+                int connection_policy = getConnectionPolicy(device);
+                if (connection_policy != BluetoothProfile.CONNECTION_POLICY_FORBIDDEN) {
                     setAuthorizationForRelatedProfiles(device, true);
                 }
+                setEnabledState(
+                        device, connection_policy != BluetoothProfile.CONNECTION_POLICY_FORBIDDEN);
             }
         } finally {
             mGroupReadLock.unlock();
@@ -5038,7 +5057,7 @@ public class LeAudioService extends ProfileService {
         if (volumeControlService != null) {
             volumeControlService.handleGroupNodeAdded(groupId, device);
         }
-        if (mLeAudioCallbacks != null) {
+        synchronized (mLeAudioCallbacks) {
             try {
                 mutex.lock();
                 int n = mLeAudioCallbacks.beginBroadcast();
@@ -5118,7 +5137,7 @@ public class LeAudioService extends ProfileService {
     }
 
     private void notifyGroupNodeRemoved(BluetoothDevice device, int groupId) {
-        if (mLeAudioCallbacks != null) {
+        synchronized (mLeAudioCallbacks) {
             try {
                 mutex.lock();
                 int n = mLeAudioCallbacks.beginBroadcast();
@@ -5137,7 +5156,7 @@ public class LeAudioService extends ProfileService {
     }
 
     private void notifyGroupStatusChanged(int groupId, int status) {
-        if (mLeAudioCallbacks != null) {
+        synchronized (mLeAudioCallbacks) {
             try {
                 mutex.lock();
                 int n = mLeAudioCallbacks.beginBroadcast();
@@ -5259,7 +5278,7 @@ public class LeAudioService extends ProfileService {
     }
 
     private void notifyBroadcastUpdated(int broadcastId, int reason) {
-        if (mBroadcastCallbacks != null) {
+        synchronized (mBroadcastCallbacks) {
             int n = mBroadcastCallbacks.beginBroadcast();
             for (int i = 0; i < n; i++) {
                 try {

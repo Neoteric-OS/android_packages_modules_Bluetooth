@@ -854,6 +854,7 @@ public final class BluetoothCodecConfig implements Parcelable {
                 if (mCodecSpecific1 != other.mCodecSpecific1) {
                   return false;
                 }
+            // fall through
             case SOURCE_CODEC_TYPE_APTX_ADAPTIVE:
                 if (other.mCodecSpecific4 > 0) {
                     return false;

@@ -89,6 +89,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.hardware.display.DisplayManager;
 import android.os.AsyncTask;
 import android.os.BatteryStatsManager;
 import android.os.Binder;
@@ -284,6 +285,7 @@ public class AdapterService extends Service {
     private AdapterState mAdapterStateMachine;
     private BondStateMachine mBondStateMachine;
     private RemoteDevices mRemoteDevices;
+    private AdapterSuspend mAdapterSuspend;
     private Vendor mVendor;
 
     /* TODO: Consider to remove the search API from this class, if changed to use call-back */
@@ -761,6 +763,12 @@ public class AdapterService extends Service {
         mBtCompanionManager = new CompanionManager(this, new ServiceFactory());
 
         mBluetoothSocketManagerBinder = new BluetoothSocketManagerBinder(this);
+
+        if (Flags.adapterSuspendMgmt()) {
+            mAdapterSuspend =
+                    new AdapterSuspend(
+                            mNativeInterface, mLooper, getSystemService(DisplayManager.class));
+        }
 
         if (!Flags.fastBindToApp()) {
             setAdapterService(this);
@@ -1526,6 +1534,11 @@ public class AdapterService extends Service {
         if (mBluetoothSocketManagerBinder != null) {
             mBluetoothSocketManagerBinder.cleanUp();
             mBluetoothSocketManagerBinder = null;
+        }
+
+        if (mAdapterSuspend != null) {
+            mAdapterSuspend.cleanup();
+            mAdapterSuspend = null;
         }
 
         mPreferredAudioProfilesCallbacks.kill();
@@ -3933,34 +3946,42 @@ public class AdapterService extends Service {
 
         // Either implement these custom methods, or remove them from IBluetooth.
         @Override
+        @SuppressLint("AndroidFrameworkRequiresPermission")
         public void setBondingInitiatedLocally(BluetoothDevice device, boolean localInitiated,
                 AttributionSource source) {}
 
         @Override
+        @SuppressLint("AndroidFrameworkRequiresPermission")
         public boolean isTwsPlusDevice(BluetoothDevice device,
                 AttributionSource attributionSource) { return false; }
 
         @Override
+        @SuppressLint("AndroidFrameworkRequiresPermission")
         public String getTwsPlusPeerAddress(BluetoothDevice device,
                 AttributionSource attributionSource) { return null; }
 
         @Override
+        @SuppressLint("AndroidFrameworkRequiresPermission")
         public void updateQuietModeStatus(boolean quietMode,
                 AttributionSource attributionSource) {}
 
         @Override
+        @SuppressLint("AndroidFrameworkRequiresPermission")
         public int setSocketOpt(int type, int port, int optionName, byte [] optionVal,
                 int optionLen) { return -1; }
 
         @Override
+        @SuppressLint("AndroidFrameworkRequiresPermission")
         public int getSocketOpt(int type, int port, int optionName,
                 byte [] optionVal) { return -1; }
 
         @Override
+        @SuppressLint("AndroidFrameworkRequiresPermission")
         public int getDeviceType(BluetoothDevice device, AttributionSource source)
                 { return -1; }
 
         @Override
+        @SuppressLint("AndroidFrameworkRequiresPermission")
         public boolean isBroadcastActive(AttributionSource attributionSource) {
             return true;
         }
@@ -6025,17 +6046,6 @@ public class AdapterService extends Service {
             mGattService.unregAll(source);
         }
     }
-
-    /**
-     * Notify the UID and package name of the app, and the address of associated active device
-     *
-     * @param source The attribution source that starts the activity
-     * @param deviceAddress The address of the active device associated with the app
-     */
-  //  public void notifyActivityAttributionInfo(AttributionSource source, String deviceAddress) {
-  //      mActivityAttributionService.notifyActivityAttributionInfo(
-  //              source.getUid(), source.getPackageName(), deviceAddress);
-  //  }
 
     IBinder getProfile(int profileId) {
         if (getState() == BluetoothAdapter.STATE_TURNING_ON) {

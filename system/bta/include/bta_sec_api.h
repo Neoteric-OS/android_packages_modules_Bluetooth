@@ -29,6 +29,7 @@
 #include <cstdint>
 
 #include "bta/include/bta_api_data_types.h"
+#include "include/hardware/bluetooth.h"
 #include "stack/include/bt_device_type.h"
 #include "stack/include/bt_name.h"
 #include "stack/include/bt_octets.h"
@@ -71,6 +72,7 @@ typedef enum : uint8_t {
   BTA_DM_LE_ADDR_ASSOC_EVT = 33,     /* identity address association event */
   BTA_DM_SIRK_VERIFICATION_REQ_EVT = 35,
   BTA_DM_KEY_MISSING_EVT = 36,
+  BTA_DM_ENCRYPTION_CHANGE_EVT = 37,
   BTA_DM_ENC_KEY_MATERIAL = 38, /* Enc Data Key Material value */
 } tBTA_DM_SEC_EVT;
 
@@ -245,6 +247,7 @@ typedef union {
   tBTA_DM_RC_UNPAIR delete_key_RC_to_unpair;
   tBTA_DM_PROC_ID_ADDR proc_id_addr; /* Identity address event */
   tBTA_DM_KEY_MISSING key_missing;
+  bt_encryption_change_evt encryption_change;
   tBTA_DM_ENC_KEY_MATERIAL enc_key_material; /* Enc Data Key Material value*/
 } tBTA_DM_SEC;
 

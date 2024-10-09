@@ -428,6 +428,22 @@ pub type BtPinCode = bindings::bt_pin_code_t;
 pub type BtRemoteVersion = bindings::bt_remote_version_t;
 pub type BtVendorProductInfo = bindings::bt_vendor_product_info_t;
 
+impl ToString for BtVendorProductInfo {
+    fn to_string(&self) -> String {
+        format!(
+            "{}:v{:04X}p{:04X}d{:04X}",
+            match self.vendor_id_src {
+                1 => "bluetooth",
+                2 => "usb",
+                default => "unknown",
+            },
+            self.vendor_id,
+            self.product_id,
+            self.version
+        )
+    }
+}
+
 impl TryFrom<Uuid> for Vec<u8> {
     type Error = &'static str;
 
@@ -1061,6 +1077,7 @@ pub enum BaseCallbacks {
     GenerateLocalOobData(u8, Box<OobData>), // Box OobData as its size is much bigger than others
     LeRandCallback(u64),
     // key_missing_cb
+    // encryption_change_cb
 }
 
 pub struct BaseCallbacksDispatcher {
@@ -1253,6 +1270,7 @@ impl BluetoothInterface {
             switch_codec_cb: None,
             le_rand_cb: Some(le_rand_cb),
             key_missing_cb: None,
+            encryption_change_cb: None,
         });
 
         let cb_ptr = LTCheckedPtrMut::from(&mut callbacks);

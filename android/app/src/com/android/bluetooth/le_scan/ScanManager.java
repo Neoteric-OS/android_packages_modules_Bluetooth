@@ -18,6 +18,7 @@ package com.android.bluetooth.le_scan;
 
 import static android.bluetooth.le.ScanSettings.getScanModeString;
 
+import android.annotation.SuppressLint;
 import android.app.ActivityManager;
 import android.app.AlarmManager;
 import android.app.PendingIntent;
@@ -131,7 +132,7 @@ public class ScanManager {
     private Set<ScanClient> mSuspendedScanClients;
     private SparseIntArray mPriorityMap = new SparseIntArray();
 
-    private DisplayManager mDm;
+    private DisplayManager mDisplayManager;
 
     private ActivityManager mActivityManager;
     private LocationManager mLocationManager;
@@ -173,7 +174,7 @@ public class ScanManager {
         mScanHelper = scanHelper;
         mAdapterService = adapterService;
         mScanNative = new ScanNative(scanHelper);
-        mDm = mContext.getSystemService(DisplayManager.class);
+        mDisplayManager = mContext.getSystemService(DisplayManager.class);
         mActivityManager = mContext.getSystemService(ActivityManager.class);
         mLocationManager = mAdapterService.getSystemService(LocationManager.class);
         mBluetoothAdapterProxy = bluetoothAdapterProxy;
@@ -189,8 +190,8 @@ public class ScanManager {
         mPriorityMap.put(ScanSettings.SCAN_MODE_LOW_LATENCY, 5);
 
         mHandler = new ClientHandler(looper);
-        if (mDm != null) {
-            mDm.registerDisplayListener(mDisplayListener, null);
+        if (mDisplayManager != null) {
+            mDisplayManager.registerDisplayListener(mDisplayListener, null);
         }
         mScreenOn = isScreenOn();
         AppScanStats.initScanRadioState();
@@ -217,8 +218,8 @@ public class ScanManager {
             }
         }
 
-        if (mDm != null) {
-            mDm.unregisterDisplayListener(mDisplayListener);
+        if (mDisplayManager != null) {
+            mDisplayManager.unregisterDisplayListener(mDisplayListener);
         }
 
         if (mHandler != null) {
@@ -1747,6 +1748,7 @@ public class ScanManager {
         }
 
         // Get Low RSSI Threashhold for the scan client
+        @SuppressLint("AndroidFrameworkRequiresPermission")
         private int getLowRssiThreshold(ScanClient client) {
             if (client == null || client.settings == null) {
                 Log.d(TAG, "getLowRssiThreshold: client is null");
@@ -1760,6 +1762,7 @@ public class ScanManager {
         }
 
         // Get High RSSI Threashhold for the scan client
+        @SuppressLint("AndroidFrameworkRequiresPermission")
         private int getHighRssiThreshold(ScanClient client) {
             if (client == null || client.settings == null) {
                 Log.d(TAG, "getHighRssiThreshold: client is null");
@@ -1993,7 +1996,7 @@ public class ScanManager {
     }
 
     private boolean isScreenOn() {
-        Display[] displays = mDm.getDisplays();
+        Display[] displays = mDisplayManager.getDisplays();
 
         if (displays == null) {
             return false;

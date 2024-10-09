@@ -530,6 +530,7 @@ public final class BluetoothDevice implements Parcelable, Attributable {
      * intents. It contains the first TWS+ earbud address of pair.
      * @hide
      */
+    @SuppressLint("UnrecognisedJavadocTag")
     public static final String EXTRA_TWS_PLUS_DEVICE1 =
             "android.bluetooth.device.extra.EXTRA_TWS_PLUS_DEVICE1";
 
@@ -538,6 +539,7 @@ public final class BluetoothDevice implements Parcelable, Attributable {
      * intents. It contains the second TWS+ earbud address of pair.
      * @hide
      */
+    @SuppressLint("UnrecognisedJavadocTag")
     public static final String EXTRA_TWS_PLUS_DEVICE2 =
             "android.bluetooth.device.extra.EXTRA_TWS_PLUS_DEVICE2";
 

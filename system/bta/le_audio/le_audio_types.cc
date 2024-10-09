@@ -31,6 +31,9 @@
 #include "le_audio_utils.h"
 #include "stack/include/bt_types.h"
 
+// TODO(b/369381361) Enfore -Wmissing-prototypes
+#pragma GCC diagnostic ignored "-Wmissing-prototypes"
+
 namespace bluetooth::le_audio {
 using types::acs_ac_record;
 using types::LeAudioContextType;
@@ -122,11 +125,12 @@ void get_cis_count(LeAudioContextType context_type,
             out_cis_count_bidir = 2 * expected_device_cnt;
           } else {
             out_cis_count_bidir = expected_device_cnt;
-            out_cis_count_unidir_sink = expected_device_cnt;
+            if (avail_group_ase_src_count > 1) {
+              out_cis_count_bidir++;
+            } else {
+              out_cis_count_unidir_sink = expected_device_cnt;
+            }
           }
-          /* TODO: Support TWS style device with two source ASEs - two
-           * bidirectional CISes
-           */
         } else {
           if (avail_group_ase_snk_cnt > 0) {
             out_cis_count_unidir_sink = 2 * expected_device_cnt;

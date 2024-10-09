@@ -537,6 +537,7 @@ public final class BluetoothHeadset implements BluetoothProfile {
     @RequiresPermission(BLUETOOTH_CONNECT)
     public List<BluetoothDevice> getConnectedDevices() {
         if (VDBG) log("getConnectedDevices()");
+        List<BluetoothDevice> devices = new ArrayList<>();
         try {
             mServiceLock.readLock().lock();
             final IBluetoothHeadset service = getService();
@@ -550,12 +551,12 @@ public final class BluetoothHeadset implements BluetoothProfile {
                 } catch (RemoteException e) {
                     Log.e(TAG, e.toString() + "\n" + Log.getStackTraceString(new Throwable()));
                 }
-                return new ArrayList<>();
+                return devices;
             }
         } finally {
             mServiceLock.readLock().unlock();
         }
-        return Collections.emptyList();
+        return devices;
     }
 
     /** {@inheritDoc} */
