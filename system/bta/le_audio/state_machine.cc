@@ -2641,6 +2641,8 @@ private:
         }
 
         cancel_watchdog_if_needed(group->group_id_);
+        ReleaseCisIds(group);
+        RemoveCigForGroup(group);
 
         state_machine_callbacks_->StatusReportCb(group->group_id_,
                                                  GroupStreamStatus::CONFIGURED_AUTONOMOUS);
