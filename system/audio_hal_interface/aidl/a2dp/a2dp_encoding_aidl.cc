@@ -16,6 +16,7 @@
 #define LOG_TAG "BTAudioA2dpAIDL"
 
 #include "a2dp_encoding_aidl.h"
+#include "btif/include/btif_av.h"
 
 #include <bluetooth/log.h>
 #include <com_android_bluetooth_flags.h>
@@ -227,17 +228,17 @@ using ::aidl::android::hardware::bluetooth::audio::CodecConfiguration;
 using ::aidl::android::hardware::bluetooth::audio::PcmConfiguration;
 using ::aidl::android::hardware::bluetooth::audio::SessionType;
 
-using ::bluetooth::audio::aidl::BluetoothAudioCtrlAck;
-using ::bluetooth::audio::aidl::BluetoothAudioSinkClientInterface;
-using ::bluetooth::audio::aidl::codec::A2dpAacToHalConfig;
-using ::bluetooth::audio::aidl::codec::A2dpAptxAdaptiveToHalConfig;
-using ::bluetooth::audio::aidl::codec::A2dpAptxToHalConfig;
-using ::bluetooth::audio::aidl::codec::A2dpCodecToHalBitsPerSample;
-using ::bluetooth::audio::aidl::codec::A2dpCodecToHalChannelMode;
-using ::bluetooth::audio::aidl::codec::A2dpCodecToHalSampleRate;
-using ::bluetooth::audio::aidl::codec::A2dpLdacToHalConfig;
-using ::bluetooth::audio::aidl::codec::A2dpOpusToHalConfig;
-using ::bluetooth::audio::aidl::codec::A2dpSbcToHalConfig;
+using ::bluetooth::audio::aidl::a2dp::BluetoothAudioCtrlAck;
+using ::bluetooth::audio::aidl::a2dp::BluetoothAudioSinkClientInterface;
+using ::bluetooth::audio::aidl::a2dp::codec::A2dpAacToHalConfig;
+using ::bluetooth::audio::aidl::a2dp::codec::A2dpAptxAdaptiveToHalConfig;
+using ::bluetooth::audio::aidl::a2dp::codec::A2dpAptxToHalConfig;
+using ::bluetooth::audio::aidl::a2dp::codec::A2dpCodecToHalBitsPerSample;
+using ::bluetooth::audio::aidl::a2dp::codec::A2dpCodecToHalChannelMode;
+using ::bluetooth::audio::aidl::a2dp::codec::A2dpCodecToHalSampleRate;
+using ::bluetooth::audio::aidl::a2dp::codec::A2dpLdacToHalConfig;
+using ::bluetooth::audio::aidl::a2dp::codec::A2dpOpusToHalConfig;
+using ::bluetooth::audio::aidl::a2dp::codec::A2dpSbcToHalConfig;
 
 static BluetoothAudioCtrlAck a2dp_ack_to_bt_audio_ctrl_ack(BluetoothAudioStatus ack) {
   switch (ack) {
@@ -491,7 +492,7 @@ bool update_codec_offloading_capabilities(
   /* Load the provider information if supported by the HAL. */
   provider_info = ::bluetooth::audio::aidl::a2dp::ProviderInfo::GetProviderInfo(
           supports_a2dp_hw_offload_v2);
-  return ::bluetooth::audio::aidl::codec::UpdateOffloadingCapabilities(framework_preference);
+  return ::bluetooth::audio::aidl::a2dp::codec::UpdateOffloadingCapabilities(framework_preference);
 }
 
 // Checking if new bluetooth_audio is enabled
@@ -661,7 +662,7 @@ bool setup_codec(A2dpCodecConfig* a2dp_config, uint16_t peer_mtu,
   }
 
   bool should_codec_offloading =
-          bluetooth::audio::aidl::codec::IsCodecOffloadingEnabled(codec_config);
+          bluetooth::audio::aidl::a2dp::codec::IsCodecOffloadingEnabled(codec_config);
   if (should_codec_offloading && !is_hal_offloading()) {
     log::warn("Switching BluetoothAudio HAL to Hardware");
     end_session();

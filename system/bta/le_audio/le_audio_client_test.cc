@@ -11671,8 +11671,6 @@ TEST_F(UnicastTest, GroupStreamStatusResendAfterRemove) {
 }
 
 TEST_F(UnicastTestHandoverMode, SetSinkMonitorModeWhileUnicastIsActive) {
-  com::android::bluetooth::flags::provider_->leaudio_broadcast_audio_handover_policies(true);
-
   uint8_t group_size = 2;
   int group_id = 2;
 
@@ -11814,7 +11812,6 @@ TEST_F(UnicastTestHandoverMode, SetSinkMonitorModeWhileUnicastIsActive) {
 }
 
 TEST_F(UnicastTestHandoverMode, SetSinkMonitorModeWhileUnicastIsInactive) {
-  com::android::bluetooth::flags::provider_->leaudio_broadcast_audio_handover_policies(true);
   uint8_t group_size = 2;
   int group_id = 2;
 
@@ -11909,8 +11906,6 @@ TEST_F(UnicastTestHandoverMode, SetSinkMonitorModeWhileUnicastIsInactive) {
 }
 
 TEST_F(UnicastTestHandoverMode, ClearSinkMonitorModeWhileUnicastIsActive) {
-  com::android::bluetooth::flags::provider_->leaudio_broadcast_audio_handover_policies(true);
-
   uint8_t group_size = 2;
   int group_id = 2;
 
@@ -12004,8 +11999,6 @@ TEST_F(UnicastTestHandoverMode, ClearSinkMonitorModeWhileUnicastIsActive) {
 }
 
 TEST_F(UnicastTestHandoverMode, SetAndClearSinkMonitorModeWhileUnicastIsInactive) {
-  com::android::bluetooth::flags::provider_->leaudio_broadcast_audio_handover_policies(true);
-
   EXPECT_CALL(*mock_le_audio_source_hal_client_, Start(_, _, _)).Times(0);
   EXPECT_CALL(*mock_le_audio_source_hal_client_, Stop()).Times(0);
   EXPECT_CALL(*mock_le_audio_source_hal_client_, OnDestroyed()).Times(0);
@@ -12028,8 +12021,6 @@ TEST_F(UnicastTestHandoverMode, SetAndClearSinkMonitorModeWhileUnicastIsInactive
 }
 
 TEST_F(UnicastTestHandoverMode, SetSourceMonitorModeWhileUnicastIsInactive) {
-  com::android::bluetooth::flags::provider_->leaudio_broadcast_audio_handover_policies(true);
-
   /* Enabling monitor mode for source while group is not active should result in
    * sending STREAMING_SUSPENDED notification.
    */
@@ -12047,8 +12038,6 @@ TEST_F(UnicastTestHandoverMode, SetSourceMonitorModeWhileUnicastIsInactive) {
 }
 
 TEST_F(UnicastTestHandoverMode, SetSourceMonitorModeWhileUnicastIsNotStreaming) {
-  com::android::bluetooth::flags::provider_->leaudio_broadcast_audio_handover_policies(true);
-
   int group_id = 2;
 
   LeAudioClient::Get()->GroupSetActive(group_id);
@@ -12070,8 +12059,6 @@ TEST_F(UnicastTestHandoverMode, SetSourceMonitorModeWhileUnicastIsNotStreaming) 
 }
 
 TEST_F(UnicastTestHandoverMode, SetSourceMonitorModeWhileUnicastIsActive) {
-  com::android::bluetooth::flags::provider_->leaudio_broadcast_audio_handover_policies(true);
-
   uint8_t group_size = 2;
   int group_id = 2;
 
