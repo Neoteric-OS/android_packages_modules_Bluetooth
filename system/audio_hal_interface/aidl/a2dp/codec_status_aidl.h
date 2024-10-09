@@ -24,6 +24,7 @@
 namespace bluetooth {
 namespace audio {
 namespace aidl {
+namespace a2dp {
 namespace codec {
 
 using ::aidl::android::hardware::bluetooth::audio::ChannelMode;
@@ -52,6 +53,7 @@ bool UpdateOffloadingCapabilities(
 bool IsCodecOffloadingEnabled(const CodecConfiguration& codec_config);
 
 }  // namespace codec
+}  // namespace a2dp
 }  // namespace aidl
 }  // namespace audio
 }  // namespace bluetooth

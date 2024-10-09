@@ -18,7 +18,7 @@
 
 #include <vector>
 
-#include "aidl/a2dp_encoding_aidl.h"
+#include "aidl/a2dp/a2dp_encoding_aidl.h"
 #include "hal_version_manager.h"
 #include "hidl/a2dp_encoding_hidl.h"
 #include "qti_hidl/a2dp_encoding_qti.h"
@@ -68,12 +68,13 @@ bool is_hal_offloading() {
 }
 
 // Initialize BluetoothAudio HAL: openProvider
-bool init(bluetooth::common::MessageLoopThread* message_loop) {
+bool init(bluetooth::common::MessageLoopThread* message_loop,
+          bluetooth::audio::a2dp::BluetoothAudioPort const* audio_port, bool offload_enabled) {
   LOG(INFO) << __func__;
   if (HalVersionManager::GetHalTransport() == BluetoothAudioHalTransport::HIDL) {
-    return hidl::a2dp::init(message_loop);
+    return hidl::a2dp::init(message_loop, audio_port, offload_enabled);
   } else if (HalVersionManager::GetHalTransport() == BluetoothAudioHalTransport::AIDL) {
-    return aidl::a2dp::init(message_loop);
+    return aidl::a2dp::init(message_loop, audio_port, offload_enabled);
   } else if (HalVersionManager::GetHalTransport() == BluetoothAudioHalTransport::QTI_HIDL) {
     LOG(INFO) << __func__ << ": qti_hidl init";
     return qti_hidl::a2dp::init(message_loop);

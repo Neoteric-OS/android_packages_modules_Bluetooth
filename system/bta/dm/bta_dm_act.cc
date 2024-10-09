@@ -74,8 +74,6 @@ using bluetooth::Uuid;
 using namespace bluetooth;
 
 bool ble_vnd_is_included();
-void BTIF_dm_disable();
-void BTIF_dm_enable();
 void btm_ble_scanner_init(void);
 
 static void bta_dm_check_av();

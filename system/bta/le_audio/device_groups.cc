@@ -27,7 +27,6 @@
 #include "bta_csis_api.h"
 #include "btif/include/btif_profile_storage.h"
 #include "btm_iso_api.h"
-#include "common/init_flags.h"
 #include "common/strings.h"
 #include "hci/controller_interface.h"
 #include "internal_include/bt_trace.h"
@@ -1618,19 +1617,17 @@ bool LeAudioDeviceGroup::IsAudioSetConfigurationSupported(
           continue;
         }
 
-        if (bluetooth::common::init_flags::leaudio_multicodec_support_is_enabled()) {
-          if ((ent.codec.id.vendor_codec_id == types::kLeAudioCodingFormatAptxLeX) &&
-              lex_codec_disabled.first) {
-            log::info("Skipping LeX config as Lex is disabled");
-            continue;
-          }
+        if ((ent.codec.id.vendor_codec_id == types::kLeAudioCodingFormatAptxLeX) &&
+            lex_codec_disabled.first) {
+          log::info("Skipping LeX config as Lex is disabled");
+          continue;
+        }
 
-          if (!is_vendor_metadata_populated_by_direction) {
-            log::debug("Populate Vendor Metadata by direction {}", direction);
-            PopulateVendorMetadatabyDirection(requirements.audio_context_type, direction,
-                                              pac->metadata, ent);
-            is_vendor_metadata_populated_by_direction = true;
-          }
+        if (!is_vendor_metadata_populated_by_direction) {
+          log::debug("Populate Vendor Metadata by direction {}", direction);
+          PopulateVendorMetadatabyDirection(requirements.audio_context_type, direction,
+                                            pac->metadata, ent);
+          is_vendor_metadata_populated_by_direction = true;
         }
 
         for (auto& ase : device->ases_) {

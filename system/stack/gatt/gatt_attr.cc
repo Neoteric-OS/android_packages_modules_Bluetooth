@@ -40,7 +40,6 @@
 #include "gap_api.h"
 #include "gatt_api.h"
 #include "gatt_int.h"
-#include "gd/common/init_flags.h"
 #include "internal_include/bt_target.h"
 #include "stack/btm/btm_int_types.h"
 #include "stack/include/bt_types.h"
