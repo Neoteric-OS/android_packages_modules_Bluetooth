@@ -347,9 +347,10 @@ cc_test {
         android: {
             shared_libs: [
                 "libPlatformProperties",
-                "vendor.qti.hardware.bluetooth.audio-V1-ndk",
+                "libaaudio",
                 "libbinder_ndk",
                 "libstatssocket",
+                "vendor.qti.hardware.bluetooth.audio-V1-ndk",
             ],
             static_libs: [
                 "android.hardware.bluetooth@1.0",
@@ -358,7 +359,9 @@ cc_test {
                 "android.hardware.common.fmq-V1-ndk",
                 "android.system.suspend-V1-ndk",
                 "android.system.suspend.control-V1-ndk",
-                "libaaudio",
+                "libexpresslog",
+                "libstatslog_express",
+                "libtextclassifier_hash_static",
             ],
         },
         host: {
@@ -700,6 +703,7 @@ cc_test {
         ":TestMockBtaVc",
         ":TestMockBtcore",
         ":TestMockBtu",
+        ":TestMockFrameworks",
         ":TestMockHci",
         ":TestMockMainShim",
         ":TestMockMainShimDumpsys",

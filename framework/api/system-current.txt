@@ -479,7 +479,7 @@ package android.bluetooth {
     field public static final int AUDIO_LOCATION_FRONT_RIGHT = 2; // 0x2
     field public static final int AUDIO_LOCATION_FRONT_RIGHT_OF_CENTER = 128; // 0x80
     field public static final int AUDIO_LOCATION_FRONT_RIGHT_WIDE = 33554432; // 0x2000000
-    field public static final int AUDIO_LOCATION_INVALID = 0; // 0x0
+    field @Deprecated @FlaggedApi("com.android.bluetooth.flags.leaudio_mono_location_errata") public static final int AUDIO_LOCATION_INVALID = 0; // 0x0
     field public static final int AUDIO_LOCATION_LEFT_SURROUND = 67108864; // 0x4000000
     field public static final int AUDIO_LOCATION_LOW_FREQ_EFFECTS_ONE = 8; // 0x8
     field public static final int AUDIO_LOCATION_LOW_FREQ_EFFECTS_TWO = 512; // 0x200
