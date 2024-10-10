@@ -19,7 +19,6 @@
 #include <bluetooth/log.h>
 
 #include "codec_manager.h"
-#include "common/init_flags.h"
 #include "common/strings.h"
 #include "le_audio_types.h"
 #include "os/log.h"
@@ -541,8 +540,7 @@ static bool IsCodecConfigSupported(
             codec.coding_format, codec.vendor_company_id, codec.vendor_codec_id);
   log::debug(" Requested context: {}", ToHexString(context_type).c_str());
 
-  if (!bluetooth::common::init_flags::leaudio_multicodec_support_is_enabled() &&
-      codec.coding_format == types::kLeAudioCodingFormatVendorSpecific) {
+  if (codec.coding_format == types::kLeAudioCodingFormatVendorSpecific) {
     log::debug("Disallow Vendor Codec negotiation for multi-codec feature disabled");
     return false;
   }
@@ -754,15 +752,13 @@ static bool IsCodecConfigSupported(
     log::debug("Octets per codec frame outside the capabilities");
     return false;
   }
-
-  if (!bluetooth::common::init_flags::leaudio_multicodec_support_is_enabled()) {
-    if (vendor_metadata.value().vs_metadata.empty()) {
-      log::debug(" Multicodec support disabled, LC3 codec config matched");
-      return true;
-    } else {
-      log::debug(" Multicodec support disabled, disallow LC3Q codec config match");
-      return false;
-    }
+ 
+  if (vendor_metadata.value().vs_metadata.empty()) {
+    log::debug(" Multicodec support disabled, LC3 codec config matched");
+    return true;
+  } else {
+    log::debug(" Multicodec support disabled, disallow LC3Q codec config match");
+    return false;
   }
 
   /* below logic is for LC3Q match */
@@ -858,11 +854,9 @@ static bool IsCodecConfigSupported(
     }
   }
 
-  if (bluetooth::common::init_flags::leaudio_multicodec_support_is_enabled()) {
-    if (!vendor_metadata.value().vs_metadata.empty() && !pac_vendor_metadata.has_value()) {
-      log::debug(" Disallow LC3Q match against LC3 codec ");
-      return false;
-    }
+  if (!vendor_metadata.value().vs_metadata.empty() && !pac_vendor_metadata.has_value()) {
+    log::debug(" Disallow LC3Q match against LC3 codec ");
+    return false;
   }
 
   if (vendor_metadata.value().vs_metadata.empty()) {

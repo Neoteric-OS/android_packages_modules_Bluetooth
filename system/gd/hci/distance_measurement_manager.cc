@@ -19,6 +19,7 @@
 #include <com_android_bluetooth_flags.h>
 #include <math.h>
 
+#include <chrono>
 #include <complex>
 #include <unordered_map>
 
@@ -212,9 +213,12 @@ struct DistanceMeasurementManager::impl : bluetooth::hal::RangingHalCallback {
     }
     log::debug("address {}, resultMeters {}", cs_trackers_[connection_handle].address,
                ranging_result.result_meters_);
+    using namespace std::chrono;
+    long elapsedRealtimeNanos =
+            duration_cast<nanoseconds>(steady_clock::now().time_since_epoch()).count();
     distance_measurement_callbacks_->OnDistanceMeasurementResult(
             cs_trackers_[connection_handle].address, ranging_result.result_meters_ * 100, 0.0, -1,
-            -1, -1, -1, DistanceMeasurementMethod::METHOD_CS);
+            -1, -1, -1, elapsedRealtimeNanos, DistanceMeasurementMethod::METHOD_CS);
   }
 
   ~impl() {}
@@ -534,7 +538,7 @@ struct DistanceMeasurementManager::impl : bluetooth::hal::RangingHalCallback {
                     kMaxMainModeSteps, kMainModeRepetition, kMode0Steps, CsRole::INITIATOR,
                     CsConfigRttType::RTT_WITH_128_BIT_RANDOM_SEQUENCE, CsSyncPhy::LE_1M_PHY,
                     channel_map, kChannelMapRepetition, CsChannelSelectionType::TYPE_3B,
-                    CsCh3cShape::HAT_SHAPE, kCh3cJump, Enable::DISABLED),
+                    CsCh3cShape::HAT_SHAPE, kCh3cJump),
             handler_->BindOnceOn(this, &impl::on_cs_setup_command_status_cb, connection_handle));
   }
 
@@ -1474,8 +1478,12 @@ struct DistanceMeasurementManager::impl : bluetooth::hal::RangingHalCallback {
     int8_t rssi = complete_view.GetRssi();
     double pow_value = (remote_tx_power - rssi - kRSSIDropOffAt1M) / 20.0;
     double distance = pow(10.0, pow_value);
+
+    using namespace std::chrono;
+    long elapsedRealtimeNanos =
+            duration_cast<nanoseconds>(steady_clock::now().time_since_epoch()).count();
     distance_measurement_callbacks_->OnDistanceMeasurementResult(
-            address, distance * 100, distance * 100, -1, -1, -1, -1,
+            address, distance * 100, distance * 100, -1, -1, -1, -1, elapsedRealtimeNanos,
             DistanceMeasurementMethod::METHOD_RSSI);
   }
 

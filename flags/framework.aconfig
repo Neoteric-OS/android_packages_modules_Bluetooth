@@ -28,14 +28,6 @@ flag {
 }
 
 flag {
-    name: "key_missing_broadcast"
-    is_exported: true
-    namespace: "bluetooth"
-    description: "Broadcast when remote device it lost bond"
-    bug: "311447399"
-}
-
-flag {
     name: "identity_address_null_if_not_known"
     namespace: "bluetooth"
     description: "Return null for identity address if identity address is not known"
@@ -60,4 +52,14 @@ flag {
     namespace: "bluetooth"
     description: "Enhanced Bluetooth Framework Support for Accessing Bluetooth Quality Report v6 Information"
     bug: "364517559"
+}
+
+flag {
+    name: "get_profile_use_lock"
+    namespace: "bluetooth"
+    description: "Instead of bloating the main thread, use the binder thread with a synchronization lock"
+    bug: "370815283"
+    metadata {
+        purpose: PURPOSE_BUGFIX
+    }
 }
