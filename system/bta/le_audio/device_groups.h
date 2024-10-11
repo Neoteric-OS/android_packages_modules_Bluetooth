@@ -238,6 +238,7 @@ public:
   std::shared_ptr<const set_configurations::AudioSetConfiguration> GetCachedPreferredConfiguration(
           types::LeAudioContextType ctx_type) const;
   void InvalidateCachedConfigurations(void);
+  bool IsLeXDevice(void) const;
   void SetPendingConfiguration(void);
   void ClearPendingConfiguration(void);
   void AddToAllowListNotConnectedGroupMembers(int gatt_if);
