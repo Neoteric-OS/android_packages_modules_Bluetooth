@@ -83,7 +83,6 @@ cc_library_static {
     },
     host_supported: true,
     cflags: [
-        "-Wno-unused-parameter",
         "-Wthread-safety",
     ],
     min_sdk_version: "Tiramisu",
@@ -147,7 +146,6 @@ cc_test {
     ],
     cflags: [
         "-DUNIT_TESTS",
-        "-Wno-unused-parameter",
     ],
     host_supported: true,
     test_options: {
@@ -388,6 +386,5 @@ cc_test {
     header_libs: ["libbluetooth_headers"],
     cflags: [
         "-DBUILDCFG",
-        "-Wno-unused-parameter",
     ],
 }

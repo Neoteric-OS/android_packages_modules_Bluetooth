@@ -985,9 +985,10 @@ public:
     }
   }
 
-  void ProcessHciNotifIsoLinkQualityRead(LeAudioDeviceGroup* group, LeAudioDevice* leAudioDevice,
-                                         uint8_t conn_handle, uint32_t txUnackedPackets,
-                                         uint32_t txFlushedPackets, uint32_t txLastSubeventPackets,
+  void ProcessHciNotifIsoLinkQualityRead(LeAudioDeviceGroup* /*group*/,
+                                         LeAudioDevice* /*leAudioDevice*/, uint8_t conn_handle,
+                                         uint32_t txUnackedPackets, uint32_t txFlushedPackets,
+                                         uint32_t txLastSubeventPackets,
                                          uint32_t retransmittedPackets, uint32_t crcErrorPackets,
                                          uint32_t rxUnreceivedPackets, uint32_t duplicatePackets) {
     log::info(
@@ -2157,9 +2158,9 @@ private:
     return nullptr;
   }
 
-  void AseStateMachineProcessIdle(struct bluetooth::le_audio::client_parser::ascs::ase_rsp_hdr& arh,
-                                  struct ase* ase, LeAudioDeviceGroup* group,
-                                  LeAudioDevice* leAudioDevice) {
+  void AseStateMachineProcessIdle(
+          struct bluetooth::le_audio::client_parser::ascs::ase_rsp_hdr& /*arh*/, struct ase* ase,
+          LeAudioDeviceGroup* group, LeAudioDevice* leAudioDevice) {
     log::info("group_id: {}", group->group_id_);
     log::debug("ase state: {}", static_cast<int>(ase->state));
     switch (ase->state) {
@@ -2308,7 +2309,7 @@ private:
   }
 
   void AseStateMachineProcessCodecConfigured(
-          struct bluetooth::le_audio::client_parser::ascs::ase_rsp_hdr& arh, struct ase* ase,
+          struct bluetooth::le_audio::client_parser::ascs::ase_rsp_hdr& /*arh*/, struct ase* ase,
           uint8_t* data, uint16_t len, LeAudioDeviceGroup* group, LeAudioDevice* leAudioDevice) {
     if (!group) {
       log::error("leAudioDevice doesn't belong to any group");
@@ -2637,7 +2638,7 @@ private:
   }
 
   void AseStateMachineProcessQosConfigured(
-          struct bluetooth::le_audio::client_parser::ascs::ase_rsp_hdr& arh, struct ase* ase,
+          struct bluetooth::le_audio::client_parser::ascs::ase_rsp_hdr& /*arh*/, struct ase* ase,
           LeAudioDeviceGroup* group, LeAudioDevice* leAudioDevice) {
     if (!group) {
       log::error("leAudioDevice doesn't belong to any group");
@@ -3125,7 +3126,7 @@ private:
   }
 
   void AseStateMachineProcessEnabling(
-          struct bluetooth::le_audio::client_parser::ascs::ase_rsp_hdr& arh, struct ase* ase,
+          struct bluetooth::le_audio::client_parser::ascs::ase_rsp_hdr& /*arh*/, struct ase* ase,
           uint8_t* data, uint16_t len, LeAudioDeviceGroup* group, LeAudioDevice* leAudioDevice) {
     if (!group) {
       log::error("leAudioDevice doesn't belong to any group");
@@ -3204,7 +3205,7 @@ private:
   }
 
   void AseStateMachineProcessStreaming(
-          struct bluetooth::le_audio::client_parser::ascs::ase_rsp_hdr& arh, struct ase* ase,
+          struct bluetooth::le_audio::client_parser::ascs::ase_rsp_hdr& /*arh*/, struct ase* ase,
           uint8_t* data, uint16_t len, LeAudioDeviceGroup* group, LeAudioDevice* leAudioDevice) {
     if (!group) {
       log::error("leAudioDevice doesn't belong to any group");
@@ -3295,7 +3296,7 @@ private:
   }
 
   void AseStateMachineProcessDisabling(
-          struct bluetooth::le_audio::client_parser::ascs::ase_rsp_hdr& arh, struct ase* ase,
+          struct bluetooth::le_audio::client_parser::ascs::ase_rsp_hdr& /*arh*/, struct ase* ase,
           LeAudioDeviceGroup* group, LeAudioDevice* leAudioDevice) {
     if (!group) {
       log::error("leAudioDevice doesn't belong to any group");
@@ -3384,7 +3385,7 @@ private:
   }
 
   void AseStateMachineProcessReleasing(
-          struct bluetooth::le_audio::client_parser::ascs::ase_rsp_hdr& arh, struct ase* ase,
+          struct bluetooth::le_audio::client_parser::ascs::ase_rsp_hdr& /*arh*/, struct ase* ase,
           LeAudioDeviceGroup* group, LeAudioDevice* leAudioDevice) {
     if (!group) {
       log::error("leAudioDevice doesn't belong to any group");

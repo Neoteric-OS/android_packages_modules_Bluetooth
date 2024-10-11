@@ -258,7 +258,6 @@ cc_library_static {
         "btm/btm_ble.cc",
         "btm/btm_ble_addr.cc",
         "btm/btm_ble_adv_filter.cc",
-        "btm/btm_ble_bgconn.cc",
         "btm/btm_ble_cont_energy.cc",
         "btm/btm_ble_gap.cc",
         "btm/btm_ble_privacy.cc",
@@ -368,9 +367,6 @@ cc_defaults {
     defaults: [
         "bluetooth_cflags",
         "bluetooth_flatbuffer_bundler_defaults",
-    ],
-    cflags: [
-        "-Wno-unused-parameter",
     ],
     include_dirs: [
         "packages/modules/Bluetooth/system",
@@ -967,7 +963,6 @@ cc_test {
         cfi: false,
     },
     header_libs: ["libbluetooth_headers"],
-    cflags: ["-Wno-unused-parameter"],
 }
 
 // Bluetooth stack smp unit tests for target
@@ -1051,8 +1046,6 @@ cc_test {
             ],
         },
     },
-    //    header_libs: ["libbluetooth_headers"],
-    cflags: ["-Wno-unused-parameter"],
 }
 
 // Bluetooth stack advertise data parsing unit tests for target
@@ -1125,7 +1118,6 @@ cc_test {
         cfi: false,
     },
     header_libs: ["libbluetooth_headers"],
-    cflags: ["-Wno-unused-parameter"],
 }
 
 cc_test {
@@ -1149,6 +1141,7 @@ cc_test {
     ],
     srcs: [
         ":TestCommonMockFunctions",
+        ":TestMockMainShim",
         ":TestMockRustFfi",
         ":TestMockStackArbiter",
         ":TestMockStackBtm",
@@ -1173,6 +1166,7 @@ cc_test {
         "libbluetooth_gd",
         "libbluetooth_log",
         "libbt-common",
+        "libbt-platform-protos-lite",
         "libchrome",
         "libevent",
         "libgmock",
@@ -1193,7 +1187,6 @@ cc_test {
         misc_undefined: ["bounds"],
     },
     header_libs: ["libbluetooth_headers"],
-    cflags: ["-Wno-unused-parameter"],
 }
 
 cc_test {
@@ -1264,7 +1257,6 @@ cc_test {
         misc_undefined: ["bounds"],
     },
     header_libs: ["libbluetooth_headers"],
-    cflags: ["-Wno-unused-parameter"],
 }
 
 cc_test {
@@ -1275,7 +1267,6 @@ cc_test {
     ],
     cflags: [
         "-DUNIT_TESTS",
-        "-Wno-unused-parameter",
     ],
     test_suites: ["general-tests"],
     host_supported: true,
@@ -1419,7 +1410,6 @@ cc_test {
         misc_undefined: ["bounds"],
     },
     header_libs: ["libbluetooth_headers"],
-    cflags: ["-Wno-unused-parameter"],
 }
 
 // gatt sr hash test
@@ -1445,6 +1435,7 @@ cc_test {
         ":TestMockBta",
         ":TestMockBtif",
         ":TestMockDevice",
+        ":TestMockMainShim",
         ":TestMockRustFfi",
         ":TestMockStackBtm",
         ":TestMockStackL2cap",
@@ -1486,7 +1477,6 @@ cc_test {
         },
     },
     header_libs: ["libbluetooth_headers"],
-    cflags: ["-Wno-unused-parameter"],
 }
 
 // Iso manager unit tests
@@ -1626,7 +1616,6 @@ cc_test {
         cfi: false,
     },
     header_libs: ["libbluetooth_headers"],
-    cflags: ["-Wno-unused-parameter"],
 }
 
 cc_test {
@@ -1691,7 +1680,6 @@ cc_test {
         "btm/btm_ble.cc",
         "btm/btm_ble_addr.cc",
         "btm/btm_ble_adv_filter.cc",
-        "btm/btm_ble_bgconn.cc",
         "btm/btm_ble_cont_energy.cc",
         "btm/btm_ble_gap.cc",
         "btm/btm_ble_privacy.cc",
@@ -1884,7 +1872,6 @@ cc_test {
         },
     },
     header_libs: ["libbluetooth_headers"],
-    cflags: ["-Wno-unused-parameter"],
 }
 
 cc_test {
@@ -1957,7 +1944,6 @@ cc_test {
         },
     },
     header_libs: ["libbluetooth_headers"],
-    cflags: ["-Wno-unused-parameter"],
 }
 
 cc_test {
@@ -2059,7 +2045,6 @@ cc_test {
         },
     },
     header_libs: ["libbluetooth_headers"],
-    cflags: ["-Wno-unused-parameter"],
 }
 
 cc_test {
@@ -2154,7 +2139,6 @@ cc_test {
         },
     },
     header_libs: ["libbluetooth_headers"],
-    cflags: ["-Wno-unused-parameter"],
 }
 
 cc_test {
@@ -2244,7 +2228,6 @@ cc_test {
         },
     },
     header_libs: ["libbluetooth_headers"],
-    cflags: ["-Wno-unused-parameter"],
 }
 
 cc_test {

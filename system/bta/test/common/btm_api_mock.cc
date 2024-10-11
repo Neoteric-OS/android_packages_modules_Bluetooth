@@ -91,7 +91,7 @@ uint16_t BTM_GetHCIConnHandle(RawAddress const& bd_addr, tBT_TRANSPORT transport
   return btm_interface->GetHCIConnHandle(bd_addr, transport);
 }
 
-void acl_disconnect_from_handle(uint16_t handle, tHCI_STATUS reason, std::string comment) {
+void acl_disconnect_from_handle(uint16_t handle, tHCI_STATUS reason, std::string /*comment*/) {
   log::assert_that(btm_interface != nullptr, "Mock btm interface not set!");
   return btm_interface->AclDisconnectFromHandle(handle, reason);
 }

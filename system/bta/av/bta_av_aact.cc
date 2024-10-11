@@ -442,7 +442,8 @@ void bta_av_proc_stream_evt(uint8_t handle, const RawAddress& bd_addr, uint8_t e
  * Returns          void
  *
  ******************************************************************************/
-void bta_av_sink_data_cback(uint8_t handle, BT_HDR* p_pkt, uint32_t time_stamp, uint8_t m_pt) {
+void bta_av_sink_data_cback(uint8_t handle, BT_HDR* p_pkt, uint32_t /*time_stamp*/,
+                            uint8_t /*m_pt*/) {
   int index = 0;
   tBTA_AV_SCB* p_scb;
   log::verbose(
@@ -2816,7 +2817,7 @@ void bta_av_rcfg_connect(tBTA_AV_SCB* p_scb, tBTA_AV_DATA* /* p_data */) {
  * Returns          void
  *
  ******************************************************************************/
-void bta_av_rcfg_discntd(tBTA_AV_SCB* p_scb, tBTA_AV_DATA* p_data) {
+void bta_av_rcfg_discntd(tBTA_AV_SCB* p_scb, tBTA_AV_DATA* /*p_data*/) {
   log::error("num_recfg={} conn_lcb=0x{:x} peer_addr={}", p_scb->num_recfg, bta_av_cb.conn_lcb,
              p_scb->PeerAddress());
 
