@@ -123,7 +123,7 @@ void SinkImpl::Release() {
   }
 }
 
-bool SinkImpl::OnResumeReq(bool start_media_task) {
+bool SinkImpl::OnResumeReq(bool /*start_media_task*/) {
   if (audioSinkCallbacks_ == nullptr) {
     log::error("audioSinkCallbacks_ not set");
     return false;
@@ -329,7 +329,7 @@ std::unique_ptr<LeAudioSinkAudioHalClient> LeAudioSinkAudioHalClient::AcquireUni
   return std::move(impl);
 }
 
-void LeAudioSinkAudioHalClient::DebugDump(int fd) {
+void LeAudioSinkAudioHalClient::DebugDump(int /*fd*/) {
   /* TODO: Add some statistic for LeAudioSink Audio HAL interface */
 }
 }  // namespace bluetooth::le_audio

@@ -55,7 +55,7 @@ using testing::Test;
 // Disables most likely false-positives from base::SplitString()
 extern "C" const char* __asan_default_options() { return "detect_container_overflow=0"; }
 
-void btsnd_hcic_ble_rand(base::Callback<void(BT_OCTET8)> cb) {}
+void btsnd_hcic_ble_rand(base::Callback<void(BT_OCTET8)> /*cb*/) {}
 
 namespace bluetooth::le_audio {
 namespace broadcaster {
@@ -125,17 +125,18 @@ protected:
     BroadcastStateMachine::Initialize(sm_callbacks_.get(), adv_callbacks_.get());
 
     ON_CALL(*mock_ble_advertising_manager_, StartAdvertisingSet)
-            .WillByDefault([this](uint8_t client_id, int reg_id,
-                                  ::BleAdvertiserInterface::IdTxPowerStatusCallback register_cb,
-                                  ::AdvertiseParameters params, std::vector<uint8_t> advertise_data,
+            .WillByDefault([this](uint8_t /*client_id*/, int /*reg_id*/,
+                                  ::BleAdvertiserInterface::IdTxPowerStatusCallback /*register_cb*/,
+                                  ::AdvertiseParameters /*params*/,
+                                  std::vector<uint8_t> /*advertise_data*/,
                                   std::vector<uint8_t> advertise_data_enc,
-                                  std::vector<uint8_t> scan_response_data,
+                                  std::vector<uint8_t> /*scan_response_data*/,
                                   std::vector<uint8_t> scan_response_data_enc,
-                                  ::PeriodicAdvertisingParameters periodic_params,
-                                  std::vector<uint8_t> periodic_data,
-                                  std::vector<uint8_t> periodic_data_enc, uint16_t duration,
-                                  uint8_t maxExtAdvEvents, std::vector<uint8_t> enc_key_value,
-                                  ::BleAdvertiserInterface::IdStatusCallback timeout_cb) {
+                                  ::PeriodicAdvertisingParameters /*periodic_params*/,
+                                  std::vector<uint8_t> /*periodic_data*/,
+                                  std::vector<uint8_t> periodic_data_enc, uint16_t /*duration*/,
+                                  uint8_t /*maxExtAdvEvents*/, std::vector<uint8_t> enc_key_value,
+                                  ::BleAdvertiserInterface::IdStatusCallback /*timeout_cb*/) {
               static uint8_t advertiser_id = 1;
               uint8_t tx_power = 32;
               uint8_t status = 0;
@@ -146,32 +147,34 @@ protected:
 
     ON_CALL(*mock_ble_advertising_manager_, Enable)
             .WillByDefault([this](uint8_t advertiser_id, bool enable,
-                                  ::BleAdvertiserInterface::StatusCallback cb, uint16_t duration,
-                                  uint8_t maxExtAdvEvents,
-                                  ::BleAdvertiserInterface::StatusCallback timeout_cb) {
+                                  ::BleAdvertiserInterface::StatusCallback /*cb*/,
+                                  uint16_t /*duration*/, uint8_t /*maxExtAdvEvents*/,
+                                  ::BleAdvertiserInterface::StatusCallback /*timeout_cb*/) {
               uint8_t status = 0;
               this->adv_callbacks_->OnAdvertisingEnabled(advertiser_id, enable, status);
             });
 
     ON_CALL(*mock_ble_advertising_manager_, GetOwnAddress)
-            .WillByDefault([](uint8_t inst_id, ::BleAdvertiserInterface::GetAddressCallback cb) {
-              uint8_t address_type = 0x02;
-              RawAddress address;
-              const uint8_t addr[] = {0x11, 0x22, 0x33, 0x44, 0x55, 0x66};
-              address.FromOctets(addr);
-              cb.Run(address_type, address);
-            });
+            .WillByDefault(
+                    [](uint8_t /*inst_id*/, ::BleAdvertiserInterface::GetAddressCallback cb) {
+                      uint8_t address_type = 0x02;
+                      RawAddress address;
+                      const uint8_t addr[] = {0x11, 0x22, 0x33, 0x44, 0x55, 0x66};
+                      address.FromOctets(addr);
+                      cb.Run(address_type, address);
+                    });
 
     ON_CALL(*mock_ble_advertising_manager_, SetData)
-            .WillByDefault([this](int advertiser_id, bool set_scan_rsp, std::vector<uint8_t> data,
+            .WillByDefault([this](int advertiser_id, bool /*set_scan_rsp*/,
+                                  std::vector<uint8_t> /*data*/,
                                   std::vector<uint8_t> encdata,
-                                  ::BleAdvertiserInterface::StatusCallback cb) {
+                                  ::BleAdvertiserInterface::StatusCallback /*cb*/) {
               uint8_t status = 0;
               this->adv_callbacks_->OnAdvertisingDataSet(advertiser_id, status);
             });
 
     ON_CALL(*mock_ble_advertising_manager_, SetPeriodicAdvertisingData)
-            .WillByDefault([this](int advertiser_id, std::vector<uint8_t> data,
+            .WillByDefault([this](int advertiser_id, std::vector<uint8_t> /*data*/,
                                   std::vector<uint8_t> encdata,
                                   ::BleAdvertiserInterface::StatusCallback cb) {
               uint8_t status = 0;
@@ -200,7 +203,7 @@ protected:
             });
 
     ON_CALL(*(adv_callbacks_.get()), OnAdvertisingSetStarted)
-            .WillByDefault([this](int reg_id, uint8_t advertiser_id, int8_t tx_power,
+            .WillByDefault([this](int /*reg_id*/, uint8_t advertiser_id, int8_t tx_power,
                                   uint8_t status) {
               pending_broadcasts_.back()->OnCreateAnnouncement(advertiser_id, tx_power, status);
             });
@@ -275,7 +278,7 @@ protected:
             });
 
     ON_CALL(*mock_iso_manager_, SetupIsoDataPath)
-            .WillByDefault([this](uint16_t conn_handle, iso_data_path_params p) {
+            .WillByDefault([this](uint16_t conn_handle, iso_data_path_params /*p*/) {
               // Get the big_id encoded in conn_handle's MSB
               uint8_t big_id = conn_handle >> 8;
               auto bit = std::find_if(broadcasts_.begin(), broadcasts_.end(),
@@ -289,7 +292,7 @@ protected:
             });
 
     ON_CALL(*mock_iso_manager_, RemoveIsoDataPath)
-            .WillByDefault([this](uint16_t conn_handle, uint8_t iso_direction) {
+            .WillByDefault([this](uint16_t conn_handle, uint8_t /*iso_direction*/) {
               // Get the big_id encoded in conn_handle's MSB
               uint8_t big_id = conn_handle >> 8;
               auto bit = std::find_if(broadcasts_.begin(), broadcasts_.end(),
@@ -375,17 +378,18 @@ protected:
 
 TEST_F(StateMachineTest, CreateInstanceFailed) {
   EXPECT_CALL(*mock_ble_advertising_manager_, StartAdvertisingSet)
-          .WillOnce([this](uint8_t client_id, int reg_id,
-                           ::BleAdvertiserInterface::IdTxPowerStatusCallback register_cb,
-                           ::AdvertiseParameters params, std::vector<uint8_t> advertise_data,
+          .WillOnce([this](uint8_t /*client_id*/, int /*reg_id*/,
+                           ::BleAdvertiserInterface::IdTxPowerStatusCallback /*register_cb*/,
+                           ::AdvertiseParameters /*params*/,
+                           std::vector<uint8_t> /*advertise_data*/,
                            std::vector<uint8_t> advertise_data_enc,
-                           std::vector<uint8_t> scan_response_data,
+                           std::vector<uint8_t> /*scan_response_data*/,
                            std::vector<uint8_t> scan_response_data_enc,
-                           ::PeriodicAdvertisingParameters periodic_params,
-                           std::vector<uint8_t> periodic_data,
-                           std::vector<uint8_t> periodic_data_enc, uint16_t duration,
-                           uint8_t maxExtAdvEvents, std::vector<uint8_t> enc_key_value,
-                           ::BleAdvertiserInterface::IdStatusCallback timeout_cb) {
+                           ::PeriodicAdvertisingParameters /*periodic_params*/,
+                           std::vector<uint8_t> /*periodic_data*/,
+                           std::vector<uint8_t> periodic_data_enc, uint16_t /*duration*/,
+                           uint8_t /*maxExtAdvEvents*/, std::vector<uint8_t> enc_key_value,
+                           ::BleAdvertiserInterface::IdStatusCallback /*timeout_cb*/) {
             uint8_t advertiser_id = 1;
             uint8_t tx_power = 0;
             uint8_t status = 1;
@@ -867,7 +871,7 @@ TEST_F(StateMachineTest, OnSetupIsoDataPathError) {
   ASSERT_EQ(broadcasts_[broadcast_id]->GetState(), BroadcastStateMachine::State::CONFIGURED);
 
   EXPECT_CALL(*mock_iso_manager_, SetupIsoDataPath)
-          .WillOnce([this](uint16_t conn_handle, iso_data_path_params p) {
+          .WillOnce([this](uint16_t conn_handle, iso_data_path_params /*p*/) {
             // Get the big_id encoded in conn_handle's MSB
             uint8_t big_id = conn_handle >> 8;
             auto bit = std::find_if(broadcasts_.begin(), broadcasts_.end(),
@@ -879,7 +883,7 @@ TEST_F(StateMachineTest, OnSetupIsoDataPathError) {
             }
             bit->second->OnSetupIsoDataPath(0, conn_handle);
           })
-          .WillOnce([this](uint16_t conn_handle, iso_data_path_params p) {
+          .WillOnce([this](uint16_t conn_handle, iso_data_path_params /*p*/) {
             // Get the big_id encoded in conn_handle's MSB
             uint8_t big_id = conn_handle >> 8;
             auto bit = std::find_if(broadcasts_.begin(), broadcasts_.end(),
@@ -900,7 +904,7 @@ TEST_F(StateMachineTest, OnSetupIsoDataPathError) {
 
   // And still be able to start again
   ON_CALL(*mock_iso_manager_, SetupIsoDataPath)
-          .WillByDefault([this](uint16_t conn_handle, iso_data_path_params p) {
+          .WillByDefault([this](uint16_t conn_handle, iso_data_path_params /*p*/) {
             // Get the big_id encoded in conn_handle's MSB
             uint8_t big_id = conn_handle >> 8;
             auto bit = std::find_if(broadcasts_.begin(), broadcasts_.end(),
@@ -926,7 +930,7 @@ TEST_F(StateMachineTest, OnRemoveIsoDataPathError) {
   ASSERT_EQ(broadcasts_[broadcast_id]->GetState(), BroadcastStateMachine::State::STREAMING);
 
   EXPECT_CALL(*mock_iso_manager_, RemoveIsoDataPath)
-          .WillOnce([this](uint16_t conn_handle, uint8_t iso_direction) {
+          .WillOnce([this](uint16_t conn_handle, uint8_t /*iso_direction*/) {
             // Get the big_id encoded in conn_handle's MSB
             uint8_t big_id = conn_handle >> 8;
             auto bit = std::find_if(broadcasts_.begin(), broadcasts_.end(),
@@ -938,7 +942,7 @@ TEST_F(StateMachineTest, OnRemoveIsoDataPathError) {
             }
             bit->second->OnRemoveIsoDataPath(0, conn_handle);
           })
-          .WillOnce([this](uint16_t conn_handle, uint8_t iso_direction) {
+          .WillOnce([this](uint16_t conn_handle, uint8_t /*iso_direction*/) {
             // Get the big_id encoded in conn_handle's MSB
             uint8_t big_id = conn_handle >> 8;
             auto bit = std::find_if(broadcasts_.begin(), broadcasts_.end(),
@@ -1043,17 +1047,17 @@ TEST_F(StateMachineTest, AnnouncementTest) {
 
   EXPECT_CALL(*mock_ble_advertising_manager_, StartAdvertisingSet)
           .WillOnce([this, &p_data, &p_e_data, &a_data, &a_e_data, &adv_params](
-                            uint8_t client_id, int reg_id,
-                            ::BleAdvertiserInterface::IdTxPowerStatusCallback register_cb,
+                            uint8_t /*client_id*/, int /*reg_id*/,
+                            ::BleAdvertiserInterface::IdTxPowerStatusCallback /*register_cb*/,
                             ::AdvertiseParameters params, std::vector<uint8_t> advertise_data,
                             std::vector<uint8_t> advertise_data_enc,
-                            std::vector<uint8_t> scan_response_data,
+                            std::vector<uint8_t> /*scan_response_data*/,
                             std::vector<uint8_t> scan_response_data_enc,
-                            ::PeriodicAdvertisingParameters periodic_params,
+                            ::PeriodicAdvertisingParameters /*periodic_params*/,
                             std::vector<uint8_t> periodic_data,
-                            std::vector<uint8_t> periodic_data_enc, uint16_t duration,
-                            uint8_t maxExtAdvEvents, std::vector<uint8_t> enc_key_value,
-                            ::BleAdvertiserInterface::IdStatusCallback timeout_cb) {
+                            std::vector<uint8_t> periodic_data_enc, uint16_t /*duration*/,
+                            uint8_t /*maxExtAdvEvents*/, std::vector<uint8_t> enc_key_value,
+                            ::BleAdvertiserInterface::IdStatusCallback /*timeout_cb*/) {
             uint8_t advertiser_id = 1;
             uint8_t tx_power = 0;
             uint8_t status = 0;
@@ -1108,8 +1112,8 @@ TEST_F(StateMachineTest, GetMetadataBeforeGettingAddress) {
   /* Address should be already known after notifying callback recipients */
   EXPECT_CALL(*(sm_callbacks_.get()),
               OnStateMachineEvent(_, BroadcastStateMachine::State::CONFIGURED, _))
-          .WillOnce([this](uint32_t broadcast_id, BroadcastStateMachine::State state,
-                           const void* data) {
+          .WillOnce([this](uint32_t broadcast_id, BroadcastStateMachine::State /*state*/,
+                           const void* /*data*/) {
             RawAddress test_address;
 
             RawAddress::FromString("00:00:00:00:00:00", test_address);

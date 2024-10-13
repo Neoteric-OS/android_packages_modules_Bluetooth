@@ -66,9 +66,6 @@
 #include "state_machine.h"
 #include "storage_helper.h"
 
-#define HCI_VSQC_CONTROLLER_A2DP_OPCODE 0x000A
-#define VS_QHCI_USECASE_UPDATE 0x15
-
 using namespace bluetooth;
 
 // TODO(b/369381361) Enfore -Wmissing-prototypes
@@ -119,15 +116,13 @@ using bluetooth::le_audio::types::kLeAudioContextAllBidir;
 using bluetooth::le_audio::types::kLeAudioContextAllRemoteSinkOnly;
 using bluetooth::le_audio::types::kLeAudioContextAllRemoteSource;
 using bluetooth::le_audio::types::kLeAudioContextAllTypesArray;
-using bluetooth::le_audio::types::kLeAudioContextLibrettoBidir;
-using bluetooth::le_audio::types::kLeAudioContextLibrettoSinkOnly;
-using bluetooth::le_audio::types::kLeAudioContextLibrettoSource;
 using bluetooth::le_audio::types::LeAudioContextType;
 using bluetooth::le_audio::types::PublishedAudioCapabilities;
 using bluetooth::le_audio::utils::GetAudioContextsFromSinkMetadata;
 using bluetooth::le_audio::utils::GetAudioContextsFromSourceMetadata;
 
 using namespace bluetooth;
+
 
 /* Enums */
 enum class AudioReconfigurationResult {
@@ -211,7 +206,99 @@ VscCallback* stateMachineVscHciCallback;
 LeAudioGroupStateMachine::Callbacks* stateMachineCallbacks;
 DeviceGroupsCallbacks* device_group_callbacks;
 LeAudioIsoDataCallback* iso_data_callback;
-constexpr uint16_t HCI_VS_QBCE_OCF = 0xFC51;
+constexpr uint16_t HCI_VS_QBCE_OCF                      = 0xFC51;
+constexpr uint8_t  LTV_TYPE_VS_METADATA                 = 0xFF;
+constexpr uint8_t  LTV_TYPE_VS_METADATA_FE              = 0xFE;
+
+constexpr uint8_t  LTV_TYPE_MIN_FT                      = 0X00;
+constexpr uint8_t  LTV_TYPE_MIN_BIT_RATE                = 0X01;
+constexpr uint8_t  LTV_TYPE_MIN_MAX_ERROR_RESILIENCE    = 0X02;
+constexpr uint8_t  LTV_TYPE_LATENCY_MODE                = 0X03;
+constexpr uint8_t  LTV_TYPE_MAX_FT                      = 0X04;
+
+constexpr uint8_t  LTV_LEN_MIN_FT                       = 0X01;
+constexpr uint8_t  LTV_LEN_MIN_BIT_RATE                 = 0X01;
+constexpr uint8_t  LTV_LEN_MIN_MAX_ERROR_RESILIENCE     = 0X01;
+constexpr uint8_t  LTV_LEN_LATENCY_MODE                 = 0X01;
+constexpr uint8_t  LTV_LEN_MAX_FT                       = 0X01;
+
+constexpr uint8_t  ENCODER_LIMITS_SUB_OP                = 0x24;
+
+typedef struct {
+  uint8_t cig_id;
+  uint8_t cis_id;
+  std::vector<uint8_t> encoder_params;
+  uint8_t encoder_mode;
+} tBTM_BLE_SET_ENCODER_LIMITS_PARAM;
+
+uint8_t* PrepareSetEncoderLimitsPayload(tBTM_BLE_SET_ENCODER_LIMITS_PARAM *params,
+                                        uint8_t *length, uint8_t *p) {
+  uint8_t param_len = 0;
+  uint8_t size = params->encoder_params.size();
+  uint8_t num_limits = (size == 0) ? 1 : size;
+  LOG(INFO) <<__func__  << "num_limits = "<<loghex(num_limits);
+  LOG(INFO) <<__func__  << "params->cig_id = "<<loghex(params->cig_id);
+  LOG(INFO) <<__func__  << "params->cis_id = "<<loghex(params->cis_id);
+  UINT8_TO_STREAM(p, ENCODER_LIMITS_SUB_OP); //sub-opcode
+  param_len++;
+  UINT8_TO_STREAM(p, params->cig_id);
+  param_len++;
+  UINT8_TO_STREAM(p, params->cis_id);
+  param_len++;
+  UINT8_TO_STREAM(p, num_limits); //numlimits
+  param_len++;
+  UINT8_TO_STREAM(p, LTV_TYPE_MIN_FT);
+  param_len++;
+  UINT8_TO_STREAM(p, LTV_LEN_MIN_FT);
+  param_len++;
+  UINT8_TO_STREAM(p, params->encoder_params[0]);
+  param_len++;
+  UINT8_TO_STREAM(p, LTV_TYPE_MIN_BIT_RATE);
+  param_len++;
+  UINT8_TO_STREAM(p, LTV_LEN_MIN_BIT_RATE);
+  param_len++;
+  UINT8_TO_STREAM(p, params->encoder_params[2]);
+  param_len++;
+  UINT8_TO_STREAM(p, LTV_TYPE_MIN_MAX_ERROR_RESILIENCE);
+  param_len++;
+  UINT8_TO_STREAM(p, LTV_LEN_MIN_MAX_ERROR_RESILIENCE);
+  param_len++;
+  UINT8_TO_STREAM(p, params->encoder_params[3]);
+  param_len++;
+  UINT8_TO_STREAM(p, LTV_TYPE_LATENCY_MODE);
+  param_len++;
+  UINT8_TO_STREAM(p, LTV_LEN_LATENCY_MODE);
+  param_len++;
+  UINT8_TO_STREAM(p, params->encoder_params[4]);
+  param_len++;
+  UINT8_TO_STREAM(p, LTV_TYPE_MAX_FT);
+  param_len++;
+  UINT8_TO_STREAM(p, LTV_LEN_MAX_FT);
+  param_len++;
+  UINT8_TO_STREAM(p, params->encoder_params[1]);
+  param_len++;
+  *length = param_len;
+  LOG(INFO) <<__func__  << "param_len = "<<loghex(param_len);
+  return p;
+}
+
+void UpdateEncoderParams(uint8_t cig_id, uint8_t cis_id,
+                                 std::vector<uint8_t> encoder_limit_params) {
+  tBTM_BLE_SET_ENCODER_LIMITS_PARAM encoder_params = {
+                                       .cig_id = cig_id,
+                                       .cis_id = cis_id,
+                                       .encoder_params = encoder_limit_params};
+    uint8_t length = 0;
+    uint8_t size = 1;
+    if (encoder_params.encoder_params.size())
+      size = encoder_params.encoder_params.size();
+    uint16_t len = 4 + size * 3;
+    LOG(INFO) <<__func__  << "len = "<<loghex(len);
+    uint8_t param_arr[len];
+    uint8_t *param = param_arr;
+    PrepareSetEncoderLimitsPayload(&encoder_params, &length, param);
+    bluetooth::legacy::hci::GetInterface().SendVendorSpecificCmd(HCI_VS_QBCE_OCF, length, param, NULL);
+}
 
 /*
  * Coordinatet Set Identification Profile (CSIP) based on CSIP 1.0
@@ -589,6 +676,41 @@ public:
     }
   }
 
+  void UpdatePriorCodecTypeToHal(LeAudioDeviceGroup* group) {
+    if (configuration_context_type_ == LeAudioContextType::CONVERSATIONAL ||
+        configuration_context_type_ == LeAudioContextType::LIVE) {
+      auto id = group->GetConfiguration(
+       configuration_context_type_)->confs.source.at(0).codec.id;
+      auto bits = group->GetConfiguration(
+       configuration_context_type_)->confs.source.at(0).codec.GetBitsPerSample();
+      auto intvl = group->GetConfiguration(
+       configuration_context_type_)->confs.source.at(0).codec.GetDataIntervalUs();
+      auto freq = group->GetConfiguration(
+       configuration_context_type_)->confs.source.at(0).codec.GetSamplingFrequencyHz();
+      auto sdu = group->GetConfiguration(
+       configuration_context_type_)->confs.source.at(0).codec.GetOctectsPerFrame();
+      auto delay = group->GetRemoteDelay(
+       bluetooth::le_audio::types::kLeAudioDirectionSource);
+      bluetooth::le_audio::offload_config config = {
+          .stream_map = std::vector<bluetooth::le_audio::stream_map_info>{
+                bluetooth::le_audio::stream_map_info(0x00, 0x00, false)},
+          .codec_id = id,
+          .bits_per_sample = bits,
+          .sampling_rate = freq,
+          .frame_duration = intvl,
+          .octets_per_frame = sdu,
+          .blocks_per_sdu = 1,
+          .peer_delay_ms = delay,
+          .mode = 0,
+          .delay = delay,
+          .codec_metadata = std::vector<uint8_t>(),
+      };
+      if (le_audio_sink_hal_client_) {
+        le_audio_sink_hal_client_->UpdateAudioConfigToHal(config);
+      }
+    }
+  }
+
   void SuspendedForReconfiguration() {
     if (audio_sender_state_ > AudioState::IDLE) {
       LeAudioLogHistory::Get()->AddLogHistory(kLogBtCallAf, active_group_id_, RawAddress::kEmpty,
@@ -897,9 +1019,7 @@ public:
     /* Make sure we do not take the local sink metadata when only the local
      * source scenario is about to be started (e.g. MEDIA).
      */
-    auto kLeAudioContextBidir =
-            IsLeXdevice(group) ? kLeAudioContextLibrettoBidir : kLeAudioContextAllBidir;
-    if (!kLeAudioContextBidir.test(configuration_context_type)) {
+    if (!kLeAudioContextAllBidir.test(configuration_context_type)) {
       remote_contexts.source.clear();
     }
 
@@ -928,13 +1048,6 @@ public:
     if (!sink_monitor_mode_ && source_monitor_mode_ && !group_is_streaming) {
       callbacks_->OnUnicastMonitorModeStatus(bluetooth::le_audio::types::kLeAudioDirectionSource,
                                              UnicastMonitorModeStatus::STREAMING_REQUESTED);
-    }
-
-    auto device = group->GetFirstDevice();
-    if (device) {
-      auto is_lex_device = IsLeXdevice(group);
-      send_vs_cmd(group->GetFirstDevice()->GetBdAddress(),
-                  static_cast<uint16_t>(configuration_context_type), is_lex_device);
     }
 
     bool result = groupStateMachine_->StartStream(group, configuration_context_type,
@@ -1684,7 +1797,10 @@ public:
     if (!leAudioDevice) {
       return;
     }
-
+    if (leAudioDevice->GetConnectionState() == DeviceConnectState::REMOVING) {
+      log::warn("Device already being removed");
+      return;
+    }
     /* Remove device from the background connect if it is there */
     log::warn("Cancelling Gatt conn for both Direct and Background");
     BTA_GATTC_CancelOpen(gatt_if_, address, true);
@@ -2274,8 +2390,8 @@ public:
     }
   }
 
-  void OnGattReadRsp(tCONN_ID conn_id, tGATT_STATUS status, uint16_t hdl, uint16_t len,
-                     uint8_t* value, void* data) {
+  void OnGattReadRsp(tCONN_ID conn_id, tGATT_STATUS /*status*/, uint16_t hdl, uint16_t len,
+                     uint8_t* value, void* /*data*/) {
     LeAudioCharValueHandle(conn_id, hdl, len, value);
   }
 
@@ -2316,7 +2432,7 @@ public:
     }
   }
 
-  void OnGattConnected(tGATT_STATUS status, tCONN_ID conn_id, tGATT_IF client_if,
+  void OnGattConnected(tGATT_STATUS status, tCONN_ID conn_id, tGATT_IF /*client_if*/,
                        RawAddress address, tBT_TRANSPORT transport, uint16_t mtu) {
     LeAudioDevice* leAudioDevice = leAudioDevices_.FindByAddress(address);
 
@@ -2693,7 +2809,7 @@ public:
                               std::chrono::milliseconds(kCsisGroupMemberDelayMs));
   }
 
-  void OnGattDisconnected(tCONN_ID conn_id, tGATT_IF client_if, RawAddress address,
+  void OnGattDisconnected(tCONN_ID conn_id, tGATT_IF /*client_if*/, RawAddress address,
                           tGATT_DISCONN_REASON reason) {
     log::info("OnGattDisconnected");
     LeAudioDevice* leAudioDevice = leAudioDevices_.FindByConnId(conn_id);
@@ -2702,7 +2818,18 @@ public:
       log::error(", skipping unknown leAudioDevice, address: {}", address);
       return;
     }
-
+    if (!lexAvailableTransportDevices_.empty()) {
+      auto it = std::find(lexAvailableTransportDevices_.begin(),
+          lexAvailableTransportDevices_.end(), address);
+      if (it !=
+          lexAvailableTransportDevices_.end()) {
+          log::info("found device in lexAvailableTransportDevices to remove.");
+          lexAvailableTransportDevices_.erase(
+            std::remove(lexAvailableTransportDevices_.begin(),
+            lexAvailableTransportDevices_.end(), (*it)),
+            lexAvailableTransportDevices_.end());
+      }
+    }
     leAudioDevice->acl_asymmetric_ = false;
     BtaGattQueue::Clean(leAudioDevice->conn_id_);
     LeAudioDeviceGroup* group = aseGroups_.FindById(leAudioDevice->group_id_);
@@ -2820,8 +2947,8 @@ public:
 
     BtaGattQueue::WriteDescriptor(
             conn_id, ccc_handle, std::move(value), GATT_WRITE,
-            [](tCONN_ID conn_id, tGATT_STATUS status, uint16_t handle, uint16_t len,
-               const uint8_t* value, void* data) {
+            [](tCONN_ID conn_id, tGATT_STATUS status, uint16_t handle, uint16_t /*len*/,
+               const uint8_t* /*value*/, void* data) {
               if (instance) {
                 instance->OnGattWriteCcc(conn_id, status, handle, data);
               }
@@ -3317,7 +3444,7 @@ public:
                                    bluetooth::le_audio::uuid::kCapServiceUuid);
   }
 
-  void OnGattWriteCcc(tCONN_ID conn_id, tGATT_STATUS status, uint16_t hdl, void* data) {
+  void OnGattWriteCcc(tCONN_ID conn_id, tGATT_STATUS status, uint16_t hdl, void* /*data*/) {
     LeAudioDevice* leAudioDevice = leAudioDevices_.FindByConnId(conn_id);
     std::vector<struct ase>::iterator ase_it;
 
@@ -3529,30 +3656,6 @@ public:
        */
       group->AddToAllowListNotConnectedGroupMembers(gatt_if_);
     }
-  }
-
-  bool IsLeXdevice(LeAudioDeviceGroup* group) {
-    bool remote_support = false;
-    if (group) {
-      auto group_pacs = group->GetFirstDevice()->snk_pacs_;
-      if (!group_pacs.empty()) {
-        for (auto& [handles, pacs_record] : group_pacs) {
-          if (!pacs_record.empty()) {
-            for (auto& pac : pacs_record) {
-              if (pac.codec_id.vendor_codec_id ==
-                  bluetooth::le_audio::types::kLeAudioCodingFormatAptxLeX) {
-                remote_support = true;
-                break;
-              }
-            }
-            if (remote_support) {
-              break;
-            }
-          }
-        }
-      }
-    }
-    return remote_support;
   }
 
   bool IsAseAcceptingAudioData(struct ase* ase) {
@@ -4019,8 +4122,11 @@ public:
     if ((configuration_context_type_ == LeAudioContextType::MEDIA) ||
         (configuration_context_type_ == LeAudioContextType::GAME)) {
       // Send vendor specific command for codec mode
-      uint16_t update_value =
-          (configuration_context_type_ == LeAudioContextType::MEDIA) ? 0x1 : 0x2;
+      uint8_t update_value =
+          (configuration_context_type_ == LeAudioContextType::MEDIA) ? 0x01 : 0x02;
+
+      log::warn("Send VSC Cmd for Encoder Limits for group {}, mode value {}",
+              group_id, update_value);
       uint8_t param_arr[7];
       uint8_t *p = param_arr;
 
@@ -4037,6 +4143,13 @@ public:
           HCI_VS_QBCE_OCF, 7, param_arr, NULL);
     }
 
+    if (device->GetFirstActiveAse()->is_vsmetadata_available) {
+      for (struct bluetooth::le_audio::types::cis& cis : group->cig.cises) {
+        UpdateEncoderParams(group_id, cis.id,
+            device->GetFirstActiveAse()->metadata);
+        device->GetFirstActiveAse()->is_vsmetadata_available = false;
+      }
+    }
   }
 
   const struct bluetooth::le_audio::stream_configuration* GetStreamSourceConfiguration(
@@ -4272,6 +4385,22 @@ public:
     return AudioReconfigurationResult::RECONFIGURATION_NEEDED;
   }
 
+  bool isLeXtransportAvailable(LeAudioDeviceGroup* group) {
+     LeAudioDevice* leAudioDevice = group->GetFirstDevice();
+     if (!leAudioDevice) return false;
+     do {
+       auto address = leAudioDevice->address_;
+       auto it = std::find(lexAvailableTransportDevices_.begin(),
+           lexAvailableTransportDevices_.end(), address);
+       if (it != lexAvailableTransportDevices_.end()) {
+           log::info("LeX transport available to stream.");
+           return true;
+       }
+     } while ((leAudioDevice = group->GetNextDevice(leAudioDevice)));
+     log::info("No transport is available.");
+     return false;
+  }
+
   /* Returns true if stream is started */
   bool OnAudioResume(LeAudioDeviceGroup* group, int local_direction) {
     auto remote_direction = (local_direction == bluetooth::le_audio::types::kLeAudioDirectionSink
@@ -4319,6 +4448,10 @@ public:
         leAudioHealthStatus_->AddStatisticForGroup(
                 group, LeAudioHealthGroupStatType::STREAM_CONTEXT_NOT_AVAILABLE);
       }
+      return false;
+    }
+
+    if (group->GetFirstDevice()->isLeXDevice() && !isLeXtransportAvailable(group)) {
       return false;
     }
 
@@ -5215,10 +5348,6 @@ public:
              group->IsPendingConfiguration() &&
              IsDirectionAvailableForCurrentConfiguration(group, remote_other_direction));
 
-    auto kLeAudioContextSinkOnly =
-            IsLeXdevice(group) ? kLeAudioContextLibrettoSinkOnly : kLeAudioContextAllRemoteSinkOnly;
-    auto kLeAudioContextBidir =
-            IsLeXdevice(group) ? kLeAudioContextLibrettoBidir : kLeAudioContextAllBidir;
     // Inject conversational when ringtone is played - this is required for all
     // the VoIP applications which are not using the telecom API.
     constexpr AudioContexts possible_voip_contexts =
@@ -5239,20 +5368,25 @@ public:
       SetInVoipCall(false);
     }
 
+    BidirectionalPair<AudioContexts> remote_metadata = {
+            .sink = local_metadata_context_types_.source,
+            .source = local_metadata_context_types_.sink};
+
     /* Make sure we have CONVERSATIONAL when in a call and it is not mixed
      * with any other bidirectional context
      */
     if (IsInCall() || IsInVoipCall()) {
       log::debug("In Call preference used: {}, voip call: {}", IsInCall(), IsInVoipCall());
-      local_metadata_context_types_.sink.unset_all(kLeAudioContextBidir);
-      local_metadata_context_types_.source.unset_all(kLeAudioContextBidir);
-      local_metadata_context_types_.sink.set(LeAudioContextType::CONVERSATIONAL);
-      local_metadata_context_types_.source.set(LeAudioContextType::CONVERSATIONAL);
+      remote_metadata.sink.unset_all(kLeAudioContextAllBidir);
+      remote_metadata.source.unset_all(kLeAudioContextAllBidir);
+      remote_metadata.sink.set(LeAudioContextType::CONVERSATIONAL);
+      remote_metadata.source.set(LeAudioContextType::CONVERSATIONAL);
     }
 
-    BidirectionalPair<AudioContexts> remote_metadata = {
-            .sink = local_metadata_context_types_.source,
-            .source = local_metadata_context_types_.sink};
+    if (!com::android::bluetooth::flags::leaudio_speed_up_reconfiguration_between_call()) {
+      local_metadata_context_types_.sink = remote_metadata.source;
+      local_metadata_context_types_.source = remote_metadata.sink;
+    }
 
     if (IsInVoipCall()) {
       log::debug("Unsetting RINGTONE from remote sink");
@@ -5278,7 +5412,7 @@ public:
                is_ongoing_call_on_other_direction ? "True" : "False");
     log::debug("configuration_context_type_= {}.", ToString(configuration_context_type_));
 
-    if (remote_metadata.get(remote_other_direction).test_any(kLeAudioContextBidir) &&
+    if (remote_metadata.get(remote_other_direction).test_any(kLeAudioContextAllBidir) &&
         !is_streaming_other_direction) {
       log::debug(
               "The other direction is not streaming bidirectional, ignore that "
@@ -5290,14 +5424,14 @@ public:
      * on how to configure each channel. We should align the other direction
      * metadata for the remote device.
      */
-    if (remote_metadata.get(remote_direction).test_any(kLeAudioContextBidir)) {
+    if (remote_metadata.get(remote_direction).test_any(kLeAudioContextAllBidir)) {
       log::debug(
               "Aligning the other direction remote metadata to add this direction "
               "context");
 
       if (is_ongoing_call_on_other_direction) {
         /* Other direction is streaming and is in call */
-        remote_metadata.get(remote_direction).unset_all(kLeAudioContextBidir);
+        remote_metadata.get(remote_direction).unset_all(kLeAudioContextAllBidir);
         remote_metadata.get(remote_direction).set(LeAudioContextType::CONVERSATIONAL);
       } else {
         if (!is_streaming_other_direction) {
@@ -5306,10 +5440,8 @@ public:
         }
         remote_metadata.get(remote_other_direction).unset_all(kLeAudioContextAllBidir);
         remote_metadata.get(remote_other_direction).unset_all(kLeAudioContextAllRemoteSinkOnly);
-        remote_metadata.get(remote_other_direction).unset_all(kLeAudioContextBidir);
-        remote_metadata.get(remote_other_direction).unset_all(kLeAudioContextSinkOnly);
         remote_metadata.get(remote_other_direction)
-                .set_all(remote_metadata.get(remote_direction) & ~kLeAudioContextSinkOnly);
+                .set_all(remote_metadata.get(remote_direction) & ~kLeAudioContextAllRemoteSinkOnly);
       }
     }
     log::debug("remote_metadata.source= {}", ToString(remote_metadata.source));
@@ -5323,40 +5455,28 @@ public:
        */
       if ((remote_metadata.get(remote_direction).none() &&
            remote_metadata.get(remote_other_direction).any()) ||
-          remote_metadata.get(remote_other_direction).test_any(kLeAudioContextBidir)) {
+          remote_metadata.get(remote_other_direction).test_any(kLeAudioContextAllBidir)) {
         log::debug(
                 "Aligning this direction remote metadata to add the other "
                 "direction context");
         /* Turn off bidirectional contexts on this direction to avoid mixing
          * with the other direction bidirectional context
          */
-        remote_metadata.get(remote_direction).unset_all(kLeAudioContextBidir);
+        remote_metadata.get(remote_direction).unset_all(kLeAudioContextAllBidir);
         remote_metadata.get(remote_direction).set_all(remote_metadata.get(remote_other_direction));
       }
     }
 
     /* Make sure that after alignment no sink only context leaks into the other
      * direction. */
-    remote_metadata.source.unset_all(kLeAudioContextSinkOnly);
+    remote_metadata.source.unset_all(kLeAudioContextAllRemoteSinkOnly);
 
     log::debug("remote_metadata.source= {}", ToString(remote_metadata.source));
     log::debug("remote_metadata.sink= {}", ToString(remote_metadata.sink));
     return remote_metadata;
   }
 
-  void send_vs_cmd(const RawAddress& bd_addr, uint16_t content_type, bool remote_support) {
-    if (osi_property_get_bool("persist.vendor.service.bt.adv_transport", false) && remote_support) {
-      uint8_t param[4] = {0};
-      param[0] = VS_QHCI_USECASE_UPDATE;
-      param[1] = (BTM_GetHCIConnHandle(bd_addr, BT_TRANSPORT_LE)) & 0x00FF;
-      param[2] = ((BTM_GetHCIConnHandle(bd_addr, BT_TRANSPORT_LE)) & 0xFF00) >> 8;
-      param[3] = (uint8_t)content_type;
-      // BTM_VendorSpecificCommand(HCI_VSQC_CONTROLLER_A2DP_OPCODE, 4, param, NULL);
-      btsnd_hcic_vendor_spec_cmd(HCI_VSQC_CONTROLLER_A2DP_OPCODE, 4, param, NULL);
-    }
-  }
-
-  bool ReconfigureOrUpdateRemoteForPTS(LeAudioDeviceGroup* group, int remote_direction) {
+  bool ReconfigureOrUpdateRemoteForPTS(LeAudioDeviceGroup* group, int /*remote_direction*/) {
     log::info("{}", group->group_id_);
     // Use common audio stream contexts exposed by the PTS
     auto override_contexts = AudioContexts(0xFFFF);
@@ -5485,13 +5605,6 @@ public:
         DsaReconfigureNeeded(group, new_configuration_context)) {
       log::info("Checking whether to change configuration context from {} to {}",
                 ToString(configuration_context_type_), ToString(new_configuration_context));
-
-      auto device = group->GetFirstDevice();
-      if (device) {
-        auto is_lex_device = IsLeXdevice(group);
-        send_vs_cmd(device->GetBdAddress(), static_cast<uint16_t>(new_configuration_context),
-                    is_lex_device);
-      }
 
       LeAudioLogHistory::Get()->AddLogHistory(
               kLogAfCallBt, active_group_id_, RawAddress::kEmpty,
@@ -5731,7 +5844,23 @@ public:
                                                                    conn_handle);
   }
 
-  void QhciVscEvt(uint16_t delay, uint8_t mode) {
+  void updateLexAvailableTransportDevices(uint64_t bdAddr) {
+    if (bdAddr != 0xFFFFFFFFFFFFFFFF) {
+      RawAddress rawAddress;
+      uint8_t addr[] = {static_cast<uint8_t>((bdAddr >> 40) & 0xFF),
+                        static_cast<uint8_t>((bdAddr >> 32) & 0xFF),
+                        static_cast<uint8_t>((bdAddr >> 24) & 0xFF),
+                        static_cast<uint8_t>((bdAddr >> 16) & 0xFF),
+                        static_cast<uint8_t>((bdAddr >> 8) & 0xFF),
+                        static_cast<uint8_t>((bdAddr) & 0xFF)};
+      rawAddress.FromOctets((uint8_t*)addr);
+      log::info("Updating Transport device {}", rawAddress.ToString());
+      lexAvailableTransportDevices_.push_back(rawAddress);
+    }
+  }
+
+  void QhciVscEvt(uint16_t delay, uint8_t mode, uint64_t bdAddr) {
+    updateLexAvailableTransportDevices(bdAddr);
     auto group = aseGroups_.FindById(active_group_id_);
     if (!group) {
       log::error("Invalid group: {}", active_group_id_);
@@ -6002,10 +6131,9 @@ public:
           // handleAsymmetricPhyForUnicast(group);
           UpdateLocationsAndContextsAvailability(group);
           if (group->IsPendingConfiguration()) {
+            UpdatePriorCodecTypeToHal(group);
             group->SetSuspendedForReconfiguration();
-            auto kLeAudioContextSource = IsLeXdevice(group) ? kLeAudioContextLibrettoSource
-                                                            : kLeAudioContextAllRemoteSource;
-            auto remote_direction = kLeAudioContextSource.test(configuration_context_type_)
+            auto remote_direction = kLeAudioContextAllRemoteSource.test(configuration_context_type_)
                                             ? bluetooth::le_audio::types::kLeAudioDirectionSource
                                             : bluetooth::le_audio::types::kLeAudioDirectionSink;
 
@@ -6260,6 +6388,8 @@ private:
 
   std::map<int, GroupStreamStatus> lastNotifiedGroupStreamStatusMap_;
 
+  std::vector<RawAddress> lexAvailableTransportDevices_;
+
   void ClientAudioInterfaceRelease() {
     auto group = aseGroups_.FindById(active_group_id_);
     if (!group) {
@@ -6493,9 +6623,9 @@ LeAudioStateMachineHciCallbacksImpl stateMachineHciCallbacksImpl;
 
 class LeAudioStateMachineVscHciCallbackImpl : public VscCallback {
 public:
-  void OnVscEvent(uint16_t delay, uint8_t mode) override {
+  void OnVscEvent(uint16_t delay, uint8_t mode, uint64_t bdAddr) override {
     if (instance) {
-      instance->QhciVscEvt(delay, mode);
+      instance->QhciVscEvt(delay, mode, bdAddr);
     }
   }
 };
@@ -6592,8 +6722,10 @@ public:
       instance->OnGroupMemberRemovedCb(address, group_id);
     }
   }
-  void OnGroupRemoved(const bluetooth::Uuid& uuid, int group_id) { /* to implement if needed */ }
-  void OnGroupAddFromStorage(const RawAddress& address, const bluetooth::Uuid& uuid, int group_id) {
+  void OnGroupRemoved(const bluetooth::Uuid& /*uuid*/,
+                      int /*group_id*/) { /* to implement if needed */ }
+  void OnGroupAddFromStorage(const RawAddress& /*address*/, const bluetooth::Uuid& /*uuid*/,
+                             int /*group_id*/) {
     /* to implement if needed */
   }
 };

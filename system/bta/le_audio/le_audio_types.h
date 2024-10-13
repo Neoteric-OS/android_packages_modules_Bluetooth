@@ -603,26 +603,13 @@ constexpr AudioContexts kLeAudioContextAllTypes =
         LeAudioContextType::RINGTONE | LeAudioContextType::ALERTS |
         LeAudioContextType::EMERGENCYALARM;
 
-constexpr AudioContexts kLeAudioContextLibrettoBidir =
-        LeAudioContextType::MEDIA | LeAudioContextType::GAME | LeAudioContextType::LIVE |
-        LeAudioContextType::CONVERSATIONAL | LeAudioContextType::VOICEASSISTANTS;
-
 constexpr AudioContexts kLeAudioContextAllBidir =
         LeAudioContextType::GAME | LeAudioContextType::LIVE | LeAudioContextType::CONVERSATIONAL |
         LeAudioContextType::VOICEASSISTANTS;
 
-constexpr AudioContexts kLeAudioContextLibrettoSource =
-        LeAudioContextType::MEDIA | LeAudioContextType::GAME | LeAudioContextType::LIVE |
-        LeAudioContextType::CONVERSATIONAL | LeAudioContextType::VOICEASSISTANTS;
-
 constexpr AudioContexts kLeAudioContextAllRemoteSource =
         LeAudioContextType::GAME | LeAudioContextType::LIVE | LeAudioContextType::CONVERSATIONAL |
         LeAudioContextType::VOICEASSISTANTS;
-
-constexpr AudioContexts kLeAudioContextLibrettoSinkOnly =
-        LeAudioContextType::INSTRUCTIONAL | LeAudioContextType::SOUNDEFFECTS |
-        LeAudioContextType::NOTIFICATIONS | LeAudioContextType::RINGTONE |
-        LeAudioContextType::ALERTS | LeAudioContextType::EMERGENCYALARM;
 
 constexpr AudioContexts kLeAudioContextAllRemoteSinkOnly =
         LeAudioContextType::MEDIA | LeAudioContextType::INSTRUCTIONAL |
@@ -1264,6 +1251,8 @@ struct ase {
   AseQosPreferences qos_preferences;
 
   std::vector<uint8_t> metadata;
+
+  bool is_vsmetadata_available;
 
   AseState state;
 };

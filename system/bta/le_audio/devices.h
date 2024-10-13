@@ -173,6 +173,7 @@ public:
   bool IsReadyToSuspendStream(void);
   bool HaveAllActiveAsesCisEst(void) const;
   bool HaveAnyCisConnected(void);
+  bool isLeXDevice(void) const;
   uint8_t GetPhyBitmask(void) const;
   uint8_t GetPreferredPhyBitmask(uint8_t preferred_phy) const;
   bool IsAudioSetConfigurationSupported(

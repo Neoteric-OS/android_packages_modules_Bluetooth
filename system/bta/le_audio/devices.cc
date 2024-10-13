@@ -419,6 +419,7 @@ bool LeAudioDevice::ConfigureAses(const set_configurations::AudioSetConfiguratio
       ase->qos_config.max_sdu_size = ase_cfg.qos.maxSdu;
       ase->qos_config.retrans_nb = ase_cfg.qos.retransmission_number;
       ase->qos_config.max_transport_latency = ase_cfg.qos.max_transport_latency;
+      ase->is_vsmetadata_available = false;
 
       SetMetadataToAse(ase, metadata_context_types, ccid_lists);
     }
@@ -946,6 +947,33 @@ uint8_t LeAudioDevice::GetSupportedAudioChannelCounts(uint8_t direction) const {
   return 0;
 }
 
+bool LeAudioDevice::isLeXDevice(void) const{
+  if (!osi_property_get_bool("persist.vendor.service.bt.adv_transport", false)){
+    log::warn("Platform does not support LeX");
+    return false;
+  }
+  if (snk_pacs_.empty()) {
+    log::warn("No sink pacs");
+    return false;
+  }
+  for (const auto& pac_tuple : snk_pacs_) {
+    const auto& pac_recs = std::get<1>(pac_tuple);
+    log::info("Num of PACS records : {}", pac_recs.size());
+    if (pac_recs.empty()) {
+      continue;
+    }
+    for (const auto& pac : pac_recs) {
+      log::info("Coding format : {}, Vendor Codec ID : {}",
+          pac.codec_id.coding_format, pac.codec_id.vendor_codec_id);
+      if (pac.codec_id.vendor_codec_id ==
+          types::kLeAudioCodingFormatAptxLeX) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
 /**
  * Returns supported PHY's bitfield
  */
@@ -1339,7 +1367,7 @@ LeAudioDevice* LeAudioDevices::FindByCisConnHdl(uint8_t cig_id, uint16_t conn_hd
 }
 
 void LeAudioDevices::SetInitialGroupAutoconnectState(int group_id, int gatt_if,
-                                                     tBTM_BLE_CONN_TYPE reconnection_mode,
+                                                     tBTM_BLE_CONN_TYPE /*reconnection_mode*/,
                                                      bool current_dev_autoconnect_flag) {
   if (!current_dev_autoconnect_flag) {
     /* If current device autoconnect flag is false, check if there is other

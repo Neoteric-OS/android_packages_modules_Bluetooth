@@ -1192,6 +1192,16 @@ int LeAudioDeviceGroup::GetAseCount(uint8_t direction) const {
   return result;
 }
 
+//Require this update as remote device during VA acts same as Call.
+void updateVAcontext(types::BidirectionalPair<types::AudioContexts>& group_contexts) {
+  if (group_contexts.sink.test(LeAudioContextType::CONVERSATIONAL) &&
+      group_contexts.source.test(LeAudioContextType::CONVERSATIONAL)) {
+    log::info("update VoiceAssistants as available audio context in both direction");
+    group_contexts.sink.set(LeAudioContextType::VOICEASSISTANTS);
+    group_contexts.source.set(LeAudioContextType::VOICEASSISTANTS);
+  }
+}
+
 void LeAudioDeviceGroup::CigConfiguration::GenerateCisIds(LeAudioContextType context_type) {
   log::info("Group {}, group_id: {}, context_type: {}", fmt::ptr(group_), group_->group_id_,
             bluetooth::common::ToString(context_type));
@@ -1205,12 +1215,15 @@ void LeAudioDeviceGroup::CigConfiguration::GenerateCisIds(LeAudioContextType con
   uint8_t cis_count_unidir_sink = 0;
   uint8_t cis_count_unidir_source = 0;
   int group_size = group_->DesiredSize();
+  auto group_contexts = group_->GetLatestAvailableContexts();
+
+  if (group_->IsLeXDevice()) updateVAcontext(group_contexts);
 
   set_configurations::get_cis_count(
           context_type, group_->GetConfiguration(context_type), group_size,
           group_->GetGroupSinkStrategy(), group_->GetAseCount(types::kLeAudioDirectionSink),
           group_->GetAseCount(types::kLeAudioDirectionSource), cis_count_bidir,
-          cis_count_unidir_sink, cis_count_unidir_source, group_->GetLatestAvailableContexts());
+          cis_count_unidir_sink, cis_count_unidir_source, group_contexts);
 
   uint8_t idx = 0;
   while (cis_count_bidir > 0) {
@@ -1875,6 +1888,16 @@ bool LeAudioDeviceGroup::HasCodecConfigurationForDirection(types::LeAudioContext
 
 bool LeAudioDeviceGroup::IsAudioSetConfigurationAvailable(LeAudioContextType group_context_type) {
   return GetConfiguration(group_context_type) != nullptr;
+}
+
+bool LeAudioDeviceGroup::IsLeXDevice(void) const {
+  for (auto* leAudioDevice = GetFirstActiveDevice(); leAudioDevice;
+       leAudioDevice = GetNextActiveDevice(leAudioDevice)) {
+    if (leAudioDevice->isLeXDevice())
+      return true;
+  }
+
+  return false;
 }
 
 bool LeAudioDeviceGroup::IsMetadataChanged(

@@ -135,7 +135,7 @@ std::unique_ptr<LeAudioSourceAudioHalClient> LeAudioSourceAudioHalClient::Acquir
   return std::move(owned_mock_broadcast_le_audio_source_hal_client_);
 }
 
-void LeAudioSourceAudioHalClient::DebugDump(int fd) {}
+void LeAudioSourceAudioHalClient::DebugDump(int /*fd*/) {}
 
 class MockLeAudioSinkHalClient;
 MockLeAudioSinkHalClient* mock_le_audio_sink_hal_client_;
@@ -524,8 +524,9 @@ TEST_F(CodecManagerTestAdsp, test_capabilities_none) {
   codec_manager->Start(offloading_preference);
 
   bool has_null_config = false;
-  auto match_first_config = [&](const CodecManager::UnicastConfigurationRequirements& requirements,
-                                const set_configurations::AudioSetConfigurations* confs)
+  auto match_first_config =
+          [&](const CodecManager::UnicastConfigurationRequirements& /*requirements*/,
+              const set_configurations::AudioSetConfigurations* confs)
           -> std::unique_ptr<set_configurations::AudioSetConfiguration> {
     // Don't expect the matcher being called on nullptr
     if (confs == nullptr) {
@@ -572,7 +573,7 @@ TEST_F(CodecManagerTestAdsp, test_capabilities) {
     size_t available_configs_size = 0;
     auto match_first_config =
             [&available_configs_size](
-                    const CodecManager::UnicastConfigurationRequirements& requirements,
+                    const CodecManager::UnicastConfigurationRequirements& /*requirements*/,
                     const set_configurations::AudioSetConfigurations* confs)
             -> std::unique_ptr<set_configurations::AudioSetConfiguration> {
       if (confs && confs->size()) {
@@ -1003,7 +1004,7 @@ TEST_F(CodecManagerTestHost, test_dual_bidir_swb_supported) {
     bool got_null_cfgs_container = false;
     auto ptr = codec_manager->GetCodecConfig(
             {.audio_context_type = context},
-            [&](const CodecManager::UnicastConfigurationRequirements& requirements,
+            [&](const CodecManager::UnicastConfigurationRequirements& /*requirements*/,
                 const set_configurations::AudioSetConfigurations* confs)
                     -> std::unique_ptr<set_configurations::AudioSetConfiguration> {
               if (confs == nullptr) {
@@ -1053,7 +1054,7 @@ TEST_F(CodecManagerTestAdsp, test_dual_bidir_swb_supported) {
     bool got_null_cfgs_container = false;
     auto ptr = codec_manager->GetCodecConfig(
             {.audio_context_type = context},
-            [&](const CodecManager::UnicastConfigurationRequirements& requirements,
+            [&](const CodecManager::UnicastConfigurationRequirements& /*requirements*/,
                 const set_configurations::AudioSetConfigurations* confs)
                     -> std::unique_ptr<set_configurations::AudioSetConfiguration> {
               if (confs == nullptr) {
@@ -1085,7 +1086,7 @@ TEST_F(CodecManagerTestHostNoSwb, test_dual_bidir_swb_not_supported) {
     bool got_null_cfgs_container = false;
     auto ptr = codec_manager->GetCodecConfig(
             {.audio_context_type = context},
-            [&](const CodecManager::UnicastConfigurationRequirements& requirements,
+            [&](const CodecManager::UnicastConfigurationRequirements& /*requirements*/,
                 const set_configurations::AudioSetConfigurations* confs)
                     -> std::unique_ptr<set_configurations::AudioSetConfiguration> {
               if (confs == nullptr) {
@@ -1134,7 +1135,7 @@ TEST_F(CodecManagerTestAdspNoSwb, test_dual_bidir_swb_not_supported) {
     bool got_null_cfgs_container = false;
     auto ptr = codec_manager->GetCodecConfig(
             {.audio_context_type = context},
-            [&](const CodecManager::UnicastConfigurationRequirements& requirements,
+            [&](const CodecManager::UnicastConfigurationRequirements& /*requirements*/,
                 const set_configurations::AudioSetConfigurations* confs)
                     -> std::unique_ptr<set_configurations::AudioSetConfiguration> {
               if (confs == nullptr) {
@@ -1162,8 +1163,9 @@ TEST_F(CodecManagerTestHost, test_dont_update_broadcast_offloader) {
 
   bool was_called = false;
   codec_manager->UpdateBroadcastConnHandle(
-          {0x0001, 0x0002},
-          [&](const bluetooth::le_audio::broadcast_offload_config& config) { was_called = true; });
+          {0x0001, 0x0002}, [&](const bluetooth::le_audio::broadcast_offload_config& /*config*/) {
+            was_called = true;
+          });
 
   // Expect no call for HOST encoding
   ASSERT_FALSE(was_called);
