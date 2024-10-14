@@ -202,7 +202,7 @@ void LeAudioClientInterface::Sink::ConfirmSuspendRequest() {
   }
 }
 
-void LeAudioClientInterface::Sink::ConfirmStreamingRequest() {
+void LeAudioClientInterface::Sink::ConfirmStreamingRequest(bool force) {
   auto lambda =
           [&](StartRequestState currect_start_request_state) -> std::pair<StartRequestState, bool> {
     switch (currect_start_request_state) {
@@ -233,6 +233,9 @@ void LeAudioClientInterface::Sink::ConfirmStreamingRequest() {
   }
 
   auto aidl_instance = get_aidl_transport_instance(is_broadcaster_);
+  if (force) {
+    aidl_instance->SetStartRequestState(StartRequestState::PENDING_BEFORE_RESUME);
+  }
   if (aidl_instance->IsRequestCompletedAfterUpdate(lambda)) {
     get_aidl_client_interface(is_broadcaster_)
             ->StreamStarted(aidl::BluetoothAudioCtrlAck::SUCCESS_FINISHED);
@@ -510,7 +513,7 @@ void LeAudioClientInterface::Source::ConfirmSuspendRequest() {
   }
 }
 
-void LeAudioClientInterface::Source::ConfirmStreamingRequest() {
+void LeAudioClientInterface::Source::ConfirmStreamingRequest(bool force) {
   auto lambda =
           [&](StartRequestState currect_start_request_state) -> std::pair<StartRequestState, bool> {
     switch (currect_start_request_state) {
