@@ -290,7 +290,7 @@ public:
   MOCK_METHOD((void), Stop, (), (override));
   MOCK_METHOD((size_t), SendData, (uint8_t* data, uint16_t size), (override));
   MOCK_METHOD((void), ConfirmSuspendRequest, (), (override));
-  MOCK_METHOD((void), ConfirmStreamingRequest, (), (override));
+  MOCK_METHOD((void), ConfirmStreamingRequest, (bool force), (override));
   MOCK_METHOD((void), CancelStreamingRequest, (), (override));
   MOCK_METHOD((void), UpdateRemoteDelay, (uint16_t delay), (override));
   MOCK_METHOD((void), UpdateAudioConfigToHal, (const ::bluetooth::le_audio::offload_config&),
@@ -311,7 +311,7 @@ public:
               (override));
   MOCK_METHOD((void), Stop, (), (override));
   MOCK_METHOD((void), ConfirmSuspendRequest, (), (override));
-  MOCK_METHOD((void), ConfirmStreamingRequest, (), (override));
+  MOCK_METHOD((void), ConfirmStreamingRequest, (bool force), (override));
   MOCK_METHOD((void), CancelStreamingRequest, (), (override));
   MOCK_METHOD((void), UpdateRemoteDelay, (uint16_t delay), (override));
   MOCK_METHOD((void), UpdateAudioConfigToHal, (const ::bluetooth::le_audio::offload_config&),
@@ -1924,7 +1924,7 @@ protected:
   void LocalAudioSourceResume(bool expected_confirmation = true, bool expected_cancel = false) {
     ASSERT_NE(nullptr, mock_le_audio_source_hal_client_);
     if (expected_confirmation) {
-      EXPECT_CALL(*mock_le_audio_source_hal_client_, ConfirmStreamingRequest()).Times(1);
+      EXPECT_CALL(*mock_le_audio_source_hal_client_, ConfirmStreamingRequest(false)).Times(1);
     }
 
     if (expected_cancel) {
