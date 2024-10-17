@@ -1479,7 +1479,12 @@ public class ActiveDeviceManager implements AdapterService.BluetoothStateCallbac
             return mLeAudioActiveDevice;
         }
     }
-
+    @VisibleForTesting
+    public BluetoothDevice fetchLeHearingAidActiveDevice() {
+        synchronized (mLock) {
+            return mLeHearingAidActiveDevice;
+        }
+    }
     @GuardedBy("mLock")
     private long getHearingAidActiveHiSyncIdLocked() {
         final HearingAidService hearingAidService = mFactory.getHearingAidService();
