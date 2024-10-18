@@ -6331,7 +6331,7 @@ public:
             stream_setup_start_timestamp_ = 0;
             if (group->IsSuspendedForReconfiguration()) {
               reconfigurationComplete();
-            } else {
+            } else if (status != GroupStreamStatus::IDLE) {
               CancelStreamingRequest();
             }
           }
