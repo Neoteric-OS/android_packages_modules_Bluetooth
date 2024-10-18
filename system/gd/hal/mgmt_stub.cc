@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2009-2012 Broadcom Corporation
+ *  Copyright 2024 The Android Open Source Project
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -16,19 +16,21 @@
  *
  ******************************************************************************/
 
-/*******************************************************************************
- *
- *  Filename:      btif_pan.h
- *
- *  Description:   Bluetooth pan Interface
- *
- ******************************************************************************/
+/*
+ * MGMT stub
+ */
 
-#pragma once
+#include <bluetooth/log.h>
 
-#include "hardware/bluetooth.h"
-#include "hardware/bt_pan.h"
+#include "hal/mgmt.h"
 
-const btpan_interface_t* btif_pan_get_interface();
-void btif_pan_init();
-void btif_pan_cleanup();
+namespace bluetooth {
+namespace hal {
+
+uint16_t Mgmt::get_vs_opcode(uint16_t vendor_specification) {
+  log::debug("Using stub for vendor opcode 0x{:04x}", vendor_specification);
+  return 0;
+}
+
+}  // namespace hal
+}  // namespace bluetooth
