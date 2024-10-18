@@ -96,7 +96,7 @@ private:
     virtual void StartSession() = 0;
     virtual void StopSession() = 0;
     virtual void ConfirmSuspendRequest() = 0;
-    virtual void ConfirmStreamingRequest() = 0;
+    virtual void ConfirmStreamingRequest(bool force) = 0;
     virtual void CancelStreamingRequest() = 0;
     virtual void UpdateAudioConfigToHal(const ::bluetooth::le_audio::offload_config& config) = 0;
     virtual void SuspendedForReconfiguration() = 0;
@@ -115,7 +115,7 @@ public:
     void StartSession() override;
     void StopSession() override;
     void ConfirmSuspendRequest() override;
-    void ConfirmStreamingRequest() override;
+    void ConfirmStreamingRequest(bool force) override;
     void CancelStreamingRequest() override;
     void UpdateAudioConfigToHal(const ::bluetooth::le_audio::offload_config& config) override;
     void UpdateBroadcastAudioConfigToHal(
@@ -147,7 +147,7 @@ public:
     void StartSession() override;
     void StopSession() override;
     void ConfirmSuspendRequest() override;
-    void ConfirmStreamingRequest() override;
+    void ConfirmStreamingRequest(bool force) override;
     void CancelStreamingRequest() override;
     void UpdateAudioConfigToHal(const ::bluetooth::le_audio::offload_config& config) override;
     void SuspendedForReconfiguration() override;

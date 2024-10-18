@@ -1178,6 +1178,20 @@ public:
       log::error("Unknown group id: %d", group_id);
     }
 
+    if (output_codec_config.codec_type ==
+        bluetooth::le_audio::btle_audio_codec_index_t::LE_AUDIO_CODEC_INDEX_SOURCE_APTX_LEX) {
+      group->DisableLeXCodec(false);
+      log::debug("Enabling LeX Codec");
+      group->UpdateAudioSetConfigurationCache(LeAudioContextType::MEDIA);
+      group->UpdateAudioSetConfigurationCache(LeAudioContextType::CONVERSATIONAL);
+    } else if (output_codec_config.codec_type ==
+        bluetooth::le_audio::btle_audio_codec_index_t::LE_AUDIO_CODEC_INDEX_SOURCE_DEFAULT) {
+      group->DisableLeXCodec(true);
+      log::debug("Disabling LeX Codec");
+      group->UpdateAudioSetConfigurationCache(LeAudioContextType::MEDIA);
+      group->UpdateAudioSetConfigurationCache(LeAudioContextType::CONVERSATIONAL);
+    }
+
     if (group->SetPreferredAudioSetConfiguration(input_codec_config, output_codec_config)) {
       log::info("group id: {}, setting preferred codec is successful.", group_id);
     } else {
@@ -4032,8 +4046,8 @@ public:
     }
   }
 
-  void ConfirmLocalAudioSourceStreamingRequest() {
-    le_audio_source_hal_client_->ConfirmStreamingRequest();
+  void ConfirmLocalAudioSourceStreamingRequest(bool force) {
+    le_audio_source_hal_client_->ConfirmStreamingRequest(force);
 
     LeAudioLogHistory::Get()->AddLogHistory(
             kLogBtCallAf, active_group_id_, RawAddress::kEmpty, kLogAfResumeConfirm + "LocalSource",
@@ -4042,8 +4056,8 @@ public:
     audio_sender_state_ = AudioState::STARTED;
   }
 
-  void ConfirmLocalAudioSinkStreamingRequest() {
-    le_audio_sink_hal_client_->ConfirmStreamingRequest();
+  void ConfirmLocalAudioSinkStreamingRequest(bool force) {
+    le_audio_sink_hal_client_->ConfirmStreamingRequest(force);
 
     LeAudioLogHistory::Get()->AddLogHistory(
             kLogBtCallAf, active_group_id_, RawAddress::kEmpty, kLogAfResumeConfirm + "LocalSink",
@@ -4105,7 +4119,7 @@ public:
     }
 
     le_audio_source_hal_client_->UpdateRemoteDelay(remote_delay_ms);
-    ConfirmLocalAudioSourceStreamingRequest();
+    ConfirmLocalAudioSourceStreamingRequest(false);
 
     if (!LeAudioHalVerifier::SupportsStreamActiveApi()) {
       /* We update the target audio allocation before streamStarted so that the
@@ -4205,7 +4219,7 @@ public:
       }
     }
     le_audio_sink_hal_client_->UpdateRemoteDelay(remote_delay_ms);
-    ConfirmLocalAudioSinkStreamingRequest();
+    ConfirmLocalAudioSinkStreamingRequest(false);
 
     if (!LeAudioHalVerifier::SupportsStreamActiveApi()) {
       /* We update the target audio allocation before streamStarted so that the
@@ -4624,7 +4638,7 @@ public:
     switch (audio_sender_state_) {
       case AudioState::STARTED:
         /* Looks like previous Confirm did not get to the Audio Framework*/
-        ConfirmLocalAudioSourceStreamingRequest();
+        ConfirmLocalAudioSourceStreamingRequest(false);
         break;
       case AudioState::IDLE:
         switch (audio_receiver_state_) {
@@ -4734,7 +4748,7 @@ public:
             if (alarm_is_scheduled(suspend_timeout_)) {
               alarm_cancel(suspend_timeout_);
             }
-            ConfirmLocalAudioSourceStreamingRequest();
+            ConfirmLocalAudioSourceStreamingRequest(false);
             bluetooth::le_audio::MetricsCollector::Get()->OnStreamStarted(
                     active_group_id_, configuration_context_type_);
             break;
@@ -4908,7 +4922,7 @@ public:
 
     switch (audio_receiver_state_) {
       case AudioState::STARTED:
-        ConfirmLocalAudioSinkStreamingRequest();
+        ConfirmLocalAudioSinkStreamingRequest(false);
         break;
       case AudioState::IDLE:
         switch (audio_sender_state_) {
@@ -5017,7 +5031,7 @@ public:
             if (alarm_is_scheduled(suspend_timeout_)) {
               alarm_cancel(suspend_timeout_);
             }
-            ConfirmLocalAudioSinkStreamingRequest();
+            ConfirmLocalAudioSinkStreamingRequest(false);
             break;
           case AudioState::RELEASING:
             /* Wait until releasing is completed */
@@ -5866,12 +5880,38 @@ public:
       log::error("Invalid group: {}", active_group_id_);
       return;
     }
-    log::warn("QhciVscEvt: {} delay {} mode.", delay, mode);
-    if (delay != 0xFFFF) {
-      group->stream_conf.stream_params.sink.delay = delay;
-    }
+    log::warn("{} delay {} mode.", delay, mode);
     if (mode != 0xFF) {
       group->stream_conf.stream_params.sink.mode = mode;
+      if (group->IsStreaming()) {
+        log::warn("updating mode to bt audio hal");
+        group->UpdateCisConfiguration(bluetooth::le_audio::types::kLeAudioDirectionSink);
+        BidirectionalPair<uint16_t> delays_pair = {
+          .sink = group->stream_conf.stream_params.sink.delay,
+          .source = 0};
+        CodecManager::GetInstance()->UpdateActiveAudioConfig(
+          group->stream_conf.stream_params, delays_pair, group->stream_conf.codec_id,
+          std::bind(&LeAudioClientImpl::UpdateAudioConfigToHal,
+                  weak_factory_.GetWeakPtr(), std::placeholders::_1,
+                  std::placeholders::_2));
+        ConfirmLocalAudioSourceStreamingRequest(true);
+      }
+    }
+    if (delay != 0xFFFF) {
+      group->stream_conf.stream_params.sink.delay = delay;
+      if (group->IsStreaming()) {
+        log::warn("updating delay to bt audio hal");
+        group->UpdateCisConfiguration(bluetooth::le_audio::types::kLeAudioDirectionSink);
+        BidirectionalPair<uint16_t> delays_pair = {
+          .sink = delay,
+          .source = 0};
+        CodecManager::GetInstance()->UpdateActiveAudioConfig(
+          group->stream_conf.stream_params, delays_pair, group->stream_conf.codec_id,
+          std::bind(&LeAudioClientImpl::UpdateAudioConfigToHal,
+                  weak_factory_.GetWeakPtr(), std::placeholders::_1,
+                  std::placeholders::_2));
+        ConfirmLocalAudioSourceStreamingRequest(true);
+      }
     }
   }
 
