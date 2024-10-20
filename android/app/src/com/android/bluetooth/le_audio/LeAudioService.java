@@ -247,7 +247,8 @@ public class LeAudioService extends ProfileService {
     }
 
     private static class LeAudioGroupDescriptor {
-        LeAudioGroupDescriptor(boolean isInbandRingtonEnabled) {
+        LeAudioGroupDescriptor(int groupId, boolean isInbandRingtonEnabled) {
+            mGroupId = groupId;
             mIsConnected = false;
             mActiveState = ACTIVE_STATE_INACTIVE;
             mAllowedSinkContexts = BluetoothLeAudio.CONTEXTS_ALL;
@@ -264,6 +265,7 @@ public class LeAudioService extends ProfileService {
             mInactivatedDueToContextType = false;
         }
 
+        Integer mGroupId;
         Boolean mIsConnected;
         Boolean mHasFallbackDeviceWhenGettingInactive;
         Integer mDirection;
@@ -297,11 +299,17 @@ public class LeAudioService extends ProfileService {
             if ((state != ACTIVE_STATE_ACTIVE)
                     && (state != ACTIVE_STATE_INACTIVE)
                     && (state != ACTIVE_STATE_GETTING_ACTIVE)) {
-                Log.e(TAG, "LeAudioGroupDescriptor.setActiveState: Invalid state set: " + state);
+                Log.e(
+                        TAG,
+                        ("LeAudioGroupDescriptor.setActiveState (groupId: " + mGroupId + "):")
+                                + ("Invalid state set: " + state));
                 return;
             }
 
-            Log.d(TAG, "LeAudioGroupDescriptor.setActiveState: " + mActiveState + " -> " + state);
+            Log.d(
+                    TAG,
+                    ("LeAudioGroupDescriptor.setActiveState (groupId: " + mGroupId + "): ")
+                            + (mActiveState + " -> " + state));
             mActiveState = state;
         }
 
@@ -321,7 +329,9 @@ public class LeAudioService extends ProfileService {
         void updateAllowedContexts(Integer allowedSinkContexts, Integer allowedSourceContexts) {
             Log.d(
                     TAG,
-                    "LeAudioGroupDescriptor.mAllowedSinkContexts: "
+                    "LeAudioGroupDescriptor.mAllowedSinkContexts (groupId: "
+                            + mGroupId
+                            + "): "
                             + mAllowedSinkContexts
                             + " -> "
                             + allowedSinkContexts
@@ -1991,12 +2001,12 @@ public class LeAudioService extends ProfileService {
                 mAdapterService
                         .getBluetoothScanController()
                         .getTransitionalScanHelper()
-                        .registerScannerInternal(this, null);
+                        .registerScannerInternal(this, getAttributionSource(), null);
             } else {
                 mAdapterService
                         .getBluetoothGattService()
                         .getTransitionalScanHelper()
-                        .registerScannerInternal(this, null);
+                        .registerScannerInternal(this, getAttributionSource(), null);
             }
         }
 
@@ -2159,7 +2169,8 @@ public class LeAudioService extends ProfileService {
                         + (", isSink: " + isSink)
                         + (" isSource: " + isSource)
                         + (", mActiveAudioInDevice: " + mActiveAudioInDevice)
-                        + (", mActiveAudioOutDevice: " + mActiveAudioOutDevice));
+                        + (", mActiveAudioOutDevice: " + mActiveAudioOutDevice)
+                        + (", mExposedActiveDevice: " + mExposedActiveDevice));
 
         if (!device.equals(mExposedActiveDevice)) {
             return;
@@ -2174,9 +2185,21 @@ public class LeAudioService extends ProfileService {
             return;
         }
 
-        Log.i(TAG, "Audio manager disactivate LeAudio device " + mExposedActiveDevice);
-        mExposedActiveDevice = null;
-        setActiveDevice(null);
+        if (device.equals(mActiveAudioInDevice) || device.equals(mActiveAudioOutDevice)) {
+            Log.i(TAG, "Audio manager disactivate LeAudio device " + mExposedActiveDevice);
+            mExposedActiveDevice = null;
+            setActiveDevice(null);
+            return;
+        }
+
+        Log.i(
+                TAG,
+                ("LeAudio active device switch: "
+                        + mExposedActiveDevice
+                        + " -> "
+                        + (mActiveAudioInDevice != null
+                                ? mActiveAudioInDevice
+                                : mActiveAudioOutDevice)));
     }
 
     /* Notifications of audio device connection/disconn events. */
@@ -4994,7 +5017,7 @@ public class LeAudioService extends ProfileService {
 
             LeAudioGroupDescriptor groupDescriptor = getGroupDescriptor(groupId);
             if (groupDescriptor == null) {
-                mGroupDescriptors.put(groupId, new LeAudioGroupDescriptor(false));
+                mGroupDescriptors.put(groupId, new LeAudioGroupDescriptor(groupId, false));
             }
             groupDescriptor = getGroupDescriptor(groupId);
             if (groupDescriptor == null) {
