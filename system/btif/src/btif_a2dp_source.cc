@@ -248,7 +248,6 @@ static void btif_a2dp_source_audio_tx_flush_event(void);
 // The peer address is |peer_addr|.
 // This function should be called prior to starting A2DP streaming.
 static void btif_a2dp_source_setup_codec(const RawAddress& peer_addr);
-static void btif_a2dp_source_setup_codec_delayed(const RawAddress& peer_address);
 static void btif_a2dp_source_cleanup_codec();
 static void btif_a2dp_source_cleanup_codec_delayed();
 static void btif_a2dp_source_encoder_user_config_update_event(
@@ -427,7 +426,9 @@ static void btif_a2dp_source_startup_delayed() {
 bool btif_a2dp_source_start_session(const RawAddress& peer_address,
                                     std::promise<void> peer_ready_promise) {
   log::info("peer_address={} state={}", peer_address, btif_a2dp_source_cb.StateStr());
-  btif_a2dp_source_setup_codec(peer_address);
+
+  btif_a2dp_source_audio_tx_flush_req();
+
   if (btif_a2dp_source_thread.DoInThread(
               FROM_HERE, base::BindOnce(&btif_a2dp_source_start_session_delayed, peer_address,
                                         std::move(peer_ready_promise)))) {
@@ -443,11 +444,15 @@ bool btif_a2dp_source_start_session(const RawAddress& peer_address,
 static void btif_a2dp_source_start_session_delayed(const RawAddress& peer_address,
                                                    std::promise<void> peer_ready_promise) {
   log::info("peer_address={} state={}", peer_address, btif_a2dp_source_cb.StateStr());
+
+  btif_a2dp_source_setup_codec(peer_address);
+
   if (btif_a2dp_source_cb.State() != BtifA2dpSource::kStateRunning) {
     log::error("A2DP Source media task is not running");
     peer_ready_promise.set_value();
     return;
   }
+
   if (bluetooth::audio::a2dp::is_hal_enabled()) {
     bluetooth::audio::a2dp::start_session();
     bluetooth::audio::a2dp::set_remote_delay(btif_av_get_audio_delay(A2dpType::kSource));
@@ -457,6 +462,7 @@ static void btif_a2dp_source_start_session_delayed(const RawAddress& peer_addres
     BluetoothMetricsLogger::GetInstance()->LogBluetoothSessionStart(
             bluetooth::common::CONNECTION_TECHNOLOGY_TYPE_BREDR, 0);
   }
+
   peer_ready_promise.set_value();
 }
 
@@ -574,18 +580,6 @@ bool btif_a2dp_source_media_task_is_shutting_down(void) {
 // This runs on worker thread
 bool btif_a2dp_source_is_streaming(void) { return btif_a2dp_source_cb.media_alarm.IsScheduled(); }
 
-static void btif_a2dp_source_setup_codec(const RawAddress& peer_address) {
-  log::info("peer_address={} state={}", peer_address, btif_a2dp_source_cb.StateStr());
-
-  // Check to make sure the platform has 8 bits/byte since
-  // we're using that in frame size calculations now.
-  static_assert(CHAR_BIT == 8, "assert failed: CHAR_BIT == 8");
-
-  btif_a2dp_source_audio_tx_flush_req();
-  btif_a2dp_source_thread.DoInThread(
-          FROM_HERE, base::BindOnce(&btif_a2dp_source_setup_codec_delayed, peer_address));
-}
-
 /// Return the MTU for the active peer audio connection.
 static uint16_t btif_a2dp_get_peer_mtu(A2dpCodecConfig* a2dp_config) {
   uint8_t codec_info[AVDT_CODEC_SIZE];
@@ -621,7 +615,7 @@ static uint16_t btif_a2dp_get_peer_mtu(A2dpCodecConfig* a2dp_config) {
   return peer_mtu;
 }
 
-static void btif_a2dp_source_setup_codec_delayed(const RawAddress& peer_address) {
+static void btif_a2dp_source_setup_codec(const RawAddress& peer_address) {
   log::info("peer_address={} state={}", peer_address, btif_a2dp_source_cb.StateStr());
 
   tA2DP_ENCODER_INIT_PEER_PARAMS peer_params;
