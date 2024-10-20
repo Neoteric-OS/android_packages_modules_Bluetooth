@@ -852,12 +852,10 @@ public class BassClientStateMachine extends StateMachine {
             }
         }
         metaData.setEncrypted(encrypted);
-        if (Flags.leaudioBroadcastMonitorSourceSyncStatus()) {
-            // update the rssi value
-            ScanResult scanRes = mService.getCachedBroadcast(result.getBroadcastId());
-            if (scanRes != null) {
-                metaData.setRssi(scanRes.getRssi());
-            }
+        // update the rssi value
+        ScanResult scanRes = mService.getCachedBroadcast(result.getBroadcastId());
+        if (scanRes != null) {
+            metaData.setRssi(scanRes.getRssi());
         }
         return metaData.build();
     }
@@ -1567,12 +1565,10 @@ public class BassClientStateMachine extends StateMachine {
                                 + " leaudioBroadcastExtractPeriodicScannerFromStateMachine flag");
             }
             log("OnSyncLost" + syncHandle);
-            if (Flags.leaudioBroadcastMonitorSourceSyncStatus()) {
-                int broadcastId = mService.getBroadcastIdForSyncHandle(syncHandle);
-                if (broadcastId != BassConstants.INVALID_BROADCAST_ID) {
-                    log("Notify broadcast source lost, broadcast id: " + broadcastId);
-                    mService.getCallbacks().notifySourceLost(broadcastId);
-                }
+            int broadcastId = mService.getBroadcastIdForSyncHandle(syncHandle);
+            if (broadcastId != BassConstants.INVALID_BROADCAST_ID) {
+                log("Notify broadcast source lost, broadcast id: " + broadcastId);
+                mService.getCallbacks().notifySourceLost(broadcastId);
             }
             cancelActiveSync(syncHandle);
         }

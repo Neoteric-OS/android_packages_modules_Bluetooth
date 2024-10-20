@@ -1771,8 +1771,12 @@ public:
         GroupStop(previous_active_group);
       } else {
         log::info(" Previous group not streaming");
+        SuspendedForReconfiguration();
         GroupStop(previous_active_group);
-        callbacks_->OnGroupStatus(previous_active_group, GroupStatus::INACTIVE);
+        /* Note: On purpose we are not sending INACTIVE status up to Java, because previous active
+         * group will be provided in ACTIVE status. This is in order to have single call to audio
+         * framework
+         */
       }
     }
 
