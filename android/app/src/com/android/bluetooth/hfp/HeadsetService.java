@@ -174,7 +174,7 @@ public class HeadsetService extends ProfileService {
     private final AudioManagerAudioDeviceCallback mAudioManagerAudioDeviceCallback =
             new AudioManagerAudioDeviceCallback();
     private static HeadsetService sHeadsetService;
-    private static final int AUDIO_CONNECTION_DELAY_DEFAULT = 100;
+    private static final int AUDIO_CONNECTION_DELAY_DEFAULT = 350;
     private boolean mDelayDsDaindicators = false;
 
     @VisibleForTesting boolean mIsAptXSwbEnabled = false;
