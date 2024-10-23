@@ -1211,9 +1211,7 @@ void GATT_SetIdleTimeout(const RawAddress& bd_addr, uint16_t idle_tout, tBT_TRAN
   if (p_tcb != nullptr) {
     status = stack::l2cap::get_interface().L2CA_SetLeGattTimeout(bd_addr, idle_tout);
 
-    if (is_active) {
-      status &= stack::l2cap::get_interface().L2CA_MarkLeLinkAsActive(bd_addr);
-    }
+    status &= stack::l2cap::get_interface().L2CA_MarkLeLinkAsActive(bd_addr, is_active);
 
     if (idle_tout == GATT_LINK_IDLE_TIMEOUT_WHEN_NO_APP) {
       if (!stack::l2cap::get_interface().L2CA_SetIdleTimeoutByBdAddr(

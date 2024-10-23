@@ -584,7 +584,7 @@ public:
    ******************************************************************************/
   virtual bool L2CA_SetLeGattTimeout(const RawAddress& rem_bda, uint16_t idle_tout) = 0;
 
-  virtual bool L2CA_MarkLeLinkAsActive(const RawAddress& rem_bda) = 0;
+  virtual bool L2CA_MarkLeLinkAsActive(const RawAddress& rem_bda, bool is_active) = 0;
 
   virtual bool L2CA_UpdateBleConnParams(const RawAddress& rem_bda, uint16_t min_int,
                                         uint16_t max_int, uint16_t latency, uint16_t timeout,
