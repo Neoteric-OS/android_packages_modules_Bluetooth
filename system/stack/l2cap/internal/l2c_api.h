@@ -678,8 +678,7 @@ typedef void(tL2CA_FIXED_CONGESTION_STATUS_CB)(const RawAddress&, bool);
  ******************************************************************************/
 [[nodiscard]] bool L2CA_SetLeGattTimeout(const RawAddress& rem_bda, uint16_t idle_tout);
 
-[[nodiscard]] bool L2CA_MarkLeLinkAsActive(const RawAddress& rem_bda,
-                                           bool is_active);
+[[nodiscard]] bool L2CA_MarkLeLinkAsActive(const RawAddress& rem_bda);
 
 [[nodiscard]] bool L2CA_UpdateBleConnParams(const RawAddress& rem_bda, uint16_t min_int,
                                             uint16_t max_int, uint16_t latency, uint16_t timeout,
