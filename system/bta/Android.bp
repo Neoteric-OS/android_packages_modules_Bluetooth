@@ -74,6 +74,8 @@ cc_library_static {
         "av/bta_av_main.cc",
         "av/bta_av_ssm.cc",
         "csis/csis_client.cc",
+        "gmap/gmap_client.cc",
+        "gmap/gmap_server.cc",
         "groups/groups.cc",
         "has/has_client.cc",
         "has/has_ctp.cc",
@@ -814,7 +816,7 @@ cc_test {
         "liblog", // __android_log_print
     ],
     static_libs: [
-        "bluetooth_flags_c_lib",
+        "bluetooth_flags_c_lib_for_test",
         "libbluetooth-types",
         "libbluetooth_crypto_toolbox",
         "libbluetooth_gd",
@@ -874,6 +876,7 @@ cc_test {
         ":TestMockStackBtmIso",
         ":TestMockStackL2cap",
         ":TestStubOsi",
+        "gmap/gmap_client.cc",
         "le_audio/audio_hal_client/audio_hal_client_test.cc",
         "le_audio/audio_hal_client/audio_sink_hal_client.cc",
         "le_audio/audio_hal_client/audio_source_hal_client.cc",
@@ -975,6 +978,10 @@ cc_test {
         ":TestMockStackHcic",
         "gatt/database.cc",
         "gatt/database_builder.cc",
+        "gmap/gmap_client.cc",
+        "gmap/gmap_client_test.cc",
+        "gmap/gmap_server.cc",
+        "gmap/gmap_server_test.cc",
         "le_audio/broadcaster/broadcast_configuration_provider.cc",
         "le_audio/broadcaster/broadcaster_types.cc",
         "le_audio/client.cc",
@@ -1249,6 +1256,7 @@ cc_test {
         "liblog",
     ],
     static_libs: [
+        "bluetooth_flags_c_lib_for_test",
         "libbluetooth-types",
         "libbluetooth_crypto_toolbox",
         "libbluetooth_gd",
@@ -1257,6 +1265,7 @@ cc_test {
         "libchrome",
         "libgmock",
         "libbase",
+        "server_configurable_flags",
     ],
     sanitize: {
         cfi: true,

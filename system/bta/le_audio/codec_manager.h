@@ -111,7 +111,7 @@ public:
   virtual bool IsAptxAdaptiveLeSupported(void) const;
   virtual bool IsAptxAdaptiveLeXSupported(void) const;
   virtual bool IsEnhancedLeGamingSupported(void) const;
-  virtual void UpdateCisConfiguration(const std::vector<struct types::cis>& cises,
+  virtual bool UpdateCisConfiguration(const std::vector<struct types::cis>& cises,
                                       const stream_parameters& stream_params, uint8_t direction);
   virtual void ClearCisConfiguration(uint8_t direction);
   virtual bool IsUsingCodecExtensibility() const;

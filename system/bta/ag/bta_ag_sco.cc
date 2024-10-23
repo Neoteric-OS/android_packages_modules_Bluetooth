@@ -727,7 +727,7 @@ void bta_ag_codec_negotiate(tBTA_AG_SCB* p_scb) {
       log::verbose("Sending +QCS, sco_codec={}, is_aptx_swb_codec={}", p_scb->sco_codec,
                    p_scb->is_aptx_swb_codec);
       /* Send +QCS to the peer */
-      bta_ag_send_qcs(p_scb, NULL);
+      bta_ag_send_qcs(p_scb);
     } else {
       if (aptx_voice && (p_scb->peer_codecs & BTA_AG_SCO_APTX_SWB_SETTINGS_Q0_MASK)) {
         p_scb->sco_codec = BTM_SCO_CODEC_MSBC;
