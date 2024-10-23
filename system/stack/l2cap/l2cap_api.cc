@@ -183,8 +183,8 @@ void bluetooth::stack::l2cap::Impl::L2CA_DeregisterLECoc(uint16_t psm) {
 }
 
 [[nodiscard]] bool bluetooth::stack::l2cap::Impl::L2CA_MarkLeLinkAsActive(
-        const RawAddress& rem_bda, bool is_active) {
-  return ::L2CA_MarkLeLinkAsActive(rem_bda, is_active);
+        const RawAddress& rem_bda) {
+  return ::L2CA_MarkLeLinkAsActive(rem_bda);
 }
 
 [[nodiscard]] bool bluetooth::stack::l2cap::Impl::L2CA_UpdateBleConnParams(

@@ -101,7 +101,7 @@ public:
   MOCK_METHOD(tHCI_ROLE, L2CA_GetBleConnRole, (const RawAddress& bd_addr));
   MOCK_METHOD(uint16_t, L2CA_GetBleConnInterval, (const RawAddress& bd_addr));
   MOCK_METHOD(bool, L2CA_SetLeGattTimeout, (const RawAddress& bd_addr, uint16_t idle_tout));
-  MOCK_METHOD(bool, L2CA_MarkLeLinkAsActive, (const RawAddress& bd_addr, bool is_active));
+  MOCK_METHOD(bool, L2CA_MarkLeLinkAsActive, (const RawAddress& bd_addr));
   MOCK_METHOD(bool, L2CA_GetPeerLECocConfig, (uint16_t lcid, tL2CAP_LE_CFG_INFO* peer_cfg));
   MOCK_METHOD(uint16_t, L2CA_LeCreditDefault, ());
   MOCK_METHOD(uint16_t, L2CA_LeCreditThreshold, ());
