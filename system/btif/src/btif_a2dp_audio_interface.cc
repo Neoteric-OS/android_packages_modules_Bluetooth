@@ -37,7 +37,6 @@
 #include "btif/include/btif_hf.h"
 #include "common/metrics.h"
 #include "common/time_util.h"
-#include "os/log.h"
 #include "stack/include/a2dp_codec_api.h"
 #include "stack/include/avdt_api.h"
 #include "stack/include/btu.h"  // do_in_main_thread

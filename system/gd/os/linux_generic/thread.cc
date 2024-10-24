@@ -25,8 +25,6 @@
 #include <cerrno>
 #include <cstring>
 
-#include "os/log.h"
-
 namespace bluetooth {
 namespace os {
 

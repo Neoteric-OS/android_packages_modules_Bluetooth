@@ -32,7 +32,6 @@
 #include "hci/le_scanning_interface.h"
 #include "module.h"
 #include "os/handler.h"
-#include "os/log.h"
 #include "storage/storage_module.h"
 
 namespace bluetooth::hci {
