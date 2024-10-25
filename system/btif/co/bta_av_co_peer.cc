@@ -22,6 +22,7 @@
 
 #include "bta/include/bta_av_api.h"
 #include "device/include/interop.h"
+#include "os/logging/log_adapter.h"
 #include "osi/include/properties.h"
 
 using namespace bluetooth;

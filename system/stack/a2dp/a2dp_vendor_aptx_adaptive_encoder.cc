@@ -46,7 +46,6 @@
 
 #include "a2dp_vendor.h"
 #include "a2dp_vendor_aptx_adaptive.h"
-#include "os/log.h"
 
 typedef struct {
   uint64_t session_start_us;

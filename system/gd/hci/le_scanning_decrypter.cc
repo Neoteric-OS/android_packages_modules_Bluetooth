@@ -15,7 +15,6 @@
 #include "gd/storage/config_keys.h"
 #include "hci/le_scanning_interface.h"
 #include "os/handler.h"
-#include "os/log.h"
 #include "stack/include/gap_api.h"
 
 namespace bluetooth::hci {

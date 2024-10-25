@@ -27,7 +27,6 @@
 
 #include <future>
 
-#include "os/log.h"
 
 namespace bluetooth {
 namespace audio {
