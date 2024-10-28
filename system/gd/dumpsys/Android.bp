@@ -155,7 +155,6 @@ cc_library {
     name: "libbluetooth-dumpsys",
     host_supported: true,
     defaults: [
-        "gd_clang_tidy",
         "gd_defaults",
     ],
     generated_sources: [
@@ -172,7 +171,6 @@ cc_library {
     name: "libbluetooth-dumpsys-test",
     host_supported: true,
     defaults: [
-        "gd_clang_tidy",
         "gd_defaults",
     ],
     generated_sources: [
@@ -184,7 +182,6 @@ cc_library {
     name: "libbluetooth-dumpsys-unittest",
     host_supported: true,
     defaults: [
-        "gd_clang_tidy",
         "gd_defaults",
     ],
     generated_headers: [
