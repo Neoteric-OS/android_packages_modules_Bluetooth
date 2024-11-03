@@ -989,9 +989,13 @@ static void btif_a2dp_source_audio_handle_timer(void) {
 }
 
 static uint32_t btif_a2dp_source_read_callback(uint8_t* p_buf, uint32_t len) {
+  if (!btif_a2dp_source_cb.sw_audio_is_encoding) {
+    return 0;
+  }
+
   uint32_t bytes_read = bluetooth::audio::a2dp::read(p_buf, len);
 
-  if (btif_a2dp_source_cb.sw_audio_is_encoding && bytes_read < len) {
+  if (bytes_read < len) {
     log::warn("UNDERFLOW: ONLY READ {} BYTES OUT OF {}", bytes_read, len);
     btif_a2dp_source_cb.stats.media_read_total_underflow_bytes += (len - bytes_read);
     btif_a2dp_source_cb.stats.media_read_total_underflow_count++;
