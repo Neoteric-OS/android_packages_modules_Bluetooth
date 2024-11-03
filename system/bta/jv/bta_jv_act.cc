@@ -39,8 +39,6 @@
 #include "osi/include/properties.h"
 #include "stack/btm/btm_sec.h"
 #include "stack/include/acl_api.h"
-#include "stack/include/avct_api.h"  // AVCT_PSM
-#include "stack/include/avdt_api.h"  // AVDT_PSM
 #include "stack/include/bt_hdr.h"
 #include "stack/include/bt_psm_types.h"
 #include "stack/include/bt_types.h"
@@ -630,8 +628,8 @@ bool bta_jv_check_psm(uint16_t psm) {
           }
           break;
 
-        case AVCT_PSM: /* 0x17 */
-        case AVDT_PSM: /* 0x19 */
+        case BT_PSM_AVCTP: /* 0x17 */
+        case BT_PSM_AVDTP: /* 0x19 */
           if (!bta_sys_is_register(BTA_ID_AV)) {
             ret = true;
           }

@@ -1489,6 +1489,11 @@ public final class BluetoothAdapter {
                         throw e.rethrowAsRuntimeException();
                     }
                 }
+                @RequiresNoPermission
+                @Override
+                public boolean shouldBypassCache(IBluetooth serviceQuery) {
+                    return false;
+                }
             };
 
     private static final IpcDataCache.QueryHandler<IBluetoothManager, Integer>
@@ -1502,6 +1507,11 @@ public final class BluetoothAdapter {
                             } catch (RemoteException e) {
                                 throw e.rethrowAsRuntimeException();
                             }
+                        }
+                        @RequiresNoPermission
+                        @Override
+                        public boolean shouldBypassCache(IBluetoothManager serviceQuery) {
+                            return false;
                         }
                     };
 
@@ -2430,6 +2440,11 @@ public final class BluetoothAdapter {
                         throw e.rethrowAsRuntimeException();
                     }
                 }
+                @RequiresNoPermission
+                @Override
+                public boolean shouldBypassCache(IBluetooth serviceQuery) {
+                    return false;
+                }
             };
 
     private static final String FILTERING_API = "BluetoothAdapter_isOffloadedFilteringSupported";
@@ -2982,6 +2997,11 @@ public final class BluetoothAdapter {
                                 throw e.rethrowAsRuntimeException();
                             }
                         }
+                        @RequiresNoPermission
+                        @Override
+                        public boolean shouldBypassCache(IBluetooth serviceQuery) {
+                            return false;
+                        }
                     };
 
     private static final String GET_CONNECTION_API = "BluetoothAdapter_getConnectionState";
@@ -3050,6 +3070,12 @@ public final class BluetoothAdapter {
                             } catch (RemoteException e) {
                                 throw e.rethrowAsRuntimeException();
                             }
+                        }
+                        @RequiresNoPermission
+                        @Override
+                        public boolean shouldBypassCache(
+                            Pair<IBluetooth, Pair<AttributionSource, Integer>> pairQuery) {
+                            return false;
                         }
                     };
 
