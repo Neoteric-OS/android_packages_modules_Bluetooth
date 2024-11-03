@@ -162,6 +162,7 @@ cc_test {
         ":BluetoothOsSources_host",
         ":TestCommonMainHandler",
         ":TestCommonMockFunctions",
+        ":TestFakeOsi",
         ":TestMockBta",
         ":TestMockBtif",
         ":TestMockBtu",

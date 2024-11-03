@@ -21,7 +21,6 @@
 #include <string>
 
 #include "include/hardware/bluetooth.h"
-#include "os/log.h"
 #include "stack/include/bt_name.h"
 #include "types/bluetooth/uuid.h"
 
