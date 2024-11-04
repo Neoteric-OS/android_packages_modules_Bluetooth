@@ -1175,6 +1175,23 @@ public class ActiveDeviceManager implements AdapterService.BluetoothStateCallbac
         return false;
     }
 
+    @GuardedBy("mLock")
+    private boolean areSameGroupMembers(BluetoothDevice firstDevice, BluetoothDevice secondDevice) {
+
+        if (!Flags.admFixDisconnectOfSetMember()) {
+            /* This function shall return false without the fix flag. */
+            return false;
+        }
+
+        final LeAudioService leAudioService = mFactory.getLeAudioService();
+        if (leAudioService == null) {
+            Log.e(TAG, "LeAudioService not available");
+            return false;
+        }
+
+        return leAudioService.getGroupId(firstDevice) == leAudioService.getGroupId(secondDevice);
+    }
+
     /**
      * TODO: This method can return true when a fallback device for an unrelated profile is found.
      * Take disconnected profile as an argument, and find the exact fallback device. Also, split
@@ -1217,6 +1234,13 @@ public class ActiveDeviceManager implements AdapterService.BluetoothStateCallbac
                     setLeAudioActiveDevice(null, hasFallbackDevice);
                 } else {
                     Log.d(TAG, "Found a LE hearing aid fallback device: " + device);
+                    if (areSameGroupMembers(recentlyRemovedDevice, device)) {
+                        Log.d(
+                                TAG,
+                                "Do nothing, removed device belong to the same group as the"
+                                        + " fallback device.");
+                        return true;
+                    }
                     setLeHearingAidActiveDevice(device);
                     setHearingAidActiveDevice(null, hasFallbackDevice);
                     setA2dpActiveDevice(null, hasFallbackDevice);
@@ -1286,6 +1310,14 @@ public class ActiveDeviceManager implements AdapterService.BluetoothStateCallbac
                 setHearingAidActiveDevice(null, true);
             } else {
                 Log.d(TAG, "Found a LE audio fallback device: " + device);
+                if (areSameGroupMembers(recentlyRemovedDevice, device)) {
+                    Log.d(
+                            TAG,
+                            "Do nothing, removed device belong to the same group as the fallback"
+                                    + " device.");
+                    return true;
+                }
+
                 if (!setLeAudioActiveDevice(device)) {
                     return false;
                 }
@@ -1315,6 +1347,14 @@ public class ActiveDeviceManager implements AdapterService.BluetoothStateCallbac
                 setHearingAidActiveDevice(null, true);
             } else {
                 Log.d(TAG, "Found a LE audio fallback device: " + device);
+                if (areSameGroupMembers(recentlyRemovedDevice, device)) {
+                    Log.d(
+                            TAG,
+                            "Do nothing, removed device belong to the same group as the fallback"
+                                    + " device.");
+                    return true;
+                }
+
                 setLeAudioActiveDevice(device);
                 if (!Utils.isDualModeAudioEnabled()) {
                     setA2dpActiveDevice(null, true);

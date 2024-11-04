@@ -55,12 +55,10 @@
 #include "stack/include/bt_hdr.h"
 #include "stack/include/bt_psm_types.h"
 #include "stack/include/btm_client_interface.h"
+#include "stack/include/l2cap_module.h"
 #include "stack/include/main_thread.h"
 #include "stack/l2cap/l2c_int.h"
 #include "types/raw_address.h"
-
-// TODO(b/369381361) Enfore -Wmissing-prototypes
-#pragma GCC diagnostic ignored "-Wmissing-prototypes"
 
 using namespace bluetooth;
 
@@ -68,13 +66,6 @@ extern fixed_queue_t* btu_general_alarm_queue;
 tL2C_AVDT_CHANNEL_INFO av_media_channels[MAX_ACTIVE_AVDT_CONN];
 
 constexpr uint16_t L2CAP_LE_CREDIT_THRESHOLD = 64;
-
-tBT_TRANSPORT l2c_get_transport_from_fixed_cid(uint16_t fixed_cid) {
-  if (fixed_cid >= L2CAP_ATT_CID && fixed_cid <= L2CAP_SMP_CID) {
-    return BT_TRANSPORT_LE;
-  }
-  return BT_TRANSPORT_BR_EDR;
-}
 
 uint16_t L2CA_RegisterWithSecurity(uint16_t psm, const tL2CAP_APPL_INFO& p_cb_info,
                                    bool enable_snoop, tL2CAP_ERTM_INFO* p_ertm_info,
@@ -1773,51 +1764,6 @@ bool L2CA_GetPeerChannelId(uint16_t lcid, uint16_t* rcid) {
   log::assert_that(rcid != nullptr, "assert failed: rcid != nullptr");
   *rcid = p_ccb->remote_cid;
   return true;
-}
-
-/*******************************************************************************
- *
- * Function         L2CA_Ping
- *
- * Description      Higher layers call this function to send an echo request.
- *
- * Returns          true if echo request sent, else false.
- *
- ******************************************************************************/
-bool L2CA_Ping(const RawAddress& p_bd_addr, tL2CA_ECHO_RSP_CB* p_callback) {
-  tL2C_LCB* p_lcb;
-
-  /* Fail if we have not established communications with the controller */
-  if (!get_btm_client_interface().local.BTM_IsDeviceUp()) return (false);
-
-  /* First, see if we already have a link to the remote */
-  p_lcb = l2cu_find_lcb_by_bd_addr(p_bd_addr, BT_TRANSPORT_BR_EDR);
-  if (p_lcb == NULL) {
-    /* No link. Get an LCB and start link establishment */
-    p_lcb = l2cu_allocate_lcb(p_bd_addr, false, BT_TRANSPORT_BR_EDR);
-    if (p_lcb == NULL) {
-      log::error("L2CAP - no LCB for L2CA_ping");
-      return (false);
-    }
-    l2cu_create_conn_br_edr(p_lcb);
-
-    return (true);
-  }
-
-  /* Have a link control block. If link is disconnecting, tell user to retry
-   * later */
-  if (p_lcb->link_state == LST_DISCONNECTING) {
-    log::error("L2CAP - L2CA_ping rejected - link disconnecting");
-    return (false);
-  }
-
-  if (p_lcb->link_state == LST_CONNECTED) {
-    l2cu_adj_id(p_lcb);
-    l2cu_send_peer_echo_req(p_lcb, NULL, 0);
-    alarm_set_on_mloop(p_lcb->l2c_lcb_timer, 30000, l2c_lcb_timer_timeout,
-                       p_lcb);
-  }
-  return (true);
 }
 
 /*******************************************************************************
