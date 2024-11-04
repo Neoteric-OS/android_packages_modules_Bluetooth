@@ -173,6 +173,7 @@ public class BassClientService extends ProfileService {
             new HashMap<>();
     private final Map<Integer, PauseType> mPausedBroadcastIds = new HashMap<>();
     private final Deque<AddSourceData> mPendingAddSources = new ArrayDeque<>();
+    private final Object mPendingAddSourcesLock = new Object();
     private final Map<Integer, HashSet<BluetoothDevice>> mLocalBroadcastReceivers =
             new ConcurrentHashMap<>();
 
@@ -2942,7 +2943,9 @@ public class BassClientService extends ProfileService {
         } else {
             if (!isAllowedToAddSource()) {
                 Log.d(TAG, "Add source to pending list");
-                mPendingAddSources.push(new AddSourceData(sink, sourceMetadata, isGroupOp));
+                synchronized (mPendingAddSourcesLock) {
+                    mPendingAddSources.push(new AddSourceData(sink, sourceMetadata, isGroupOp));
+                }
 
                 return;
             }
@@ -3935,13 +3938,15 @@ public class BassClientService extends ProfileService {
 
             if (!leaudioBroadcastAssistantPeripheralEntrustment()) {
                 /* Add pending sources if there are some */
-                while (!mPendingAddSources.isEmpty()) {
-                    AddSourceData addSourceData = mPendingAddSources.pop();
+                synchronized (mPendingAddSourcesLock) {
+                    while (!mPendingAddSources.isEmpty()) {
+                        AddSourceData addSourceData = mPendingAddSources.pop();
 
-                    addSource(
-                            addSourceData.mSink,
-                            addSourceData.mSourceMetadata,
-                            addSourceData.mIsGroupOp);
+                        addSource(
+                                addSourceData.mSink,
+                                addSourceData.mSourceMetadata,
+                                addSourceData.mIsGroupOp);
+                    }
                 }
             }
         } else if (status == STATUS_LOCAL_STREAM_STREAMING) {
