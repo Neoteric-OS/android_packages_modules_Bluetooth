@@ -480,7 +480,8 @@ static tBTA_JV_STATUS bta_jv_free_set_pm_profile_cb(uint32_t jv_handle) {
         bta_jv_pm_conn_idle(&bta_jv_cb.pm_cb[i]);
       }
 
-      if (bd_counter <= 1 || (appid_counter <= 1)) {
+      if (bd_counter <= 1 || (appid_counter <= 1) ||
+          !BTA_DmGetConnectionState(bta_jv_cb.pm_cb[i].peer_bd_addr)) {
         bta_jv_clear_pm_cb(&bta_jv_cb.pm_cb[i], true);
       } else {
         bta_jv_clear_pm_cb(&bta_jv_cb.pm_cb[i], false);
