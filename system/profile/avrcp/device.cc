@@ -688,8 +688,7 @@ void Device::TrackChangedNotificationResponse(uint8_t label, bool interim, std::
     uint64_t uid = (curr_song_id.empty() || curr_song_id == "currsong" ||
                        curr_song_id == "Not Provided") ? 0xffffffffffffffff : 0;
     log::verbose(" uid: {}", uid);
-    auto response =
-        RegisterNotificationResponseBuilder::MakeTrackChangedBuilder(interim, uid);
+    auto response = RegisterNotificationResponseBuilder::MakeTrackChangedBuilder(interim, uid);
     send_message_cb_.Run(label, false, std::move(response));
     return;
   }
