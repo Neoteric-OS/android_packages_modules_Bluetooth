@@ -1135,7 +1135,7 @@ public final class BluetoothSocket implements Closeable {
     public int setSocketOpt(int optionName, byte [] optionVal, int optionLen) throws IOException {
         int ret = 0;
         if (mSocketState == SocketState.CLOSED) throw new IOException("socket closed");
-        IBluetooth bluetoothProxy = BluetoothAdapter.getDefaultAdapter().getBluetoothService(null);
+        IBluetooth bluetoothProxy = BluetoothAdapter.getDefaultAdapter().getBluetoothService();
         if (bluetoothProxy == null) {
             Log.e(TAG, "setSocketOpt fail, reason: bluetooth is off");
             return -1;
@@ -1165,7 +1165,7 @@ public final class BluetoothSocket implements Closeable {
     public int getSocketOpt(int optionName, byte [] optionVal) throws IOException {
         int ret = 0;
         if (mSocketState == SocketState.CLOSED) throw new IOException("socket closed");
-        IBluetooth bluetoothProxy = BluetoothAdapter.getDefaultAdapter().getBluetoothService(null);
+        IBluetooth bluetoothProxy = BluetoothAdapter.getDefaultAdapter().getBluetoothService();
         if (bluetoothProxy == null) {
             Log.e(TAG, "getSocketOpt fail, reason: bluetooth is off");
             return -1;
