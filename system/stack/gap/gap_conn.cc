@@ -26,6 +26,7 @@
 
 #include "btm_int_types.h"
 #include "gap_api.h"
+#include "gap_int.h"
 #include "hci/controller_interface.h"
 #include "internal_include/bt_target.h"
 #include "main/shim/entry.h"
@@ -39,9 +40,6 @@
 #include "stack/include/l2cap_interface.h"
 #include "types/bt_transport.h"
 #include "types/raw_address.h"
-
-// TODO(b/369381361) Enfore -Wmissing-prototypes
-#pragma GCC diagnostic ignored "-Wmissing-prototypes"
 
 using namespace bluetooth;
 extern tBTM_CB btm_cb;
@@ -124,7 +122,7 @@ static void gap_checks_con_flags(tGAP_CCB* p_ccb);
  * Returns          void
  *
  ******************************************************************************/
-void gap_conn_init(void) {
+static void gap_conn_init(void) {
   memset(&conn, 0, sizeof(tGAP_CONN));
   conn.reg_info.pL2CA_ConnectInd_Cb = gap_connect_ind;
   conn.reg_info.pL2CA_ConnectCfm_Cb = gap_connect_cfm;
@@ -1056,8 +1054,6 @@ static void gap_release_ccb(tGAP_CCB* p_ccb) {
     stack::l2cap::get_interface().L2CA_DeregisterLECoc(p_ccb->psm);
   }
 }
-
-void gap_attr_db_init(void);
 
 /*
  * This routine should not be called except once per stack invocation.
