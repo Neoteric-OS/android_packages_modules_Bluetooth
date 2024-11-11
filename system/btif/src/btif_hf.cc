@@ -423,7 +423,8 @@ static void btif_hf_upstreams_evt(uint16_t event, char* p_param) {
           bluetooth::shim::CountCounterMetrics(
                   android::bluetooth::CodePathCounterKeyEnum::HFP_COLLISON_AT_CONNECTING, 1);
           reset_control_block(&btif_hf_cb[idx]);
-          btif_queue_advance();
+          btif_queue_advance_by_uuid(UUID_SERVCLASS_AG_HANDSFREE,
+                                     &btif_hf_cb[idx].connected_bda);
         }
       }
 
@@ -482,7 +483,7 @@ static void btif_hf_upstreams_evt(uint16_t event, char* p_param) {
 
         bluetooth::shim::CountCounterMetrics(
                 android::bluetooth::CodePathCounterKeyEnum::HFP_SELF_INITIATED_AG_FAILED, 1);
-        btif_queue_advance();
+        btif_queue_advance_by_uuid(UUID_SERVCLASS_AG_HANDSFREE, &connected_bda);
         if (btm_sec_is_a_bonded_dev(connected_bda)) {
           DEVICE_IOT_CONFIG_ADDR_INT_ADD_ONE(connected_bda, IOT_CONF_KEY_HFP_SLC_CONN_FAIL_COUNT);
         }
@@ -506,7 +507,7 @@ static void btif_hf_upstreams_evt(uint16_t event, char* p_param) {
         log::error("failed to setup SLC for {}", connected_bda);
         bluetooth::shim::CountCounterMetrics(
                 android::bluetooth::CodePathCounterKeyEnum::HFP_SLC_SETUP_FAILED, 1);
-        btif_queue_advance();
+        btif_queue_advance_by_uuid(UUID_SERVCLASS_AG_HANDSFREE, &connected_bda);
         LogMetricHfpSlcFail(ToGdAddress(p_data->open.bd_addr));
         DEVICE_IOT_CONFIG_ADDR_INT_ADD_ONE(btif_hf_cb[idx].connected_bda,
                                            IOT_CONF_KEY_HFP_SLC_CONN_FAIL_COUNT);
@@ -528,7 +529,8 @@ static void btif_hf_upstreams_evt(uint16_t event, char* p_param) {
       bt_hf_callbacks->ConnectionStateCallback(btif_hf_cb[idx].state,
                                                &btif_hf_cb[idx].connected_bda);
       if (btif_hf_cb[idx].is_initiator) {
-        btif_queue_advance();
+        btif_queue_advance_by_uuid(UUID_SERVCLASS_AG_HANDSFREE,
+                                   &btif_hf_cb[idx].connected_bda);
       }
       break;
 
