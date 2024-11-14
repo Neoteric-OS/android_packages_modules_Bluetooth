@@ -559,7 +559,13 @@ public class AvrcpTargetService extends ProfileService {
                         + (activePlayer == null ? null : activePlayer.getPackageName()));
 
         int keyCode = AvrcpPassthrough.toKeyCode(key);
-        PlayStatus status = getPlayState();
+        PlayStatus status;
+        if (activePlayer != null) {
+            status = PlayStatus.fromPlaybackState(activePlayer.getPlaybackState(),
+                    Long.parseLong(getCurrentSongInfo().duration));
+        } else {
+            status = getPlayState();
+        }
         boolean musicActive = mAudioManager.isMusicActive();
         if (keyCode == KeyEvent.KEYCODE_MEDIA_PLAY
             && (hasVoiceCommunicationActive()
