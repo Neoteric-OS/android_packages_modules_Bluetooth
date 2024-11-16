@@ -226,6 +226,8 @@ public:
   void ResetPreferredAudioSetConfiguration(void) const;
   bool ReloadAudioLocations(void);
   bool ReloadAudioDirections(void);
+  types::AudioContexts GetAllSupportedBidirectionalContextTypes(void);
+  types::AudioContexts GetAllSupportedSingleDirectionOnlyContextTypes(uint8_t direction);
   std::shared_ptr<const set_configurations::AudioSetConfiguration> GetActiveConfiguration(
           void) const;
   bool IsPendingConfiguration(void) const;
