@@ -84,6 +84,7 @@ cc_defaults {
         "libbtif",
         "libbtif-core",
         "libchrome",
+        "libcom.android.sysprop.bluetooth.wrapped",
         "libcutils",
         "libevent",
         "libexpresslog",
