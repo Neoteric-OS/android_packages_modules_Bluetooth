@@ -17,6 +17,7 @@
 
 package com.android.bluetooth.btservice;
 
+import android.bluetooth.BluetoothUtils;
 import android.util.Log;
 
 /**
@@ -65,7 +66,12 @@ public class InteropUtil {
             return false;
         }
 
-        Log.d(TAG, "interopMatchAddr: feature=" + feature.name() + ", address=" + address);
+        Log.d(
+                TAG,
+                "interopMatchAddr: feature="
+                        + feature.name()
+                        + ", address="
+                        + BluetoothUtils.toAnonymizedAddress(address));
         if (address == null) {
             return false;
         }
@@ -124,7 +130,12 @@ public class InteropUtil {
             return false;
         }
 
-        Log.d(TAG, "interopMatchAddrOrName: feature=" + feature.name() + ", address=" + address);
+        Log.d(
+                TAG,
+                "interopMatchAddrOrName: feature="
+                        + feature.name()
+                        + ", address="
+                        + BluetoothUtils.toAnonymizedAddress(address));
         if (address == null) {
             return false;
         }
@@ -159,7 +170,7 @@ public class InteropUtil {
                 "interopDatabaseAddAddr: feature="
                         + feature.name()
                         + ", address="
-                        + address
+                        + BluetoothUtils.toAnonymizedAddress(address)
                         + ", length="
                         + length);
         if (address == null || (length <= 0 || length > 6)) {
@@ -187,7 +198,12 @@ public class InteropUtil {
             return;
         }
 
-        Log.d(TAG, "interopDatabaseRemoveAddr: feature=" + feature.name() + ", address=" + address);
+        Log.d(
+                TAG,
+                "interopDatabaseRemoveAddr: feature="
+                        + feature.name()
+                        + ", address="
+                        + BluetoothUtils.toAnonymizedAddress(address));
         if (address == null) {
             return;
         }

@@ -383,10 +383,6 @@ class BassClientStateMachine extends StateMachine {
         return mPendingSourceToSwitch != null;
     }
 
-    BluetoothLeBroadcastMetadata getCurrentBroadcastMetadata(Integer sourceId) {
-        return mCurrentMetadata.getOrDefault(sourceId, null);
-    }
-
     private void setCurrentBroadcastMetadata(
             Integer sourceId, BluetoothLeBroadcastMetadata metadata) {
         if (metadata != null) {
@@ -2709,6 +2705,10 @@ class BassClientStateMachine extends StateMachine {
 
     int getMaximumSourceCapacity() {
         return mNumOfBroadcastReceiverStates;
+    }
+
+    BluetoothLeBroadcastMetadata getCurrentBroadcastMetadata(Integer sourceId) {
+        return mCurrentMetadata.getOrDefault(sourceId, null);
     }
 
     BluetoothDevice getDevice() {

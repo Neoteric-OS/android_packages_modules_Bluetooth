@@ -335,7 +335,8 @@ public final class BluetoothGatt implements BluetoothProfile {
                                 TAG,
                                 "onPhyUpdate() -"
                                         + (" status=" + status)
-                                        + (" address=" + address)
+                                        + (" address="
+                                                + BluetoothUtils.toAnonymizedAddress(address))
                                         + (" txPhy=" + txPhy)
                                         + (" rxPhy=" + rxPhy));
                     }
@@ -368,7 +369,8 @@ public final class BluetoothGatt implements BluetoothProfile {
                                 TAG,
                                 "onPhyRead() -"
                                         + (" status=" + status)
-                                        + (" address=" + address)
+                                        + (" address="
+                                                + BluetoothUtils.toAnonymizedAddress(address))
                                         + (" txPhy=" + txPhy)
                                         + (" rxPhy=" + rxPhy));
                     }
@@ -450,7 +452,12 @@ public final class BluetoothGatt implements BluetoothProfile {
                 public void onSearchComplete(
                         String address, List<BluetoothGattService> services, int status) {
                     if (DBG) {
-                        Log.d(TAG, "onSearchComplete() = Device=" + address + " Status=" + status);
+                        Log.d(
+                                TAG,
+                                "onSearchComplete() = address="
+                                        + BluetoothUtils.toAnonymizedAddress(address)
+                                        + " status="
+                                        + status);
                     }
                     if (!address.equals(mDevice.getAddress())) {
                         return;
@@ -649,8 +656,14 @@ public final class BluetoothGatt implements BluetoothProfile {
                  */
                 @Override
                 public void onNotify(String address, int handle, byte[] value) {
-                    if (VDBG) Log.d(TAG, "onNotify() - Device=" + address + " handle=" + handle);
-
+                    if (VDBG) {
+                        Log.d(
+                                TAG,
+                                "onNotify() - address="
+                                        + BluetoothUtils.toAnonymizedAddress(address)
+                                        + " handle="
+                                        + handle);
+                    }
                     if (!address.equals(mDevice.getAddress())) {
                         return;
                     }
@@ -682,7 +695,12 @@ public final class BluetoothGatt implements BluetoothProfile {
                 @SuppressLint("AndroidFrameworkRequiresPermission")
                 public void onDescriptorRead(String address, int status, int handle, byte[] value) {
                     if (VDBG) {
-                        Log.d(TAG, "onDescriptorRead() - Device=" + address + " handle=" + handle);
+                        Log.d(
+                                TAG,
+                                "onDescriptorRead() - address="
+                                        + BluetoothUtils.toAnonymizedAddress(address)
+                                        + " handle="
+                                        + handle);
                     }
 
                     if (!address.equals(mDevice.getAddress())) {
@@ -739,7 +757,12 @@ public final class BluetoothGatt implements BluetoothProfile {
                 public void onDescriptorWrite(
                         String address, int status, int handle, byte[] value) {
                     if (VDBG) {
-                        Log.d(TAG, "onDescriptorWrite() - Device=" + address + " handle=" + handle);
+                        Log.d(
+                                TAG,
+                                "onDescriptorWrite() - address="
+                                        + BluetoothUtils.toAnonymizedAddress(address)
+                                        + " handle="
+                                        + handle);
                     }
 
                     if (!address.equals(mDevice.getAddress())) {
@@ -793,7 +816,12 @@ public final class BluetoothGatt implements BluetoothProfile {
                 @Override
                 public void onExecuteWrite(String address, int status) {
                     if (VDBG) {
-                        Log.d(TAG, "onExecuteWrite() - Device=" + address + " status=" + status);
+                        Log.d(
+                                TAG,
+                                "onExecuteWrite() - address="
+                                        + BluetoothUtils.toAnonymizedAddress(address)
+                                        + " status="
+                                        + status);
                     }
                     if (!address.equals(mDevice.getAddress())) {
                         return;

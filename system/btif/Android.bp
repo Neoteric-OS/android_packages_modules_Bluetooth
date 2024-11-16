@@ -151,6 +151,7 @@ cc_library_static {
         },
     },
     static_libs: [
+        "aics",
         "avrcp-target-service",
         "bluetooth_flags_c_lib",
         "lib-bt-packets",
@@ -165,6 +166,12 @@ cc_library_static {
         "libbt-stack-core",
         "libbtif-core",
         "libflatbuffers-cpp",
+    ],
+    aidl: {
+        libs: ["bluetooth_constants"],
+    },
+    shared_libs: [
+        "libbinder",
     ],
     apex_available: [
         "com.android.btservices",
@@ -245,7 +252,11 @@ cc_library_static {
         "libflatbuffers-cpp",
         "libstatslog_bt",
     ],
+    aidl: {
+        libs: ["bluetooth_constants"],
+    },
     shared_libs: [
+        "libbinder",
         "libcrypto",
         "libcutils",
     ],
@@ -282,9 +293,13 @@ cc_test {
         "test/btif_storage_test.cc",
     ],
     header_libs: ["libbluetooth_headers"],
+    aidl: {
+        libs: ["bluetooth_constants"],
+    },
     shared_libs: [
         "libaconfig_storage_read_api_cc",
         "libbase",
+        "libbinder",
         "libcrypto",
         "libcutils",
         "libhidlbase",
@@ -293,6 +308,7 @@ cc_test {
         "server_configurable_flags",
     ],
     static_libs: [
+        "aics",
         "android.hardware.audio.common@5.0",
         "android.hardware.bluetooth.audio@2.0",
         "android.hardware.bluetooth.audio@2.1",
@@ -569,9 +585,13 @@ cc_test {
         "BluetoothGeneratedDumpsysDataSchema_h",
     ],
     header_libs: ["libbluetooth_headers"],
+    aidl: {
+        libs: ["bluetooth_constants"],
+    },
     shared_libs: [
         "libaconfig_storage_read_api_cc",
         "libbase",
+        "libbinder",
         "libcrypto",
         "libcutils",
         "libfmq",
@@ -690,9 +710,13 @@ cc_test {
         "BluetoothGeneratedDumpsysDataSchema_h",
     ],
     header_libs: ["libbluetooth_headers"],
+    aidl: {
+        libs: ["bluetooth_constants"],
+    },
     shared_libs: [
         "libaconfig_storage_read_api_cc",
         "libbase",
+        "libbinder",
         "libcrypto",
         "libcutils",
         "libfmq",
