@@ -459,6 +459,7 @@ public:
             close_vbc_timeout_, timeoutMs,
             [](void*) {
               if (instance) {
+                log::debug("Reconfigure after VBC close");
                 instance->ReconfigureAfterVbcClose();
               }
             },
@@ -489,7 +490,9 @@ public:
             suspend_timeout_, timeoutMs,
             [](void* data) {
               if (instance) {
-                instance->GroupStop(PTR_TO_INT(data));
+                auto const group_id = PTR_TO_INT(data);
+                log::debug("No resume request received. Stop the group ID: {}", group_id);
+                instance->GroupStop(group_id);
               }
             },
             INT_TO_PTR(active_group_id_));
@@ -725,7 +728,7 @@ public:
       auto freq = group->GetConfiguration(
        configuration_context_type_)->confs.source.at(0).codec.GetSamplingFrequencyHz();
       auto sdu = group->GetConfiguration(
-       configuration_context_type_)->confs.source.at(0).codec.GetOctectsPerFrame();
+       configuration_context_type_)->confs.source.at(0).codec.GetOctetsPerFrame();
       auto delay = group->GetRemoteDelay(
        bluetooth::le_audio::types::kLeAudioDirectionSource);
       bluetooth::le_audio::offload_config config = {
@@ -3665,7 +3668,7 @@ public:
   }
 
   void scheduleAttachDeviceToTheStream(const RawAddress& addr) {
-    log::info("Device {} scheduler for stream", addr);
+    log::info("Device {} is scheduled for streaming", addr);
     do_in_main_thread_delayed(base::BindOnce(&LeAudioClientImpl::restartAttachToTheStream,
                                              weak_factory_.GetWeakPtr(), addr),
                               std::chrono::milliseconds(kDeviceAttachDelayMs));
@@ -4330,64 +4333,79 @@ public:
     stack::l2cap::get_interface().L2CA_SetEcosystemBaseInterval(0 /* clear recommendation */);
   }
 
-  void printCurrentStreamConfiguration(int fd) {
-    std::stringstream stream;
+  void printCurrentStreamConfiguration(std::stringstream& stream) {
     auto config_printer = [&stream](LeAudioCodecConfiguration& conf) {
-      stream << "\tsample rate: " << +conf.sample_rate << ",\tchan: " << +conf.num_channels
-             << ",\tbits: " << +conf.bits_per_sample
-             << ",\tdata_interval_us: " << +conf.data_interval_us << "\n";
+      stream << "\tsample rate: " << +conf.sample_rate << ", chan: " << +conf.num_channels
+             << ", bits: " << +conf.bits_per_sample
+             << ", data_interval_us: " << +conf.data_interval_us << "\n";
     };
 
-    stream << " Speaker codec config (audio framework) \n";
+    stream << "\n";
+    stream << "  Speaker codec config (audio framework):\n";
     stream << "\taudio sender state: " << audio_sender_state_ << "\n";
     config_printer(audio_framework_source_config);
 
-    stream << " Microphone codec config (audio framework) \n";
+    stream << "  Microphone codec config (audio framework):\n";
     stream << "\taudio receiver state: " << audio_receiver_state_ << "\n";
     config_printer(audio_framework_sink_config);
 
-    stream << " Speaker codec config (SW encoder)\n";
+    stream << "  Speaker codec config (SW encoder):\n";
     config_printer(current_encoder_config_);
 
-    stream << " Microphone codec config (SW decoder)\n";
+    stream << "  Microphone codec config (SW decoder):\n";
     config_printer(current_decoder_config_);
-
-    dprintf(fd, "%s", stream.str().c_str());
   }
 
   void Dump(int fd) {
-    dprintf(fd, "  APP ID: %d \n", gatt_if_);
-    dprintf(fd, "  Active group: %d\n", active_group_id_);
-    dprintf(fd, "  reconnection mode: %s \n",
-            (reconnection_mode_ == BTM_BLE_BKG_CONNECT_ALLOW_LIST ? "Allow List"
-                                                                  : "Targeted Announcements"));
-    dprintf(fd, "  configuration: %s  (0x%08x)\n",
-            bluetooth::common::ToString(configuration_context_type_).c_str(),
-            static_cast<uint16_t>(configuration_context_type_));
-    dprintf(fd, "  local source metadata context type mask: %s\n",
-            local_metadata_context_types_.source.to_string().c_str());
-    dprintf(fd, "  local sink metadata context type mask: %s\n",
-            local_metadata_context_types_.sink.to_string().c_str());
-    dprintf(fd, "  TBS state: %s\n", in_call_ ? " In call" : "No calls");
-    dprintf(fd, "  Sink listening mode: %s\n", sink_monitor_mode_ ? "true" : "false");
+    std::stringstream stream;
+
+    stream << "  APP ID: " << +gatt_if_ << "\n";
+    stream << "  TBS state: " << (in_call_ ? " In call" : "No calls") << "\n";
+    stream << "  Active group: " << +active_group_id_ << "\n";
+    stream << "  Reconnection mode: "
+           << (reconnection_mode_ == BTM_BLE_BKG_CONNECT_ALLOW_LIST ? "Allow List"
+                                                                    : "Targeted Announcements")
+           << "\n";
+    stream << "  Configuration: " << bluetooth::common::ToString(configuration_context_type_)
+           << " (" << loghex(static_cast<uint16_t>(configuration_context_type_)) << ")\n";
+    stream << "  Local source metadata context type mask: "
+           << local_metadata_context_types_.source.to_string() << "\n";
+    stream << "  Local sink metadata context type mask: "
+           << local_metadata_context_types_.sink.to_string() << "\n";
+    stream << "  Sink listening mode: " << (sink_monitor_mode_ ? "true" : "false") << "\n";
     if (sink_monitor_notified_status_) {
-      dprintf(fd, "  Local sink notified state: %d\n",
-              static_cast<int>(sink_monitor_notified_status_.value()));
+      stream << "  Local sink notified state: "
+             << static_cast<int>(sink_monitor_notified_status_.value()) << "\n";
     }
-    dprintf(fd, "  Source monitor mode: %s\n", source_monitor_mode_ ? "true" : "false");
-    dprintf(fd, "  Codec extensibility: %s\n",
-            CodecManager::GetInstance()->IsUsingCodecExtensibility() ? "true" : "false");
-    dprintf(fd, "  Start time: ");
+    stream << "  Source monitor mode: " << (source_monitor_mode_ ? "true" : "false") << "\n";
+
+    auto codec_loc = CodecManager::GetInstance()->GetCodecLocation();
+    if (codec_loc == bluetooth::le_audio::types::CodecLocation::HOST) {
+      stream << "  Codec location: HOST\n";
+    } else if (codec_loc == bluetooth::le_audio::types::CodecLocation::CONTROLLER) {
+      stream << "  Codec location: CONTROLLER\n";
+    } else if (codec_loc == bluetooth::le_audio::types::CodecLocation::ADSP) {
+      stream << "  Codec location: ADSP"
+             << (CodecManager::GetInstance()->IsUsingCodecExtensibility() ? " (codec extensibility)"
+                                                                          : "")
+             << "\n";
+    } else {
+      dprintf(fd, "  Codec location: UNKNOWN\n");
+    }
+
+    stream << "  Start time: ";
     for (auto t : stream_start_history_queue_) {
-      dprintf(fd, ", %d ms", static_cast<int>(t));
+      stream << static_cast<int>(t) << " ms, ";
     }
-    dprintf(fd, "\n");
-    printCurrentStreamConfiguration(fd);
-    dprintf(fd, "  ----------------\n ");
-    dprintf(fd, "  LE Audio Groups:\n");
-    aseGroups_.Dump(fd, active_group_id_);
-    dprintf(fd, "\n  Not grouped devices:\n");
-    leAudioDevices_.Dump(fd, bluetooth::groups::kGroupUnknown);
+    stream << "\n";
+    printCurrentStreamConfiguration(stream);
+    stream << "\n";
+    aseGroups_.Dump(stream, active_group_id_);
+    stream << "\n ";
+    stream << "  Not grouped devices:\n";
+    leAudioDevices_.Dump(stream, bluetooth::groups::kGroupUnknown);
+
+    dprintf(fd, "%s", stream.str().c_str());
 
     if (leAudioHealthStatus_) {
       leAudioHealthStatus_->DebugDump(fd);
@@ -4560,7 +4578,9 @@ public:
               disable_timer_, kAudioDisableTimeoutMs,
               [](void* data) {
                 if (instance) {
-                  instance->GroupSuspend(PTR_TO_INT(data));
+                  auto const group_id = PTR_TO_INT(data);
+                  log::debug("No resume request received. Suspend the group ID: {}", group_id);
+                  instance->GroupSuspend(group_id);
                 }
               },
               INT_TO_PTR(active_group_id_));
@@ -5182,6 +5202,7 @@ public:
     }
 
     StopSuspendTimeout();
+    /* If group suspend is scheduled, cancel as we are stopping it anyway */
 
     /* Need to reconfigure stream. At this point pre_configuration_context_type shall be set */
 

@@ -668,7 +668,7 @@ struct LeAudioCoreCodecConfig {
   }
 
   /** Returns the frame duration representation in us */
-  uint16_t GetOctectsPerFrame() const {
+  uint16_t GetOctetsPerFrame() const {
     if (octets_per_codec_frame) {
       return *octets_per_codec_frame;
     }
@@ -1294,7 +1294,7 @@ struct CodecConfigSetting {
   uint8_t channel_count_per_iso_stream;
 
   /* Octets per fram for codec */
-  uint16_t GetOctectsPerFrame() const;
+  uint16_t GetOctetsPerFrame() const;
   /* Sampling frequency requested for codec */
   uint32_t GetSamplingFrequencyHz() const;
   /* Data fetch/feed interval for codec in microseconds */

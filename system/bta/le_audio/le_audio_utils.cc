@@ -343,7 +343,7 @@ void fillStreamParamsToBtLeAudioCodecConfig(
           translateToBtLeAudioCodecConfigBitPerSample(config.GetBitsPerSample());
   out_config.frame_duration =
           translateToBtLeAudioCodecConfigFrameDuration(config.GetDataIntervalUs());
-  out_config.octets_per_frame = config.GetOctectsPerFrame();
+  out_config.octets_per_frame = config.GetOctetsPerFrame();
   out_config.channel_count =
           translateToBtLeAudioCodecConfigChannelCount(config.GetChannelCountPerIsoStream());
 }

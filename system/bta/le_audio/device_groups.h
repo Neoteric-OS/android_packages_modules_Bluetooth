@@ -439,7 +439,7 @@ public:
   bool IsReleasingOrIdle(void) const;
 
   void PrintDebugState(void) const;
-  void Dump(int fd, int active_group_id) const;
+  void Dump(std::stringstream& stream, int active_group_id) const;
 
   /* Codec configuration matcher supporting the legacy configuration provider
    * mechanism for the non-vendor and software codecs. Only if the codec
@@ -541,7 +541,7 @@ public:
   size_t Size() const;
   bool IsAnyInTransition() const;
   void Cleanup(void);
-  void Dump(int fd, int active_group_id) const;
+  void Dump(std::stringstream& stream, int active_group_id) const;
 
 private:
   std::vector<std::unique_ptr<LeAudioDeviceGroup>> groups_;

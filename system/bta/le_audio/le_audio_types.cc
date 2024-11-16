@@ -209,10 +209,10 @@ uint32_t CodecConfigSetting::GetSamplingFrequencyHz() const {
   }
 }
 
-uint16_t CodecConfigSetting::GetOctectsPerFrame() const {
+uint16_t CodecConfigSetting::GetOctetsPerFrame() const {
   switch (id.coding_format) {
     case kLeAudioCodingFormatLC3:
-      return params.GetAsCoreCodecConfig().GetOctectsPerFrame();
+      return params.GetAsCoreCodecConfig().GetOctetsPerFrame();
     case types::kLeAudioCodingFormatVendorSpecific:
       switch (id.vendor_company_id) {
         case types::kLeAudioVendorCompanyIdQualcomm:
@@ -865,15 +865,20 @@ std::string ToHexString(const LeAudioContextType& value) {
 
 std::string AudioContexts::to_string() const {
   std::stringstream s;
-  for (auto ctx : bluetooth::le_audio::types::kLeAudioContextAllTypesArray) {
-    if (test(ctx)) {
-      if (s.tellp() != 0) {
-        s << " | ";
+  s << bluetooth::common::ToHexString(mValue);
+  if (mValue != 0) {
+    s << " [";
+    auto initial_pos = s.tellp();
+    for (auto ctx : bluetooth::le_audio::types::kLeAudioContextAllTypesArray) {
+      if (test(ctx)) {
+        if (s.tellp() != initial_pos) {
+          s << " | ";
+        }
+        s << ctx;
       }
-      s << ctx;
     }
+    s << "]";
   }
-  s << " (" << bluetooth::common::ToHexString(mValue) << ")";
   return s.str();
 }
 

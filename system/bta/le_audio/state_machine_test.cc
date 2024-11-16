@@ -1863,7 +1863,7 @@ TEST_F(StateMachineTest, testConfigureCodecSingleFb2) {
   /* Verify CIG parameters */
   auto channel_count =
           group->GetActiveConfiguration()->confs.sink.at(0).codec.GetChannelCountPerIsoStream();
-  auto frame_octets = group->GetActiveConfiguration()->confs.sink.at(0).codec.GetOctectsPerFrame();
+  auto frame_octets = group->GetActiveConfiguration()->confs.sink.at(0).codec.GetOctetsPerFrame();
   ASSERT_NE(last_cig_params_.cis_cfgs.size(), 0lu);
   ASSERT_EQ(last_cig_params_.sdu_itv_mtos, data_interval);
   ASSERT_EQ(last_cig_params_.cis_cfgs.at(0).max_sdu_size_mtos,
