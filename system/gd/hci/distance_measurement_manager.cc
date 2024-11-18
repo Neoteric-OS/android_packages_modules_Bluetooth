@@ -2411,6 +2411,16 @@ struct DistanceMeasurementManager::impl : bluetooth::hal::RangingHalCallback {
         raw_data.vendor_specific_cs_single_side_data.push_back(live_tracker->n_procedure_count & 0xFF);
         raw_data.vendor_specific_cs_single_side_data.push_back((live_tracker->max_procedure_len >> 8) & 0xFF);
         raw_data.vendor_specific_cs_single_side_data.push_back(live_tracker->max_procedure_len & 0xFF);
+        raw_data.vendor_specific_cs_single_side_data.push_back((live_tracker->conn_interval_ >> 8) & 0xFF);
+        raw_data.vendor_specific_cs_single_side_data.push_back(live_tracker->conn_interval_ & 0xFF);
+        uint32_t num_AntPIs = procedure_data->antenna_permutation_index_initiator.size();
+        raw_data.vendor_specific_cs_single_side_data.push_back((num_AntPIs >> 24) & 0xFF);
+        raw_data.vendor_specific_cs_single_side_data.push_back((num_AntPIs >> 16) & 0xFF);
+        raw_data.vendor_specific_cs_single_side_data.push_back((num_AntPIs >> 8) & 0xFF);
+        raw_data.vendor_specific_cs_single_side_data.push_back(num_AntPIs & 0xFF);
+        for (uint32_t i=0;i<num_AntPIs;i++) {
+          raw_data.vendor_specific_cs_single_side_data.push_back(procedure_data->antenna_permutation_index_initiator[i]);
+        }
         
         
         struct timeval tv;
