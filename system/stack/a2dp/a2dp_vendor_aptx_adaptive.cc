@@ -668,7 +668,7 @@ bool A2DP_VendorInitCodecConfigAptxAdaptive(AvdtpSepConfig* p_cfg) {
 }
 
 A2dpCodecConfigAptxAdaptive::A2dpCodecConfigAptxAdaptive(btav_a2dp_codec_priority_t codec_priority)
-    : A2dpCodecConfig(BTAV_A2DP_CODEC_INDEX_SOURCE_APTX_ADAPTIVE, A2DP_CODEC_ID_APTX_AD,
+    : A2dpCodecConfig(BTAV_A2DP_CODEC_INDEX_SOURCE_APTX_ADAPTIVE, bluetooth::a2dp::CodecId::APTX_AD,
                       "aptX-adaptive", codec_priority) {
   // Compute the local capability
   if (true /*A2DP_IsCodecEnabledInOffload(BTAV_A2DP_CODEC_INDEX_SOURCE_APTX_ADAPTIVE)*/) {

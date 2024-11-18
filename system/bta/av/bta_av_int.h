@@ -552,9 +552,9 @@ public:
                                    * is set according to RFC 6416 */
   uint8_t co_started;             /* non-zero, if stream started from call-out perspective */
   bool recfg_sup;                 /* true if the first attempt to reconfigure the stream was
-                                     successfull, else False if command fails */
-  bool suspend_sup;               /* true if Suspend stream is supported, else false if
-                                     suspend command fails */
+                                     successful, false if command fails */
+  bool suspend_sup;               /* true if Suspend stream is supported, false if suspend command
+                                     fails */
   bool suspend_local_sent;        /* TRUE if outgoing Suspend is sent, else FALSE if
                                confirmation is received */
   bool deregistering;             /* true if deregistering */

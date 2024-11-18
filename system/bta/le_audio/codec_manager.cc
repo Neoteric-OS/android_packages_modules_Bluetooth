@@ -668,7 +668,7 @@ public:
 
     offload_cfg.sampling_rate = subgroup_config.GetSamplingFrequencyHz();
     offload_cfg.frame_duration = subgroup_config.GetFrameDurationUs();
-    offload_cfg.octets_per_frame = subgroup_config.GetOctectsPerFrame();
+    offload_cfg.octets_per_frame = subgroup_config.GetOctetsPerFrame();
     offload_cfg.blocks_per_sdu = 1;
     offload_cfg.stream_map.resize(subgroup.GetNumBis());
 
