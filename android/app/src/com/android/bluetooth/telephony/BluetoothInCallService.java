@@ -2121,7 +2121,8 @@ public class BluetoothInCallService extends InCallService {
            mDsdaActiveCalls = 1;
            return;
         } else if (mDsdaActiveCalls == 1) {
-           if (call.getId().equals(activeCall.getId())) {
+           if (!mCallInfo.isNullCall(activeCall)
+               && call.getId().equals(activeCall.getId())) {
              return;
            } else {
              //conference call would have been initiated
