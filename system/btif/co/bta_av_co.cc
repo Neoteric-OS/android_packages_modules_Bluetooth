@@ -29,7 +29,11 @@
 
 #include <bluetooth/log.h>
 #include <com_android_bluetooth_flags.h>
+#include <stdio.h>
 
+#include <cstddef>
+#include <cstdint>
+#include <cstring>
 #include <mutex>
 #include <optional>
 #include <vector>
@@ -42,10 +46,11 @@
 #include "btif/include/btif_a2dp_source.h"
 #include "btif/include/btif_av.h"
 #include "btif/include/btif_av_co.h"
+#include "device/include/device_iot_conf_defs.h"
 #include "device/include/device_iot_config.h"
 #include "device/include/interop.h"
 #include "include/hardware/bt_av.h"
-#include "internal_include/bt_trace.h"
+#include "os/logging/log_adapter.h"
 #include "osi/include/allocator.h"
 #include "osi/include/properties.h"
 #include "stack/include/a2dp_codec_api.h"
@@ -53,7 +58,6 @@
 #include "stack/include/a2dp_ext.h"
 #include "stack/include/avdt_api.h"
 #include "stack/include/bt_hdr.h"
-#include "stack/include/bt_types.h"
 #include "stack/include/bt_uuid16.h"
 #include "stack/include/btm_client_interface.h"
 #include "stack/include/btm_vendor_types.h"
@@ -103,7 +107,7 @@ void BtaAvCo::Init(const std::vector<btav_a2dp_codec_config_t>& codec_priorities
   for (auto* codec_config : peer_cache_->peers_[0].GetCodecs()->orderedSourceCodecs()) {
     auto& codec_info = supported_codecs->emplace_back();
     codec_info.codec_type = codec_config->codecIndex();
-    codec_info.codec_id = codec_config->codecId();
+    codec_info.codec_id = static_cast<uint64_t>(codec_config->codecId());
     codec_info.codec_name = codec_config->name();
   }
 }

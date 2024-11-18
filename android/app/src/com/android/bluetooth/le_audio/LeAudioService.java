@@ -25,6 +25,7 @@ import static com.android.bluetooth.bass_client.BassConstants.INVALID_BROADCAST_
 import static com.android.bluetooth.flags.Flags.leaudioAllowedContextMask;
 import static com.android.bluetooth.flags.Flags.leaudioBigDependsOnAudioState;
 import static com.android.bluetooth.flags.Flags.leaudioBroadcastAssistantPeripheralEntrustment;
+import static com.android.bluetooth.flags.Flags.leaudioBroadcastApiManagePrimaryGroup;
 import static com.android.bluetooth.flags.Flags.leaudioUseAudioModeListener;
 import static com.android.modules.utils.build.SdkLevel.isAtLeastU;
 
@@ -3057,6 +3058,22 @@ public class LeAudioService extends ProfileService {
         }
     }
 
+    private void notifyBroadcastToUnicastFallbackGroupChanged(int groupId) {
+        synchronized (mLeAudioCallbacks) {
+            int n = mLeAudioCallbacks.beginBroadcast();
+            for (int i = 0; i < n; i++) {
+                try {
+                    mLeAudioCallbacks
+                            .getBroadcastItem(i)
+                            .onBroadcastToUnicastFallbackGroupChanged(groupId);
+                } catch (RemoteException e) {
+                    continue;
+                }
+            }
+            mLeAudioCallbacks.finishBroadcast();
+        }
+    }
+
     private void setGroupAllowedContextMask(
             int groupId, int sinkContextTypes, int sourceContextTypes) {
         if (!mLeAudioNativeIsInitialized) {
@@ -5361,6 +5378,11 @@ public class LeAudioService extends ProfileService {
      * @param groupId group id to update
      */
     private void updateFallbackUnicastGroupIdForBroadcast(int groupId) {
+        if (leaudioBroadcastApiManagePrimaryGroup()
+                && mUnicastGroupIdDeactivatedForBroadcastTransition == groupId) {
+            Log.d(TAG, "Skip updateFallbackUnicastGroupIdForBroadcast, already is primary");
+            return;
+        }
         Log.i(
                 TAG,
                 "Update unicast fallback active group from: "
@@ -5382,6 +5404,10 @@ public class LeAudioService extends ProfileService {
                     groupId);
         } finally {
             Binder.restoreCallingIdentity(callingIdentity);
+        }
+
+        if (leaudioBroadcastApiManagePrimaryGroup()) {
+            mHandler.post(() -> notifyBroadcastToUnicastFallbackGroupChanged(groupId));
         }
     }
 
