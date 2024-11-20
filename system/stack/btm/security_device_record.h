@@ -41,7 +41,6 @@ typedef struct {
   uint16_t max_conn_int;
   uint16_t peripheral_latency;
   uint16_t supervision_tout;
-
 } tBTM_LE_CONN_PRAMS;
 
 /* The MSB of the clock offset field indicates whether the offset is valid. */

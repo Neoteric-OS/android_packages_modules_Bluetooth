@@ -104,7 +104,6 @@ typedef struct {
   Octet16 ir;
   Octet16 irk;
   Octet16 dhk;
-
 } tBTM_BLE_LOCAL_ID_KEYS;
 
 typedef union {
