@@ -32,6 +32,8 @@
 #include "hal_version_manager.h"
 #include "hidl/le_audio_software_hidl.h"
 #include "osi/include/properties.h"
+#include "bta/le_audio/le_audio_utils.h"
+#include <base/strings/string_number_conversions.h>
 
 namespace bluetooth {
 namespace audio {
@@ -325,13 +327,73 @@ LeAudioClientInterface::Sink::GetBroadcastConfig(
   return GetStackBroadcastConfigurationFromAidlFormat(aidl_broadcast_config);
 }
 
+void PrintPacRecords(const std::optional<std::vector<
+                         ::bluetooth::le_audio::types::acs_ac_record>>& pacs) {
+  log::debug("pacs size: {}", pacs->size());
+  if (pacs.has_value()) {
+    for (auto const& pac : pacs.value()) {
+      std::stringstream debug_str;
+      debug_str << "PACS" << "\n\tCoding format: "
+                               << (unsigned)pac.codec_id.coding_format
+                << "\n\tVendor codec company ID: "
+                               << (unsigned)pac.codec_id.vendor_company_id
+                << "\n\tVendor codec ID: "
+                               << (unsigned)pac.codec_id.vendor_codec_id
+                << "\n\tCodec spec caps:\n";
+      if (::bluetooth::le_audio::utils::IsCodecUsingLtvFormat(pac.codec_id) &&
+          !pac.codec_spec_caps.IsEmpty()) {
+        debug_str << pac.codec_spec_caps.ToString("",
+                      ::bluetooth::le_audio::types::CodecCapabilitiesLtvFormat);
+      } else {
+        debug_str << base::HexEncode(pac.codec_spec_caps_raw.data(),
+                                              pac.codec_spec_caps_raw.size());
+      }
+      debug_str << "\n\tMetadata: "
+                << base::HexEncode(pac.metadata.RawPacket().data(),
+                                              pac.metadata.RawPacket().size());
+      log::debug("{}", debug_str.str());
+    }
+  }
+}
+
 // This API is for requesting a single configuration.
 // Note: We need a bulk API as well to get multiple configurations for caching
 std::optional<::bluetooth::le_audio::set_configurations::AudioSetConfiguration>
 LeAudioClientInterface::Sink::GetUnicastConfig(
         const ::bluetooth::le_audio::CodecManager::UnicastConfigurationRequirements& requirements)
         const {
+
   log::debug("Requirements: {}", requirements);
+
+  log::debug("Sink Pac Records");
+  PrintPacRecords(requirements.sink_pacs);
+
+  log::debug("Source Pac Records");
+  PrintPacRecords(requirements.source_pacs);
+
+  /*for (const ::bluetooth::le_audio::CodecManager::UnicastConfigurationRequirements
+                ::DeviceDirectionRequirements& sink_reqiurement : *requirements.sink_requirements) {
+    std::stringstream debug_str;
+    debug_str << "Sink requirement" << "\n\tTarget_Latency: " << (unsigned)sink_reqiurement.target_latency
+              << "\n\ttarget_Phy: " << (unsigned)sink_reqiurement.target_Phy
+              << "\n\tLtvs:\n";
+    if (!sink_reqiurement.params.IsEmpty()) {
+      debug_str << sink_reqiurement.params.ToString("", ::bluetooth::le_audio::types::CodecConfigLtvFormat);
+    }
+    log::debug("{}", debug_str.str());
+  }
+
+  for (const ::bluetooth::le_audio::CodecManager::UnicastConfigurationRequirements
+                ::DeviceDirectionRequirements& source_reqiurement : *requirements.source_requirements) {
+    std::stringstream debug_str;
+    debug_str << "Source requirement" << "\n\tTarget_Latency: " << (unsigned)source_reqiurement.target_latency
+              << "\n\ttarget_Phy: " << (unsigned)source_reqiurement.target_Phy
+              << "\n\tLtvs:\n";
+    if (!source_reqiurement.params.IsEmpty()) {
+      debug_str << source_reqiurement.params.ToString("", ::bluetooth::le_audio::types::CodecConfigLtvFormat);
+    }
+    log::debug("{}", debug_str.str());
+  }*/
 
   auto aidl_sink_pacs = GetAidlLeAudioDeviceCapabilitiesFromStackFormat(requirements.sink_pacs);
 

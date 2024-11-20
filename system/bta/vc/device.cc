@@ -428,7 +428,7 @@ void VolumeControlDevice::EnqueueRemainingRequests(tGATT_IF /*gatt_if*/,
 
   log::debug("{}, number of handles={}", address, handles_to_read.size());
 
-  if (!com::android::bluetooth::flags::le_ase_read_multiple_variable()) {
+  if (/*!com::android::bluetooth::flags::le_ase_read_multiple_variable()*/ true) {
     for (auto const& handle : handles_to_read) {
       BtaGattQueue::ReadCharacteristic(connection_id, handle, chrc_read_cb, nullptr);
     }

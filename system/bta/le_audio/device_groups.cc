@@ -931,6 +931,7 @@ LeAudioDeviceGroup::GetAudioSetConfigurationRequirements(types::LeAudioContextTy
 
 bool LeAudioDeviceGroup::UpdateAudioSetConfigurationCache(LeAudioContextType ctx_type,
                                                           bool use_preference) const {
+  log::info("ctx_type: {}", ToHexString(ctx_type));
   auto requirements = GetAudioSetConfigurationRequirements(ctx_type);
   auto new_conf = CodecManager::GetInstance()->GetCodecConfig(
           requirements, std::bind(&LeAudioDeviceGroup::FindFirstSupportedConfiguration, this,
@@ -1838,6 +1839,7 @@ bool LeAudioDeviceGroup::ConfigureAses(
 
 std::shared_ptr<const set_configurations::AudioSetConfiguration>
 LeAudioDeviceGroup::GetCachedConfiguration(LeAudioContextType context_type) const {
+  log::info("context_type: {}", ToHexString(context_type));
   if (context_to_configuration_cache_map_.count(context_type) != 0) {
     return context_to_configuration_cache_map_.at(context_type).second;
   }
@@ -1868,6 +1870,7 @@ void LeAudioDeviceGroup::DisableLeXCodec(bool status) {
 
 std::shared_ptr<const set_configurations::AudioSetConfiguration>
 LeAudioDeviceGroup::GetConfiguration(LeAudioContextType context_type) const {
+  log::info("context_type: {}", ToHexString(context_type));
   if (context_type == LeAudioContextType::UNINITIALIZED) {
     return nullptr;
   }
@@ -1918,6 +1921,7 @@ LeAudioDeviceGroup::GetPreferredConfiguration(LeAudioContextType context_type) c
 
 LeAudioCodecConfiguration LeAudioDeviceGroup::GetAudioSessionCodecConfigForDirection(
         LeAudioContextType context_type, uint8_t direction) const {
+  log::debug("context_type = {}, direction: {}", common::ToString(context_type), direction);
   auto audio_set_conf = GetConfiguration(context_type);
   if (!audio_set_conf) {
     return {{0, 0, 0}, 0, 0, 0, 0, 0};

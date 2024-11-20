@@ -593,7 +593,7 @@ public:
         notify_flag_ptr = INT_TO_PTR(leAudioDevice->notify_connected_after_read_);
       }
 
-      if (!com::android::bluetooth::flags::le_ase_read_multiple_variable()) {
+      if (/*!com::android::bluetooth::flags::le_ase_read_multiple_variable()*/ true) {
         BtaGattQueue::ReadCharacteristic(leAudioDevice->conn_id_,
                                          leAudioDevice->ases_[i].hdls.val_hdl, OnGattReadRspStatic,
                                          notify_flag_ptr);
@@ -609,7 +609,7 @@ public:
       multi_read.handles[i % GATT_MAX_READ_MULTI_HANDLES] = leAudioDevice->ases_[i].hdls.val_hdl;
     }
 
-    if (com::android::bluetooth::flags::le_ase_read_multiple_variable() &&
+    if (/*!com::android::bluetooth::flags::le_ase_read_multiple_variable()*/ true &&
         (ases_num % GATT_MAX_READ_MULTI_HANDLES != 0)) {
       multi_read.num_attr = ases_num % GATT_MAX_READ_MULTI_HANDLES;
       BtaGattQueue::ReadMultiCharacteristic(leAudioDevice->conn_id_, multi_read,
@@ -2750,7 +2750,7 @@ public:
      *    it can change very often which, as we observed, might lead to not being sent by
      *    remote devices
      */
-    if (!com::android::bluetooth::flags::le_ase_read_multiple_variable()) {
+    if (/*!com::android::bluetooth::flags::le_ase_read_multiple_variable()*/ true) {
       BtaGattQueue::ReadCharacteristic(leAudioDevice->conn_id_,
                                        leAudioDevice->audio_avail_hdls_.val_hdl,
                                        OnGattReadRspStatic, NULL);
