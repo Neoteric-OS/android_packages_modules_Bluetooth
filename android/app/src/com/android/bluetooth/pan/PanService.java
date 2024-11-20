@@ -427,7 +427,7 @@ public class PanService extends ProfileService {
     }
 
     public boolean connect(BluetoothDevice device) {
-        if (mUserManager.isGuestUser()) {
+        if (mUserManager == null || mUserManager.isGuestUser()) {
             Log.w(TAG, "Guest user does not have the permission to change the WiFi network");
             return false;
         }
