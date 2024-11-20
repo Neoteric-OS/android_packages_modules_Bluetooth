@@ -971,15 +971,18 @@ public class MediaPlayerList {
             return;
         }
 
-        if (playerId == mActivePlayerId) {
-            if (getActivePlayer() != null) {
-                Log.w(TAG, getActivePlayer().getPackageName() + " is already the active player");
+        int previousActivePlayerId = mActivePlayerId;
+        MediaPlayerWrapper previousPlayer = getActivePlayer();
+
+        if (playerId == previousActivePlayerId) {
+            if (previousPlayer != null) {
+                Log.w(TAG, previousPlayer.getPackageName() + " is already the active player");
             }
             return;
         }
 
-        if (mActivePlayerId != NO_ACTIVE_PLAYER && getActivePlayer() != null) {
-            getActivePlayer().unregisterCallback();
+        if (previousActivePlayerId != NO_ACTIVE_PLAYER && previousPlayer != null) {
+            previousPlayer.unregisterCallback();
         }
 
         mActivePlayerId = playerId;
