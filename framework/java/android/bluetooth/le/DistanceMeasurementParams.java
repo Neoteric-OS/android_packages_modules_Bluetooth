@@ -16,7 +16,6 @@
 
 package android.bluetooth.le;
 
-import android.annotation.FlaggedApi;
 import android.annotation.IntDef;
 import android.annotation.IntRange;
 import android.annotation.NonNull;
@@ -26,8 +25,6 @@ import android.bluetooth.BluetoothDevice;
 import android.bluetooth.le.DistanceMeasurementMethod.DistanceMeasurementMethodId;
 import android.os.Parcel;
 import android.os.Parcelable;
-
-import com.android.bluetooth.flags.Flags;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -143,7 +140,6 @@ public final class DistanceMeasurementParams implements Parcelable {
      *
      * @hide
      */
-    @FlaggedApi(Flags.FLAG_CHANNEL_SOUNDING)
     @SystemApi
     public @Nullable ChannelSoundingParams getChannelSoundingParams() {
         return mChannelSoundingParams;
@@ -312,7 +308,6 @@ public final class DistanceMeasurementParams implements Parcelable {
          * @return the same Builder instance
          * @hide
          */
-        @FlaggedApi(Flags.FLAG_CHANNEL_SOUNDING)
         @SystemApi
         public @NonNull Builder setChannelSoundingParams(
                 @NonNull ChannelSoundingParams channelSoundingParams) {
