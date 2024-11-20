@@ -26,10 +26,12 @@
 #define LOG_TAG "bluetooth-a2dp"
 
 #include <bluetooth/log.h>
+#include <cstdint>
 #include <string.h>
 
 #include "a2dp_aac_constants.h"
 #include "avdt_api.h"
+#include "avdt_defs.h"
 #include "avdt_int.h"
 #include "avdtc_api.h"
 #include "bta/include/bta_av_api.h"
@@ -37,8 +39,9 @@
 #include "btif/include/btif_storage.h"
 #include "device/include/interop.h"
 #include "internal_include/bt_target.h"
+#include "osi/include/alarm.h"
 #include "osi/include/allocator.h"
-#include "osi/include/osi.h"
+#include "osi/include/fixed_queue.h"
 #include "osi/include/properties.h"
 #include "stack/include/bt_hdr.h"
 #include "types/raw_address.h"
@@ -742,7 +745,6 @@ void avdt_ccb_clear_cmds(AvdtpCcb* p_ccb, tAVDT_CCB_EVT* /* p_data */) {
 
     /* set up next message */
     p_ccb->p_curr_cmd = (BT_HDR*)fixed_queue_try_dequeue(p_ccb->cmd_q);
-
   } while (p_ccb->p_curr_cmd != NULL);
 
   /* send a CC_CLOSE_EVT any active scbs associated with this ccb */
