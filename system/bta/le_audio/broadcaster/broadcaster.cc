@@ -1120,6 +1120,10 @@ private:
               conn_handle,
               std::bind(&LeAudioSourceAudioHalClient::UpdateBroadcastAudioConfigToHal,
                         instance->le_audio_source_hal_client_.get(), std::placeholders::_1));
+
+      if (com::android::bluetooth::flags::leaudio_big_depends_on_audio_state()) {
+        instance->le_audio_source_hal_client_->ConfirmStreamingRequest(false);
+      }
     }
 
     void OnAnnouncementUpdated(uint32_t broadcast_id) {
@@ -1365,8 +1369,6 @@ private:
           auto& broadcast = broadcast_pair.second;
           broadcast->ProcessMessage(BroadcastStateMachine::Message::START, nullptr);
         }
-
-        instance->le_audio_source_hal_client_->ConfirmStreamingRequest(false);
       } else {
         if (!IsAnyoneStreaming()) {
           instance->le_audio_source_hal_client_->CancelStreamingRequest();

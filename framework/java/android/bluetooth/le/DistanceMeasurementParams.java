@@ -68,18 +68,18 @@ public final class DistanceMeasurementParams implements Parcelable {
      */
     @SystemApi public static final int REPORT_FREQUENCY_HIGH = 2;
 
-    private static final int REPORT_DURATION_DEFAULT = 60;
-    private static final int REPORT_DURATION_MAX = 3600;
+    private static final int REPORT_DURATION_MAX = Integer.MAX_VALUE;
+    private static final int REPORT_DURATION_DEFAULT = REPORT_DURATION_MAX;
 
-    private BluetoothDevice mDevice = null;
-    private int mDuration;
-    private int mFrequency;
-    private int mMethodId;
-    private ChannelSoundingParams mChannelSoundingParams = null;
+    private final BluetoothDevice mDevice;
+    private final int mDuration;
+    private final int mFrequency;
+    private final int mMethodId;
+    private final ChannelSoundingParams mChannelSoundingParams;
 
     /** @hide */
     public DistanceMeasurementParams(
-            BluetoothDevice device,
+            @NonNull BluetoothDevice device,
             int duration,
             int frequency,
             int methodId,
