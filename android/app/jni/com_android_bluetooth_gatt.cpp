@@ -2537,11 +2537,12 @@ static void startAdvertisingSetNative(JNIEnv* env, jobject /* object */, jobject
 }
 
 static void stopAdvertisingSetNative(JNIEnv* /* env */, jobject /* object */, jint advertiser_id) {
+
+  bluetooth::gatt::clear_advertiser(advertiser_id);
+
   if (!sGattIf) {
     return;
   }
-
-  bluetooth::gatt::clear_advertiser(advertiser_id);
 
   sGattIf->advertiser->Unregister(advertiser_id);
 }
