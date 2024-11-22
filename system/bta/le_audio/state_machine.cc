@@ -757,7 +757,7 @@ public:
 
     /* Assign all connection handles to multiple device ASEs */
     group->AssignCisConnHandlesToAses();
-
+    group->SetState(AseState::BTA_LE_AUDIO_ASE_STATE_QOS_CONFIGURED);
     /* As streaming is about to start send HCI configure data path
      * based on codec selected before CIS creation ensuring order
      * Connected_Iso_Group_Create -> HCI_Configure Data path ->
@@ -809,7 +809,7 @@ public:
     }
     send_vs_cmd(static_cast<uint16_t>(group->GetConfigurationContextType()),
         cig_id, group->cig.cises.size(), conn_handles, group->IsLeXDevice());
-
+    PrepareAndSendQoSToTheGroup(group);
   }
 
   void FreeLinkQualityReports(LeAudioDevice* leAudioDevice) {
