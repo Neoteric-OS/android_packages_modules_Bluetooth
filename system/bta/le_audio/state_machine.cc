@@ -1841,7 +1841,15 @@ private:
         cis_cfg.rtn_stom = rtn_stom;
         cis_cfgs.push_back(cis_cfg);
       }
+      log::verbose("cis.id: {}, phy_mtos: {}, phy_stom: {}, cis.type: {}, max_sdu_size_mtos: {},"
+                   " max_sdu_size_stom: {}, rtn_mtos: {}, rtn_stom: {}", cis.id, phy_mtos, phy_stom,
+                   cis.type, max_sdu_size_mtos, max_sdu_size_stom, rtn_mtos, rtn_stom);
     }
+
+    log::verbose("sdu_interval_mtos: {}, sdu_interval_stom: {}, max_trans_lat_mtos: {},"
+                 " max_trans_lat_stom: {}, max_sdu_size_mtos: {}, max_sdu_size_stom: {}",
+                 sdu_interval_mtos, sdu_interval_stom, max_trans_lat_mtos, max_trans_lat_stom,
+                 max_sdu_size_mtos, max_sdu_size_stom);
 
     if ((sdu_interval_mtos == 0 && sdu_interval_stom == 0) ||
         (max_trans_lat_mtos == bluetooth::le_audio::types::kMaxTransportLatencyMin &&
