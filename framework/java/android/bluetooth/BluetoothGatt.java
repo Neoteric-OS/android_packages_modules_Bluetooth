@@ -70,8 +70,6 @@ import android.os.ParcelUuid;
 import android.os.RemoteException;
 import android.util.Log;
 
-import com.android.bluetooth.flags.Flags;
-
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.util.ArrayList;
@@ -1702,11 +1700,9 @@ public final class BluetoothGatt implements BluetoothProfile {
             }
             throw e.rethrowAsRuntimeException();
         }
-        if (Flags.gattFixDeviceBusy()) {
-            if (requestStatus != BluetoothStatusCodes.SUCCESS) {
-                synchronized (mDeviceBusyLock) {
-                    mDeviceBusy = false;
-                }
+        if (requestStatus != BluetoothStatusCodes.SUCCESS) {
+            synchronized (mDeviceBusyLock) {
+                mDeviceBusy = false;
             }
         }
 

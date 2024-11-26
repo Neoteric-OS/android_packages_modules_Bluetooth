@@ -61,6 +61,7 @@
 #include "main/shim/dumpsys.h"
 #include "osi/include/alarm.h"
 #include "osi/include/allocator.h"
+#include "osi/include/properties.h"
 #include "stack/include/bt_hdr.h"
 #include "stack/include/bt_uuid16.h"
 #include "stack/include/btm_client_interface.h"
@@ -860,6 +861,9 @@ static void hh_rmv_dev_handler(tBTA_HH_DEV_INFO& dev_info) {
 }
 
 static void hh_vc_unplug_handler(tBTA_HH_CBDATA& dev_status) {
+  bool pts_hid_vup_enabled =
+  osi_property_get_bool("persist.vendor.bluetooth.pts_hid_vup_enabled", false);
+
   btif_hh_device_t* p_dev = btif_hh_find_connected_dev_by_handle(dev_status.handle);
   if (p_dev == nullptr) {
     log::error("Unknown device handle {}", dev_status.handle);
@@ -880,7 +884,7 @@ static void hh_vc_unplug_handler(tBTA_HH_CBDATA& dev_status) {
   BTHH_STATE_UPDATE(p_dev->link_spec, p_dev->dev_status);
 
   if (!com::android::bluetooth::flags::remove_input_device_on_vup()) {
-    if (p_dev->local_vup || check_cod_hid(p_dev->link_spec.addrt.bda)) {
+    if ((p_dev->local_vup || check_cod_hid(p_dev->link_spec.addrt.bda)) && !pts_hid_vup_enabled) {
       p_dev->local_vup = false;
       BTA_DmRemoveDevice(p_dev->link_spec.addrt.bda);
     } else {
@@ -982,6 +986,11 @@ void btif_hh_remove_device(const tAclLinkSpec& link_spec) {
     } else {
       log::warn("device_num = 0");
     }
+
+    if (com::android::bluetooth::flags::remove_pending_hid_connection()) {
+      BTA_HhRemoveDev(p_dev->dev_handle);  // Remove the connection, in case it was pending
+    }
+
     bta_hh_co_close(p_dev);
     p_dev->dev_status = BTHH_CONN_STATE_UNKNOWN;
     p_dev->dev_handle = BTA_HH_INVALID_HANDLE;

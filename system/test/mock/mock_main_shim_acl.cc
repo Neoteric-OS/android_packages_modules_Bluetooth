@@ -89,19 +89,19 @@ void bluetooth::shim::Acl::OnClassicLinkDisconnected(HciHandle /* handle */,
 }
 
 void shim::Acl::GetConnectionLocalAddress(
-    uint16_t /* handle */, bool /* ota_address */,
-    std::promise<bluetooth::hci::AddressWithType> /* promise */) {
+        uint16_t /* handle */, bool /* ota_address */,
+        std::promise<bluetooth::hci::AddressWithType> /* promise */) {
   inc_func_call_count(__func__);
 }
+
 void shim::Acl::GetConnectionPeerAddress(
-    uint16_t /* handle */, bool /* ota_address */,
-    std::promise<bluetooth::hci::AddressWithType> /* promise */) {
+        uint16_t /* handle */, bool /* ota_address */,
+        std::promise<bluetooth::hci::AddressWithType> /* promise */) {
   inc_func_call_count(__func__);
 }
 
 void shim::Acl::GetAdvertisingSetConnectedTo(
-    const RawAddress& /* remote_bda */,
-    std::promise<std::optional<uint8_t>> /* promise */) {
+        const RawAddress& /* remote_bda */, std::promise<std::optional<uint8_t>> /* promise */) {
   inc_func_call_count(__func__);
 }
 

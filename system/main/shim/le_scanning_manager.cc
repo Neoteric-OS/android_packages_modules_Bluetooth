@@ -25,6 +25,7 @@
 #include <base/functional/bind.h>
 #include <base/threading/thread.h>
 #include <bluetooth/log.h>
+#include <com_android_bluetooth_flags.h>
 #include <hardware/bluetooth.h>
 
 #include "btif/include/btif_common.h"
@@ -43,6 +44,7 @@
 #include "stack/include/bt_dev_class.h"
 #include "stack/include/btm_ble_addr.h"
 #include "stack/include/btm_log_history.h"
+#include "stack/include/btm_sec_api.h"
 #include "stack/include/btm_status.h"
 #include "stack/include/main_thread.h"
 #include "storage/device.h"
