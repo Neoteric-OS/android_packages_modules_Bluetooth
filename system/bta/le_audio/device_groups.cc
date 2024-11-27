@@ -1021,6 +1021,11 @@ bool LeAudioDeviceGroup::SetPreferredAudioSetConfiguration(
     return true;
   }
 
+  if (!lex_codec_disabled.first && IsLeXDevice()) {
+     log::info("Ignore LE codecs switching for XPAN enabled");
+     return false;
+  }
+
   preferred_config_.sink = std::make_unique<btle_audio_codec_config_t>(output_codec_config);
   preferred_config_.source = std::make_unique<btle_audio_codec_config_t>(input_codec_config);
 
