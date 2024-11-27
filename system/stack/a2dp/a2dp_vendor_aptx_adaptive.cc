@@ -53,7 +53,6 @@
 #include "internal_include/bt_trace.h"
 // #include "bt_utils.h"
 #include "hardware/bt_av.h"
-#include "os/log.h"
 #include "os/logging/log_adapter.h"
 #include "osi/include/osi.h"
 

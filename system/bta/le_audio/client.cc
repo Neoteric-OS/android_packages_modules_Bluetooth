@@ -472,6 +472,36 @@ public:
     }
   }
 
+  void StartSuspendTimeout(void) {
+    StopSuspendTimeout();
+
+    /* Group should tie in time to get requested status */
+    uint64_t timeoutMs = kAudioSuspentKeepIsoAliveTimeoutMs;
+    timeoutMs = osi_property_get_int32(kAudioSuspentKeepIsoAliveTimeoutMsProp, timeoutMs);
+
+    if (stack_config_get_interface()->get_pts_le_audio_disable_ases_before_stopping()) {
+      timeoutMs += kAudioDisableTimeoutMs;
+    }
+
+    log::debug("Stream suspend_timeout_ started: {} ms", static_cast<int>(timeoutMs));
+
+    alarm_set_on_mloop(
+            suspend_timeout_, timeoutMs,
+            [](void* data) {
+              if (instance) {
+                instance->GroupStop(PTR_TO_INT(data));
+              }
+            },
+            INT_TO_PTR(active_group_id_));
+  }
+
+  void StopSuspendTimeout(void) {
+    if (alarm_is_scheduled(suspend_timeout_)) {
+      log::debug("Cancel suspend timeout");
+      alarm_cancel(suspend_timeout_);
+    }
+  }
+
   void AseInitialStateReadRequest(LeAudioDevice* leAudioDevice) {
     int ases_num = leAudioDevice->ases_.size();
     void* notify_flag_ptr = NULL;
@@ -1581,9 +1611,7 @@ public:
     sink_monitor_notified_status_ = std::nullopt;
     log::info("Group id: {}", active_group_id_);
 
-    if (alarm_is_scheduled(suspend_timeout_)) {
-      alarm_cancel(suspend_timeout_);
-    }
+    StopSuspendTimeout();
 
     log::info("defer_notify_inactive_until_stop_: {}", defer_notify_inactive_until_stop_);
 
@@ -4364,9 +4392,8 @@ public:
   }
 
   void Cleanup() {
-    if (alarm_is_scheduled(suspend_timeout_)) {
-      alarm_cancel(suspend_timeout_);
-    }
+    StopVbcCloseTimeout();
+    StopSuspendTimeout();
 
     if (active_group_id_ != bluetooth::groups::kGroupUnknown) {
       /* Bluetooth turned off while streaming */
@@ -4536,27 +4563,7 @@ public:
               INT_TO_PTR(active_group_id_));
     }
 
-    /* Group should tie in time to get requested status */
-    uint64_t timeoutMs = kAudioSuspentKeepIsoAliveTimeoutMs;
-    timeoutMs = osi_property_get_int32(kAudioSuspentKeepIsoAliveTimeoutMsProp, timeoutMs);
-
-    if (stack_config_get_interface()->get_pts_le_audio_disable_ases_before_stopping()) {
-      timeoutMs += kAudioDisableTimeoutMs;
-    }
-
-    log::debug("Stream suspend_timeout_ started: {} ms", static_cast<int>(timeoutMs));
-    if (alarm_is_scheduled(suspend_timeout_)) {
-      alarm_cancel(suspend_timeout_);
-    }
-
-    alarm_set_on_mloop(
-            suspend_timeout_, timeoutMs,
-            [](void* data) {
-              if (instance) {
-                instance->GroupStop(PTR_TO_INT(data));
-              }
-            },
-            INT_TO_PTR(active_group_id_));
+    StartSuspendTimeout();
   }
 
   void OnLocalAudioSourceSuspend() {
@@ -4747,6 +4754,7 @@ public:
             if (group->GetState() == AseState::BTA_LE_AUDIO_ASE_STATE_STREAMING) {
               if (IsDirectionAvailableForCurrentConfiguration(
                           group, bluetooth::le_audio::types::kLeAudioDirectionSink)) {
+                StopSuspendTimeout();
                 StartSendingAudio(active_group_id_);
               } else {
                 log::warn(
@@ -4787,9 +4795,7 @@ public:
           case AudioState::IDLE:
           case AudioState::READY_TO_RELEASE:
             /* Stream is up just restore it */
-            if (alarm_is_scheduled(suspend_timeout_)) {
-              alarm_cancel(suspend_timeout_);
-            }
+            StopSuspendTimeout();
             ConfirmLocalAudioSourceStreamingRequest(false);
             bluetooth::le_audio::MetricsCollector::Get()->OnStreamStarted(
                     active_group_id_, configuration_context_type_);
@@ -4856,6 +4862,11 @@ public:
         log::info("calling sink ConfirmSuspendRequest");
         le_audio_sink_hal_client_->ConfirmSuspendRequest();
       }
+
+      /* If the local sink direction is used, we want to monitor
+       * if back channel is actually needed.
+       */
+      StartVbcCloseTimeout();
     }
 
     log::info("OUT: audio_receiver_state_: {},  audio_sender_state_: {}",
@@ -5031,6 +5042,7 @@ public:
             if (group->GetState() == AseState::BTA_LE_AUDIO_ASE_STATE_STREAMING) {
               if (IsDirectionAvailableForCurrentConfiguration(
                           group, bluetooth::le_audio::types::kLeAudioDirectionSource)) {
+                StopSuspendTimeout();
                 StartReceivingAudio(active_group_id_);
               } else {
                 log::warn(
@@ -5070,9 +5082,7 @@ public:
           case AudioState::READY_TO_START:
           case AudioState::READY_TO_RELEASE:
             /* Stream is up just restore it */
-            if (alarm_is_scheduled(suspend_timeout_)) {
-              alarm_cancel(suspend_timeout_);
-            }
+            StopSuspendTimeout();
             ConfirmLocalAudioSinkStreamingRequest(false);
             break;
           case AudioState::RELEASING:
@@ -5168,9 +5178,7 @@ public:
       return false;
     }
 
-    if (alarm_is_scheduled(suspend_timeout_)) {
-      alarm_cancel(suspend_timeout_);
-    }
+    StopSuspendTimeout();
 
     /* Need to reconfigure stream. At this point pre_configuration_context_type shall be set */
 

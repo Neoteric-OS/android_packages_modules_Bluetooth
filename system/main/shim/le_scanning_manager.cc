@@ -772,9 +772,7 @@ void BleScannerInterfaceImpl::on_scan_result(uint16_t event_type, uint8_t addres
     btm_ble_process_adv_addr(raw_address, &ble_addr_type);
   }
 
-  do_in_jni_thread(base::BindOnce(&BleScannerInterfaceImpl::handle_remote_properties,
-                                  base::Unretained(this), raw_address, ble_addr_type,
-                                  advertising_data));
+  handle_remote_properties(raw_address, ble_addr_type, advertising_data);
 
   do_in_jni_thread(base::BindOnce(
           &ScanningCallbacks::OnScanResult, base::Unretained(scanning_callbacks_), event_type,

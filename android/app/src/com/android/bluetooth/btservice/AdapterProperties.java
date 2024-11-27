@@ -531,7 +531,7 @@ class AdapterProperties {
             return;
         }
 
-        if (Flags.cleanupLeOnlyDeviceType() && deviceType != BluetoothDevice.DEVICE_TYPE_LE) {
+        if (deviceType != BluetoothDevice.DEVICE_TYPE_LE) {
             return;
         }
 
@@ -547,12 +547,8 @@ class AdapterProperties {
             boolean removeExisting = false;
             if (identityAddress.equals(existingIdentityAddress)
                     && !address.equals(existingAddress)) {
-                if (Flags.cleanupLeOnlyDeviceType()) {
-                    // Existing device record should be removed only if the device type is LE-only
-                    removeExisting = (existingDeviceType == BluetoothDevice.DEVICE_TYPE_LE);
-                } else {
-                    removeExisting = true;
-                }
+                // Existing device record should be removed only if the device type is LE-only
+                removeExisting = (existingDeviceType == BluetoothDevice.DEVICE_TYPE_LE);
             }
 
             if (removeExisting) {
@@ -619,6 +615,10 @@ class AdapterProperties {
         Log.d(TAG, "updateOnProfileConnectionChanged: " + logInfo);
         if (!isNormalStateTransition(prevState, newState)) {
             Log.w(TAG, "updateOnProfileConnectionChanged: Unexpected transition. " + logInfo);
+        }
+        if (mService == null) {
+            Log.e(TAG, "AdapterService is null");
+            return;
         }
         BluetoothStatsLog.write(
                 BluetoothStatsLog.BLUETOOTH_CONNECTION_STATE_CHANGED,

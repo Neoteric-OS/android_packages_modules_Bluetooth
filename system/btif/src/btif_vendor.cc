@@ -87,7 +87,6 @@
 #include "btif_api.h"
 #include "btif_common.h"
 #include "btif_vendor.h"
-#include "os/log.h"
 #include "osi/include/allocator.h"
 #include "osi/include/osi.h"
 #include "osi/include/properties.h"

@@ -31,7 +31,6 @@
 #include <vector>
 
 #include "hal_version_manager.h"
-#include "os/log.h"
 
 namespace bluetooth {
 namespace audio {
