@@ -213,6 +213,8 @@ public class BluetoothInCallService extends InCallService {
 
     private boolean mDsDaEventsHadlingInProgress = false;
 
+    private boolean mSilentRingingRequested = false;
+
     private static final String ENABLE_DSDA_SUPPORT =
           "persist.bluetooth.init.dsda.support";
 
@@ -350,7 +352,13 @@ public class BluetoothInCallService extends InCallService {
 
             Integer tbsCallState = getTbsCallState(call);
             if (mBluetoothLeCallControl != null && tbsCallState != null) {
-                mBluetoothLeCallControl.onCallStateChanged(call.getTbsCallId(), tbsCallState);
+                if (mSilentRingingRequested && tbsCallState == BluetoothLeCall.STATE_ACTIVE) {
+                   BluetoothLeCall tbsCall = createTbsCall(call);
+                   mBluetoothLeCallControl.onCallAdded(tbsCall);
+                } else {
+                   mBluetoothLeCallControl.onCallStateChanged(call.getTbsCallId(), tbsCallState);
+                }
+                mSilentRingingRequested = false;
             }
 
             // If a BluetoothCall is being put on hold because of a new connecting call, ignore the
@@ -1156,6 +1164,8 @@ public class BluetoothInCallService extends InCallService {
             BluetoothLeCall tbsCall = createTbsCall(call);
             if (mBluetoothLeCallControl != null && tbsCall != null) {
                 mBluetoothLeCallControl.onCallAdded(tbsCall);
+            } else {
+                Log.i(TAG, "onCallAdded: tbs call was not added. might be DND mode");
             }
         } else {
             Log.i(TAG, "onCallAdded: call already exists");
@@ -1268,6 +1278,7 @@ public class BluetoothInCallService extends InCallService {
         if (mBluetoothLeCallControl != null) {
             mBluetoothLeCallControl.onCallRemoved(
                     call.getTbsCallId(), getTbsTerminationReason(call));
+            mSilentRingingRequested = false;
         }
     }
 
@@ -2697,7 +2708,12 @@ public class BluetoothInCallService extends InCallService {
 
             case Call.STATE_RINGING:
             case Call.STATE_SIMULATED_RINGING:
-                return BluetoothLeCall.STATE_INCOMING;
+                if (call.isSilentRingingRequested()) {
+                    mSilentRingingRequested = true;
+                    return null;
+                } else {
+                    return BluetoothLeCall.STATE_INCOMING;
+                }
         }
         return null;
     }
