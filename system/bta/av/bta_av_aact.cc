@@ -74,6 +74,7 @@
 #include "stack/include/bt_hdr.h"
 #include "stack/include/bt_types.h"
 #include "stack/include/bt_uuid16.h"
+#include "stack/include/btm_ble_api.h"
 #include "stack/include/btm_client_interface.h"
 #include "stack/include/btm_log_history.h"
 #include "stack/include/btm_status.h"
@@ -193,6 +194,15 @@ static const uint16_t bta_av_stream_evt_fail[] = {
         BTA_AV_AVDT_DELAY_RPT_EVT,     /* AVDT_DELAY_REPORT_EVT */
         BTA_AV_AVDT_DELAY_RPT_CFM_EVT, /* AVDT_DELAY_REPORT_CFM_EVT */
 };
+
+static bool check_controller_support_offload_v2() {
+  tBTM_BLE_VSC_CB vsc_cb = {};
+  BTM_BleGetVendorCapabilities(&vsc_cb);
+  bool supports_a2dp_hw_offload_v2 = vsc_cb.a2dp_offload_v2_support;
+  log::error("BT Controller offload V2 command support {} is supported {}",
+             vsc_cb.a2dp_offload_v2_support, supports_a2dp_hw_offload_v2);
+  return supports_a2dp_hw_offload_v2;
+}
 
 /***********************************************
  *
@@ -3234,7 +3244,7 @@ static void bta_av_vendor_offload_start_v2(tBTA_AV_SCB* p_scb, A2dpCodecConfigEx
 }
 
 void bta_av_vendor_offload_stop() {
-  if (true) {
+  if (!check_controller_support_offload_v2()) {
     bta_qti_av_vendor_offload_stop();
     return;
   }
@@ -3454,7 +3464,7 @@ void bta_av_qti_offload_req(tBTA_AV_SCB* p_scb, tBTA_AV_DATA* p_data) {
 void bta_av_offload_req(tBTA_AV_SCB* p_scb, tBTA_AV_DATA* p_data) {
   tBTA_AV bta_av_data = {};
 
-  if (true) {
+  if (!check_controller_support_offload_v2()) {
     bta_av_qti_offload_req(p_scb, p_data);
     return;
   }
