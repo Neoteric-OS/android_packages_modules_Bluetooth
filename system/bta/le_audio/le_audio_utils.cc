@@ -221,9 +221,9 @@ AudioContexts GetAudioContextsFromSinkMetadata(
     if (track.source == AUDIO_SOURCE_MIC || track.source == AUDIO_SOURCE_CAMCORDER) {
       track_context = LeAudioContextType::LIVE;
 
-    } else if (track.source == AUDIO_SOURCE_VOICE_COMMUNICATION) {
+    } else if (track.source == AUDIO_SOURCE_VOICE_COMMUNICATION ||
+               track.source == AUDIO_SOURCE_VOICE_CALL) {
       track_context = LeAudioContextType::CONVERSATIONAL;
-
     } else {
       /* Fallback to voice assistant
        * This will handle also a case when the device is
@@ -509,13 +509,16 @@ types::LeAudioConfigurationStrategy GetStrategyForAseConfig(
     if (cfgs.at(0).codec.GetChannelCountPerIsoStream() == 1) {
       /* One mono ASE - could be a single channel microphone */
       if (cfgs.size() == 1) {
+        log::debug("Strategy set to '0' ");
         return types::LeAudioConfigurationStrategy::MONO_ONE_CIS_PER_DEVICE;
       }
 
+      log::debug("Strategy set to '1' ");
       /* Each channel on a dedicated ASE - TWS style split channel re-routing */
       return types::LeAudioConfigurationStrategy::STEREO_TWO_CISES_PER_DEVICE;
     }
 
+    log::debug("Strategy set to '2' ");
     /* Banded headphones with 1 ASE - requires two channels per CIS */
     return types::LeAudioConfigurationStrategy::STEREO_ONE_CIS_PER_DEVICE;
   }
@@ -525,6 +528,7 @@ types::LeAudioConfigurationStrategy GetStrategyForAseConfig(
     return types::LeAudioConfigurationStrategy::RFU;
   }
 
+  log::debug("Strategy set to one channel per device topology ");
   /* The common one channel per device topology */
   return types::LeAudioConfigurationStrategy::MONO_ONE_CIS_PER_DEVICE;
 }

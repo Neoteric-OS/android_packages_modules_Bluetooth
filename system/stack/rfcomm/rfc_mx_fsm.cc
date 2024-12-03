@@ -608,6 +608,11 @@ void rfc_on_l2cap_error(uint16_t lcid, uint16_t result) {
         uintptr_t result_as_ptr = static_cast<uint16_t>(tL2CAP_CONN::L2CAP_CONN_OK);
         rfc_mx_sm_execute(p_mcb, RFC_MX_EVENT_CONF_IND, &p_mcb->pending_cfg_info);
         rfc_mx_sm_execute(p_mcb, RFC_MX_EVENT_CONF_CNF, (void*)result_as_ptr);
+        if (p_mcb->pending_buf != nullptr) {
+          log::info("send SABM to Statemachine now");
+          RFCOMM_BufDataInd(p_mcb->lcid, p_mcb->pending_buf);
+          p_mcb->pending_buf =  nullptr;
+        }
       }
       return;
     }

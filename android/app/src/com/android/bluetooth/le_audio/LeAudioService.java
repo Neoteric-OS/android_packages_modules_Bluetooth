@@ -95,6 +95,7 @@ import com.android.bluetooth.hfp.HeadsetService;
 import com.android.bluetooth.mcp.McpService;
 import com.android.bluetooth.tbs.TbsGatt;
 import com.android.bluetooth.tbs.TbsService;
+import com.android.bluetooth.tbs.TbsGeneric;
 import com.android.bluetooth.vc.VolumeControlService;
 import com.android.internal.annotations.GuardedBy;
 import com.android.internal.annotations.VisibleForTesting;
@@ -189,6 +190,8 @@ public class LeAudioService extends ProfileService {
     /** LE audio active device that was removed from active because of HFP handover */
     BluetoothDevice mLeAudioDeviceInactivatedForHfpHandover = null;
 
+    BluetoothDevice mHfpVrInitiatedRemoteDevice = null;
+
     LeAudioBroadcasterNativeInterface mLeAudioBroadcasterNativeInterface = null;
     @VisibleForTesting AudioManager mAudioManager;
     LeAudioTmapGattServer mTmapGattServer;
@@ -209,6 +212,8 @@ public class LeAudioService extends ProfileService {
     boolean mLeAudioSuspended = false;
     boolean mIsSinkStreamMonitorModeEnabled = false;
     boolean mIsBroadcastPausedFromOutside = false;
+    private byte[] mCachedArgs = null;
+    private int mCachedOpcode = -1;
 
     @VisibleForTesting TbsService mTbsService;
 
@@ -733,6 +738,7 @@ public class LeAudioService extends ProfileService {
         mBluetoothEnabled = false;
         mHfpHandoverDevice = null;
         mLeAudioDeviceInactivatedForHfpHandover = null;
+        mHfpVrInitiatedRemoteDevice = null;
 
         mActiveAudioOutDevice = null;
         mActiveAudioInDevice = null;
@@ -1661,6 +1667,8 @@ public class LeAudioService extends ProfileService {
                     mGroupDescriptorsView.entrySet()) {
                 LeAudioGroupDescriptor descriptor = entry.getValue();
                 if (!descriptor.isInactive()) {
+                    Log.d(TAG, "areAllGroupsInNotActiveState: " +
+                                     " All groups are not in in-active State.");
                     return false;
                 }
             }
@@ -2153,6 +2161,14 @@ public class LeAudioService extends ProfileService {
         /* Don't expose already exposed active device */
         if (device.equals(mExposedActiveDevice)) {
             Log.d(TAG, " onAudioDevicesAdded: " + device + " is already exposed");
+            Log.d(TAG, " handleAudioDeviceAdded(): mCachedOpcode: " + mCachedOpcode);
+            TbsService tbsService = getTbsService();
+            if (tbsService != null && isSource && mCachedOpcode != -1) {
+                TbsGeneric tbsGeneric = tbsService.getTbsGeneric();
+                if (tbsGeneric != null) {
+                    tbsGeneric.processCallControlOp(device, mCachedOpcode, mCachedArgs);
+                }
+            }
             return true;
         }
 
@@ -2274,7 +2290,7 @@ public class LeAudioService extends ProfileService {
                     continue;
                 }
 
-		byte[] addressBytes = Utils.getBytesFromAddress(address);
+                byte[] addressBytes = Utils.getBytesFromAddress(address);
                 BluetoothDevice device = mAdapterService.getDeviceFromByte(addressBytes);
 
                 mExposedActiveDevice = null;
@@ -2584,17 +2600,6 @@ public class LeAudioService extends ProfileService {
         }
 
         mNativeInterface.groupSetActive(groupId);
-        if (groupId == LE_AUDIO_GROUP_ID_INVALID) {
-            /* Native will clear its states and send us group Inactive.
-             * However we would like to notify audio framework that LeAudio is not
-             * active anymore and does not want to get more audio data.
-             * Notify audio framework LeAudio InActive until it is inactive
-             * in stack if broadcast create request in queue.
-             */
-            if (mCreateBroadcastQueue.isEmpty()) {
-                handleGroupTransitToInactive(currentlyActiveGroupId);
-            }
-        }
         return true;
     }
 
@@ -2969,6 +2974,18 @@ public class LeAudioService extends ProfileService {
                             notifyGroupStatusChanged(
                                     groupId, LeAudioStackEvent.GROUP_STATUS_INACTIVE));
             updateInbandRingtoneForTheGroup(groupId);
+
+            Log.d(TAG, "mHfpVrInitiatedRemoteDevice: " + mHfpVrInitiatedRemoteDevice);
+            if (mHfpVrInitiatedRemoteDevice != null) {
+                HeadsetService headsetService = mServiceFactory.getHeadsetService();
+                if (headsetService == null) {
+                    Log.d(TAG, "There is no HFP service available");
+                    return;
+                }
+                headsetService.SynchronousStartVoiceRecognitionByHeadset(mHfpVrInitiatedRemoteDevice);
+                mHfpVrInitiatedRemoteDevice = null;
+            }
+
         } finally {
             mGroupReadLock.unlock();
         }
@@ -4592,6 +4609,21 @@ public class LeAudioService extends ProfileService {
         }
     }
 
+    public boolean IsActiveLeAudioDeviceExistCacheVrHfpDevice(
+                                   BluetoothDevice HfpVrInitiatedRemoteDevice) {
+        if (!mLeAudioNativeIsInitialized) {
+            Log.e(TAG, "Le Audio not initialized properly.");
+            return false;
+        }
+        Log.i(TAG, "VR initiated Remote device: " + HfpVrInitiatedRemoteDevice);
+        if (areAllGroupsInNotActiveState()) {
+            Log.i(TAG, "All LeAudio groups are not in Active state.");
+            return false;
+        }
+        mHfpVrInitiatedRemoteDevice = HfpVrInitiatedRemoteDevice;
+        return true;
+    }
+
     /** Resume prior active device after HFP phone call hand over */
     public void setActiveAfterHfpHandover() {
         if (!mLeAudioNativeIsInitialized) {
@@ -4812,6 +4844,21 @@ public class LeAudioService extends ProfileService {
         } finally {
             mGroupReadLock.unlock();
         }
+    }
+
+    public void cacheRemoteCcpOps(int opcode, byte[] args) {
+        mCachedOpcode = opcode;
+        mCachedArgs = Arrays.copyOfRange(args, 0, args.length);
+        Log.d(TAG, "cacheRemoteCcpOps(): mCachedOpcode: " + mCachedOpcode +
+                   ", args Len=" + args.length + ", args: " + Arrays.toString(args) +
+                   ", cachedArgs Len=" + mCachedArgs.length +
+                   ", mCachedArgs: " + Arrays.toString(mCachedArgs));
+    }
+
+    public void clearCachedRemoteCcpOps() {
+        mCachedOpcode = -1;
+        mCachedArgs = null;
+        Log.d(TAG, "clearCachedRemoteCcpOps(): mCachedOpcode: " + mCachedOpcode);
     }
 
     /**

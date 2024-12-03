@@ -450,6 +450,7 @@ public:
         if (!PrepareAndSendCodecConfigToTheGroup(group)) {
           group->PrintDebugState();
           ClearGroup(group, true);
+          return false;
         }
         break;
 
@@ -757,7 +758,7 @@ public:
 
     /* Assign all connection handles to multiple device ASEs */
     group->AssignCisConnHandlesToAses();
-
+    group->SetState(AseState::BTA_LE_AUDIO_ASE_STATE_QOS_CONFIGURED);
     /* As streaming is about to start send HCI configure data path
      * based on codec selected before CIS creation ensuring order
      * Connected_Iso_Group_Create -> HCI_Configure Data path ->
@@ -809,7 +810,7 @@ public:
     }
     send_vs_cmd(static_cast<uint16_t>(group->GetConfigurationContextType()),
         cig_id, group->cig.cises.size(), conn_handles, group->IsLeXDevice());
-
+    PrepareAndSendQoSToTheGroup(group);
   }
 
   void FreeLinkQualityReports(LeAudioDevice* leAudioDevice) {
@@ -1841,7 +1842,15 @@ private:
         cis_cfg.rtn_stom = rtn_stom;
         cis_cfgs.push_back(cis_cfg);
       }
+      log::verbose("cis.id: {}, phy_mtos: {}, phy_stom: {}, cis.type: {}, max_sdu_size_mtos: {},"
+                   " max_sdu_size_stom: {}, rtn_mtos: {}, rtn_stom: {}", cis.id, phy_mtos, phy_stom,
+                   cis.type, max_sdu_size_mtos, max_sdu_size_stom, rtn_mtos, rtn_stom);
     }
+
+    log::verbose("sdu_interval_mtos: {}, sdu_interval_stom: {}, max_trans_lat_mtos: {},"
+                 " max_trans_lat_stom: {}, max_sdu_size_mtos: {}, max_sdu_size_stom: {}",
+                 sdu_interval_mtos, sdu_interval_stom, max_trans_lat_mtos, max_trans_lat_stom,
+                 max_sdu_size_mtos, max_sdu_size_stom);
 
     if ((sdu_interval_mtos == 0 && sdu_interval_stom == 0) ||
         (max_trans_lat_mtos == bluetooth::le_audio::types::kMaxTransportLatencyMin &&
@@ -2260,6 +2269,11 @@ private:
     }
 
     for (; leAudioDevice; leAudioDevice = group->GetNextActiveDevice(leAudioDevice)) {
+      if (!group->cig.AssignCisIds(leAudioDevice)) {
+        log::error("unable to assign CIS IDs");
+        StopStream(group);
+        return false;
+      }
       PrepareAndSendCodecConfigure(group, leAudioDevice);
     }
     return true;
@@ -2633,6 +2647,8 @@ private:
         }
 
         cancel_watchdog_if_needed(group->group_id_);
+        ReleaseCisIds(group);
+        RemoveCigForGroup(group);
 
         state_machine_callbacks_->StatusReportCb(group->group_id_,
                                                  GroupStreamStatus::CONFIGURED_AUTONOMOUS);
