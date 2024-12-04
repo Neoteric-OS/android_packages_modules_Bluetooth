@@ -931,6 +931,7 @@ LeAudioDeviceGroup::GetAudioSetConfigurationRequirements(types::LeAudioContextTy
 
 bool LeAudioDeviceGroup::UpdateAudioSetConfigurationCache(LeAudioContextType ctx_type,
                                                           bool use_preference) const {
+  log::info("ctx_type: {}", ToHexString(ctx_type));
   auto requirements = GetAudioSetConfigurationRequirements(ctx_type);
   auto new_conf = CodecManager::GetInstance()->GetCodecConfig(
           requirements, std::bind(&LeAudioDeviceGroup::FindFirstSupportedConfiguration, this,
@@ -1190,6 +1191,7 @@ types::LeAudioConfigurationStrategy LeAudioDeviceGroup::GetGroupSinkStrategy() c
       if (!(snk_audio_locations_.to_ulong() & codec_spec_conf::kLeAudioLocationAnyLeft) ||
           !(snk_audio_locations_.to_ulong() & codec_spec_conf::kLeAudioLocationAnyRight) ||
           snk_audio_locations_.none()) {
+        log::debug("startgy set to MONO_ONE_CIS_PER_DEVICE");
         return types::LeAudioConfigurationStrategy::MONO_ONE_CIS_PER_DEVICE;
       }
 
@@ -1610,8 +1612,10 @@ bool LeAudioDeviceGroup::IsAudioSetConfigurationSupported(
     // contexts are not supported. Then we might want to configure the device
     // but use UNSPECIFIED which is always supported (but can be unavailable)
     auto device_cnt = NumOfAvailableForDirection(direction);
+    log::debug("device_cnt: {}", device_cnt);
     if (device_cnt == 0) {
       device_cnt = DesiredSize();
+      log::debug("DesiredSize of device_cnt: {}", device_cnt);
       if (device_cnt == 0) {
         log::error("Device count is 0");
         continue;
@@ -1645,9 +1649,25 @@ bool LeAudioDeviceGroup::IsAudioSetConfigurationSupported(
     uint8_t active_ase_cnt = 0;
     for (auto* device = GetFirstDevice(); device != nullptr && required_device_cnt > 0;
          device = GetNextDevice(device)) {
+      log::info("device address: {}, ase size: {} ",device->address_, device->ases_.size());
       /* Skip if device has ASE configured in this direction already */
       if (device->ases_.empty()) {
         log::error("Device has no ASEs.");
+        continue;
+      }
+
+      bool match = false;
+      for (auto& ase_ : device->ases_) {
+        if (ase_.direction == direction) {
+          log::info("match found.");
+          match = true;
+          break;
+        }
+      }
+
+      log::info("match: {}", match);
+      if (!match) {
+        log::info("device doesn't have this direction ases");
         continue;
       }
 
@@ -1838,6 +1858,7 @@ bool LeAudioDeviceGroup::ConfigureAses(
 
 std::shared_ptr<const set_configurations::AudioSetConfiguration>
 LeAudioDeviceGroup::GetCachedConfiguration(LeAudioContextType context_type) const {
+  log::info("context_type: {}", ToHexString(context_type));
   if (context_to_configuration_cache_map_.count(context_type) != 0) {
     return context_to_configuration_cache_map_.at(context_type).second;
   }
@@ -1868,6 +1889,7 @@ void LeAudioDeviceGroup::DisableLeXCodec(bool status) {
 
 std::shared_ptr<const set_configurations::AudioSetConfiguration>
 LeAudioDeviceGroup::GetConfiguration(LeAudioContextType context_type) const {
+  log::info("context_type: {}", ToHexString(context_type));
   if (context_type == LeAudioContextType::UNINITIALIZED) {
     return nullptr;
   }
@@ -1918,6 +1940,7 @@ LeAudioDeviceGroup::GetPreferredConfiguration(LeAudioContextType context_type) c
 
 LeAudioCodecConfiguration LeAudioDeviceGroup::GetAudioSessionCodecConfigForDirection(
         LeAudioContextType context_type, uint8_t direction) const {
+  log::debug("context_type = {}, direction: {}", common::ToString(context_type), direction);
   auto audio_set_conf = GetConfiguration(context_type);
   if (!audio_set_conf) {
     return {{0, 0, 0}, 0, 0, 0, 0, 0};

@@ -2049,25 +2049,60 @@ public class HeadsetService extends ProfileService {
                                 + " as active");
                 return false;
             }
-            if (!mSystemInterface.activateVoiceRecognition()) {
+
+            LeAudioService leAudioService = mFactory.getLeAudioService();
+            boolean isActiveLeAudioDeviceFound = false;
+            if (leAudioService != null
+                         && !leAudioService.getConnectedDevices().isEmpty()) {
+                isActiveLeAudioDeviceFound =
+                   leAudioService.IsActiveLeAudioDeviceExistCacheVrHfpDevice(fromDevice);
+            }
+
+            Log.w(TAG, "startVoiceRecognitionByHeadset: isActiveLeAudioDeviceFound: " +
+                                                             isActiveLeAudioDeviceFound);
+
+            if (isActiveLeAudioDeviceFound) {
+                Log.w(TAG, "startVoiceRecognitionByHeadset: " +
+                              "Unicast device still Active, defer VR initiated Hfp device.");
+                return true;
+            }
+
+            if (!SynchronousStartVoiceRecognitionByHeadset(fromDevice)) {
                 Log.w(TAG, "startVoiceRecognitionByHeadset: failed request from " + fromDevice);
                 return false;
             }
-            if (SystemProperties.getBoolean(REJECT_SCO_IF_HFPC_CONNECTED_PROPERTY, false)
-                    && isHeadsetClientConnected()) {
-                Log.w(TAG, "startVoiceRecognitionByHeadset: rejected SCO since HFPC is connected!");
-                return false;
-            }
-            mVoiceRecognitionTimeoutEvent = new VoiceRecognitionTimeoutEvent(fromDevice);
-            mStateMachinesThreadHandler.postDelayed(
-                    mVoiceRecognitionTimeoutEvent, sStartVrTimeoutMs);
-
-            if (!mSystemInterface.getVoiceRecognitionWakeLock().isHeld()) {
-                mSystemInterface.getVoiceRecognitionWakeLock().acquire(sStartVrTimeoutMs);
-            }
-            enableSwbCodec(HeadsetHalConstants.BTHF_SWB_CODEC_VENDOR_APTX, true, fromDevice);
             return true;
         }
+    }
+
+    public boolean SynchronousStartVoiceRecognitionByHeadset(BluetoothDevice fromDevice) {
+        Log.i(TAG, "SynchronousVoiceRecognitionByHeadset: from " + fromDevice);
+        if (fromDevice == null) {
+            Log.e(TAG, "SynchronousStartVoiceRecognitionByHeadset: fromDevice is null");
+            return false;
+        }
+
+        if (!mSystemInterface.activateVoiceRecognition()) {
+            Log.w(TAG, "SynchronousVoiceRecognitionByHeadset: failed request from " + fromDevice);
+            return false;
+        }
+
+        if (SystemProperties.getBoolean(REJECT_SCO_IF_HFPC_CONNECTED_PROPERTY, false)
+                && isHeadsetClientConnected()) {
+            Log.w(TAG, "SynchronousVoiceRecognitionByHeadset: rejected SCO since HFPC is connected!");
+            return false;
+        }
+
+        mVoiceRecognitionTimeoutEvent = new VoiceRecognitionTimeoutEvent(fromDevice);
+        mStateMachinesThreadHandler.postDelayed(
+                mVoiceRecognitionTimeoutEvent, sStartVrTimeoutMs);
+
+        if (!mSystemInterface.getVoiceRecognitionWakeLock().isHeld()) {
+            mSystemInterface.getVoiceRecognitionWakeLock().acquire(sStartVrTimeoutMs);
+        }
+
+        enableSwbCodec(HeadsetHalConstants.BTHF_SWB_CODEC_VENDOR_APTX, true, fromDevice);
+        return true;
     }
 
     boolean stopVoiceRecognitionByHeadset(BluetoothDevice fromDevice) {
@@ -2573,6 +2608,11 @@ public class HeadsetService extends ProfileService {
     @VisibleForTesting
     public void onAudioStateChangedFromStateMachine(
             BluetoothDevice device, int fromState, int toState) {
+        class Wrapper {
+            boolean isCallIdleAndScoNotManagedbyHal;
+        }
+        var wrapper = new Wrapper();
+        wrapper.isCallIdleAndScoNotManagedbyHal = false;
         synchronized (mStateMachines) {
             if (toState == BluetoothHeadset.STATE_AUDIO_DISCONNECTED) {
                 if (fromState != BluetoothHeadset.STATE_AUDIO_DISCONNECTED) {
@@ -2626,17 +2666,23 @@ public class HeadsetService extends ProfileService {
                     leAudioService.setActiveAfterHfpHandover();
                 }
 
-                mStateMachinesThreadHandler.post(() -> {
-                    // Unsuspend A2DP when SCO connection is gone and call state is idle
-                    if (mSystemInterface.isCallIdle() && !Utils.isScoManagedByAudioEnabled()) {
-                        Log.i(TAG, "Resume A2DP when SCO is gone and call state is idle");
-                        mSystemInterface.getAudioManager().setA2dpSuspended(false);
-                        if (isAtLeastU()) {
-                            mSystemInterface.getAudioManager().setLeAudioSuspended(false);
-                        }
-                    }
-                });
+                wrapper.isCallIdleAndScoNotManagedbyHal =
+                       (mSystemInterface.isCallIdle() && !Utils.isScoManagedByAudioEnabled());
             }
+        }
+
+        Log.i(TAG, "isCallIdleAndScoNotManagedbyHal: " + wrapper.isCallIdleAndScoNotManagedbyHal);
+        if (toState == BluetoothHeadset.STATE_AUDIO_DISCONNECTED) {
+            mStateMachinesThreadHandler.post(() -> {
+                // Unsuspend A2DP when SCO connection is gone and call state is idle
+                if (wrapper.isCallIdleAndScoNotManagedbyHal) {
+                    Log.i(TAG, "Resume A2DP when SCO is gone and call state is idle");
+                    mSystemInterface.getAudioManager().setA2dpSuspended(false);
+                    if (isAtLeastU()) {
+                        mSystemInterface.getAudioManager().setLeAudioSuspended(false);
+                    }
+                }
+            });
         }
     }
 

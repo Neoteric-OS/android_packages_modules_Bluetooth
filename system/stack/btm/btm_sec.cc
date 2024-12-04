@@ -1531,8 +1531,18 @@ tBTM_STATUS btm_sec_l2cap_access_req_by_requirement(const RawAddress& bd_addr,
     return tBTM_STATUS::BTM_CMD_STARTED;
   }
 
+  if (security_required & BTM_SEC_OUT_AUTHENTICATE) {
+    security_required |= BTM_SEC_OUT_MITM;
+  }
+  if (security_required & BTM_SEC_IN_AUTHENTICATE) {
+    security_required |= BTM_SEC_IN_MITM;
+  }
+
   /* Save the security requirements in case a pairing is needed */
   p_dev_rec->sec_rec.required_security_flags_for_pairing = security_required;
+
+  log::warn("save sec req for pairing: sec_flags:0x{:x}, security_required:0x{:x} ",
+               p_dev_rec->sec_rec.sec_flags, security_required);
 
   /* Modify security_required in btm_sec_l2cap_access_req for Lisbon */
   if (btm_sec_cb.security_mode == BTM_SEC_MODE_SP || btm_sec_cb.security_mode == BTM_SEC_MODE_SC) {
@@ -2578,12 +2588,13 @@ void btm_io_capabilities_req(RawAddress p) {
         (p_dev_rec->sec_rec.required_security_flags_for_pairing & BTM_SEC_OUT_AUTHENTICATE)) {
       if (btm_sec_cb.security_mode == BTM_SEC_MODE_SC) {
         /* SC only mode device requires MITM protection */
-        evt_data.auth_req = BTM_AUTH_SP_YES;
+        evt_data.auth_req = BTM_AUTH_SPGB_YES;
       } else {
         evt_data.auth_req =
-                (p_dev_rec->sec_rec.required_security_flags_for_pairing & BTM_SEC_OUT_MITM)
-                        ? BTM_AUTH_SP_YES
-                        : BTM_AUTH_SP_NO;
+            (p_dev_rec->sec_rec.required_security_flags_for_pairing &
+             BTM_SEC_OUT_MITM)
+                ? BTM_AUTH_SPGB_YES
+                : BTM_AUTH_SPGB_NO;
       }
     }
   }
@@ -4015,7 +4026,9 @@ void btm_sec_role_changed(tHCI_STATUS hci_status, const RawAddress& bd_addr, tHC
   }
   if (new_role == HCI_ROLE_CENTRAL && btm_dev_authenticated(p_dev_rec) &&
       !btm_dev_encrypted(p_dev_rec)) {
-    BTM_SetEncryption(p_dev_rec->bd_addr, BT_TRANSPORT_BR_EDR, NULL, NULL, BTM_BLE_SEC_NONE);
+
+    btm_sec_check_pending_reqs();
+
   }
 }
 

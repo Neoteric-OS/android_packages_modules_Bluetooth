@@ -617,7 +617,7 @@ constexpr AudioContexts kLeAudioContextAllRemoteSinkOnly =
         LeAudioContextType::RINGTONE | LeAudioContextType::ALERTS |
         LeAudioContextType::EMERGENCYALARM;
 
-/* Print formaters for LTV data */
+/* Print formaters for codec capabilities LTV data */
 std::string CodecCapabilitiesLtvFormat(const uint8_t& type, const std::vector<uint8_t>& value);
 
 /* Structures */
