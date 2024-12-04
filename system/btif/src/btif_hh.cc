@@ -696,7 +696,7 @@ static void hh_get_rpt_handler(tBTA_HH_HSDATA& hs_data) {
   log::verbose("Status = {}, handle = {}", hs_data.status, hs_data.handle);
   BT_HDR* hdr = hs_data.rsp_data.p_rpt_data;
 
-  if (hdr) { /* Get report response */
+  if (hs_data.status == BTA_HH_OK && hdr) { /* Get report response */
     uint8_t* data = (uint8_t*)(hdr + 1) + hdr->offset;
     uint16_t len = hdr->len;
     HAL_CBACK(bt_hh_callbacks, get_report_cb, (RawAddress*)&(p_dev->link_spec.addrt.bda),
