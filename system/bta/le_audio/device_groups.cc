@@ -20,15 +20,33 @@
 
 #include <base/strings/string_number_conversions.h>
 #include <bluetooth/log.h>
+#include <stdio.h>
 
+#include <algorithm>
+#include <cstddef>
+#include <cstdint>
+#include <functional>
+#include <iterator>
+#include <memory>
 #include <optional>
+#include <sstream>
+#include <utility>
+#include <vector>
 
+#include "audio_hal_client/audio_hal_client.h"
 #include "bta/include/bta_gatt_api.h"
 #include "bta_csis_api.h"
+#include "bta_groups.h"
 #include "btif/include/btif_profile_storage.h"
+#include "btm_ble_api_types.h"
 #include "btm_iso_api.h"
+#include "btm_iso_api_types.h"
+#include "com_android_bluetooth_flags.h"
 #include "common/strings.h"
+#include "gatt_api.h"
+#include "hardware/bt_le_audio.h"
 #include "hci/controller_interface.h"
+#include "hci_error_code.h"
 #include "internal_include/bt_trace.h"
 #include "le_audio/codec_manager.h"
 #include "le_audio/devices.h"
@@ -37,7 +55,9 @@
 #include "main/shim/entry.h"
 #include "metrics_collector.h"
 #include "osi/include/properties.h"
+#include "os/logging/log_adapter.h"
 #include "stack/include/btm_client_interface.h"
+#include "types/bt_transport.h"
 
 // TODO(b/369381361) Enfore -Wmissing-prototypes
 #pragma GCC diagnostic ignored "-Wmissing-prototypes"
@@ -53,7 +73,6 @@ using types::CisState;
 using types::CisType;
 using types::DataPathState;
 using types::LeAudioContextType;
-using types::LeAudioCoreCodecConfig;
 
 /* LeAudioDeviceGroup Class methods implementation */
 void LeAudioDeviceGroup::AddNode(const std::shared_ptr<LeAudioDevice>& leAudioDevice) {
