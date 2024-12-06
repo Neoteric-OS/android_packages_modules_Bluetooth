@@ -890,7 +890,7 @@ static bool IsCodecConfigSettingSupported(
     return false;
   }
 
-  log::debug(": Settings for format: 0x{} ", codec_id.coding_format);
+  log::debug("Verifying coding format: 0x{} ", codec_id.coding_format);
 
   if (utils::IsCodecUsingLtvFormat(codec_id)) {
     log::assert_that(!pac.codec_spec_caps.IsEmpty(),
