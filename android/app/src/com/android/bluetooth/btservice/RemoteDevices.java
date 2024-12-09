@@ -1249,6 +1249,12 @@ public class RemoteDevices {
                 removeAddressMapping(Utils.getAddressStringFromByte(address));
             }
             if (state == BluetoothAdapter.STATE_ON || state == BluetoothAdapter.STATE_TURNING_OFF) {
+                if(mHandler.hasMessages(MESSAGE_UUID_INTENT, device)) {
+                    warnLog(
+                            "aclStateChangeCallback: MESSAGE_UUID_INTENT is enqueued, address="
+                            + Utils.getRedactedAddressStringFromByte(address));
+                    mHandler.removeMessages(MESSAGE_UUID_INTENT, device);
+                }
                 mAdapterService.notifyAclDisconnected(device, transportLinkType);
                 intent = new Intent(BluetoothDevice.ACTION_ACL_DISCONNECTED);
                 intent.putExtra(BluetoothDevice.EXTRA_TRANSPORT, transportLinkType);
@@ -1461,6 +1467,30 @@ public class RemoteDevices {
                         + secureConnection
                         + ", keySize: "
                         + keySize);
+
+        int algorithm = BluetoothDevice.ENCRYPTION_ALGORITHM_NONE;
+        if (encryptionEnable) {
+            if (secureConnection || transport == BluetoothDevice.TRANSPORT_LE) {
+                /* LE link or Classic Secure Connections */
+                algorithm = BluetoothDevice.ENCRYPTION_ALGORITHM_AES;
+            } else {
+                /* Classic link using non-secure connections mode */
+                algorithm = BluetoothDevice.ENCRYPTION_ALGORITHM_E0;
+            }
+        }
+
+        Intent intent =
+                new Intent(BluetoothDevice.ACTION_ENCRYPTION_CHANGE)
+                        .putExtra(BluetoothDevice.EXTRA_DEVICE, bluetoothDevice)
+                        .putExtra(BluetoothDevice.EXTRA_TRANSPORT, transport)
+                        .putExtra(BluetoothDevice.EXTRA_ENCRYPTION_STATUS, status)
+                        .putExtra(BluetoothDevice.EXTRA_ENCRYPTION_ENABLED, encryptionEnable)
+                        .putExtra(BluetoothDevice.EXTRA_KEY_SIZE, keySize)
+                        .putExtra(BluetoothDevice.EXTRA_ENCRYPTION_ALGORITHM, algorithm);
+
+        if (com.android.bluetooth.flags.Flags.encryptionChangeBroadcast()) {
+            mAdapterService.sendBroadcast(intent, BLUETOOTH_CONNECT);
+        }
     }
 
     void fetchUuids(BluetoothDevice device, int transport) {
@@ -1488,7 +1518,7 @@ public class RemoteDevices {
 
         mSdpTracker.add(device);
 
-        Message message = mHandler.obtainMessage(MESSAGE_UUID_INTENT);
+        Message message = mHandler.obtainMessage(MESSAGE_UUID_INTENT, device);
         message.obj = device;
         message.arg1 = MESSAGE_UUID_STATUS_TIMEOUT;
         mHandler.sendMessageDelayed(message, UUID_INTENT_DELAY);

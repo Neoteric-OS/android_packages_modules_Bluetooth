@@ -221,7 +221,7 @@ void bta_dm_sdp_finished(RawAddress bda, tBTA_STATUS result, std::vector<bluetoo
 void bta_dm_sdp_callback(const RawAddress& /* bd_addr */, tSDP_STATUS sdp_status) {
   bool sdp_pending = bta_dm_discovery_cb.transports & BT_TRANSPORT_BR_EDR;
   log::info("discovery state: {}, sdp_status: {}, sdp_pending: {}",
-      bta_dm_state_text(bta_dm_discovery_get_state()), sdp_status, sdp_pending);
+            bta_dm_state_text(bta_dm_discovery_get_state()), sdp_status, sdp_pending);
 
   if (bta_dm_discovery_get_state() == BTA_DM_DISCOVER_IDLE || !sdp_pending ||
       !bta_dm_discovery_cb.sdp_state) {
@@ -285,7 +285,7 @@ static void bta_dm_disc_result(tBTA_DM_SVC_RES& disc_result) {
     const char* p_temp =
             get_btm_client_interface().security.BTM_SecReadDevName(bta_dm_search_cb.peer_bdaddr);
     if (p_temp != NULL) {
-      strlcpy((char*)r.bd_name, p_temp, BD_NAME_LEN + 1);
+      osi_strlcpy((char*)r.bd_name, p_temp, BD_NAME_LEN + 1);
     }
     bta_dm_discovery_cb.service_search_cbacks.on_service_discovery_results(r.bd_addr, r.uuids,
                                                                            r.result, r.bd_name);
@@ -654,13 +654,12 @@ static void btm_dm_start_gatt_discovery(const RawAddress& bd_addr) {
       get_gatt_interface().BTA_GATTC_Open(bta_dm_discovery_cb.client_if, bd_addr,
                                           BTM_BLE_DIRECT_CONNECTION, kUseOpportunistic, 0);
     } else {
-       log::debug(
+      log::debug(
               "Opening new gatt client connection for discovery peer:{} "
               "transport:{} opportunistic:{:c}",
               bd_addr, bt_transport_text(BT_TRANSPORT_LE), (!kUseOpportunistic) ? 'T' : 'F');
-       get_gatt_interface().BTA_GATTC_Open(bta_dm_discovery_cb.client_if, bd_addr,
-                                          BTM_BLE_DIRECT_CONNECTION, !kUseOpportunistic,0);
-
+      get_gatt_interface().BTA_GATTC_Open(bta_dm_discovery_cb.client_if, bd_addr,
+                                          BTM_BLE_DIRECT_CONNECTION, !kUseOpportunistic, 0);
     }
   }
 }

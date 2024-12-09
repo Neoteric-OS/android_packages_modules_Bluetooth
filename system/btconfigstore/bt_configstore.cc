@@ -161,7 +161,7 @@ bool getVendorProperties(uint32_t vPropType, std::vector<vendor_property_t>& vPr
         vendor_property_t vProp;
 
         vProp.type = vendorProp.type;
-        strlcpy(vProp.value, vendorProp.value.c_str(), sizeof(vProp.value));
+        osi_strlcpy(vProp.value, vendorProp.value.c_str(), sizeof(vProp.value));
         vPropList.push_back(vProp);
         ALOGI("getVendorProperties: prop type: %s, prop_value: %s",
               convertPropTypeToStringFormat(vProp.type), vProp.value);
@@ -188,7 +188,7 @@ bool getVendorProperties(uint32_t vPropType, std::vector<vendor_property_t>& vPr
           vendor_property_t vProp;
 
           vProp.type = vendorProp.type;
-          strlcpy(vProp.value, vendorProp.value.c_str(), sizeof(vProp.value));
+          osi_strlcpy(vProp.value, vendorProp.value.c_str(), sizeof(vProp.value));
           vPropList.push_back(vProp);
           ALOGI("prop type: %s, prop_value: %s", convertPropTypeToStringFormat(vProp.type),
                 vProp.value);

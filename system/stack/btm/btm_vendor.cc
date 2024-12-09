@@ -25,11 +25,11 @@
 #include "btm_int_types.h"
 #include "stack/acl/acl.h"
 #include "stack/acl/peer_packet_types.h"
+#include "stack/btm/internal/btm_api.h"
 #include "stack/include/bt_types.h"
 #include "stack/include/btm_iso_api.h"
 #include "stack/include/btm_vendor_api.h"
 #include "stack/include/btm_vendor_types.h"
-#include "stack/btm/internal/btm_api.h"
 
 #define QHS_TRANSPORT_BREDR 0
 #define QHS_TRANSPORT_LE 1
@@ -557,7 +557,6 @@ uint8_t BTM_GetQcmPhyState(const RawAddress& bda) {
   return (uint8_t)qcm_phy_state;
 }
 
-
 void btm_update_codec_settings(uint8_t* p) {
   uint16_t handle, delay = 0xFFFF;
   uint8_t types, mode = 0xFF;
@@ -568,7 +567,7 @@ void btm_update_codec_settings(uint8_t* p) {
 
   log::info(" :: handle = 0x{:02x}, types = 0x{:02x}", handle, types);
 
-  while(types--) {
+  while (types--) {
     uint8_t len = 0x00, type = 0xFF;
     STREAM_TO_UINT8(len, p);
     STREAM_TO_UINT8(type, p);
@@ -581,8 +580,7 @@ void btm_update_codec_settings(uint8_t* p) {
     }
   }
 
-  bluetooth::hci::IsoManager::GetInstance()->HandleVSCodecSettingsEvent(mode,
-    delay, bdAddr);
+  bluetooth::hci::IsoManager::GetInstance()->HandleVSCodecSettingsEvent(mode, delay, bdAddr);
 }
 
 /*******************************************************************************
@@ -855,12 +853,12 @@ void BTM_ReadVendorAddOnFeaturesInternal() {
         case BT_PROP_SOC_TYPE:
           char soc_name[32];
 
-          strlcpy(soc_name, vendorProp.value, sizeof(soc_name));
+          osi_strlcpy(soc_name, vendorProp.value, sizeof(soc_name));
           soc_type = bt_configstore_intf->convert_bt_soc_name_to_soc_type(soc_name);
           break;
 
         case BT_PROP_A2DP_OFFLOAD_CAP:
-          strlcpy(a2dp_offload_Cap, vendorProp.value, sizeof(a2dp_offload_Cap));
+          osi_strlcpy(a2dp_offload_Cap, vendorProp.value, sizeof(a2dp_offload_Cap));
           log::info(": a2dp_offload_Cap = {}", a2dp_offload_Cap);
           break;
 

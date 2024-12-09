@@ -18,8 +18,17 @@
 
 #include <bluetooth/log.h>
 
+#include <cstdint>
+#include <sstream>
+#include <string>
+#include <type_traits>
+#include <vector>
+
+#include "audio_hal_client/audio_hal_client.h"
 #include "codec_manager.h"
 #include "common/strings.h"
+#include "hardware/bt_le_audio.h"
+#include "le_audio/codec_manager.h"
 #include "le_audio_types.h"
 
 using bluetooth::common::ToString;
@@ -881,7 +890,7 @@ static bool IsCodecConfigSettingSupported(
     return false;
   }
 
-  log::debug(": Settings for format: 0x{} ", codec_id.coding_format);
+  log::debug("Verifying coding format: 0x{} ", codec_id.coding_format);
 
   if (utils::IsCodecUsingLtvFormat(codec_id)) {
     log::assert_that(!pac.codec_spec_caps.IsEmpty(),
