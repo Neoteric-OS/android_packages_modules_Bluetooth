@@ -242,6 +242,7 @@ VscCallback* stateMachineVscHciCallback;
 LeAudioGroupStateMachine::Callbacks* stateMachineCallbacks;
 DeviceGroupsCallbacks* device_group_callbacks;
 LeAudioIsoDataCallback* iso_data_callback;
+acl_client_callback_s* aclClientCallbacks;
 constexpr uint16_t HCI_VS_QBCE_OCF                      = 0xFC51;
 constexpr uint8_t  LTV_TYPE_VS_METADATA                 = 0xFF;
 constexpr uint8_t  LTV_TYPE_VS_METADATA_FE              = 0xFE;
@@ -2984,18 +2985,7 @@ public:
       log::error(", skipping unknown leAudioDevice, address: {}", address);
       return;
     }
-    if (!lexAvailableTransportDevices_.empty()) {
-      auto it = std::find(lexAvailableTransportDevices_.begin(),
-          lexAvailableTransportDevices_.end(), address);
-      if (it !=
-          lexAvailableTransportDevices_.end()) {
-          log::info("found device in lexAvailableTransportDevices to remove.");
-          lexAvailableTransportDevices_.erase(
-            std::remove(lexAvailableTransportDevices_.begin(),
-            lexAvailableTransportDevices_.end(), (*it)),
-            lexAvailableTransportDevices_.end());
-      }
-    }
+
     leAudioDevice->acl_asymmetric_ = false;
     BtaGattQueue::Clean(leAudioDevice->conn_id_);
     LeAudioDeviceGroup* group = aseGroups_.FindById(leAudioDevice->group_id_);
@@ -6110,7 +6100,11 @@ public:
                         static_cast<uint8_t>((bdAddr) & 0xFF)};
       rawAddress.FromOctets((uint8_t*)addr);
       log::info("Updating Transport device {}", rawAddress.ToString());
-      lexAvailableTransportDevices_.push_back(rawAddress);
+      auto it = std::find(lexAvailableTransportDevices_.begin(),
+          lexAvailableTransportDevices_.end(), rawAddress);
+      if (it == lexAvailableTransportDevices_.end()) {
+        lexAvailableTransportDevices_.push_back(rawAddress);
+      }
     }
   }
 
@@ -6153,6 +6147,23 @@ public:
                   std::placeholders::_2));
         ConfirmLocalAudioSourceStreamingRequest(true);
       }
+    }
+  }
+
+  void AclLinkdownEvt(const RawAddress& bd_addr, tBT_TRANSPORT transport) {
+    log::info("bd_addr={}, transport={}", bd_addr, transport);
+
+    if (transport != BT_TRANSPORT_LE)
+      return;
+
+    auto it = std::find(lexAvailableTransportDevices_.begin(),
+        lexAvailableTransportDevices_.end(), bd_addr);
+    if (it != lexAvailableTransportDevices_.end()) {
+      log::info("found device in lexAvailableTransportDevices to remove.");
+      lexAvailableTransportDevices_.erase(
+          std::remove(lexAvailableTransportDevices_.begin(),
+          lexAvailableTransportDevices_.end(), (*it)),
+          lexAvailableTransportDevices_.end());
     }
   }
 
@@ -6886,6 +6897,30 @@ void le_audio_gattc_callback(tBTA_GATTC_EVT event, tBTA_GATTC* p_data) {
   }
 }
 
+class LeAudioAclClientCallbacksImpl : public acl_client_callback_s {
+public:
+  void on_acl_link_down(const RawAddress bd_addr,
+      tBT_TRANSPORT transport) override {
+    if (instance) {
+      instance->AclLinkdownEvt(bd_addr, transport);
+    }
+  }
+
+  void on_acl_link_up(const RawAddress bd_addr,
+      tBT_TRANSPORT transport) override {
+  }
+
+  void on_acl_remote_features_complete(
+      const RawAddress bd_addr) override {
+  }
+
+  void on_acl_role_change(const RawAddress bd_addr, hci_role_t new_role,
+      tHCI_STATUS hci_status) override {
+  }
+};
+
+LeAudioAclClientCallbacksImpl aclClientCallbacksImpl;
+
 class LeAudioStateMachineHciCallbacksImpl : public CigCallbacks {
 public:
   void OnCigEvent(uint8_t event, void* data) override {
@@ -7144,7 +7179,10 @@ void LeAudioClient::Initialize(
   stateMachineCallbacks = &stateMachineCallbacksImpl;
   stateMachineVscHciCallback = &stateMachineVscHciCallbackImpl;
   device_group_callbacks = &deviceGroupsCallbacksImpl;
+  aclClientCallbacks = &aclClientCallbacksImpl;
   instance = new LeAudioClientImpl(callbacks_, stateMachineCallbacks, initCb);
+
+  get_btm_client_interface().lifecycle.ACL_RegisterClient(aclClientCallbacks);
 
   IsoManager::GetInstance()->RegisterCigCallbacks(stateMachineHciCallbacks);
   IsoManager::GetInstance()->RegisterVscCallback(stateMachineVscHciCallback);
@@ -7196,6 +7234,9 @@ void LeAudioClient::Cleanup(void) {
     log::error("Not initialized");
     return;
   }
+
+  get_btm_client_interface().lifecycle.ACL_UnregisterClient(aclClientCallbacks);
+  aclClientCallbacks = nullptr;
 
   LeAudioClientImpl* ptr = instance;
   instance = nullptr;
