@@ -2627,7 +2627,7 @@ bool BtifAvStateMachine::StateOpened::ProcessEvent(uint32_t event,
                                          BTIF_AV_SUSPEND_STREAM_REQ_EVT);
       }
 
-      if (com::android::bluetooth::flags::av_stream_reconfigure_fix() &&
+      if (/*com::android::bluetooth::flags::av_stream_reconfigure_fix()*/true &&
           peer_.CheckFlags(BtifAvPeer::kFlagPendingReconfigure)) {
         log::info(
                 "Peer {} : Stream started but reconfiguration pending. "
@@ -2897,6 +2897,12 @@ bool BtifAvStateMachine::StateStarted::ProcessEvent(uint32_t event,
       // Wait in closing state until fully closed
       peer_.StateMachine().TransitionTo(BtifAvStateMachine::kStateClosing);
       break;
+
+    case BTIF_AV_CONNECT_REQ_EVT: {
+      log::warn("Peer {} : Ignore {} for same device", peer_.PeerAddress(),
+              BtifAvEvent::EventName(event));
+      btif_queue_advance();
+    } break;
 
     case BTA_AV_SUSPEND_EVT: {
       log::info("Peer {} : event={} status={} initiator={} flags={}",
@@ -4004,6 +4010,11 @@ static bt_status_t src_set_active_sink(const RawAddress& peer_address) {
                                 peer_address, std::move(peer_ready_promise)));
   if (status == BT_STATUS_SUCCESS) {
     peer_ready_future.wait();
+    if (!peer_address.IsEmpty() &&
+         bluetooth::avrcp::AvrcpService::Get() != nullptr) {
+        log::info("check pending play cmd");
+        bluetooth::avrcp::AvrcpService::Get()->HandlePendingPlay();
+    }
   } else {
     log::warn("BTIF AV Source fails to change peer");
   }
@@ -4035,7 +4046,7 @@ static bt_status_t codec_config_src(
   std::promise<void> peer_ready_promise;
   std::future<void> peer_ready_future = peer_ready_promise.get_future();
   bt_status_t status = BT_STATUS_FAIL;
-  if (com::android::bluetooth::flags::av_stream_reconfigure_fix()) {
+  if (/*com::android::bluetooth::flags::av_stream_reconfigure_fix()*/true) {
     btif_av_reconfig_req_t reconf_stream_req = {
             .codec_preferences = codec_preferences,
             .reconf_ready_promise = std::move(peer_ready_promise),

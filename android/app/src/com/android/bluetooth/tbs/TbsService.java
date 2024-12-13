@@ -121,6 +121,15 @@ public class TbsService extends ProfileService {
         sTbsService = instance;
     }
 
+    public synchronized TbsGeneric getTbsGeneric() {
+        if (mTbsGeneric == null) {
+            Log.w(TAG, "getTbsGeneric: TbsGeneric is NULL");
+            return null;
+        }
+        Log.w(TAG, "getTbsGeneric: TbsGeneric init as part of TbsService and available");
+        return mTbsGeneric;
+    }
+
     public void onDeviceUnauthorized(BluetoothDevice device) {
         if (Utils.isPtsTestMode()) {
             Log.d(TAG, "PTS test: setDeviceAuthorized");
@@ -204,6 +213,30 @@ public class TbsService extends ProfileService {
      */
     public void setInbandRingtoneSupport(BluetoothDevice device) {
         mTbsGeneric.setInbandRingtoneSupport(device);
+    }
+
+    public void updateBearerSignalStrength(int bearerSignal) {
+        if (mTbsGeneric == null) {
+            Log.i(TAG, "updateBearerSignalStrength, mTbsGeneric not available");
+            return;
+        }
+        mTbsGeneric.updateBearerSignalStrength(bearerSignal);
+    }
+
+    public void updateBearerTechnology(int bearertech) {
+         if (mTbsGeneric == null) {
+            Log.i(TAG, "updateBearerTechnology, mTbsGeneric not available");
+            return;
+        }
+        mTbsGeneric.updateBearerTechnology(bearertech);
+    }
+
+    public void updateBearerName(String bearerName) {
+         if (mTbsGeneric == null) {
+            Log.i(TAG, "updateBearerName, mTbsGeneric not available");
+            return;
+        }
+        mTbsGeneric.updateBearerName(bearerName);
     }
 
     /**
@@ -403,7 +436,17 @@ public class TbsService extends ProfileService {
     @VisibleForTesting
     void callStateChanged(int ccid, UUID callId, int state) {
         Log.d(TAG, "callStateChanged: ccid=" + ccid + " callId=" + callId + " state=" + state);
-
+        if (Utils.isTmapPtsTestMode()) {
+          if (state == BluetoothLeCall.STATE_ACTIVE) {
+           Log.d(TAG, "CP: sending Dummy incoming call state");
+           mTbsGeneric.callStateChanged(ccid, callId, BluetoothLeCall.STATE_INCOMING);
+          } else if (state == BluetoothLeCall.STATE_ALERTING) {
+             Log.d(TAG, "not sending alerting state");
+             Log.d(TAG, "sending active state as it is reading for active");
+             mTbsGeneric.callStateChanged(ccid, callId, BluetoothLeCall.STATE_ACTIVE);
+             return;
+          }
+        }
         mTbsGeneric.callStateChanged(ccid, callId, state);
     }
 

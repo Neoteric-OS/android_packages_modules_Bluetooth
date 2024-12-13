@@ -896,6 +896,14 @@ void btm_process_remote_ext_features(tACL_CONN* p_acl_cb,
     return;
   }
 
+  if (p_dev_rec->sec_rec.sec_flags & BTM_SEC_NAME_KNOWN) {
+    /* Name is know, unset it so that name is retrieved again
+    * from security procedure. This will ensure, that if remote device
+    * has updated its name since last connection, we will have
+    * update name of remote device. */
+    p_dev_rec->sec_rec.sec_flags &= ~BTM_SEC_NAME_KNOWN;
+    p_dev_rec->sec_bd_name[0] = '\0';
+  }
   if (!(p_dev_rec->sec_rec.sec_flags & BTM_SEC_NAME_KNOWN) || p_dev_rec->is_originator)
   {
     log::debug("Calling Next Security Procedure");
@@ -1595,7 +1603,19 @@ bool BTM_IsRemoteVersionReceived(const RawAddress& addr) {
     return false;
   }
 
-  return p_acl->remote_version_received;
+  if (p_acl->remote_version_received) {
+    log::warn("Remote version info on LE transport: {}",
+               p_acl->remote_version_received);
+    return p_acl->remote_version_received;
+  } else {
+    p_acl = internal_.btm_bda_to_acl(addr, BT_TRANSPORT_BR_EDR);
+    if (p_acl == nullptr) {
+      return false;
+    }
+    log::warn("Remote version info is {}", p_acl->remote_version_received);
+    return p_acl->remote_version_received;
+  }
+
 }
 
 /*******************************************************************************
@@ -2113,6 +2133,11 @@ void btm_acl_notif_conn_collision(const RawAddress& bda) {
 
 bool BTM_BLE_IS_RESOLVE_BDA(const RawAddress& x) {
   return ((x.address)[0] & BLE_RESOLVE_ADDR_MASK) == BLE_RESOLVE_ADDR_MSB;
+}
+
+bool BTM_BLE_IS_RANDOM_STATIC_BDA(const RawAddress& x) {
+  return ((x.address)[0] & BLE_RANDOM_STATIC_ADDR_MSB_MASK) ==
+         BLE_RANDOM_STATIC_ADDR_MSB;
 }
 
 bool acl_refresh_remote_address(const RawAddress& identity_address,
