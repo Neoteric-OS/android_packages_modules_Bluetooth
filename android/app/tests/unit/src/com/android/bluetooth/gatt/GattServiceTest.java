@@ -129,7 +129,7 @@ public class GattServiceTest {
                 .createDistanceMeasurementManager(any());
         doReturn(mScanManager)
                 .when(mScanObjectsFactory)
-                .createScanManager(any(), any(), any(), any(), any());
+                .createScanManager(any(), any(), any(), any());
         doReturn(mContext.getPackageManager()).when(mAdapterService).getPackageManager();
         doReturn(mContext.getSharedPreferences("GattServiceTestPrefs", Context.MODE_PRIVATE))
                 .when(mAdapterService)
@@ -708,7 +708,6 @@ public class GattServiceTest {
 
     @Test
     public void restrictedHandles() throws Exception {
-        mSetFlagsRule.enableFlags(Flags.FLAG_GATT_CLEANUP_RESTRICTED_HANDLES);
         int clientIf = 1;
         int connId = 1;
         ArrayList<GattDbElement> db = new ArrayList<>();

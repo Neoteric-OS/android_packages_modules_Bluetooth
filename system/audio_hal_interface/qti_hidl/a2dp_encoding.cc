@@ -100,7 +100,7 @@ using AudioConfiguration = vendor::qti::hardware::bluetooth_audio::V2_0::AudioCo
 using AudioConfiguration_2_1 = vendor::qti::hardware::bluetooth_audio::V2_1::AudioConfiguration;
 using CodecConfiguration = vendor::qti::hardware::bluetooth_audio::V2_0::CodecConfiguration;
 using CodecConfiguration_2_1 = vendor::qti::hardware::bluetooth_audio::V2_1::CodecConfiguration;
-using ::bluetooth::audio::a2dp::BluetoothAudioStatus;
+using ::bluetooth::audio::a2dp::Status;
 using bluetooth::audio::qti_hidl::BluetoothAudioCtrlAck;
 using vendor::qti::hardware::bluetooth_audio::V2_0::BitsPerSample;
 using vendor::qti::hardware::bluetooth_audio::V2_0::ChannelMode;
@@ -112,7 +112,7 @@ using vendor::qti::hardware::bluetooth_audio::V2_1::ExtSampleRate;
 std::mutex internal_mutex_;
 std::condition_variable ack_wait_cv;
 
-BluetoothAudioCtrlAck a2dp_ack_to_bt_audio_ctrl_ack(BluetoothAudioStatus ack);
+BluetoothAudioCtrlAck a2dp_ack_to_bt_audio_ctrl_ack(Status ack);
 
 // Provide call-in APIs for the Bluetooth Audio HAL
 class A2dpTransport : public ::bluetooth::audio::qti_hidl::IBluetoothTransportInstance {
@@ -422,16 +422,16 @@ bool is_hal_version_fetched = false;
 bool hal_2_1_enabled = false;
 bool hal_2_0_enabled = false;
 
-BluetoothAudioCtrlAck a2dp_ack_to_bt_audio_ctrl_ack(BluetoothAudioStatus ack) {
+BluetoothAudioCtrlAck a2dp_ack_to_bt_audio_ctrl_ack(Status ack) {
   switch (ack) {
-    case BluetoothAudioStatus::SUCCESS:
+    case Status::SUCCESS:
       return BluetoothAudioCtrlAck::SUCCESS_FINISHED;
-    case BluetoothAudioStatus::PENDING:
+    case Status::PENDING:
       return BluetoothAudioCtrlAck::PENDING;
-    case BluetoothAudioStatus::UNSUPPORTED_CODEC_CONFIGURATION:
+    case Status::UNSUPPORTED_CODEC_CONFIGURATION:
       return BluetoothAudioCtrlAck::FAILURE_UNSUPPORTED;
-    case BluetoothAudioStatus::UNKNOWN:
-    case BluetoothAudioStatus::FAILURE:
+    case Status::UNKNOWN:
+    case Status::FAILURE:
     default:
       return BluetoothAudioCtrlAck::FAILURE;
   }
@@ -1553,7 +1553,7 @@ void end_session() {
   remote_delay = 0;
 }
 
-void ack_stream_started(::bluetooth::audio::a2dp::BluetoothAudioStatus ack) {
+void ack_stream_started(::bluetooth::audio::a2dp::Status ack) {
   std::unique_lock<std::mutex> guard(internal_mutex_);
   if (!is_hal_2_0_enabled()) {
     LOG(ERROR) << __func__ << ": BluetoothAudio HAL is not enabled";
@@ -1585,7 +1585,7 @@ void ack_stream_started(::bluetooth::audio::a2dp::BluetoothAudioStatus ack) {
   }
 }
 
-void ack_stream_suspended(::bluetooth::audio::a2dp::BluetoothAudioStatus ack) {
+void ack_stream_suspended(::bluetooth::audio::a2dp::Status ack) {
   std::unique_lock<std::mutex> guard(internal_mutex_);
   if (!is_hal_2_0_enabled()) {
     LOG(ERROR) << __func__ << ": BluetoothAudio HAL is not enabled";

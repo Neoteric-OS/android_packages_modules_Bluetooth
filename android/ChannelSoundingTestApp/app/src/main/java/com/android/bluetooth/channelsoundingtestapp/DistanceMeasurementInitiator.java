@@ -47,6 +47,35 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
 class DistanceMeasurementInitiator {
+
+    enum Freq {
+        HIGH(DistanceMeasurementParams.REPORT_FREQUENCY_HIGH),
+        MEDIUM(DistanceMeasurementParams.REPORT_FREQUENCY_MEDIUM),
+        LOW(DistanceMeasurementParams.REPORT_FREQUENCY_LOW);
+        private final int freq;
+
+        Freq(int freq) {
+            this.freq = freq;
+        }
+
+        int getFreq() {
+            return freq;
+        }
+
+        @Override
+        public String toString() {
+            return name();
+        }
+
+        public static Freq fromName(String name) {
+            try {
+                return Freq.valueOf(name);
+            } catch (IllegalArgumentException e) {
+                return MEDIUM;
+            }
+        }
+    }
+
     private static final int DISTANCE_MEASUREMENT_DURATION_SEC = 3600;
     private int mode_int = 0;
     private int duration_int = 0;
@@ -131,9 +160,12 @@ class DistanceMeasurementInitiator {
         return methods;
     }
 
+    List<String> getMeasurementFreqs() {
+        return List.of(Freq.MEDIUM.toString(), Freq.HIGH.toString(), Freq.LOW.toString());
+    }
+
     @SuppressLint("MissingPermission") // permissions are checked upfront
-    void startDistanceMeasurement(
-        String distanceMeasurementMethodName, String sec_mode, String freq, String duration) {
+    void startDistanceMeasurement(String distanceMeasurementMethodName, String selectedFreq, String sec_mode, String freq, String duration) {
       if (mTargetDevice == null) {
         printLog("do Gatt connect first");
         return;
@@ -147,20 +179,6 @@ class DistanceMeasurementInitiator {
                                            .setCsSecurityLevel(Integer.parseInt(sec_mode))
                                            .build();
 
-      int freqint = 0;
-      switch (freq) {
-        case "REPORT_FREQUENCY_LOW":
-          freqint = 0;
-          break;
-        case "REPORT_FREQUENCY_MEDIUM":
-          freqint = 1;
-          break;
-        case "REPORT_FREQUENCY_HIGH":
-          freqint = 2;
-          break;
-      }
-
-      freq_int = freqint;
       mode_int = getDistanceMeasurementMethodId(distanceMeasurementMethodName);
       if (TextUtils.isEmpty(duration)) {
         duration = "60";
@@ -171,7 +189,7 @@ class DistanceMeasurementInitiator {
       DistanceMeasurementParams params =
           new DistanceMeasurementParams.Builder(mTargetDevice)
               .setDurationSeconds(duration_int)
-              .setFrequency(freqint)
+              .setFrequency(Freq.fromName(selectedFreq).getFreq())
               .setMethodId(getDistanceMeasurementMethodId(distanceMeasurementMethodName))
               .setChannelSoundingParams(csParams)
               .build();

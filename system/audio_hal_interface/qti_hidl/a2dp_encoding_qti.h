@@ -72,7 +72,7 @@ typedef enum {
   A2DP_CTRL_GET_PRESENTATION_POSITION,
 } tA2DP_CTRL_CMD;
 
-using ::bluetooth::audio::a2dp::BluetoothAudioStatus;
+using ::bluetooth::audio::a2dp::Status;
 using vendor::qti::hardware::bluetooth_audio::V2_0::SessionParamType;
 using vendor::qti::hardware::bluetooth_audio::V2_0::SessionType;
 
@@ -108,8 +108,8 @@ void cleanup();
 // StreamStarted, StreamSuspended
 void start_session();
 void end_session();
-void ack_stream_started(BluetoothAudioStatus status);
-void ack_stream_suspended(BluetoothAudioStatus status);
+void ack_stream_started(Status status);
+void ack_stream_suspended(Status status);
 
 // Read from the FMQ of BluetoothAudio HAL
 size_t read(uint8_t* p_buf, uint32_t len);

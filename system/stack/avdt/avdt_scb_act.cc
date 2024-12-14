@@ -211,7 +211,7 @@ void avdt_scb_hdl_open_rej(AvdtpScb* p_scb, tAVDT_SCB_EVT* p_data) {
 void avdt_scb_hdl_open_rsp(AvdtpScb* p_scb, tAVDT_SCB_EVT* /* p_data */) {
   /* initiate opening of trans channels for this SEID */
   p_scb->role = AVDT_OPEN_INT;
-  avdt_ad_open_req(AVDT_CHAN_MEDIA, p_scb->p_ccb, p_scb, AVDT_INT);
+  avdt_ad_open_req(AVDT_CHAN_MEDIA, p_scb->p_ccb, p_scb, tAVDT_ROLE::AVDT_INT);
 
   /* start tc connect timer */
   alarm_set_on_mloop(p_scb->transport_channel_timer, AVDT_SCB_TC_CONN_TIMEOUT_MS,
@@ -555,7 +555,7 @@ void avdt_scb_hdl_security_rsp(AvdtpScb* p_scb, tAVDT_SCB_EVT* p_data) {
  *
  ******************************************************************************/
 void avdt_scb_hdl_setconfig_cmd(AvdtpScb* p_scb, tAVDT_SCB_EVT* p_data) {
-  log::verbose("p_scb->in_use={} p_avdt_scb={} scb_index={}", p_scb->in_use, fmt::ptr(p_scb),
+  log::verbose("p_scb->in_use={} p_avdt_scb={} scb_index={}", p_scb->in_use, std::format_ptr(p_scb),
                p_scb->stream_config.scb_index);
   tA2DP_CODEC_TYPE codec_type;
 
@@ -589,8 +589,8 @@ void avdt_scb_hdl_setconfig_cmd(AvdtpScb* p_scb, tAVDT_SCB_EVT* p_data) {
     log::error(
             "mismatch in AVDTP SCB/CCB state: (p_scb->p_ccb={} != p_ccb={}): "
             "p_scb={} scb_handle={} ccb_idx={}",
-            fmt::ptr(p_scb->p_ccb), fmt::ptr(p_ccb), fmt::ptr(p_scb), p_scb->ScbHandle(),
-            p_data->msg.config_cmd.hdr.ccb_idx);
+            std::format_ptr(p_scb->p_ccb), std::format_ptr(p_ccb), std::format_ptr(p_scb),
+            p_scb->ScbHandle(), p_data->msg.config_cmd.hdr.ccb_idx);
     avdt_scb_rej_not_in_use(p_scb, p_data);
     return;
   }
@@ -927,7 +927,7 @@ void avdt_scb_hdl_tc_close_sto(AvdtpScb* p_scb, tAVDT_SCB_EVT* p_data) {
  ******************************************************************************/
 void avdt_scb_hdl_tc_open(AvdtpScb* p_scb, tAVDT_SCB_EVT* p_data) {
   uint8_t event;
-  uint8_t role;
+  tAVDT_ROLE role;
 
   alarm_cancel(p_scb->transport_channel_timer);
 
@@ -938,7 +938,7 @@ void avdt_scb_hdl_tc_open(AvdtpScb* p_scb, tAVDT_SCB_EVT* p_data) {
                p_scb->req_cfg.psc_mask, p_scb->curr_cfg.psc_mask);
   if (p_scb->curr_cfg.psc_mask & AVDT_PSC_REPORT) {
     /* open the reporting channel, if both devices support it */
-    role = (p_scb->role == AVDT_OPEN_INT) ? AVDT_INT : AVDT_ACP;
+    role = (p_scb->role == AVDT_OPEN_INT) ? tAVDT_ROLE::AVDT_INT : tAVDT_ROLE::AVDT_ACP;
     avdt_ad_open_req(AVDT_CHAN_REPORT, p_scb->p_ccb, p_scb, role);
   }
 
@@ -1039,7 +1039,7 @@ void avdt_scb_hdl_write_req(AvdtpScb* p_scb, tAVDT_SCB_EVT* p_data) {
 void avdt_scb_snd_abort_req(AvdtpScb* p_scb, tAVDT_SCB_EVT* /* p_data */) {
   tAVDT_EVT_HDR hdr;
 
-  log::verbose("p_scb->p_ccb={}", fmt::ptr(p_scb->p_ccb));
+  log::verbose("p_scb->p_ccb={}", std::format_ptr(p_scb->p_ccb));
 
   if (p_scb->p_ccb != NULL) {
     p_scb->role = AVDT_CLOSE_INT;
@@ -1178,7 +1178,7 @@ void avdt_scb_snd_open_req(AvdtpScb* p_scb, tAVDT_SCB_EVT* /* p_data */) {
 void avdt_scb_snd_open_rsp(AvdtpScb* p_scb, tAVDT_SCB_EVT* p_data) {
   /* notify adaptation that we're waiting for transport channel open */
   p_scb->role = AVDT_OPEN_ACP;
-  avdt_ad_open_req(AVDT_CHAN_MEDIA, p_scb->p_ccb, p_scb, AVDT_ACP);
+  avdt_ad_open_req(AVDT_CHAN_MEDIA, p_scb->p_ccb, p_scb, tAVDT_ROLE::AVDT_ACP);
 
   /* send response */
   avdt_msg_send_rsp(p_scb->p_ccb, AVDT_SIG_OPEN, &p_data->msg);
@@ -1309,8 +1309,8 @@ void avdt_scb_snd_setconfig_req(AvdtpScb* p_scb, tAVDT_SCB_EVT* p_data) {
     log::error(
             "mismatch in AVDTP SCB/CCB state: (p_scb->p_ccb={} != p_ccb={}): "
             "p_scb={} scb_handle={} ccb_idx={}",
-            fmt::ptr(p_scb->p_ccb), fmt::ptr(p_ccb), fmt::ptr(p_scb), p_scb->ScbHandle(),
-            p_data->msg.config_cmd.hdr.ccb_idx);
+            std::format_ptr(p_scb->p_ccb), std::format_ptr(p_ccb), std::format_ptr(p_scb),
+            p_scb->ScbHandle(), p_data->msg.config_cmd.hdr.ccb_idx);
     avdt_scb_rej_not_in_use(p_scb, p_data);
     return;
   }

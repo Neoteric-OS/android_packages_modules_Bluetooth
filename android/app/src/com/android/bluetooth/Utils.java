@@ -1306,4 +1306,17 @@ public final class Utils {
                     return WindowInsetsCompat.CONSUMED;
                 });
     }
+
+    public interface TimeProvider {
+        long elapsedRealtime();
+    }
+
+    public static final TimeProvider sSystemClock = new SystemClockTimeProvider();
+
+    private static final class SystemClockTimeProvider implements TimeProvider {
+        @Override
+        public long elapsedRealtime() {
+            return android.os.SystemClock.elapsedRealtime();
+        }
+    }
 }

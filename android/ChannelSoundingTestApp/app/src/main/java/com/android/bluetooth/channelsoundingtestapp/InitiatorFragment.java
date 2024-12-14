@@ -78,6 +78,9 @@ public class InitiatorFragment extends Fragment {
   private BleConnectionViewModel mBleConnectionViewModel;
   private InitiatorViewModel mInitiatorViewModel;
 
+  private ArrayAdapter<String> mFreqArrayAdapter;
+  private Spinner mSpinnerFreq;
+
   @Override
   public View onCreateView(
       @NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -92,6 +95,7 @@ public class InitiatorFragment extends Fragment {
     dis_meas = (EditText) root.findViewById(R.id.distance_meas);
     mButtonCs = (Button) root.findViewById(R.id.btn_cs);
     mSpinnerDmMethod = (Spinner) root.findViewById(R.id.spinner_dm_method);
+    mSpinnerFreq = (Spinner) root.findViewById(R.id.spinner_freq);
     mDistanceViewLayout = (LinearLayout) root.findViewById(R.id.layout_distance_view);
     mDistanceText = new TextView(getContext());
     mDistanceViewLayout.addView(mDistanceText);
@@ -116,6 +120,11 @@ public class InitiatorFragment extends Fragment {
         mDmMethodArrayAdapter.setDropDownViewResource(
                 android.R.layout.simple_spinner_dropdown_item);
         mSpinnerDmMethod.setAdapter(mDmMethodArrayAdapter);
+        mFreqArrayAdapter =
+                new ArrayAdapter<String>(
+                        getContext(), android.R.layout.simple_spinner_item, new ArrayList<>());
+        mFreqArrayAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        mSpinnerFreq.setAdapter(mFreqArrayAdapter);
 
         mInitiatorViewModel = new ViewModelProvider(this).get(InitiatorViewModel.class);
         mBleConnectionViewModel = new ViewModelProvider(this).get(BleConnectionViewModel.class);
@@ -195,6 +204,7 @@ public class InitiatorFragment extends Fragment {
                         });
 
         mDmMethodArrayAdapter.addAll(mInitiatorViewModel.getSupportedDmMethods());
+        mFreqArrayAdapter.addAll(mInitiatorViewModel.getMeasurementFreqs());
 
         mButtonCs.setOnClickListener(v -> {
         if(!mBleConnectionViewModel.isconnected()) {
@@ -202,6 +212,7 @@ public class InitiatorFragment extends Fragment {
             return;
         }
           String methodName = mSpinnerDmMethod.getSelectedItem().toString();
+          String freq = mSpinnerFreq.getSelectedItem().toString();
           String opt_frequency = mSpinnersetfrequency.getSelectedItem().toString();
           String sec_mode_selected = mSpinnerSecurityMode.getSelectedItem().toString();
           String duration_selected = dur_text.getText().toString();
@@ -215,7 +226,7 @@ public class InitiatorFragment extends Fragment {
                 printLog("the device doesn't support any distance measurement methods.");
               }
               mInitiatorViewModel.toggleCsStartStop(
-                  methodName, sec_mode_selected, opt_frequency, duration_selected);
+                  methodName, freq, sec_mode_selected, opt_frequency, duration_selected);
             } else {
               printLog("Please enter the duration between 60 sec to 3600 sec");
             }

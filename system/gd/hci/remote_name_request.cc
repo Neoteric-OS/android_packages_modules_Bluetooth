@@ -19,6 +19,8 @@
 #include <bluetooth/log.h>
 #include <com_android_bluetooth_flags.h>
 
+#include <set>
+
 #include "hci/acl_manager/acl_scheduler.h"
 #include "hci/hci_layer.h"
 #include "hci/hci_packets.h"

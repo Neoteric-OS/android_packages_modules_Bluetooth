@@ -69,12 +69,12 @@ bool is_hal_offloading() {
 
 // Initialize BluetoothAudio HAL: openProvider
 bool init(bluetooth::common::MessageLoopThread* message_loop,
-          bluetooth::audio::a2dp::BluetoothAudioPort const* audio_port, bool offload_enabled) {
+          bluetooth::audio::a2dp::StreamCallbacks const* stream_callbacks, bool offload_enabled) {
   LOG(INFO) << __func__;
   if (HalVersionManager::GetHalTransport() == BluetoothAudioHalTransport::HIDL) {
-    return hidl::a2dp::init(message_loop, audio_port, offload_enabled);
+    return hidl::a2dp::init(message_loop, stream_callbacks, offload_enabled);
   } else if (HalVersionManager::GetHalTransport() == BluetoothAudioHalTransport::AIDL) {
-    return aidl::a2dp::init(message_loop, audio_port, offload_enabled);
+    return aidl::a2dp::init(message_loop, stream_callbacks, offload_enabled);
   } else if (HalVersionManager::GetHalTransport() == BluetoothAudioHalTransport::QTI_HIDL) {
     LOG(INFO) << __func__ << ": qti_hidl init";
     return qti_hidl::a2dp::init(message_loop);
@@ -138,7 +138,7 @@ void end_session() {
   return;
 }
 
-void ack_stream_started(BluetoothAudioStatus status) {
+void ack_stream_started(Status status) {
   LOG(INFO) << __func__;
   if (HalVersionManager::GetHalTransport() == BluetoothAudioHalTransport::HIDL) {
     hidl::a2dp::ack_stream_started(status);
@@ -151,7 +151,7 @@ void ack_stream_started(BluetoothAudioStatus status) {
   return;
 }
 
-void ack_stream_suspended(BluetoothAudioStatus status) {
+void ack_stream_suspended(Status status) {
   LOG(INFO) << __func__;
   if (HalVersionManager::GetHalTransport() == BluetoothAudioHalTransport::HIDL) {
     hidl::a2dp::ack_stream_suspended(status);
