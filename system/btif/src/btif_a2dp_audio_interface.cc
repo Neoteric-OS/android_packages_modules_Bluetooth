@@ -264,7 +264,7 @@ static void btif_a2dp_audio_interface_init() {
     log::error("Cannot observe the Bluetooth Audio HAL's death");
   }
 
-  log::info("IBluetoothAudioOffload::getService() returned {} ({})", fmt::ptr(btAudio.get()),
+  log::info("IBluetoothAudioOffload::getService() returned {} ({})", std::format_ptr(btAudio.get()),
             (btAudio->isRemote() ? "remote" : "local"));
 
   log::info("Init returned");

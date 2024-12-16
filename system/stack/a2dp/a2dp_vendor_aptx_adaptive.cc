@@ -43,7 +43,6 @@
 
 #include "a2dp_vendor_aptx_adaptive.h"
 
-#include <base/logging.h>
 #include <bluetooth/log.h>
 #include <string.h>
 
@@ -301,7 +300,7 @@ static tA2DP_STATUS A2DP_ParseInfoAptxAdaptive(tA2DP_APTX_ADAPTIVE_CIE* p_ie,
   uint8_t media_type;
   tA2DP_CODEC_TYPE codec_type;
 
-  log::info("p_ie = {}, p_codec_info = {}", fmt::ptr(p_ie), fmt::ptr(p_codec_info));
+  log::info("p_ie = {}, p_codec_info = {}", std::format_ptr(p_ie), std::format_ptr(p_codec_info));
   if (p_ie == NULL || p_codec_info == NULL) {
     return AVDTP_UNSUPPORTED_CONFIGURATION;
   }

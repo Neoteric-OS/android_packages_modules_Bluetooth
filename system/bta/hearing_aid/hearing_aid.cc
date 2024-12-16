@@ -524,6 +524,10 @@ public:
 
     hearingDevice->conn_id = conn_id;
 
+    if (com::android::bluetooth::flags::gatt_queue_cleanup_connected()) {
+      BtaGattQueue::Clean(conn_id);
+    }
+
     uint64_t hi_sync_id = hearingDevice->hi_sync_id;
 
     // If there a background connection to the other device of a pair, promote
