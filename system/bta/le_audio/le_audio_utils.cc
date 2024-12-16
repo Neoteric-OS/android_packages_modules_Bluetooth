@@ -35,7 +35,7 @@ using bluetooth::common::ToString;
 using bluetooth::le_audio::types::AudioContexts;
 using bluetooth::le_audio::types::LeAudioContextType;
 
-namespace fmt {
+namespace std {
 template <>
 struct formatter<audio_usage_t> : enum_formatter<audio_usage_t> {};
 template <>
@@ -44,7 +44,7 @@ template <>
 struct formatter<audio_source_t> : enum_formatter<audio_source_t> {};
 template <>
 struct formatter<audio_devices_t> : enum_formatter<audio_devices_t> {};
-}  // namespace fmt
+}  // namespace std
 
 namespace bluetooth::le_audio {
 namespace utils {
@@ -552,11 +552,6 @@ static bool IsCodecConfigSupported(
             codec.coding_format, codec.vendor_company_id, codec.vendor_codec_id);
   log::debug(" Requested context: {}", ToHexString(context_type).c_str());
 
-  if (codec.coding_format == types::kLeAudioCodingFormatVendorSpecific) {
-    log::debug("Disallow Vendor Codec negotiation for multi-codec feature disabled");
-    return false;
-  }
-
   // AptX LEX
   if (codec.coding_format == types::kLeAudioCodingFormatVendorSpecific &&
       codec.vendor_company_id == types::kLeAudioVendorCompanyIdQualcomm &&
@@ -766,11 +761,8 @@ static bool IsCodecConfigSupported(
   }
  
   if (vendor_metadata.value().vs_metadata.empty()) {
-    log::debug(" Multicodec support disabled, LC3 codec config matched");
+    log::debug("LC3 codec config matched");
     return true;
-  } else {
-    log::debug(" Multicodec support disabled, disallow LC3Q codec config match");
-    return false;
   }
 
   /* below logic is for LC3Q match */
@@ -871,12 +863,7 @@ static bool IsCodecConfigSupported(
     return false;
   }
 
-  if (vendor_metadata.value().vs_metadata.empty()) {
-    log::debug("LC3 codec matched");
-  } else {
-    log::debug("LC3Q codec matched");
-  }
-
+  log::debug("LC3Q codec matched");
   return true;
 }
 

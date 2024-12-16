@@ -404,7 +404,7 @@ static void parse_controller_addon_features_response(tBTM_VSC_CMPL* p_data) {
             "::opcode = 0x{:04X}, length = {}, soc_add_on_features_length={} status = {}, "
             "product_id:{}, feature={}",
             opcode, length, soc_add_on_features_length, status, product_id,
-            fmt::ptr(soc_add_on_features.as_array));
+            std::format_ptr(soc_add_on_features.as_array));
     if (status == HCI_SUCCESS) {
       log::info(": status success");
 

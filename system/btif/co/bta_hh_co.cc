@@ -106,7 +106,7 @@ static void remove_digitizer_descriptor(uint8_t* data, uint16_t* length) {
   while (startDescPtr < data + *length) {
     uint8_t item = *startDescPtr++;
     if (startDescPtr > data + *length) {
-      log::error("is having invalid startDescPtr: {}", fmt::ptr(startDescPtr));
+      log::error("is having invalid startDescPtr: {}", std::format_ptr(startDescPtr));
       return;
     }
     uint8_t usage_page;
@@ -142,7 +142,7 @@ static void remove_digitizer_descriptor(uint8_t* data, uint16_t* length) {
           log::verbose("starting point of digitizer desc = {}\n", (startDescPtr - data) - 1);
           log::verbose("start collection = {}, end collection =  {}\n", num_of_collections,
                        num_of_end_collections);
-          log::verbose("end point of digitizer desc = {}\n", (traversePtr - data));
+          log::verbose("end point of digitizer desc = {}\n", traversePtr - data);
           log::verbose("length of digitizer desc = {}\n", traversePtr - startDescPtr + 2);
           log::verbose("bytes remaining to be copied = {}\n", remainingBytesToBeCopied);
           if (remainingBytesToBeCopied) {
@@ -961,9 +961,9 @@ void bta_hh_co_close(btif_hh_device_t* p_dev) {
     p_dev->uhid.set_rpt_id_queue = nullptr;
 #endif  // ENABLE_UHID_SET_REPORT
 
-  /* Stop the polling thread */
-  p_dev->uhid.hh_keep_polling = 0;
-  if (p_dev->hh_poll_thread_id > 0) {
+    /* Stop the polling thread */
+    p_dev->uhid.hh_keep_polling = 0;
+    if (p_dev->hh_poll_thread_id > 0) {
       p_dev->uhid.hh_keep_polling = 0;
       pthread_join(p_dev->hh_poll_thread_id, NULL);
       p_dev->hh_poll_thread_id = -1;

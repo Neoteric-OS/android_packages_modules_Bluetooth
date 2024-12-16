@@ -1623,7 +1623,8 @@ bool BtifAvSink::AllowedToConnect(const RawAddress& peer_address) const {
         if ((btif_a2dp_sink_get_audio_track() != nullptr) &&
             (peer->PeerAddress() != peer_address)) {
           log::info("there is another peer with audio track({}), another={}, peer={}",
-                    fmt::ptr(btif_a2dp_sink_get_audio_track()), peer->PeerAddress(), peer_address);
+                    std::format_ptr(btif_a2dp_sink_get_audio_track()), peer->PeerAddress(),
+                    peer_address);
           connected++;
         }
         break;
@@ -2463,8 +2464,7 @@ bool BtifAvStateMachine::StateOpened::ProcessEvent(uint32_t event, void* p_data)
         if (peer_.CheckFlags(BtifAvPeer::kFlagPendingStart)) {
           log::error("Peer {} : cannot proceed to do AvStart", peer_.PeerAddress());
           peer_.ClearFlags(BtifAvPeer::kFlagPendingStart);
-          bluetooth::audio::a2dp::ack_stream_started(
-                  bluetooth::audio::a2dp::BluetoothAudioStatus::FAILURE);
+          bluetooth::audio::a2dp::ack_stream_started(bluetooth::audio::a2dp::Status::FAILURE);
         }
         if (peer_.IsSink()) {
           btif_av_source_disconnect(peer_.PeerAddress());

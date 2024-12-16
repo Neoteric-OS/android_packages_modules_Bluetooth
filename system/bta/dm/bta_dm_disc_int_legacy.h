@@ -178,11 +178,11 @@ extern const uint16_t bta_service_id_to_uuid_lkup_tbl[];
 
 }  // namespace bta_dm_disc_legacy
 
-namespace fmt {
+namespace std {
 template <>
 struct formatter<bta_dm_disc_legacy::tBTA_DM_EVT>
     : enum_formatter<bta_dm_disc_legacy::tBTA_DM_EVT> {};
 template <>
 struct formatter<bta_dm_disc_legacy::tBTA_DM_STATE>
     : enum_formatter<bta_dm_disc_legacy::tBTA_DM_STATE> {};
-}  // namespace fmt
+}  // namespace std

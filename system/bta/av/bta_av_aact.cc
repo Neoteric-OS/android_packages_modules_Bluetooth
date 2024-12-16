@@ -369,7 +369,7 @@ void bta_av_proc_stream_evt(uint8_t handle, const RawAddress& bd_addr, uint8_t e
   uint16_t sec_len = 0;
 
   log::verbose("peer_address: {} avdt_handle: {} event=0x{:x} scb_index={} p_scb={}", bd_addr,
-               handle, event, scb_index, fmt::ptr(p_scb));
+               handle, event, scb_index, std::format_ptr(p_scb));
 
   if (p_data) {
     if (event == AVDT_SECURITY_IND_EVT) {
@@ -2034,7 +2034,7 @@ void bta_av_str_stopped(tBTA_AV_SCB* p_scb, tBTA_AV_DATA* p_data) {
   BT_HDR* p_buf;
 
   log::info("peer {} bta_handle:0x{:x} audio_open_cnt:{}, p_data {} start:{}", p_scb->PeerAddress(),
-            p_scb->hndl, bta_av_cb.audio_open_cnt, fmt::ptr(p_data), start);
+            p_scb->hndl, bta_av_cb.audio_open_cnt, std::format_ptr(p_data), start);
 
   bta_sys_idle(BTA_ID_AV, bta_av_cb.audio_open_cnt, p_scb->PeerAddress());
   BTM_unblock_role_switch_and_sniff_mode_for(p_scb->PeerAddress());
@@ -2653,7 +2653,9 @@ void bta_av_suspend_cfm(tBTA_AV_SCB* p_scb, tBTA_AV_DATA* p_data) {
   }
 
   suspend_rsp.status = BTA_AV_SUCCESS;
-  if (err_code && (err_code != AVDT_ERR_BAD_STATE)) {
+  bool handle_bad_state = (err_code != AVDT_ERR_BAD_STATE) ||
+                          com::android::bluetooth::flags::avdt_handle_suspend_cfm_bad_state();
+  if (err_code && handle_bad_state) {
     suspend_rsp.status = BTA_AV_FAIL;
 
     log::error("suspend failed, closing connection");

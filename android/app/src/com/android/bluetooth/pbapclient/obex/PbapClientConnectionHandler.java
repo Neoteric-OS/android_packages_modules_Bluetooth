@@ -16,12 +16,10 @@
 package com.android.bluetooth.pbapclient;
 
 import android.accounts.Account;
-import android.accounts.AccountManager;
 import android.annotation.SuppressLint;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
 import android.bluetooth.BluetoothUuid;
-import android.content.Context;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
@@ -32,6 +30,7 @@ import android.util.Log;
 import com.android.bluetooth.BluetoothObexTransport;
 import com.android.bluetooth.ObexAppParameters;
 import com.android.bluetooth.R;
+import com.android.bluetooth.flags.Flags;
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.obex.ClientSession;
 import com.android.obex.HeaderSet;
@@ -86,16 +85,15 @@ class PbapClientConnectionHandler extends Handler {
             };
 
     private Account mAccount;
-    private AccountManager mAccountManager;
     private BluetoothSocket mSocket;
     private final BluetoothDevice mDevice;
     private final int mLocalSupportedFeatures;
     // PSE SDP Record for current device.
     private PbapSdpRecord mPseRec = null;
     private ClientSession mObexSession;
-    private Context mContext;
+    private PbapClientService mService;
     private PbapClientObexAuthenticator mAuth = null;
-    private final PbapClientStateMachine mPbapClientStateMachine;
+    private final PbapClientStateMachineOld mPbapClientStateMachine;
     private boolean mAccountCreated;
 
     /**
@@ -105,25 +103,29 @@ class PbapClientConnectionHandler extends Handler {
      */
     PbapClientConnectionHandler(Builder pceHandlerbuild) {
         super(pceHandlerbuild.mLooper);
+
+        if (Flags.pbapClientStorageRefactor()) {
+            Log.w(TAG, "This object is no longer used in this configuration");
+        }
+
         mDevice = pceHandlerbuild.mDevice;
         mLocalSupportedFeatures = pceHandlerbuild.mLocalSupportedFeatures;
-        mContext = pceHandlerbuild.mContext;
+        mService = pceHandlerbuild.mService;
         mPbapClientStateMachine = pceHandlerbuild.mClientStateMachine;
         mAuth = new PbapClientObexAuthenticator();
-        mAccountManager = AccountManager.get(mPbapClientStateMachine.getContext());
         mAccount =
                 new Account(
                         mDevice.getAddress(),
-                        mContext.getString(R.string.pbap_client_account_type));
+                        mService.getString(R.string.pbap_client_account_type));
     }
 
     public static class Builder {
 
         private Looper mLooper;
-        private Context mContext;
+        private PbapClientService mService;
         private BluetoothDevice mDevice;
         private int mLocalSupportedFeatures;
-        private PbapClientStateMachine mClientStateMachine;
+        private PbapClientStateMachineOld mClientStateMachine;
 
         public Builder setLooper(Looper loop) {
             this.mLooper = loop;
@@ -135,7 +137,7 @@ class PbapClientConnectionHandler extends Handler {
             return this;
         }
 
-        public Builder setClientSM(PbapClientStateMachine clientStateMachine) {
+        public Builder setClientSM(PbapClientStateMachineOld clientStateMachine) {
             this.mClientStateMachine = clientStateMachine;
             return this;
         }
@@ -145,8 +147,8 @@ class PbapClientConnectionHandler extends Handler {
             return this;
         }
 
-        public Builder setContext(Context context) {
-            this.mContext = context;
+        public Builder setService(PbapClientService service) {
+            this.mService = service;
             return this;
         }
 
@@ -169,16 +171,16 @@ class PbapClientConnectionHandler extends Handler {
                 } else {
                     Log.w(TAG, "Socket CONNECT Failure ");
                     mPbapClientStateMachine.sendMessage(
-                            PbapClientStateMachine.MSG_CONNECTION_FAILED);
+                            PbapClientStateMachineOld.MSG_CONNECTION_FAILED);
                     return;
                 }
 
                 if (connectObexSession()) {
                     mPbapClientStateMachine.sendMessage(
-                            PbapClientStateMachine.MSG_CONNECTION_COMPLETE);
+                            PbapClientStateMachineOld.MSG_CONNECTION_COMPLETE);
                 } else {
                     mPbapClientStateMachine.sendMessage(
-                            PbapClientStateMachine.MSG_CONNECTION_FAILED);
+                            PbapClientStateMachineOld.MSG_CONNECTION_FAILED);
                 }
                 break;
 
@@ -202,7 +204,8 @@ class PbapClientConnectionHandler extends Handler {
                 }
                 removeCallLog();
 
-                mPbapClientStateMachine.sendMessage(PbapClientStateMachine.MSG_CONNECTION_CLOSED);
+                mPbapClientStateMachine.sendMessage(
+                        PbapClientStateMachineOld.MSG_CONNECTION_CLOSED);
                 break;
 
             case MSG_DOWNLOAD:
@@ -435,16 +438,18 @@ class PbapClientConnectionHandler extends Handler {
 
     @VisibleForTesting
     boolean addAccount() {
-        if (mAccountManager.addAccountExplicitly(mAccount, null, null)) {
+        if (mService.addAccount(mAccount)) {
             Log.d(TAG, "Added account " + mAccount);
             return true;
+        } else {
+            Log.e(TAG, "Failed to add account " + mAccount);
         }
         return false;
     }
 
     @VisibleForTesting
     void removeAccount() {
-        if (mAccountManager.removeAccountExplicitly(mAccount)) {
+        if (mService.removeAccount(mAccount)) {
             Log.d(TAG, "Removed account " + mAccount);
         } else {
             Log.e(TAG, "Failed to remove account " + mAccount);
@@ -455,11 +460,11 @@ class PbapClientConnectionHandler extends Handler {
     void removeCallLog() {
         try {
             // need to check call table is exist ?
-            if (mContext.getContentResolver() == null) {
+            if (mService.getContentResolver() == null) {
                 Log.d(TAG, "CallLog ContentResolver is not found");
                 return;
             }
-            mContext.getContentResolver()
+            mService.getContentResolver()
                     .delete(
                             CallLog.Calls.CONTENT_URI,
                             Calls.PHONE_ACCOUNT_ID + "=?",
