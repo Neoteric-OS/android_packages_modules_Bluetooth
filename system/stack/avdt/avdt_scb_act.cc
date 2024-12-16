@@ -29,10 +29,16 @@
 #include <com_android_bluetooth_flags.h>
 #include <string.h>
 
+#include <cstdint>
+
 #include "a2dp_codec_api.h"
+#include "a2dp_constants.h"
 #include "avdt_api.h"
+#include "avdt_defs.h"
 #include "avdt_int.h"
 #include "internal_include/bt_target.h"
+#include "l2cap_types.h"
+#include "osi/include/alarm.h"
 #include "osi/include/allocator.h"
 #include "osi/include/properties.h"
 #include "stack/include/a2dp_sbc_constants.h"
@@ -49,16 +55,16 @@ using namespace bluetooth;
  * allowing for this table.
  */
 const uint8_t avdt_scb_cback_evt[] = {
-        0,                     /* API_REMOVE_EVT (no event) */
-        AVDT_WRITE_CFM_EVT,    /* API_WRITE_REQ_EVT */
-        0,                     /* API_GETCONFIG_REQ_EVT (no event) */
-        0,                     /* API_DELAY_RPT_REQ_EVT (no event) */
-        AVDT_OPEN_CFM_EVT,     /* API_SETCONFIG_REQ_EVT */
-        AVDT_OPEN_CFM_EVT,     /* API_OPEN_REQ_EVT */
-        AVDT_CLOSE_CFM_EVT,    /* API_CLOSE_REQ_EVT */
-        AVDT_RECONFIG_CFM_EVT, /* API_RECONFIG_REQ_EVT */
-        AVDT_SECURITY_CFM_EVT, /* API_SECURITY_REQ_EVT */
-        0                      /* API_ABORT_REQ_EVT (no event) */
+        0,                     /* AVDT_SCB_API_REMOVE_EVT (no event) */
+        AVDT_WRITE_CFM_EVT,    /* AVDT_SCB_API_WRITE_REQ_EVT */
+        0,                     /* AVDT_SCB_API_GETCONFIG_REQ_EVT (no event) */
+        0,                     /* AVDT_SCB_API_DELAY_RPT_REQ_EVT (no event) */
+        AVDT_OPEN_CFM_EVT,     /* AVDT_SCB_API_SETCONFIG_REQ_EVT */
+        AVDT_OPEN_CFM_EVT,     /* AVDT_SCB_API_OPEN_REQ_EVT */
+        AVDT_CLOSE_CFM_EVT,    /* AVDT_SCB_API_CLOSE_REQ_EVT */
+        AVDT_RECONFIG_CFM_EVT, /* AVDT_SCB_API_RECONFIG_REQ_EVT */
+        AVDT_SECURITY_CFM_EVT, /* AVDT_SCB_API_SECURITY_REQ_EVT */
+        0                      /* AVDT_SCB_API_ABORT_REQ_EVT (no event) */
 };
 
 /*******************************************************************************
@@ -278,9 +284,8 @@ void avdt_scb_hdl_pkt_no_frag(AvdtpScb* p_scb, tAVDT_SCB_EVT* p_data) {
   if (pad_len >= (len - offset)) {
     log::warn("Got bad media packet");
     osi_free_and_reset((void**)&p_data->p_pkt);
-  }
-  /* adjust offset and length and send it up */
-  else {
+  } else {
+    /* adjust offset and length and send it up */
     p_data->p_pkt->len -= (offset + pad_len);
     p_data->p_pkt->offset += offset;
 

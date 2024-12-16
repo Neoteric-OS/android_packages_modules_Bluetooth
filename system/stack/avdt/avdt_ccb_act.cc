@@ -26,10 +26,12 @@
 #define LOG_TAG "bluetooth-a2dp"
 
 #include <bluetooth/log.h>
+#include <cstdint>
 #include <string.h>
 
 #include "a2dp_aac_constants.h"
 #include "avdt_api.h"
+#include "avdt_defs.h"
 #include "avdt_int.h"
 #include "avdtc_api.h"
 #include "bta/include/bta_av_api.h"
@@ -37,12 +39,13 @@
 #include "btif/include/btif_storage.h"
 #include "device/include/interop.h"
 #include "internal_include/bt_target.h"
+#include "osi/include/alarm.h"
 #include "osi/include/allocator.h"
-#include "osi/include/osi.h"
+#include "osi/include/fixed_queue.h"
 #include "osi/include/properties.h"
 #include "stack/include/bt_hdr.h"
 #include "types/raw_address.h"
-
+#include "btif/include/btif_config.h"
 using namespace bluetooth;
 
 /*******************************************************************************
@@ -166,12 +169,20 @@ static bool avdt_ccb_check_peer_eligible_for_aac_codec(const AvdtpCcb* p_peer) {
 void avdt_ccb_hdl_discover_cmd(AvdtpCcb* p_ccb, tAVDT_CCB_EVT* p_data) {
   tAVDT_SEP_INFO sep_info[AVDT_NUM_SEPS];
   AvdtpScb* p_scb = &(p_ccb->scb[0]);
-
+  bool codecs_cached = false;
+  char value[PROPERTY_VALUE_MAX];
   log::verbose("p_ccb index={}", avdt_ccb_to_idx(p_ccb));
 
   p_data->msg.discover_rsp.p_sep_info = sep_info;
   p_data->msg.discover_rsp.num_seps = 0;
-
+  if (p_ccb != NULL) {
+    std::string bdstr = p_ccb->peer_addr.ToString();
+    int size = sizeof(value);
+    if (btif_config_get_str(bdstr, BTIF_STORAGE_KEY_FOR_SUPPORTED_CODECS, value, &size)) {
+      log::verbose("cached remote supported codec -> {}", value);
+      codecs_cached = true;
+    }
+   }
   /* for all allocated scbs */
   for (int i = 0; i < AVDT_NUM_SEPS; i++, p_scb++) {
     if (p_scb->allocated) {
@@ -181,7 +192,34 @@ void avdt_ccb_hdl_discover_cmd(AvdtpCcb* p_ccb, tAVDT_CCB_EVT* p_data) {
       codec_name = A2DP_CodecName(p_scb->stream_config.cfg.codec_info);
 
       log::verbose("codec name %s", codec_name);
-      if (p_scb->stream_config.cfg.codec_info[AVDT_CODEC_TYPE_INDEX] == A2DP_MEDIA_CT_AAC) {
+      if (codecs_cached){
+        bool codec_support = false;
+        char *tok = NULL;
+        char *tmp_token = NULL;
+        int size = sizeof(value);
+        std::string bdstr = p_ccb->peer_addr.ToString();
+        btif_config_get_str(bdstr, BTIF_STORAGE_KEY_FOR_SUPPORTED_CODECS, value, &size);
+        log::verbose("print remote supported codec -> {}", value);
+        tok = strtok_r((char*)value, ",", &tmp_token);
+        while (tok != NULL)
+        {
+         log::verbose("tok codec name {}", tok);
+         if (tmp_token)
+            log::verbose("tmp_token codec name {}", tmp_token);
+         if (strcmp(tok,codec_name) == 0) {
+           codec_support = true;
+           log::verbose("cached codec name {}", codec_name);
+           break;
+         }
+         tok = strtok_r(NULL, ",", &tmp_token);
+       }
+       if (!codec_support) {
+        log::verbose("Not cached codec name {}", codec_name);
+        continue;
+       }
+     }
+
+    if (p_scb->stream_config.cfg.codec_info[AVDT_CODEC_TYPE_INDEX] == A2DP_MEDIA_CT_AAC) {
         bool vbr_bl = false;
         bool vbr_supp =
                 osi_property_get_bool("persist.vendor.qcom.bluetooth.aac_vbr_ctl.enabled", true);
@@ -742,7 +780,6 @@ void avdt_ccb_clear_cmds(AvdtpCcb* p_ccb, tAVDT_CCB_EVT* /* p_data */) {
 
     /* set up next message */
     p_ccb->p_curr_cmd = (BT_HDR*)fixed_queue_try_dequeue(p_ccb->cmd_q);
-
   } while (p_ccb->p_curr_cmd != NULL);
 
   /* send a CC_CLOSE_EVT any active scbs associated with this ccb */
@@ -911,9 +948,8 @@ void avdt_ccb_snd_msg(AvdtpCcb* p_ccb, tAVDT_CCB_EVT* /* p_data */) {
     /* are we sending a fragmented message? continue sending fragment */
     if (p_ccb->p_curr_msg != NULL) {
       avdt_msg_send(p_ccb, NULL);
-    }
-    /* do we have responses to send?  send them */
-    else if (!fixed_queue_is_empty(p_ccb->rsp_q)) {
+    } else if (!fixed_queue_is_empty(p_ccb->rsp_q)) {
+      /* do we have responses to send?  send them */
       while ((p_msg = (BT_HDR*)fixed_queue_try_dequeue(p_ccb->rsp_q)) != NULL) {
         if (avdt_msg_send(p_ccb, p_msg)) {
           /* break out if congested */

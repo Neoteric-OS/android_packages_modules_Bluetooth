@@ -133,8 +133,8 @@ void bluetooth::shim::ACL_ReadConnectionAddress(uint16_t handle, RawAddress& con
                                                 tBLE_ADDR_TYPE* p_addr_type, bool ota_address) {
   std::promise<bluetooth::hci::AddressWithType> promise;
   auto future = promise.get_future();
-  Stack::GetInstance()->GetAcl()->GetConnectionLocalAddress(
-      handle, ota_address, std::move(promise));
+  Stack::GetInstance()->GetAcl()->GetConnectionLocalAddress(handle, ota_address,
+                                                            std::move(promise));
   auto local_address = future.get();
 
   conn_addr = ToRawAddress(local_address.GetAddress());
@@ -145,8 +145,7 @@ void bluetooth::shim::ACL_ReadPeerConnectionAddress(uint16_t handle, RawAddress&
                                                     tBLE_ADDR_TYPE* p_addr_type, bool ota_address) {
   std::promise<bluetooth::hci::AddressWithType> promise;
   auto future = promise.get_future();
-  Stack::GetInstance()->GetAcl()->GetConnectionPeerAddress(
-      handle, ota_address, std::move(promise));
+  Stack::GetInstance()->GetAcl()->GetConnectionPeerAddress(handle, ota_address, std::move(promise));
   auto remote_ota_address = future.get();
 
   conn_addr = ToRawAddress(remote_ota_address.GetAddress());
@@ -156,8 +155,7 @@ void bluetooth::shim::ACL_ReadPeerConnectionAddress(uint16_t handle, RawAddress&
 std::optional<uint8_t> bluetooth::shim::ACL_GetAdvertisingSetConnectedTo(const RawAddress& addr) {
   std::promise<std::optional<uint8_t>> promise;
   auto future = promise.get_future();
-  Stack::GetInstance()->GetAcl()->GetAdvertisingSetConnectedTo(
-      addr, std::move(promise));
+  Stack::GetInstance()->GetAcl()->GetAdvertisingSetConnectedTo(addr, std::move(promise));
   return future.get();
 }
 

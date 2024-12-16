@@ -137,10 +137,8 @@ static void bta_dm_search_cancel() {
     BTM_CancelInquiry();
     bta_dm_search_cancel_notify();
     bta_dm_search_cmpl();
-  }
-  /* If no Service Search going on then issue cancel remote name in case it is
-     active */
-  else if (!bta_dm_search_cb.name_discover_done) {
+  } else if (!bta_dm_search_cb.name_discover_done) {
+    /* If no Service Search going on then issue cancel remote name in case it is active */
     if (get_stack_rnr_interface().BTM_CancelRemoteDeviceName() != tBTM_STATUS::BTM_CMD_STARTED) {
       log::warn("Unable to cancel RNR");
     }
@@ -342,11 +340,12 @@ static void bta_dm_inq_cmpl() {
 }
 
 static void bta_dm_remote_name_cmpl(const tBTA_DM_REMOTE_NAME& remote_name_msg) {
-  BTM_LogHistory(kBtmLogTag, remote_name_msg.bd_addr, "Remote name completed",
-                 base::StringPrintf("status:%s state:%s name:\"%s\"",
-                                    hci_status_code_text(remote_name_msg.hci_status).c_str(),
-                                    bta_dm_state_text(bta_dm_search_get_state()).c_str(),
-                                    PRIVATE_NAME(remote_name_msg.bd_name)));
+  BTM_LogHistory(
+          kBtmLogTag, remote_name_msg.bd_addr, "Remote name completed",
+          base::StringPrintf("status:%s state:%s name:\"%s\"",
+                             hci_status_code_text(remote_name_msg.hci_status).c_str(),
+                             bta_dm_state_text(bta_dm_search_get_state()).c_str(),
+                             PRIVATE_NAME(reinterpret_cast<char const*>(remote_name_msg.bd_name))));
 
   tBTM_INQ_INFO* p_btm_inq_info =
           get_btm_client_interface().db.BTM_InqDbRead(remote_name_msg.bd_addr);

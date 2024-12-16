@@ -29,7 +29,11 @@
 
 #include <bluetooth/log.h>
 #include <com_android_bluetooth_flags.h>
+#include <stdio.h>
 
+#include <cstddef>
+#include <cstdint>
+#include <cstring>
 #include <mutex>
 #include <optional>
 #include <vector>
@@ -42,10 +46,11 @@
 #include "btif/include/btif_a2dp_source.h"
 #include "btif/include/btif_av.h"
 #include "btif/include/btif_av_co.h"
+#include "device/include/device_iot_conf_defs.h"
 #include "device/include/device_iot_config.h"
 #include "device/include/interop.h"
 #include "include/hardware/bt_av.h"
-#include "internal_include/bt_trace.h"
+#include "os/logging/log_adapter.h"
 #include "osi/include/allocator.h"
 #include "osi/include/properties.h"
 #include "stack/include/a2dp_codec_api.h"
@@ -53,17 +58,16 @@
 #include "stack/include/a2dp_ext.h"
 #include "stack/include/avdt_api.h"
 #include "stack/include/bt_hdr.h"
-#include "stack/include/bt_types.h"
 #include "stack/include/bt_uuid16.h"
 #include "stack/include/btm_client_interface.h"
 #include "stack/include/btm_vendor_types.h"
 #include "types/raw_address.h"
-
+#include "btif_config.h"
 using namespace bluetooth;
 
 // SCMS-T protect info
 const uint8_t bta_av_co_cp_scmst[AVDT_CP_INFO_LEN] = {0x02, 0x02, 0x00};
-
+std::string supported_codecs = "";
 // Control block instance
 static const bool kContentProtectEnabled = false;
 static BtaAvCo bta_av_co_cb(kContentProtectEnabled, new BtaAvCoPeerCache());
@@ -103,7 +107,7 @@ void BtaAvCo::Init(const std::vector<btav_a2dp_codec_config_t>& codec_priorities
   for (auto* codec_config : peer_cache_->peers_[0].GetCodecs()->orderedSourceCodecs()) {
     auto& codec_info = supported_codecs->emplace_back();
     codec_info.codec_type = codec_config->codecIndex();
-    codec_info.codec_id = codec_config->codecId();
+    codec_info.codec_id = static_cast<uint64_t>(codec_config->codecId());
     codec_info.codec_name = codec_config->name();
   }
 }
@@ -240,7 +244,15 @@ tA2DP_STATUS BtaAvCo::ProcessSourceGetConfig(tBTA_AV_HNDL bta_av_handle,
       log::error("peer {} : no more room for Sink info", p_peer->addr);
     }
   }
-
+  std::string remote_bdstr = p_peer->addr.ToString();
+  if (supported_codecs.empty()) {
+      supported_codecs.append(A2DP_CodecName(p_codec_info));
+      log::verbose(" First codec entry {}",supported_codecs.c_str());
+  } else {
+      supported_codecs.append(",");
+      supported_codecs.append(A2DP_CodecName(p_codec_info));
+      log::verbose(" Next codec entry {}",supported_codecs.c_str());
+ }
   // Check if this is the last Sink get capabilities or all supported codec
   // capabilities are retrieved.
   if ((p_peer->num_rx_sinks != p_peer->num_sinks) &&
@@ -249,6 +261,10 @@ tA2DP_STATUS BtaAvCo::ProcessSourceGetConfig(tBTA_AV_HNDL bta_av_handle,
   }
   log::verbose("last Sink codec reached for peer {} (local {})", p_peer->addr,
                p_peer->acceptor ? "acceptor" : "initiator");
+
+    //store peer supported codecs in bt_config.conf file
+  btif_config_set_str(remote_bdstr, BTIF_STORAGE_KEY_FOR_SUPPORTED_CODECS, supported_codecs.c_str());
+  supported_codecs.clear();
 
   bta_av_co_store_peer_codectype(p_peer);
 

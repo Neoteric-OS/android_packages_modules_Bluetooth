@@ -23,22 +23,46 @@
 #include <bluetooth/log.h>
 #include <com_android_bluetooth_flags.h>
 
+#include <algorithm>
+#include <cstddef>
+#include <cstdint>
+#include <memory>
+#include <sstream>
+#include <string>
+#include <utility>
+#include <vector>
+
 #include "bta_gatt_queue.h"
 #include "btm_iso_api.h"
+#include "btm_iso_api_types.h"
 #include "client_parser.h"
 #include "codec_manager.h"
 #include "common/strings.h"
+#include "device_groups.h"
 #include "devices.h"
+#include "gatt_api.h"
+#include "hardware/bt_le_audio.h"
 #include "hci/hci_packets.h"
+#include "hci_error_code.h"
+#include "hcimsgs.h"
 #include "internal_include/bt_trace.h"
 #include "le_audio_health_status.h"
 #include "le_audio_log_history.h"
 #include "le_audio_types.h"
+#include "os/logging/log_adapter.h"
 #include "osi/include/alarm.h"
 #include "osi/include/osi.h"
 #include "osi/include/properties.h"
 #include "stack/include/btm_client_interface.h"
 #include "stack/include/hcimsgs.h"
+#include "types/bt_transport.h"
+#include "types/raw_address.h"
+
+#ifdef TARGET_FLOSS
+#include <audio_hal_interface/audio_linux.h>
+#else
+#include <hardware/audio.h>
+#endif  // TARGET_FLOSS
 
 // clang-format off
 /* ASCS state machine 1.0
@@ -219,8 +243,8 @@ void send_vs_cmd(const uint16_t content_type, const uint8_t cig_id, const uint8_
 
 using bluetooth::common::ToString;
 using bluetooth::hci::IsoManager;
-using bluetooth::legacy::hci::GetInterface;
 using bluetooth::le_audio::CodecManager;
+using bluetooth::legacy::hci::GetInterface;
 using bluetooth::le_audio::GroupStreamStatus;
 using bluetooth::le_audio::LeAudioDevice;
 using bluetooth::le_audio::LeAudioDeviceGroup;
@@ -293,7 +317,7 @@ void parseVSMetadata(uint8_t total_len, std::vector<uint8_t> metadata,
             UpdateEncoderParams(cig_id, cis_id, vs_meta_data, 0xFF);
           } else {
             LOG(INFO) << __func__ << ": Cache it untill encoder is up ";
-            ase->metadata = vs_meta_data;
+            ase->vs_metadata = vs_meta_data;
             ase->is_vsmetadata_available = true;
           }
           vs_meta_data.clear();
@@ -371,8 +395,8 @@ public:
      */
     if (group->GetState() != AseState::BTA_LE_AUDIO_ASE_STATE_STREAMING ||
         group->GetTargetState() != AseState::BTA_LE_AUDIO_ASE_STATE_STREAMING) {
-      log::error("group {} no in correct streaming state: {} or target state: {}", group->group_id_,
-                 ToString(group->GetState()), ToString(group->GetTargetState()));
+      log::error("Group {} is not streaming or is in transition, state: {}, target state: {}",
+                 group->group_id_, ToString(group->GetState()), ToString(group->GetTargetState()));
       return false;
     }
 
@@ -437,7 +461,8 @@ public:
         ReleaseCisIds(group);
 
         /* If configuration is needed */
-        FALLTHROUGH_INTENDED;
+        [[fallthrough]];
+
       case AseState::BTA_LE_AUDIO_ASE_STATE_IDLE:
         if (!group->Configure(context_type, metadata_context_types, ccid_lists)) {
           log::error("failed to set ASE configuration");
@@ -450,6 +475,7 @@ public:
         if (!PrepareAndSendCodecConfigToTheGroup(group)) {
           group->PrintDebugState();
           ClearGroup(group, true);
+          return false;
         }
         break;
 
@@ -757,7 +783,7 @@ public:
 
     /* Assign all connection handles to multiple device ASEs */
     group->AssignCisConnHandlesToAses();
-
+    group->SetState(AseState::BTA_LE_AUDIO_ASE_STATE_QOS_CONFIGURED);
     /* As streaming is about to start send HCI configure data path
      * based on codec selected before CIS creation ensuring order
      * Connected_Iso_Group_Create -> HCI_Configure Data path ->
@@ -809,7 +835,7 @@ public:
     }
     send_vs_cmd(static_cast<uint16_t>(group->GetConfigurationContextType()),
         cig_id, group->cig.cises.size(), conn_handles, group->IsLeXDevice());
-
+    PrepareAndSendQoSToTheGroup(group);
   }
 
   void FreeLinkQualityReports(LeAudioDevice* leAudioDevice) {
@@ -1841,7 +1867,15 @@ private:
         cis_cfg.rtn_stom = rtn_stom;
         cis_cfgs.push_back(cis_cfg);
       }
+      log::verbose("cis.id: {}, phy_mtos: {}, phy_stom: {}, cis.type: {}, max_sdu_size_mtos: {},"
+                   " max_sdu_size_stom: {}, rtn_mtos: {}, rtn_stom: {}", cis.id, phy_mtos, phy_stom,
+                   cis.type, max_sdu_size_mtos, max_sdu_size_stom, rtn_mtos, rtn_stom);
     }
+
+    log::verbose("sdu_interval_mtos: {}, sdu_interval_stom: {}, max_trans_lat_mtos: {},"
+                 " max_trans_lat_stom: {}, max_sdu_size_mtos: {}, max_sdu_size_stom: {}",
+                 sdu_interval_mtos, sdu_interval_stom, max_trans_lat_mtos, max_trans_lat_stom,
+                 max_sdu_size_mtos, max_sdu_size_stom);
 
     if ((sdu_interval_mtos == 0 && sdu_interval_stom == 0) ||
         (max_trans_lat_mtos == bluetooth::le_audio::types::kMaxTransportLatencyMin &&
@@ -1958,9 +1992,21 @@ private:
                 leAudioDevice->address_, BT_TRANSPORT_LE);
         conn_pairs.push_back({.cis_conn_handle = ase->cis_conn_hdl, .acl_conn_handle = acl_handle});
         log::debug("cis handle: {} acl handle : 0x{:x}", ase->cis_conn_hdl, acl_handle);
-
       } while ((ase = leAudioDevice->GetNextActiveAse(ase)));
     } while ((leAudioDevice = group->GetNextActiveDevice(leAudioDevice)));
+
+    bool ignore_cis_create = false;
+    for (auto& it : conn_pairs) {
+      if (!it.cis_conn_handle) {
+        log::error("cis handle 0. Is CreateCig skipped ?");
+        ignore_cis_create = true;
+        break;
+      }
+    }
+    if (ignore_cis_create) {
+      log::error("cannot proceed cis create");
+      return false;
+    }
 
     IsoManager::GetInstance()->EstablishCis({.conn_pairs = std::move(conn_pairs)});
 
@@ -2248,6 +2294,11 @@ private:
     }
 
     for (; leAudioDevice; leAudioDevice = group->GetNextActiveDevice(leAudioDevice)) {
+      if (!group->cig.AssignCisIds(leAudioDevice)) {
+        log::error("unable to assign CIS IDs");
+        StopStream(group);
+        return false;
+      }
       PrepareAndSendCodecConfigure(group, leAudioDevice);
     }
     return true;
@@ -2621,6 +2672,8 @@ private:
         }
 
         cancel_watchdog_if_needed(group->group_id_);
+        ReleaseCisIds(group);
+        RemoveCigForGroup(group);
 
         state_machine_callbacks_->StatusReportCb(group->group_id_,
                                                  GroupStreamStatus::CONFIGURED_AUTONOMOUS);
@@ -2658,7 +2711,8 @@ private:
                 ToString(AseState::BTA_LE_AUDIO_ASE_STATE_CODEC_CONFIGURED),
                 ToString(AseState::BTA_LE_AUDIO_ASE_STATE_QOS_CONFIGURED));
         group->PrintDebugState();
-        FMT_FALLTHROUGH;
+        [[fallthrough]];
+
       case AseState::BTA_LE_AUDIO_ASE_STATE_CODEC_CONFIGURED: {
         SetAseState(leAudioDevice, ase, AseState::BTA_LE_AUDIO_ASE_STATE_QOS_CONFIGURED);
 
@@ -2830,7 +2884,6 @@ private:
       msg_stream << "ASE_ID " << +ase->id << ",";
       extra_stream << "meta: " << base::HexEncode(conf.metadata.data(), conf.metadata.size())
                    << ";;";
-
     } while ((ase = leAudioDevice->GetNextActiveAse(ase)));
 
     bluetooth::le_audio::client_parser::ascs::PrepareAseCtpEnable(confs, value);
@@ -3375,6 +3428,11 @@ private:
       log::info("Still waiting for the bidirectional ase {} to be released ({})",
                 bidirection_ase->id, bluetooth::common::ToString(bidirection_ase->state));
       return CIS_STILL_NEEDED;
+    }
+
+    ase->cis_state = CisState::DISCONNECTING;
+    if (bidirection_ase) {
+      bidirection_ase->cis_state = CisState::DISCONNECTING;
     }
 
     group->RemoveCisFromStreamIfNeeded(leAudioDevice, ase->cis_conn_hdl);

@@ -18,8 +18,17 @@
 
 #include <bluetooth/log.h>
 
+#include <cstdint>
+#include <sstream>
+#include <string>
+#include <type_traits>
+#include <vector>
+
+#include "audio_hal_client/audio_hal_client.h"
 #include "codec_manager.h"
 #include "common/strings.h"
+#include "hardware/bt_le_audio.h"
+#include "le_audio/codec_manager.h"
 #include "le_audio_types.h"
 
 using bluetooth::common::ToString;
@@ -65,21 +74,21 @@ LeAudioContextType AudioContentToLeAudioContext(audio_content_type_t content_typ
         return LeAudioContextType::RINGTONE;
       }
 
-      return LeAudioContextType::MEDIA;
+      return LeAudioContextType::SOUNDEFFECTS;
     case AUDIO_USAGE_GAME:
       return LeAudioContextType::GAME;
     case AUDIO_USAGE_NOTIFICATION:
-      return LeAudioContextType::MEDIA;
+      return LeAudioContextType::NOTIFICATIONS;
     case AUDIO_USAGE_NOTIFICATION_TELEPHONY_RINGTONE:
       return LeAudioContextType::RINGTONE;
     case AUDIO_USAGE_ALARM:
-      return LeAudioContextType::MEDIA;
+      return LeAudioContextType::ALERTS;
     case AUDIO_USAGE_EMERGENCY:
       return LeAudioContextType::EMERGENCYALARM;
     case AUDIO_USAGE_ASSISTANCE_NAVIGATION_GUIDANCE:
       return LeAudioContextType::INSTRUCTIONAL;
     case AUDIO_USAGE_ASSISTANCE_SONIFICATION:
-      return LeAudioContextType::MEDIA;
+      return LeAudioContextType::SOUNDEFFECTS;
     default:
       break;
   }
@@ -221,9 +230,9 @@ AudioContexts GetAudioContextsFromSinkMetadata(
     if (track.source == AUDIO_SOURCE_MIC || track.source == AUDIO_SOURCE_CAMCORDER) {
       track_context = LeAudioContextType::LIVE;
 
-    } else if (track.source == AUDIO_SOURCE_VOICE_COMMUNICATION) {
+    } else if (track.source == AUDIO_SOURCE_VOICE_COMMUNICATION ||
+               track.source == AUDIO_SOURCE_VOICE_CALL) {
       track_context = LeAudioContextType::CONVERSATIONAL;
-
     } else {
       /* Fallback to voice assistant
        * This will handle also a case when the device is
@@ -343,7 +352,7 @@ void fillStreamParamsToBtLeAudioCodecConfig(
           translateToBtLeAudioCodecConfigBitPerSample(config.GetBitsPerSample());
   out_config.frame_duration =
           translateToBtLeAudioCodecConfigFrameDuration(config.GetDataIntervalUs());
-  out_config.octets_per_frame = config.GetOctectsPerFrame();
+  out_config.octets_per_frame = config.GetOctetsPerFrame();
   out_config.channel_count =
           translateToBtLeAudioCodecConfigChannelCount(config.GetChannelCountPerIsoStream());
 }
@@ -509,13 +518,16 @@ types::LeAudioConfigurationStrategy GetStrategyForAseConfig(
     if (cfgs.at(0).codec.GetChannelCountPerIsoStream() == 1) {
       /* One mono ASE - could be a single channel microphone */
       if (cfgs.size() == 1) {
+        log::debug("Strategy set to '0' ");
         return types::LeAudioConfigurationStrategy::MONO_ONE_CIS_PER_DEVICE;
       }
 
+      log::debug("Strategy set to '1' ");
       /* Each channel on a dedicated ASE - TWS style split channel re-routing */
       return types::LeAudioConfigurationStrategy::STEREO_TWO_CISES_PER_DEVICE;
     }
 
+    log::debug("Strategy set to '2' ");
     /* Banded headphones with 1 ASE - requires two channels per CIS */
     return types::LeAudioConfigurationStrategy::STEREO_ONE_CIS_PER_DEVICE;
   }
@@ -525,6 +537,7 @@ types::LeAudioConfigurationStrategy GetStrategyForAseConfig(
     return types::LeAudioConfigurationStrategy::RFU;
   }
 
+  log::debug("Strategy set to one channel per device topology ");
   /* The common one channel per device topology */
   return types::LeAudioConfigurationStrategy::MONO_ONE_CIS_PER_DEVICE;
 }
@@ -877,7 +890,7 @@ static bool IsCodecConfigSettingSupported(
     return false;
   }
 
-  log::debug(": Settings for format: 0x{} ", codec_id.coding_format);
+  log::debug("Verifying coding format: 0x{} ", codec_id.coding_format);
 
   if (utils::IsCodecUsingLtvFormat(codec_id)) {
     log::assert_that(!pac.codec_spec_caps.IsEmpty(),

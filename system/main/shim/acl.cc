@@ -672,9 +672,10 @@ public:
                                               uint16_t manufacturer_name,
                                               uint16_t sub_version) override {
     TRY_POSTING_ON_MAIN(interface_.on_read_remote_version_information_complete,
-                        ToLegacyHciErrorCode(hci_status), handle_, lmp_version, manufacturer_name,
-                        sub_version);
-    connection_->ReadRemoteSupportedFeatures();
+                        ToLegacyHciErrorCode(hci_status), handle_, lmp_version,
+                        manufacturer_name, sub_version);
+    if (connection_)
+      connection_->ReadRemoteSupportedFeatures();
   }
 
   void OnReadRemoteSupportedFeaturesComplete(uint64_t features) override {
@@ -1104,8 +1105,8 @@ struct shim::Acl::impl {
   }
 
   void get_connection_local_address(uint16_t handle, bool ota_address,
-              std::promise<bluetooth::hci::AddressWithType> promise) {
-    log::debug("get_connection_local_address handle={} ota_address={}", handle, ota_address);
+                                    std::promise<bluetooth::hci::AddressWithType> promise) {
+    log::debug("get_connection_local_address handle:{} ota_address:{}", handle, ota_address);
     bluetooth::hci::AddressWithType address_with_type;
     for (auto& [acl_handle, connection] : handle_to_le_connection_map_) {
       if (acl_handle != handle) {
@@ -1125,8 +1126,8 @@ struct shim::Acl::impl {
   }
 
   void get_connection_peer_address(uint16_t handle, bool ota_address,
-              std::promise<bluetooth::hci::AddressWithType> promise) {
-    log::debug("get_connection_peer_address handle={} ota_address={}", handle, ota_address);
+                                   std::promise<bluetooth::hci::AddressWithType> promise) {
+    log::debug("get_connection_peer_address handle:{} ota_address:{}", handle, ota_address);
     bluetooth::hci::AddressWithType address_with_type;
     for (auto& [acl_handle, connection] : handle_to_le_connection_map_) {
       if (acl_handle != handle) {
@@ -1146,7 +1147,7 @@ struct shim::Acl::impl {
   }
 
   void get_advertising_set_connected_to(const RawAddress& remote_bda,
-                      std::promise<std::optional<uint8_t>> promise) {
+                                        std::promise<std::optional<uint8_t>> promise) {
     log::debug("get_advertising_set_connected_to {}", remote_bda);
     auto remote_address = ToGdAddress(remote_bda);
     for (auto& [handle, connection] : handle_to_le_connection_map_) {
@@ -1478,24 +1479,24 @@ void shim::Acl::OnClassicLinkDisconnected(HciHandle handle, hci::ErrorCode reaso
 }
 
 void shim::Acl::GetConnectionLocalAddress(
-    uint16_t handle, bool ota_address, std::promise<bluetooth::hci::AddressWithType> promise) {
-  log::debug("GetConnectionLocalAddress handle={} ota_address={}", handle, ota_address);
-  handler_->CallOn(pimpl_.get(), &Acl::impl::get_connection_local_address,
-                   handle, ota_address, std::move(promise));
+        uint16_t handle, bool ota_address, std::promise<bluetooth::hci::AddressWithType> promise) {
+  log::debug("GetConnectionLocalAddress handle:{} ota_address:{}", handle, ota_address);
+  handler_->CallOn(pimpl_.get(), &Acl::impl::get_connection_local_address, handle, ota_address,
+                   std::move(promise));
 }
 
 void shim::Acl::GetConnectionPeerAddress(
-    uint16_t handle, bool ota_address, std::promise<bluetooth::hci::AddressWithType> promise) {
-  log::debug("GetConnectionPeerAddress handle={} ota_address={}", handle, ota_address);
-  handler_->CallOn(pimpl_.get(), &Acl::impl::get_connection_peer_address,
-                   handle, ota_address, std::move(promise));
+        uint16_t handle, bool ota_address, std::promise<bluetooth::hci::AddressWithType> promise) {
+  log::debug("GetConnectionPeerAddress handle:{} ota_address:{}", handle, ota_address);
+  handler_->CallOn(pimpl_.get(), &Acl::impl::get_connection_peer_address, handle, ota_address,
+                   std::move(promise));
 }
 
-void shim::Acl::GetAdvertisingSetConnectedTo(
-    const RawAddress& remote_bda, std::promise<std::optional<uint8_t>> promise) {
+void shim::Acl::GetAdvertisingSetConnectedTo(const RawAddress& remote_bda,
+                                             std::promise<std::optional<uint8_t>> promise) {
   log::debug("GetAdvertisingSetConnectedTo {}", remote_bda);
-  handler_->CallOn(pimpl_.get(), &Acl::impl::get_advertising_set_connected_to,
-                   remote_bda, std::move(promise));
+  handler_->CallOn(pimpl_.get(), &Acl::impl::get_advertising_set_connected_to, remote_bda,
+                   std::move(promise));
 }
 
 void shim::Acl::OnLeLinkDisconnected(HciHandle handle, hci::ErrorCode reason) {
@@ -1656,6 +1657,9 @@ void shim::Acl::OnLeConnectSuccess(hci::AddressWithType address_with_type,
 
   log::debug("Connection successful le remote:{} handle:{} initiator:{}", address_with_type, handle,
              (locally_initiated) ? "local" : "remote");
+  bluetooth::metrics::LogLeAclCompletionEvent(address_with_type.GetAddress(),
+                                              hci::ErrorCode::SUCCESS, locally_initiated);
+
   BTM_LogHistory(kBtmLogTag, ToLegacyAddressWithType(address_with_type), "Connection successful",
                  "Le");
 }
@@ -1670,6 +1674,7 @@ void shim::Acl::OnLeConnectFail(hci::AddressWithType address_with_type, hci::Err
   TRY_POSTING_ON_MAIN(acl_interface_.connection.le.on_failed, legacy_address_with_type, handle,
                       enhanced, status);
 
+  bluetooth::metrics::LogLeAclCompletionEvent(address_with_type.GetAddress(), reason, true);
   pimpl_->shadow_acceptlist_.Remove(address_with_type);
   log::warn("Connection failed le remote:{}", address_with_type);
   BTM_LogHistory(kBtmLogTag, ToLegacyAddressWithType(address_with_type), "Connection failed",

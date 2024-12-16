@@ -232,6 +232,10 @@ static BluetoothAudioPort const* bluetooth_audio_port = &null_audio_port;
 // Initialize BluetoothAudio HAL: openProvider
 bool init(bluetooth::common::MessageLoopThread* /*message_loop*/,
           BluetoothAudioPort const* audio_port, bool /*offload_enabled*/) {
+  if (a2dp_uipc != nullptr) {
+    log::warn("Re-init-ing UIPC that is already running");
+    cleanup();
+  }
   a2dp_uipc = UIPC_Init();
   total_bytes_read_ = 0;
   data_position_ = {};
@@ -328,7 +332,7 @@ std::optional<const char*> codec_index_str(btav_a2dp_codec_index_t /*codec_index
 bool supports_codec(btav_a2dp_codec_index_t /*codec_index*/) { return false; }
 
 // Return the A2DP capabilities for the selected codec.
-bool codec_info(btav_a2dp_codec_index_t /*codec_index*/, uint64_t* /*codec_id*/,
+bool codec_info(btav_a2dp_codec_index_t /*codec_index*/, bluetooth::a2dp::CodecId* /*codec_id*/,
                 uint8_t* /*codec_info*/, btav_a2dp_codec_config_t* /*codec_config*/) {
   return false;
 }

@@ -64,8 +64,7 @@ enum {
   /* these events are handled by the AV stream state machine */
   BTA_AV_API_OPEN_EVT,
   BTA_AV_API_CLOSE_EVT,
-  BTA_AV_AP_START_EVT, /* the following 2 events must be in the same order as
-                          the *API_*EVT */
+  BTA_AV_AP_START_EVT,
   BTA_AV_AP_STOP_EVT,
   BTA_AV_API_RECONFIG_EVT,
   BTA_AV_API_PROTECT_REQ_EVT,
@@ -117,9 +116,6 @@ enum {
   BTA_AV_DEREG_COMP_EVT,
   BTA_AV_AVDT_RPT_CONN_EVT,
   BTA_AV_API_PEER_SEP_EVT,
-  BTA_AV_API_START_EVT, /* the following 2 events must be in the same order as
-                           the *AP_*EVT */
-  BTA_AV_API_STOP_EVT,
   BTA_AV_API_SET_LATENCY_EVT,
   BTA_AV_SET_CODEC_MODE_EVT,
   BTA_AV_UPDATE_APTX_DATA_EVT,
@@ -136,9 +132,6 @@ enum {
 #define BTA_AV_FIRST_NSM_EVT BTA_AV_API_ENABLE_EVT
 #define BTA_AV_LAST_NSM_EVT BTA_AV_UPDATE_APTX_DATA_EVT
 
-/* API events passed to both SSMs (by bta_av_api_to_ssm) */
-#define BTA_AV_FIRST_A2S_API_EVT BTA_AV_API_START_EVT
-#define BTA_AV_FIRST_A2S_SSM_EVT BTA_AV_AP_START_EVT
 
 #define BTA_AV_LAST_EVT BTA_AV_UPDATE_APTX_DATA_EVT
 
@@ -282,13 +275,13 @@ typedef struct {
   uint16_t data;
 } tBTA_AV_APTX_DATA;
 
-/* data type for BTA_AV_API_START_EVT and bta_av_do_start */
+/* data type for BTA_AV_AP_START_EVT from API and bta_av_do_start */
 typedef struct {
   BT_HDR_RIGID hdr;
   bool use_latency_mode;
 } tBTA_AV_DO_START;
 
-/* data type for BTA_AV_API_STOP_EVT */
+/* data type for BTA_AV_AP_STOP_EVT from API*/
 typedef struct {
   BT_HDR_RIGID hdr;
   bool suspend;
@@ -552,9 +545,9 @@ public:
                                    * is set according to RFC 6416 */
   uint8_t co_started;             /* non-zero, if stream started from call-out perspective */
   bool recfg_sup;                 /* true if the first attempt to reconfigure the stream was
-                                     successfull, else False if command fails */
-  bool suspend_sup;               /* true if Suspend stream is supported, else false if
-                                     suspend command fails */
+                                     successful, false if command fails */
+  bool suspend_sup;               /* true if Suspend stream is supported, false if suspend command
+                                     fails */
   bool suspend_local_sent;        /* TRUE if outgoing Suspend is sent, else FALSE if
                                confirmation is received */
   bool deregistering;             /* true if deregistering */

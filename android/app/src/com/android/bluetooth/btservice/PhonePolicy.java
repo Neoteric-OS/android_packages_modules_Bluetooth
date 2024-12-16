@@ -89,6 +89,7 @@ public class PhonePolicy implements AdapterService.BluetoothStateCallback {
     private static final int CONNECT_OTHER_PROFILES_TIMEOUT_DELAYED = 10000; //10s
     private static final int CONNECT_OTHER_PROFILES_REDUCED_TIMEOUT_DELAYED = 2000; //2s
     private static final int AUTO_CONNECT_PROFILES_TIMEOUT= 500;
+	private static final int DELAY_A2DP_SLEEP_MILLIS = 100;
 
     private DatabaseManager mDatabaseManager;
     private final AdapterService mAdapterService;
@@ -313,16 +314,23 @@ public class PhonePolicy implements AdapterService.BluetoothStateCallback {
         return isLeAudioOnlyGroup(device);
     }
 
+    private static final String SYSPROP_HAP_ENABLED = "bluetooth.profile.hap.enabled_by_default";
+
     // return true if device support Hearing Access Service and it has not been manually disabled
     private boolean shouldEnableHapByDefault(BluetoothDevice device, ParcelUuid[] uuids) {
         if (!Flags.enableHapByDefault()) {
-            Log.i(TAG, "shouldDefaultToHap: Flag enableHapByDefault is disabled");
+            Log.i(TAG, "shouldEnableHapByDefault: Flag is disabled");
             return false;
         }
 
         HapClientService hap = mFactory.getHapClientService();
         if (hap == null) {
-            Log.e(TAG, "shouldDefaultToHap: HapClient is null");
+            Log.e(TAG, "shouldEnableHapByDefault: No HapClientService");
+            return false;
+        }
+
+        if (!SystemProperties.getBoolean(SYSPROP_HAP_ENABLED, true)) {
+            Log.i(TAG, "shouldEnableHapByDefault: SystemProperty is overridden to false");
             return false;
         }
 
@@ -897,6 +905,18 @@ public class PhonePolicy implements AdapterService.BluetoothStateCallback {
             mHandler.sendMessageDelayed(m,AUTO_CONNECT_PROFILES_TIMEOUT);
         }
     }
+
+    public void delayA2dpConnect() {
+        /*delaying the A2DP connection so that HFP connection can be established first*/
+        Log.w(TAG, "delaying the A2dp Connection by " + DELAY_A2DP_SLEEP_MILLIS + "msec");
+        try {
+            Thread.sleep(DELAY_A2DP_SLEEP_MILLIS);
+        } catch(InterruptedException ex) {
+            Log.e(TAG, "delayA2dpConnect() was interrupted");
+            Thread.currentThread().interrupt();
+        }
+    }
+
     void autoConnectProfilesDelayed() {
         if (mAdapterService.getState() != BluetoothAdapter.STATE_ON) {
             Log.e(TAG, "autoConnect: BT is not ON. Exiting autoConnect");
@@ -915,6 +935,9 @@ public class PhonePolicy implements AdapterService.BluetoothStateCallback {
                             + mostRecentlyActiveA2dpDevice
                             + " attempting auto connection");
             autoConnectHeadset(mostRecentlyActiveA2dpDevice);
+            //Add a delay to ensure that the HFP connection is
+            //established first during auto reconnection.
+            delayA2dpConnect();
             autoConnectA2dp(mostRecentlyActiveA2dpDevice);
             autoConnectHidHost(mostRecentlyActiveA2dpDevice);
             return;
@@ -1190,6 +1213,32 @@ public class PhonePolicy implements AdapterService.BluetoothStateCallback {
             }
         } else {
             warnLog("onUuidsDiscovered: uuids is null for device " + device);
+        }
+    }
+
+    /**
+     * Resets the service connection policies for the device. This is called when the {@link
+     * BluetoothDevice#removeBond} is requested for the device.
+     *
+     * @param device is the remote device whose services have been discovered
+     */
+    void onRemoveBondRequest(BluetoothDevice device) {
+        if (!Flags.preventServiceConnectionsOnRemoveBond()) {
+            return;
+        }
+
+        debugLog("onRemoveBondRequest: Disabling all profiles for " + device);
+        // Don't allow any profiles to connect to the device.
+        for (int profileId = BluetoothProfile.HEADSET;
+                profileId < BluetoothProfile.MAX_PROFILE_ID;
+                profileId++) {
+            if (mAdapterService.getDatabase().getProfileConnectionPolicy(device, profileId)
+                    == BluetoothProfile.CONNECTION_POLICY_ALLOWED) {
+                mAdapterService
+                        .getDatabase()
+                        .setProfileConnectionPolicy(
+                                device, profileId, BluetoothProfile.CONNECTION_POLICY_FORBIDDEN);
+            }
         }
     }
 

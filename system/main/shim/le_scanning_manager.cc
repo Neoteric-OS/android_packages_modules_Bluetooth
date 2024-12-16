@@ -25,6 +25,7 @@
 #include <base/functional/bind.h>
 #include <base/threading/thread.h>
 #include <bluetooth/log.h>
+#include <com_android_bluetooth_flags.h>
 #include <hardware/bluetooth.h>
 
 #include "btif/include/btif_common.h"
@@ -43,6 +44,7 @@
 #include "stack/include/bt_dev_class.h"
 #include "stack/include/btm_ble_addr.h"
 #include "stack/include/btm_log_history.h"
+#include "stack/include/btm_sec_api.h"
 #include "stack/include/btm_status.h"
 #include "stack/include/main_thread.h"
 #include "storage/device.h"
@@ -772,7 +774,11 @@ void BleScannerInterfaceImpl::on_scan_result(uint16_t event_type, uint8_t addres
     btm_ble_process_adv_addr(raw_address, &ble_addr_type);
   }
 
-  handle_remote_properties(raw_address, ble_addr_type, advertising_data);
+  // Do not update device properties of already bonded devices.
+  if (!com::android::bluetooth::flags::guard_bonded_device_properties() ||
+      !btm_sec_is_a_bonded_dev(raw_address)) {
+    handle_remote_properties(raw_address, ble_addr_type, advertising_data);
+  }
 
   do_in_jni_thread(base::BindOnce(
           &ScanningCallbacks::OnScanResult, base::Unretained(scanning_callbacks_), event_type,

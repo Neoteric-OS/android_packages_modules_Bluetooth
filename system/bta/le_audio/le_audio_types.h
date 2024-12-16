@@ -617,7 +617,7 @@ constexpr AudioContexts kLeAudioContextAllRemoteSinkOnly =
         LeAudioContextType::RINGTONE | LeAudioContextType::ALERTS |
         LeAudioContextType::EMERGENCYALARM;
 
-/* Print formaters for LTV data */
+/* Print formaters for codec capabilities LTV data */
 std::string CodecCapabilitiesLtvFormat(const uint8_t& type, const std::vector<uint8_t>& value);
 
 /* Structures */
@@ -668,7 +668,7 @@ struct LeAudioCoreCodecConfig {
   }
 
   /** Returns the frame duration representation in us */
-  uint16_t GetOctectsPerFrame() const {
+  uint16_t GetOctetsPerFrame() const {
     if (octets_per_codec_frame) {
       return *octets_per_codec_frame;
     }
@@ -1251,6 +1251,7 @@ struct ase {
   AseQosPreferences qos_preferences;
 
   std::vector<uint8_t> metadata;
+  std::vector<uint8_t> vs_metadata;
 
   bool is_vsmetadata_available;
 
@@ -1293,7 +1294,7 @@ struct CodecConfigSetting {
   uint8_t channel_count_per_iso_stream;
 
   /* Octets per fram for codec */
-  uint16_t GetOctectsPerFrame() const;
+  uint16_t GetOctetsPerFrame() const;
   /* Sampling frequency requested for codec */
   uint32_t GetSamplingFrequencyHz() const;
   /* Data fetch/feed interval for codec in microseconds */
@@ -1407,7 +1408,7 @@ static constexpr uint32_t kChannelAllocationStereo =
 /* Declarations */
 void get_cis_count(types::LeAudioContextType context_type,
                    std::shared_ptr<const set_configurations::AudioSetConfiguration> conf,
-                   int expected_device_cnt, types::LeAudioConfigurationStrategy strategy,
+                   uint8_t expected_direction, int expected_device_cnt, types::LeAudioConfigurationStrategy strategy,
                    int group_ase_snk_cnt, int group_ase_src_count, uint8_t& cis_count_bidir,
                    uint8_t& cis_count_unidir_sink, uint8_t& cis_count_unidir_source,
                    types::BidirectionalPair<types::AudioContexts> group_contexts);

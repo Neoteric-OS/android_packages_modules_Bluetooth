@@ -953,10 +953,12 @@ void btm_sec_save_le_key(const RawAddress& bd_addr, tBTM_LE_KEY_TYPE key_type,
         p_rec->sec_rec.ble_keys.counter = p_keys->pcsrk_key.counter;
         p_rec->sec_rec.ble_keys.key_type |= BTM_LE_KEY_PCSRK;
         p_rec->sec_rec.sec_flags |= BTM_SEC_LE_LINK_KEY_KNOWN;
-        if (p_keys->pcsrk_key.sec_level == SMP_SEC_AUTHENTICATED) {
-          p_rec->sec_rec.sec_flags |= BTM_SEC_LE_LINK_KEY_AUTHED;
-        } else {
-          p_rec->sec_rec.sec_flags &= ~BTM_SEC_LE_LINK_KEY_AUTHED;
+        if (!com::android::bluetooth::flags::donot_update_sec_flags_on_csrk_save()) {
+          if (p_keys->pcsrk_key.sec_level == SMP_SEC_AUTHENTICATED) {
+            p_rec->sec_rec.sec_flags |= BTM_SEC_LE_LINK_KEY_AUTHED;
+          } else {
+            p_rec->sec_rec.sec_flags &= ~BTM_SEC_LE_LINK_KEY_AUTHED;
+          }
         }
 
         log::verbose(
@@ -1341,9 +1343,8 @@ void btm_ble_link_encrypted(const RawAddress& bd_addr, uint8_t encr_enable) {
   if (p_dev_rec->sec_rec.p_callback && enc_cback) {
     if (encr_enable) {
       btm_sec_dev_rec_cback_event(p_dev_rec, tBTM_STATUS::BTM_SUCCESS, true);
-    }
-    /* LTK missing on peripheral */
-    else if (p_dev_rec->role_central && (p_dev_rec->sec_rec.sec_status == HCI_ERR_KEY_MISSING)) {
+    } else if (p_dev_rec->role_central && (p_dev_rec->sec_rec.sec_status == HCI_ERR_KEY_MISSING)) {
+      /* LTK missing on peripheral */
       btm_sec_dev_rec_cback_event(p_dev_rec, tBTM_STATUS::BTM_ERR_KEY_MISSING, true);
     } else if (!(p_dev_rec->sec_rec.sec_flags & BTM_SEC_LE_LINK_KEY_KNOWN)) {
       btm_sec_dev_rec_cback_event(p_dev_rec, tBTM_STATUS::BTM_FAILED_ON_SECURITY, true);

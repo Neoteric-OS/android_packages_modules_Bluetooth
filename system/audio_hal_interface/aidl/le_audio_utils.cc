@@ -139,24 +139,28 @@ GetAidlCodecSpecificConfigurationFromStack(
   auto stack_config = stack_ltvs.GetAsCoreCodecConfig();
 
   if (stack_config.sampling_frequency.has_value()) {
+    log::debug(": sampling_frequency: {}", stack_config.sampling_frequency.value());
     // The frequency values match exactly
     aidl_ltvs.push_back(
             static_cast<::aidl::android::hardware::bluetooth::audio::CodecSpecificConfigurationLtv::
                                 SamplingFrequency>(stack_config.sampling_frequency.value()));
   }
   if (stack_config.frame_duration.has_value()) {
+    log::debug(": frame_duration: {}", stack_config.frame_duration.value());
     // The frame duration values match exactly
     aidl_ltvs.push_back(
             static_cast<::aidl::android::hardware::bluetooth::audio::CodecSpecificConfigurationLtv::
                                 FrameDuration>(stack_config.frame_duration.value()));
   }
   if (stack_config.audio_channel_allocation.has_value()) {
+    log::debug(": audio_channel_allocation: {}", stack_config.audio_channel_allocation.value());
     // The frequency values match exactly
     auto aidl_location = static_cast<int32_t>(stack_config.audio_channel_allocation.value());
     aidl_ltvs.push_back(::aidl::android::hardware::bluetooth::audio::CodecSpecificConfigurationLtv::
                                 AudioChannelAllocation{.bitmask = aidl_location});
   }
   if (stack_config.octets_per_codec_frame.has_value()) {
+    log::debug(": octets_per_codec_frame: {}", stack_config.octets_per_codec_frame.value());
     // The octetes per codec frame values match exactly
     aidl_ltvs.push_back(
             ::aidl::android::hardware::bluetooth::audio::CodecSpecificConfigurationLtv::
@@ -164,6 +168,7 @@ GetAidlCodecSpecificConfigurationFromStack(
   }
 
   if (stack_config.codec_frames_blocks_per_sdu.has_value()) {
+    log::debug(": codec_frames_blocks_per_sdu: {}", stack_config.codec_frames_blocks_per_sdu.value());
     // The codec frame blocks per sdu values match exactly
     aidl_ltvs.push_back(::aidl::android::hardware::bluetooth::audio::CodecSpecificConfigurationLtv::
                                 CodecFrameBlocksPerSDU{
@@ -505,6 +510,73 @@ static ::bluetooth::le_audio::set_configurations::AseConfiguration GetStackAseCo
   return config;
 }
 
+static std::string GenerateNameForConfig(
+        const ::bluetooth::le_audio::set_configurations::AudioSetConfiguration& config) {
+  auto namegen = [](const std::vector<::bluetooth::le_audio::set_configurations::AseConfiguration>&
+                            configs,
+                    const char* dir_str) {
+    std::stringstream cfg_str;
+    if (configs.size() > 0) {
+      auto current_config = configs.begin();
+      while (current_config != configs.end()) {
+        uint8_t cfg_multiplier = 1;
+        auto last_equal_config = current_config;
+        auto current_codec = current_config->codec;
+        while (++last_equal_config != configs.end()) {
+          // For the purpose of name generation, ignore the audio channel allocation
+          auto current_codec_no_channels = current_codec;
+          auto last_codec_no_channels = last_equal_config->codec;
+          current_codec_no_channels.params.Add(
+                  le_audio::codec_spec_conf::kLeAudioLtvTypeAudioChannelAllocation, (uint32_t)0);
+          last_codec_no_channels.params.Add(
+                  le_audio::codec_spec_conf::kLeAudioLtvTypeAudioChannelAllocation, (uint32_t)0);
+
+          if (current_codec_no_channels != last_codec_no_channels) {
+            break;
+          }
+          ++cfg_multiplier;
+          current_config = last_equal_config;
+        }
+
+        // Channel configuration
+        cfg_str << +cfg_multiplier << "-" << +current_codec.GetChannelCountPerIsoStream() << "chan";
+        cfg_str << "-" << dir_str << "Ase-";
+        // Codec Id
+        cfg_str << "CodecId_" << +current_codec.id.coding_format << "_"
+                << +current_codec.id.vendor_company_id << "_" << +current_codec.id.vendor_codec_id
+                << "-";
+        // Codec parameters
+        cfg_str << current_codec.GetSamplingFrequencyHz() << "hz";
+        if (current_codec.id.coding_format ==
+            ::bluetooth::le_audio::types::kLeAudioCodingFormatLC3) {
+          cfg_str << "_" << current_codec.GetOctetsPerFrame() << "oct";
+          cfg_str << "_" << current_codec.GetDataIntervalUs() << "us";
+        }
+        // QoS
+        cfg_str << "-TargetLatency_" << +current_config->qos.target_latency;
+
+        if (last_equal_config == configs.end()) {
+          break;
+        }
+
+        // Check if there are some different configs left
+        ++current_config;
+      }
+    }
+    return cfg_str.str();
+  };
+
+  std::stringstream name;
+  name << "AIDL";
+  if (!config.confs.sink.empty()) {
+    name << "-" << namegen(config.confs.sink, "Sink");
+  }
+  if (!config.confs.source.empty()) {
+    name << "-" << namegen(config.confs.source, "Source");
+  }
+  return name.str();
+}
+
 static ::bluetooth::le_audio::set_configurations::AudioSetConfiguration
 GetStackConfigSettingFromAidl(
         ::bluetooth::le_audio::types::LeAudioContextType ctx_type,
@@ -538,6 +610,7 @@ GetStackConfigSettingFromAidl(
     }
   }
 
+  cig_config.name = GenerateNameForConfig(cig_config);
   return cig_config;
 }
 
@@ -602,8 +675,10 @@ GetStackUnicastConfigurationFromAidlFormat(
     aidl_reqs.sinkAseRequirement = std::make_optional<std::vector<
             std::optional<::aidl::android::hardware::bluetooth::audio::IBluetoothAudioProvider::
                                   LeAudioConfigurationRequirement::AseDirectionRequirement>>>();
+    log::debug(": sink requirements size: {} ", sink_reqs->size());
 
     for (auto const& stack_req : *sink_reqs) {
+      log::debug(": sink requirement ");
       auto aidl_req = ::aidl::android::hardware::bluetooth::audio::IBluetoothAudioProvider::
               LeAudioConfigurationRequirement::AseDirectionRequirement();
       aidl_req.aseConfiguration.targetLatency = static_cast<
@@ -611,6 +686,9 @@ GetStackUnicastConfigurationFromAidlFormat(
               stack_req.target_latency);
       aidl_req.aseConfiguration.targetPhy =
               static_cast<::aidl::android::hardware::bluetooth::audio::Phy>(stack_req.target_Phy);
+
+      log::debug(": targetLatency: {}", (unsigned)aidl_req.aseConfiguration.targetLatency);
+      log::debug(": targetPhy: {}", (unsigned)aidl_req.aseConfiguration.targetPhy);
 
       // TODO(b/341936031): Add the codec enforcement mechanism in the stack
       // aidl_req.aseConfiguration.codecId =
@@ -619,6 +697,8 @@ GetStackUnicastConfigurationFromAidlFormat(
               GetAidlCodecSpecificConfigurationFromStack(stack_req.params);
 
       aidl_reqs.sinkAseRequirement->push_back(aidl_req);
+      //Below is added for MOra config checking
+      //aidl_reqs.sinkAseRequirement->push_back(aidl_req);
     }
   }
 
@@ -626,8 +706,10 @@ GetStackUnicastConfigurationFromAidlFormat(
     aidl_reqs.sourceAseRequirement = std::make_optional<std::vector<
             std::optional<::aidl::android::hardware::bluetooth::audio::IBluetoothAudioProvider::
                                   LeAudioConfigurationRequirement::AseDirectionRequirement>>>();
+    log::debug(": source requirements size: {} ", source_reqs->size());
 
     for (auto const& stack_req : *source_reqs) {
+      log::debug(": source requirement ");
       auto aidl_req = ::aidl::android::hardware::bluetooth::audio::IBluetoothAudioProvider::
               LeAudioConfigurationRequirement::AseDirectionRequirement();
       aidl_req.aseConfiguration.targetLatency = static_cast<
@@ -635,6 +717,9 @@ GetStackUnicastConfigurationFromAidlFormat(
               stack_req.target_latency);
       aidl_req.aseConfiguration.targetPhy =
               static_cast<::aidl::android::hardware::bluetooth::audio::Phy>(stack_req.target_Phy);
+
+      log::debug(": targetLatency: {}", (unsigned)aidl_req.aseConfiguration.targetLatency);
+      log::debug(": targetPhy: {}", (unsigned)aidl_req.aseConfiguration.targetPhy);
 
       // TODO(b/341936031): Add the codec enforcement mechanism in the stack
       // aidl_req.aseConfiguration.codecId =
@@ -649,6 +734,7 @@ GetStackUnicastConfigurationFromAidlFormat(
   // Context type values match exactly
   aidl_reqs.audioContext.bitmask = (uint32_t)context_type;
 
+  log::debug(": audio context: {}", aidl_reqs.audioContext.bitmask);
   // TODO(b/341935895): Add the feature flags mechanism in the stack
   // aidl_reqs.flags
 

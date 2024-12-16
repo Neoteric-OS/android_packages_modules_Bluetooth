@@ -155,6 +155,24 @@ public final class BluetoothLeAudio implements BluetoothProfile, AutoCloseable {
                 Log.d(TAG, " onGroupStreamStatusChanged is not implemented.");
             }
         }
+
+        /**
+         * Callback invoked when the broadcast to unicast fallback group changes.
+         *
+         * <p>This callback provides the new broadcast to unicast fallback group ID. It is invoked
+         * when the broadcast to unicast fallback group is initially set, or when it subsequently
+         * changes.
+         *
+         * @param groupId The ID of the new broadcast to unicast fallback group.
+         * @hide
+         */
+        @FlaggedApi(Flags.FLAG_LEAUDIO_BROADCAST_API_MANAGE_PRIMARY_GROUP)
+        @SystemApi
+        default void onBroadcastToUnicastFallbackGroupChanged(int groupId) {
+            if (DBG) {
+                Log.d(TAG, "onBroadcastToUnicastFallbackGroupChanged is not implemented.");
+            }
+        }
     }
 
     private final CallbackWrapper<Callback, IBluetoothLeAudio> mCallbackWrapper;
@@ -188,6 +206,14 @@ public final class BluetoothLeAudio implements BluetoothProfile, AutoCloseable {
         public void onGroupStreamStatusChanged(int groupId, int groupStreamStatus) {
             mCallbackWrapper.forEach(
                     (cb) -> cb.onGroupStreamStatusChanged(groupId, groupStreamStatus));
+        }
+
+        @Override
+        public void onBroadcastToUnicastFallbackGroupChanged(int groupId) {
+            if (Flags.leaudioBroadcastApiManagePrimaryGroup()) {
+                mCallbackWrapper.forEach(
+                        (cb) -> cb.onBroadcastToUnicastFallbackGroupChanged(groupId));
+            }
         }
     }
 
@@ -1403,5 +1429,78 @@ public final class BluetoothLeAudio implements BluetoothProfile, AutoCloseable {
                 Log.e(TAG, e.toString() + "\n" + Log.getStackTraceString(new Throwable()));
             }
         }
+    }
+
+    /**
+     * Sets broadcast to unicast fallback group.
+     *
+     * <p>In broadcast handover situations where unicast is unavailable, this group acts as the
+     * fallback.
+     *
+     * <p>A handover can occur when ongoing broadcast is interrupted with unicast streaming request.
+     *
+     * <p>On fallback group changed, {@link Callback#onBroadcastToUnicastFallbackGroupChanged} will
+     * be invoked.
+     *
+     * @param groupId the ID of the group to switch to if unicast fails during a broadcast handover,
+     *     {@link #GROUP_ID_INVALID} when there should be no such fallback group.
+     * @see BluetoothLeAudio#getGroupId()
+     * @hide
+     */
+    @FlaggedApi(Flags.FLAG_LEAUDIO_BROADCAST_API_MANAGE_PRIMARY_GROUP)
+    @SystemApi
+    @RequiresBluetoothConnectPermission
+    @RequiresPermission(allOf = {BLUETOOTH_CONNECT, BLUETOOTH_PRIVILEGED})
+    public void setBroadcastToUnicastFallbackGroup(int groupId) {
+        if (DBG) Log.d(TAG, "setBroadcastToUnicastFallbackGroup(" + groupId + ")");
+
+        final IBluetoothLeAudio service = getService();
+
+        if (service == null) {
+            Log.w(TAG, "Proxy not attached to service");
+            if (DBG) log(Log.getStackTraceString(new Throwable()));
+        } else if (mAdapter.isEnabled()) {
+            try {
+                service.setBroadcastToUnicastFallbackGroup(groupId, mAttributionSource);
+            } catch (RemoteException e) {
+                Log.e(TAG, e.toString() + "\n" + Log.getStackTraceString(new Throwable()));
+            }
+        }
+    }
+
+    /**
+     * Gets broadcast to unicast fallback group.
+     *
+     * <p>In broadcast handover situations where unicast is unavailable, this group acts as the
+     * fallback.
+     *
+     * <p>A broadcast handover can occur when a {@link BluetoothLeBroadcast#startBroadcast} call is
+     * successful and there's an active unicast group.
+     *
+     * @return groupId the ID of the fallback group, {@link #GROUP_ID_INVALID} when adapter is
+     *     disabled
+     * @hide
+     */
+    @FlaggedApi(Flags.FLAG_LEAUDIO_BROADCAST_API_MANAGE_PRIMARY_GROUP)
+    @SystemApi
+    @RequiresBluetoothConnectPermission
+    @RequiresPermission(allOf = {BLUETOOTH_CONNECT, BLUETOOTH_PRIVILEGED})
+    public int getBroadcastToUnicastFallbackGroup() {
+        if (DBG) Log.d(TAG, "getBroadcastToUnicastFallbackGroup()");
+
+        final IBluetoothLeAudio service = getService();
+
+        if (service == null) {
+            Log.w(TAG, "Proxy not attached to service");
+            if (DBG) log(Log.getStackTraceString(new Throwable()));
+        } else if (mAdapter.isEnabled()) {
+            try {
+                return service.getBroadcastToUnicastFallbackGroup(mAttributionSource);
+            } catch (RemoteException e) {
+                Log.e(TAG, e.toString() + "\n" + Log.getStackTraceString(new Throwable()));
+            }
+        }
+
+        return GROUP_ID_INVALID;
     }
 }

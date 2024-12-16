@@ -383,10 +383,6 @@ class BassClientStateMachine extends StateMachine {
         return mPendingSourceToSwitch != null;
     }
 
-    BluetoothLeBroadcastMetadata getCurrentBroadcastMetadata(Integer sourceId) {
-        return mCurrentMetadata.getOrDefault(sourceId, null);
-    }
-
     private void setCurrentBroadcastMetadata(
             Integer sourceId, BluetoothLeBroadcastMetadata metadata) {
         if (metadata != null) {
@@ -1240,6 +1236,7 @@ class BassClientStateMachine extends StateMachine {
             log("processBroadcastReceiverState: invalid index: " + recvState.getSourceId());
             return;
         }
+        int sourceId = recvState.getSourceId();
         BluetoothLeBroadcastReceiveState oldRecvState =
                 mBluetoothLeBroadcastReceiveStates.get(characteristic.getInstanceId());
         if (oldRecvState == null) {
@@ -1267,7 +1264,7 @@ class BassClientStateMachine extends StateMachine {
                         .notifySourceAdded(
                                 mDevice, recvState, BluetoothStatusCodes.REASON_LOCAL_APP_REQUEST);
                 if (mPendingMetadata != null) {
-                    setCurrentBroadcastMetadata(recvState.getSourceId(), mPendingMetadata);
+                    setCurrentBroadcastMetadata(sourceId, mPendingMetadata);
                     mPendingMetadata = null;
                 }
                 checkAndUpdateBroadcastCode(recvState);
@@ -1313,28 +1310,28 @@ class BassClientStateMachine extends StateMachine {
                 } else {
                     log("update to an existing recvState");
                     if (mPendingMetadata != null) {
-                        setCurrentBroadcastMetadata(recvState.getSourceId(), mPendingMetadata);
+                        setCurrentBroadcastMetadata(sourceId, mPendingMetadata);
                         mPendingMetadata = null;
                     }
                     removeMessages(CANCEL_PENDING_SOURCE_OPERATION);
                     mService.getCallbacks()
                             .notifySourceModified(
                                     mDevice,
-                                    recvState.getSourceId(),
+                                    sourceId,
                                     BluetoothStatusCodes.REASON_LOCAL_APP_REQUEST);
                     checkAndUpdateBroadcastCode(recvState);
                     processPASyncState(recvState);
                     processSyncStateChangeStats(recvState);
 
-                    if (isPendingRemove(recvState.getSourceId())) {
+                    if (isPendingRemove(sourceId) && !isSyncedToTheSource(sourceId)) {
                         Message message = obtainMessage(REMOVE_BCAST_SOURCE);
-                        message.arg1 = recvState.getSourceId();
+                        message.arg1 = sourceId;
                         sendMessage(message);
                     }
                 }
             }
         }
-        broadcastReceiverState(recvState, recvState.getSourceId());
+        broadcastReceiverState(recvState, sourceId);
     }
 
     // Implements callback methods for GATT events that the app cares about.
@@ -2005,7 +2002,7 @@ class BassClientStateMachine extends StateMachine {
         res[offset++] = (byte) numSubGroups;
 
         for (int i = 0; i < numSubGroups; i++) {
-            int bisIndexValue = existingState.getBisSyncState().get(i).intValue();
+            int bisIndexValue = 0xFFFFFFFF;
             if (paSync == BassConstants.PA_SYNC_DO_NOT_SYNC) {
                 bisIndexValue = 0;
             } else if (metaData != null
@@ -2018,6 +2015,8 @@ class BassClientStateMachine extends StateMachine {
                 if (bisIndexValue == 0) {
                     bisIndexValue = 0xFFFFFFFF;
                 }
+            } else if (i < existingState.getBisSyncState().size()) {
+                bisIndexValue = existingState.getBisSyncState().get(i).intValue();
             }
             log("UPDATE_BCAST_SOURCE: bisIndexValue : " + bisIndexValue);
             // BIS_Sync
@@ -2709,6 +2708,10 @@ class BassClientStateMachine extends StateMachine {
 
     int getMaximumSourceCapacity() {
         return mNumOfBroadcastReceiverStates;
+    }
+
+    BluetoothLeBroadcastMetadata getCurrentBroadcastMetadata(Integer sourceId) {
+        return mCurrentMetadata.getOrDefault(sourceId, null);
     }
 
     BluetoothDevice getDevice() {

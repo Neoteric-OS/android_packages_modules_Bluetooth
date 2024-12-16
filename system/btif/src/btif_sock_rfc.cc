@@ -158,7 +158,7 @@ static rfc_slot_t* find_free_slot(void) {
 }
 
 static rfc_slot_t* find_rfc_slot_by_id(uint32_t id) {
-  CHECK(id != 0);
+  CHECK_NE(0u, id);
 
   for (size_t i = 0; i < ARRAY_SIZE(rfc_slots); ++i) {
     if (rfc_slots[i].id == id) {
@@ -235,7 +235,7 @@ static rfc_slot_t* alloc_rfc_slot(const RawAddress* addr, const char* name, cons
   slot->service_uuid = uuid;
 
   if (name && *name) {
-    strlcpy(slot->service_name, name, sizeof(slot->service_name));
+    osi_strlcpy(slot->service_name, name, sizeof(slot->service_name));
   } else {
     memset(slot->service_name, 0, sizeof(slot->service_name));
   }
