@@ -120,7 +120,6 @@ public class ScanManager {
     @GuardedBy("mCurUsedTrackableAdvertisementsLock")
     private int mCurUsedTrackableAdvertisements = 0;
 
-    private final Context mContext;
     private final TransitionalScanHelper mScanHelper;
     private final AdapterService mAdapterService;
     private final TimeProvider mTimeProvider;
@@ -171,13 +170,12 @@ public class ScanManager {
         mBatchClients = Collections.newSetFromMap(new ConcurrentHashMap<ScanClient, Boolean>());
         mSuspendedScanClients =
                 Collections.newSetFromMap(new ConcurrentHashMap<ScanClient, Boolean>());
-        mContext = adapterService;
         mScanHelper = scanHelper;
         mAdapterService = adapterService;
         mTimeProvider = timeProvider;
         mScanNative = new ScanNative(scanHelper);
-        mDisplayManager = mContext.getSystemService(DisplayManager.class);
-        mActivityManager = mContext.getSystemService(ActivityManager.class);
+        mDisplayManager = mAdapterService.getSystemService(DisplayManager.class);
+        mActivityManager = mAdapterService.getSystemService(ActivityManager.class);
         mLocationManager = mAdapterService.getSystemService(LocationManager.class);
         mBluetoothAdapterProxy = bluetoothAdapterProxy;
         mIsConnecting = false;
@@ -204,7 +202,7 @@ public class ScanManager {
         }
         IntentFilter locationIntentFilter = new IntentFilter(LocationManager.MODE_CHANGED_ACTION);
         locationIntentFilter.setPriority(IntentFilter.SYSTEM_HIGH_PRIORITY);
-        mContext.registerReceiver(mLocationReceiver, locationIntentFilter);
+        mAdapterService.registerReceiver(mLocationReceiver, locationIntentFilter);
     }
 
     public void cleanup() {
@@ -226,15 +224,11 @@ public class ScanManager {
 
         // Shut down the thread
         mHandler.removeCallbacksAndMessages(null);
-        Looper looper = mHandler.getLooper();
-        if (looper != null) {
-            looper.quitSafely();
-        }
 
         mScanNative.cleanup();
 
         try {
-            mContext.unregisterReceiver(mLocationReceiver);
+            mAdapterService.unregisterReceiver(mLocationReceiver);
         } catch (IllegalArgumentException e) {
             Log.w(TAG, "exception when invoking unregisterReceiver(mLocationReceiver)", e);
         }
@@ -1026,11 +1020,11 @@ public class ScanManager {
             mFilterIndexStack = new ArrayDeque<Integer>();
             mClientFilterIndexMap = new HashMap<Integer, Deque<Integer>>();
 
-            mAlarmManager = mContext.getSystemService(AlarmManager.class);
+            mAlarmManager = mAdapterService.getSystemService(AlarmManager.class);
             Intent batchIntent = new Intent(ACTION_REFRESH_BATCHED_SCAN, null);
             mBatchScanIntervalIntent =
                     PendingIntent.getBroadcast(
-                            mContext, 0, batchIntent, PendingIntent.FLAG_IMMUTABLE);
+                            mAdapterService, 0, batchIntent, PendingIntent.FLAG_IMMUTABLE);
             IntentFilter filter = new IntentFilter();
             filter.setPriority(IntentFilter.SYSTEM_HIGH_PRIORITY);
             filter.addAction(ACTION_REFRESH_BATCHED_SCAN);
@@ -1052,7 +1046,7 @@ public class ScanManager {
                             }
                         }
                     });
-            mContext.registerReceiver(mBatchAlarmReceiver.get(), filter);
+            mAdapterService.registerReceiver(mBatchAlarmReceiver.get(), filter);
 
             mIsMsftSupported =
                     Flags.leScanMsftSupport()
@@ -1325,7 +1319,7 @@ public class ScanManager {
         // infrequently anyway. To avoid redefining parameter sets, map to the low duty cycle
         // parameter set as follows.
         private int getBatchScanWindowMillis(int scanMode) {
-            ContentResolver resolver = mContext.getContentResolver();
+            ContentResolver resolver = mAdapterService.getContentResolver();
             switch (scanMode) {
                 case ScanSettings.SCAN_MODE_LOW_LATENCY:
                     return Settings.Global.getInt(
@@ -1343,7 +1337,7 @@ public class ScanManager {
         }
 
         private int getBatchScanIntervalMillis(int scanMode) {
-            ContentResolver resolver = mContext.getContentResolver();
+            ContentResolver resolver = mAdapterService.getContentResolver();
             switch (scanMode) {
                 case ScanSettings.SCAN_MODE_LOW_LATENCY:
                     return Settings.Global.getInt(
@@ -1523,7 +1517,7 @@ public class ScanManager {
             // Protect against multiple calls of cleanup.
             BroadcastReceiver receiver = mBatchAlarmReceiver.getAndSet(null);
             if (receiver != null) {
-                mContext.unregisterReceiver(receiver);
+                mAdapterService.unregisterReceiver(receiver);
             }
             mNativeInterface.cleanup();
         }
@@ -1810,7 +1804,7 @@ public class ScanManager {
         }
 
         private int getScanWindowMillis(ScanSettings settings) {
-            ContentResolver resolver = mContext.getContentResolver();
+            ContentResolver resolver = mAdapterService.getContentResolver();
             if (settings == null) {
                 return Settings.Global.getInt(
                         resolver,
@@ -1848,7 +1842,7 @@ public class ScanManager {
         }
 
         private int getScanIntervalMillis(ScanSettings settings) {
-            ContentResolver resolver = mContext.getContentResolver();
+            ContentResolver resolver = mAdapterService.getContentResolver();
             if (settings == null) {
                 return Settings.Global.getInt(
                         resolver,
