@@ -96,7 +96,6 @@ public class A2dpService extends ProfileService {
     private final CompanionDeviceManager mCompanionDeviceManager;
     private final Looper mLooper;
     private final Handler mHandler;
-    private final HandlerThread mStateMachinesThread;
     // Upper limit of all A2DP devices that are Connected or Connecting
     private final int mMaxConnectedAudioDevices;
 
@@ -111,9 +110,6 @@ public class A2dpService extends ProfileService {
 
     // Protect setActiveDevice()/removeActiveDevice() so all invoked is handled sequentially
     private final Object mActiveSwitchingGuard = new Object();
-
-    // Timeout for state machine thread join, to prevent potential ANR.
-    private static final int SM_THREAD_JOIN_TIMEOUT_MS = 1000;
 
     // Upper limit of all A2DP devices: Bonded or Connected
     private static final int MAX_A2DP_STATE_MACHINES = 50;
@@ -151,13 +147,6 @@ public class A2dpService extends ProfileService {
                                         ("persist.vendor.service.bt.als_disabled", false);
         mMaxConnectedAudioDevices = mAdapterService.getMaxConnectedAudioDevices();
         Log.i(TAG, "Max connected audio devices set to " + mMaxConnectedAudioDevices);
-
-        if (!Flags.a2dpServiceLooper()) {
-            mStateMachinesThread = new HandlerThread("A2dpService.StateMachines");
-            mStateMachinesThread.start();
-        } else {
-            mStateMachinesThread = null;
-        }
 
         mA2dpCodecConfig = new A2dpCodecConfig(this, mNativeInterface);
 
@@ -213,15 +202,6 @@ public class A2dpService extends ProfileService {
                 sm.doQuit();
             }
             mStateMachines.clear();
-        }
-
-        if (mStateMachinesThread != null) {
-            try {
-                mStateMachinesThread.quitSafely();
-                mStateMachinesThread.join(SM_THREAD_JOIN_TIMEOUT_MS);
-            } catch (InterruptedException e) {
-                // Do not rethrow as we are shutting down anyway
-            }
         }
 
         mHandler.removeCallbacksAndMessages(null);
@@ -1120,7 +1100,7 @@ public class A2dpService extends ProfileService {
                             device,
                             mNativeInterface,
                             mA2dpOffloadEnabled,
-                            Flags.a2dpServiceLooper() ? mLooper : mStateMachinesThread.getLooper());
+                            mLooper);
             mStateMachines.put(device, sm);
             return sm;
         }
