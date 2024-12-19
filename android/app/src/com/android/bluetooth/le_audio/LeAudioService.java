@@ -51,7 +51,6 @@ import android.bluetooth.IBluetoothLeBroadcastCallback;
 import android.bluetooth.IBluetoothVolumeControl;
 import android.bluetooth.le.BluetoothLeScanner;
 import android.bluetooth.le.IScannerCallback;
-import android.bluetooth.le.ScanCallback;
 import android.bluetooth.le.ScanFilter;
 import android.bluetooth.le.ScanResult;
 import android.bluetooth.le.ScanSettings;
@@ -237,10 +236,8 @@ public class LeAudioService extends ProfileService {
             new RemoteCallbackList<>();
 
     BluetoothLeScanner mAudioServersScanner;
-    /* When mScanCallback is not null, it means scan is started. */
-    ScanCallback mScanCallback;
 
-    private final AudioServerScanCallback2 mScanCallback2 = new AudioServerScanCallback2();
+    private final AudioServerScanCallback mScanCallback = new AudioServerScanCallback();
 
     public LeAudioService(Context ctx) {
         this(ctx, LeAudioNativeInterface.getInstance());
@@ -619,30 +616,6 @@ public class LeAudioService extends ProfileService {
 
         // Setup codec config
         mLeAudioCodecConfig = new LeAudioCodecConfig(this);
-        if (!Flags.leaudioSynchronizeStart()) {
-            // Delay the call to init by posting it. This ensures TBS and MCS are fully initialized
-            // before we start accepting connections
-            mHandler.post(this::init);
-            return;
-        }
-        mNativeInterface.init(mLeAudioCodecConfig.getCodecConfigOffloading());
-
-        if (leaudioUseAudioModeListener()) {
-            mAudioManager.addOnModeChangedListener(getMainExecutor(), mAudioModeChangeListener);
-        }
-    }
-
-    // TODO: b/341385684 -- Delete the init method as it has been inlined in start
-    private void init() {
-        if (!isAvailable()) {
-            Log.e(TAG, " Service disabled before init");
-            return;
-        }
-
-        if (!mTmapStarted) {
-            mTmapStarted = registerTmap();
-        }
-
         mNativeInterface.init(mLeAudioCodecConfig.getCodecConfigOffloading());
 
         if (leaudioUseAudioModeListener()) {
@@ -673,9 +646,6 @@ public class LeAudioService extends ProfileService {
 
         clearCreateBroadcastTimeoutCallback();
 
-        if (!Flags.leaudioSynchronizeStart()) {
-            mHandler.removeCallbacks(this::init);
-        }
         removeActiveDevice(false);
 
         if (mTmapGattServer == null) {
@@ -686,7 +656,7 @@ public class LeAudioService extends ProfileService {
             mTmapStarted = false;
         }
 
-        stopAudioServersBackgroundScan();
+        mScanCallback.stopBackgroundScan();
         mAudioServersScanner = null;
 
         // Don't wait for async call with INACTIVE group status, clean active
@@ -2044,7 +2014,7 @@ public class LeAudioService extends ProfileService {
         return true;
     }
 
-    private class AudioServerScanCallback2 extends IScannerCallback.Stub {
+    private class AudioServerScanCallback extends IScannerCallback.Stub {
         // See BluetoothLeScanner.BleScanCallbackWrapper.mScannerId
         int mScannerId = 0;
 
@@ -2141,44 +2111,6 @@ public class LeAudioService extends ProfileService {
 
         @Override
         public void onScanManagerErrorCallback(int errorCode) {}
-    }
-
-    private class AudioServerScanCallback extends ScanCallback {
-        int mMaxScanRetries = 10;
-        int mScanRetries = 0;
-
-        @Override
-        public void onScanResult(int callbackType, ScanResult result) {
-            /* Filter is set in the way, that there will be no results found.
-             * We just need a scanner to be running for the APCF filtering defined in native
-             */
-        }
-
-        @Override
-        public void onBatchScanResults(List<ScanResult> results) {
-            /* Filter is set in the way, that there will be no results found.
-             * We just need a scanner to be running for the APCF filtering defined in native
-             */
-        }
-
-        @Override
-        public void onScanFailed(int errorCode) {
-            Log.w(TAG, "Scan failed err: " + errorCode + " scan retries: " + mScanRetries);
-            switch (errorCode) {
-                case SCAN_FAILED_INTERNAL_ERROR:
-                case SCAN_FAILED_APPLICATION_REGISTRATION_FAILED:
-                    if (mScanRetries < mMaxScanRetries) {
-                        mScanRetries++;
-                        Log.w(TAG, "Failed to start. Let's retry");
-                        mHandler.post(() -> startAudioServersBackgroundScan(/* retry= */ true));
-                    }
-                    break;
-                default:
-                    /* Indicate scan is no running */
-                    mScanCallback = null;
-                    break;
-            }
-        }
     }
 
     @VisibleForTesting
@@ -3278,87 +3210,6 @@ public class LeAudioService extends ProfileService {
         }
     }
 
-    @SuppressLint("AndroidFrameworkRequiresPermission") // TODO: b/348562830 - Remove with flag
-    void stopAudioServersBackgroundScan() {
-        Log.d(TAG, "stopAudioServersBackgroundScan");
-
-        if (Flags.leaudioCallStartScanDirectly()) {
-            mScanCallback2.stopBackgroundScan();
-            return;
-        }
-
-        if (mAudioServersScanner == null || mScanCallback == null) {
-            Log.d(TAG, "stopAudioServersBackgroundScan: already stopped");
-            return;
-        }
-
-        try {
-            mAudioServersScanner.stopScan(mScanCallback);
-        } catch (IllegalStateException e) {
-            Log.e(TAG, "Fail to stop scanner, consider it stopped", e);
-        }
-
-        /* Callback is the indicator for scanning being enabled */
-        mScanCallback = null;
-    }
-
-    @SuppressLint("AndroidFrameworkRequiresPermission") // TODO: b/348562830 - Remove with flag
-    void startAudioServersBackgroundScan(boolean retry) {
-        Log.d(TAG, "startAudioServersBackgroundScan, retry: " + retry);
-
-        if (!isScannerNeeded()) {
-            return;
-        }
-
-        if (Flags.leaudioCallStartScanDirectly()) {
-            mScanCallback2.startBackgroundScan();
-            return;
-        }
-
-        if (mAudioServersScanner == null) {
-            mAudioServersScanner = BluetoothAdapter.getDefaultAdapter().getBluetoothLeScanner();
-            if (mAudioServersScanner == null) {
-                Log.e(TAG, "startAudioServersBackgroundScan: Could not get scanner");
-                return;
-            }
-        }
-
-        if (!retry) {
-            if (mScanCallback != null) {
-                Log.d(TAG, "startAudioServersBackgroundScan: Scanning already enabled");
-                return;
-            }
-            mScanCallback = new AudioServerScanCallback();
-        }
-
-        /* Filter we are building here will not match to anything.
-         * Eventually we should be able to start scan from native when
-         * b/276350722 is done
-         */
-        byte[] serviceData = new byte[] {0x11};
-
-        ArrayList filterList = new ArrayList<ScanFilter>();
-        ScanFilter filter =
-                new ScanFilter.Builder()
-                        .setServiceData(BluetoothUuid.LE_AUDIO, serviceData)
-                        .build();
-        filterList.add(filter);
-
-        ScanSettings settings =
-                new ScanSettings.Builder()
-                        .setLegacy(false)
-                        .setScanMode(ScanSettings.SCAN_MODE_BALANCED)
-                        .setPhy(BluetoothDevice.PHY_LE_1M)
-                        .build();
-
-        try {
-            mAudioServersScanner.startScan(filterList, settings, mScanCallback);
-        } catch (IllegalStateException e) {
-            Log.e(TAG, "Fail to start scanner, consider it stopped", e);
-            mScanCallback = null;
-        }
-    }
-
     void transitionFromBroadcastToUnicast() {
         if (mUnicastGroupIdDeactivatedForBroadcastTransition == LE_AUDIO_GROUP_ID_INVALID) {
             Log.d(TAG, "No deactivated group due for broadcast transmission");
@@ -3597,7 +3448,10 @@ public class LeAudioService extends ProfileService {
                         case LeAudioStackEvent.CONNECTION_STATE_DISCONNECTING:
                         case LeAudioStackEvent.CONNECTION_STATE_DISCONNECTED:
                             deviceDescriptor.mAclConnected = false;
-                            startAudioServersBackgroundScan(/* retry= */ false);
+
+                            if (isScannerNeeded()) {
+                                mScanCallback.startBackgroundScan();
+                            }
 
                             boolean disconnectDueToUnbond =
                                     (BluetoothDevice.BOND_NONE
@@ -4353,7 +4207,7 @@ public class LeAudioService extends ProfileService {
             }
             mDeviceDescriptors.remove(device);
             if (!isScannerNeeded()) {
-                stopAudioServersBackgroundScan();
+                mScanCallback.stopBackgroundScan();
             }
         } finally {
             mGroupWriteLock.unlock();
@@ -4395,7 +4249,7 @@ public class LeAudioService extends ProfileService {
         }
 
         if (!isScannerNeeded()) {
-            stopAudioServersBackgroundScan();
+            mScanCallback.stopBackgroundScan();
         }
 
         /* Set by default earliest connected device */
@@ -4431,7 +4285,7 @@ public class LeAudioService extends ProfileService {
         }
 
         if (!isScannerNeeded()) {
-            stopAudioServersBackgroundScan();
+            mScanCallback.stopBackgroundScan();
         }
 
         mGroupReadLock.lock();
@@ -5083,7 +4937,9 @@ public class LeAudioService extends ProfileService {
             mGroupReadLock.unlock();
         }
 
-        startAudioServersBackgroundScan(/* retry= */ false);
+        if (isScannerNeeded()) {
+            mScanCallback.startBackgroundScan();
+        }
     }
 
     @VisibleForTesting
@@ -5195,7 +5051,9 @@ public class LeAudioService extends ProfileService {
 
         if (mBluetoothEnabled) {
             setAuthorizationForRelatedProfiles(device, true);
-            startAudioServersBackgroundScan(/* retry= */ false);
+            if (isScannerNeeded()) {
+                mScanCallback.startBackgroundScan();
+            }
         }
     }
 
