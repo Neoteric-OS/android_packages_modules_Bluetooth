@@ -1034,7 +1034,7 @@ public class VolumeControlService extends ProfileService {
                 try {
                     mCallbacks.getBroadcastItem(i).onVolumeOffsetChanged(device, id, value);
                 } catch (RemoteException e) {
-                    continue;
+                    // Ignore Exception
                 }
             }
             mCallbacks.finishBroadcast();
@@ -1059,7 +1059,7 @@ public class VolumeControlService extends ProfileService {
                             .getBroadcastItem(i)
                             .onVolumeOffsetAudioLocationChanged(device, id, location);
                 } catch (RemoteException e) {
-                    continue;
+                    // Ignore Exception
                 }
             }
             mCallbacks.finishBroadcast();
@@ -1085,7 +1085,7 @@ public class VolumeControlService extends ProfileService {
                             .getBroadcastItem(i)
                             .onVolumeOffsetAudioDescriptionChanged(device, id, description);
                 } catch (RemoteException e) {
-                    continue;
+                    // Ignore Exception
                 }
             }
             mCallbacks.finishBroadcast();
@@ -1382,7 +1382,7 @@ public class VolumeControlService extends ProfileService {
                 try {
                     callbacks.getBroadcastItem(i).onDeviceVolumeChanged(dev, broadcastVolume);
                 } catch (RemoteException e) {
-                    continue;
+                    // Ignore Exception
                 }
             }
             callbacks.finishBroadcast();

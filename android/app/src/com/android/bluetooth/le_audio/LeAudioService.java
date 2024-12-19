@@ -3030,7 +3030,7 @@ public class LeAudioService extends ProfileService {
                             .getBroadcastItem(i)
                             .onGroupStreamStatusChanged(groupId, groupStreamStatus);
                     } catch (RemoteException e) {
-                        continue;
+                        // Ignore Exception
                     }
                 }
                 mLeAudioCallbacks.finishBroadcast();
@@ -3049,7 +3049,7 @@ public class LeAudioService extends ProfileService {
                             .getBroadcastItem(i)
                             .onBroadcastToUnicastFallbackGroupChanged(groupId);
                 } catch (RemoteException e) {
-                    continue;
+                    // Ignore Exception
                 }
             }
             mLeAudioCallbacks.finishBroadcast();
@@ -5070,7 +5070,7 @@ public class LeAudioService extends ProfileService {
                     try {
                         mLeAudioCallbacks.getBroadcastItem(i).onGroupNodeAdded(device, groupId);
                     } catch (RemoteException e) {
-                       continue;
+                       // Ignore Exception
                     }
                 }
                 mLeAudioCallbacks.finishBroadcast();
@@ -5154,7 +5154,7 @@ public class LeAudioService extends ProfileService {
                     try {
                         mLeAudioCallbacks.getBroadcastItem(i).onGroupNodeRemoved(device, groupId);
                     } catch (RemoteException e) {
-                        continue;
+                        // Ignore Exception
                     }
                 }
                 mLeAudioCallbacks.finishBroadcast();
@@ -5173,7 +5173,7 @@ public class LeAudioService extends ProfileService {
                     try {
                         mLeAudioCallbacks.getBroadcastItem(i).onGroupStatusChanged(groupId, status);
                     } catch (RemoteException e) {
-                        continue;
+                        // Ignore Exception
                     }
                 }
                 mLeAudioCallbacks.finishBroadcast();
@@ -5192,7 +5192,7 @@ public class LeAudioService extends ProfileService {
                     try {
                        mLeAudioCallbacks.getBroadcastItem(i).onCodecConfigChanged(groupId, status);
                     } catch (RemoteException e) {
-                       continue;
+                       // Ignore Exception
                     }
                 }
                 mLeAudioCallbacks.finishBroadcast();
@@ -5209,7 +5209,7 @@ public class LeAudioService extends ProfileService {
                 try {
                     mBroadcastCallbacks.getBroadcastItem(i).onBroadcastStarted(reason, broadcastId);
                 } catch (RemoteException e) {
-                    continue;
+                    // Ignore Exception
                 }
             }
             mBroadcastCallbacks.finishBroadcast();
@@ -5223,7 +5223,7 @@ public class LeAudioService extends ProfileService {
                 try {
                     mBroadcastCallbacks.getBroadcastItem(i).onBroadcastStartFailed(reason);
                 } catch (RemoteException e) {
-                    continue;
+                    // Ignore Exception
                 }
             }
             mBroadcastCallbacks.finishBroadcast();
@@ -5237,7 +5237,7 @@ public class LeAudioService extends ProfileService {
                 try {
                     mBroadcastCallbacks.getBroadcastItem(i).onBroadcastStopped(reason, broadcastId);
                 } catch (RemoteException e) {
-                    continue;
+                    // Ignore Exception
                 }
             }
             mBroadcastCallbacks.finishBroadcast();
@@ -5251,7 +5251,7 @@ public class LeAudioService extends ProfileService {
                 try {
                     mBroadcastCallbacks.getBroadcastItem(i).onBroadcastStopFailed(reason);
                 } catch (RemoteException e) {
-                    continue;
+                    // Ignore Exception
                 }
             }
             mBroadcastCallbacks.finishBroadcast();
@@ -5265,7 +5265,7 @@ public class LeAudioService extends ProfileService {
                 try {
                     mBroadcastCallbacks.getBroadcastItem(i).onPlaybackStarted(reason, broadcastId);
                 } catch (RemoteException e) {
-                    continue;
+                    // Ignore Exception
                 }
             }
             mBroadcastCallbacks.finishBroadcast();
@@ -5279,7 +5279,7 @@ public class LeAudioService extends ProfileService {
                 try {
                     mBroadcastCallbacks.getBroadcastItem(i).onPlaybackStopped(reason, broadcastId);
                 } catch (RemoteException e) {
-                    continue;
+                    // Ignore Exception
                 }
             }
             mBroadcastCallbacks.finishBroadcast();
@@ -5293,7 +5293,7 @@ public class LeAudioService extends ProfileService {
                 try {
                     mBroadcastCallbacks.getBroadcastItem(i).onBroadcastUpdated(reason, broadcastId);
                 } catch (RemoteException e) {
-                    continue;
+                   // Ignore Exception
                 }
             }
             mBroadcastCallbacks.finishBroadcast();
@@ -5309,7 +5309,7 @@ public class LeAudioService extends ProfileService {
                             .getBroadcastItem(i)
                             .onBroadcastUpdateFailed(reason, broadcastId);
                 } catch (RemoteException e) {
-                    continue;
+                    // Ignore Exception
                 }
             }
             mBroadcastCallbacks.finishBroadcast();
@@ -5326,7 +5326,7 @@ public class LeAudioService extends ProfileService {
                             .getBroadcastItem(i)
                             .onBroadcastMetadataChanged(broadcastId, metadata);
                 } catch (RemoteException e) {
-                    continue;
+                    // Ignore Exception
                 }
             }
             mBroadcastCallbacks.finishBroadcast();
