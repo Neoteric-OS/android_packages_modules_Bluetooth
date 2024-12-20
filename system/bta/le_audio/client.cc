@@ -6707,8 +6707,12 @@ public:
 
             if (group->IsSuspendedForReconfiguration()) {
               reconfigurationComplete();
-            } else if (status != GroupStreamStatus::IDLE) {
-              CancelStreamingRequest();
+            } else {
+              if (!((status == GroupStreamStatus::IDLE) &&
+                    (active_group_id_ != group->group_id_) &&
+                    (audio_sender_state_ == AudioState::STARTED))) {
+                CancelStreamingRequest();
+              }
             }
           }
         }
