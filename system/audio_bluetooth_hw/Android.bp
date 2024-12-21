@@ -52,7 +52,7 @@ cc_library_shared {
         "libhidlbase",
     ],
     visibility: [
-        "//device/generic/goldfish/audio",
+        "//device/generic/goldfish/hals/audio",
     ],
 }
 
