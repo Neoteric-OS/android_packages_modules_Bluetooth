@@ -3509,7 +3509,15 @@ static void btif_dm_ble_auth_cmpl_evt(tBTA_DM_AUTH_CMPL* p_auth_cmpl) {
         break;
 
       case BTA_DM_AUTH_SMP_CONN_TOUT: {
-        if (!p_auth_cmpl->is_ctkd && btm_sec_is_a_bonded_dev(bd_addr)) {
+        bool during_bonding =
+                (bd_addr == pairing_cb.bd_addr || bd_addr == pairing_cb.static_bdaddr);
+
+        if (during_bonding || p_auth_cmpl->is_ctkd || !btm_sec_is_a_bonded_dev(bd_addr)) {
+          log::info("Removing ble bonding keys on SMP_CONN_TOUT during_bonding: {}, is_ctkd: {}",
+                    during_bonding, p_auth_cmpl->is_ctkd);
+          btif_dm_remove_ble_bonding_keys();
+          status = BT_STATUS_AUTH_FAILURE;
+        } else {
           uint8_t dev_type;
           uint8_t addr_type;
           get_btm_client_interface().peer.BTM_ReadDevInfo(bd_addr, &dev_type, &addr_type);
@@ -3532,10 +3540,6 @@ static void btif_dm_ble_auth_cmpl_evt(tBTA_DM_AUTH_CMPL* p_auth_cmpl) {
             return;
           }
         }
-        log::info("Removing ble bonding keys on SMP_CONN_TOUT during crosskey: {}",
-                  p_auth_cmpl->is_ctkd);
-        btif_dm_remove_ble_bonding_keys();
-        status = BT_STATUS_AUTH_FAILURE;
         break;
       }
       case BTA_DM_AUTH_SMP_PAIR_NOT_SUPPORT:
