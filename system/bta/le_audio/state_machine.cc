@@ -3462,9 +3462,9 @@ private:
 
     switch (ase->state) {
       case AseState::BTA_LE_AUDIO_ASE_STATE_DISABLING:
-      case AseState::BTA_LE_AUDIO_ASE_STATE_CODEC_CONFIGURED:
-      case AseState::BTA_LE_AUDIO_ASE_STATE_QOS_CONFIGURED: {
-        SetAseState(leAudioDevice, ase, AseState::BTA_LE_AUDIO_ASE_STATE_RELEASING);
+      case AseState::BTA_LE_AUDIO_ASE_STATE_CODEC_CONFIGURED: {
+        SetAseState(leAudioDevice, ase,
+                    AseState::BTA_LE_AUDIO_ASE_STATE_RELEASING);
 
         if (group->HaveAllActiveDevicesAsesTheSameState(
                     AseState::BTA_LE_AUDIO_ASE_STATE_RELEASING)) {
@@ -3499,6 +3499,7 @@ private:
         }
         break;
       }
+      case AseState::BTA_LE_AUDIO_ASE_STATE_QOS_CONFIGURED:
       case AseState::BTA_LE_AUDIO_ASE_STATE_STREAMING: {
         SetAseState(leAudioDevice, ase, AseState::BTA_LE_AUDIO_ASE_STATE_RELEASING);
 
