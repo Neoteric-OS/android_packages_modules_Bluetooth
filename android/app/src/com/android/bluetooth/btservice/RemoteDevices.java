@@ -1227,16 +1227,23 @@ public class RemoteDevices {
      */
     void leAddressAssociateCallback(
             byte[] mainAddress, byte[] secondaryAddress, int identityAddressTypeFromNative) {
+        DeviceProperties deviceProperties;
         BluetoothDevice device = getDevice(mainAddress);
         if (device == null) {
-            errorLog(
-                    "leAddressAssociateCallback: device is NULL, address="
-                            + Utils.getRedactedAddressStringFromByte(mainAddress)
-                            + ", secondaryAddress="
-                            + Utils.getRedactedAddressStringFromByte(secondaryAddress)
-                            + ", identityAddressTypeFromNative="
-                            + identityAddressTypeFromNative);
-            return;
+            if (!Flags.identityRetentionOnRestart()) {
+                errorLog(
+                        "leAddressAssociateCallback: device is NULL, address="
+                                + Utils.getRedactedAddressStringFromByte(mainAddress)
+                                + ", secondaryAddress="
+                                + Utils.getRedactedAddressStringFromByte(secondaryAddress)
+                                + ", identityAddressTypeFromNative="
+                                + identityAddressTypeFromNative);
+                return;
+            }
+            deviceProperties = addDeviceProperties(mainAddress);
+            device = deviceProperties.getDevice();
+        } else {
+            deviceProperties = getDeviceProperties(device);
         }
         Log.d(
                 TAG,
@@ -1247,7 +1254,6 @@ public class RemoteDevices {
                         + ", identityAddressTypeFromNative="
                         + identityAddressTypeFromNative);
 
-        DeviceProperties deviceProperties = getDeviceProperties(device);
         deviceProperties.setIdentityAddress(Utils.getAddressStringFromByte(secondaryAddress));
         deviceProperties.setIdentityAddressTypeFromNative(identityAddressTypeFromNative);
     }

@@ -17,7 +17,6 @@
 #define LOG_TAG "bt_bta_dm"
 
 #include <base/functional/bind.h>
-#include <base/strings/stringprintf.h>
 #include <bluetooth/log.h>
 #include <com_android_bluetooth_flags.h>
 
@@ -280,7 +279,7 @@ void bta_dm_sdp_result(tSDP_STATUS sdp_result, tBTA_DM_SDP_STATE* sdp_state) {
     bta_dm_sdp_finished(sdp_state->bd_addr, result, uuid_list, gatt_uuids);
   } else {
     BTM_LogHistory(kBtmLogTag, sdp_state->bd_addr, "Discovery failed",
-                   base::StringPrintf("Result:%s", sdp_result_text(sdp_result).c_str()));
+                   std::format("Result:{}", sdp_result_text(sdp_result)));
     log::error("SDP connection failed {}", sdp_status_text(sdp_result));
 
     /* not able to connect go to next device */
