@@ -210,7 +210,6 @@ public class GattService extends ProfileService {
      */
     private final HashMap<String, Integer> mPermits = new HashMap<>();
 
-    private HandlerThread mScanManagerThread;
     private final Object mTestModeLock = new Object();
 
     private final AdapterService mAdapterService;
@@ -219,6 +218,7 @@ public class GattService extends ProfileService {
     private final DistanceMeasurementManager mDistanceMeasurementManager;
     private final ActivityManager mActivityManager;
     private final PackageManager mPackageManager;
+    private final HandlerThread mScanThread;
 
     private Handler mTestModeHandler;
 
@@ -239,9 +239,11 @@ public class GattService extends ProfileService {
         mAdvertiseManager = new AdvertiseManager(this);
 
         if (!Flags.scanManagerRefactor()) {
-            mScanManagerThread = new HandlerThread("BluetoothScanManager");
-            mScanManagerThread.start();
-            mTransitionalScanHelper.start(mScanManagerThread.getLooper());
+            mScanThread = new HandlerThread("BluetoothScanManager");
+            mScanThread.start();
+            mTransitionalScanHelper.start(mScanThread.getLooper());
+        } else {
+            mScanThread = null;
         }
         mDistanceMeasurementManager =
                 GattObjectsFactory.getInstance().createDistanceMeasurementManager(mAdapterService);
@@ -276,11 +278,6 @@ public class GattService extends ProfileService {
             mTransitionalScanHelper.stop();
         }
 
-        if (mScanManagerThread != null) {
-            mScanManagerThread.quitSafely();
-            mScanManagerThread = null;
-        }
-
         mAdvertiseManager.clear();
         mClientMap.clear();
         mRestrictedHandles.clear();
@@ -293,6 +290,9 @@ public class GattService extends ProfileService {
     @Override
     public void cleanup() {
         Log.d(TAG, "cleanup()");
+        if (!Flags.scanManagerRefactor()) {
+            mScanThread.quitSafely();
+        }
         mNativeInterface.cleanup();
         mAdvertiseManager.cleanup();
         mDistanceMeasurementManager.cleanup();
