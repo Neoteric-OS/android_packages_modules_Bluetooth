@@ -33,7 +33,6 @@
  ******************************************************************************/
 #pragma once
 
-#include <base/strings/stringprintf.h>
 #include <stdbool.h>
 
 #include <string>
@@ -104,7 +103,7 @@ inline std::string channel_state_text(const tL2C_CHNL_STATE& state) {
     CASE_RETURN_TEXT(CST_W4_L2CAP_DISCONNECT_RSP);
     CASE_RETURN_TEXT(CST_W4_L2CA_DISCONNECT_RSP);
     default:
-      return base::StringPrintf("UNKNOWN[%d]", state);
+      return std::format("UNKNOWN[{}]", static_cast<int>(state));
   }
 }
 
@@ -438,6 +437,7 @@ public:
 
 private:
   tHCI_ROLE link_role_{HCI_ROLE_CENTRAL}; /* Central or peripheral */
+  uint16_t conn_interval_;
 
 public:
   tHCI_ROLE LinkRole() const { return link_role_; }
@@ -445,6 +445,8 @@ public:
   bool IsLinkRolePeripheral() const { return link_role_ == HCI_ROLE_PERIPHERAL; }
   void SetLinkRoleAsCentral() { link_role_ = HCI_ROLE_CENTRAL; }
   void SetLinkRoleAsPeripheral() { link_role_ = HCI_ROLE_PERIPHERAL; }
+  uint16_t ConnInterval() const { return conn_interval_; }
+  void SetConnInterval(uint16_t conn_interval) { conn_interval_ = conn_interval; }
 
   uint8_t signal_id;     /* Signalling channel id */
   uint8_t cur_echo_id;   /* Current id value for echo request */

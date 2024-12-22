@@ -1349,8 +1349,7 @@ public:
     log::assert_that(ase != nullptr,
                      "shouldn't be called without an active ASE, device {}, "
                      "group id: {}, cis handle 0x{:04x}",
-                     ADDRESS_TO_LOGGABLE_CSTR(leAudioDevice->address_), event->cig_id,
-                     event->cis_conn_hdl);
+                     leAudioDevice->address_, event->cig_id, event->cis_conn_hdl);
 
     PrepareAndSendReceiverStartReady(leAudioDevice, ase);
   }
@@ -1359,8 +1358,8 @@ public:
     tGATT_WRITE_TYPE write_type = GATT_WRITE_NO_RSP;
 
     if (value.size() > (leAudioDevice->mtu_ - 3)) {
-      log::warn("{}, using long write procedure ({} > {})", leAudioDevice->address_,
-                static_cast<int>(value.size()), leAudioDevice->mtu_ - 3);
+      log::warn("{}, using long write procedure ({} > {})", leAudioDevice->address_, value.size(),
+                leAudioDevice->mtu_ - 3);
 
       /* Note, that this type is actually LONG WRITE.
        * Meaning all the Prepare Writes plus Execute is handled in the stack
@@ -3462,9 +3461,9 @@ private:
 
     switch (ase->state) {
       case AseState::BTA_LE_AUDIO_ASE_STATE_DISABLING:
-      case AseState::BTA_LE_AUDIO_ASE_STATE_CODEC_CONFIGURED:
-      case AseState::BTA_LE_AUDIO_ASE_STATE_QOS_CONFIGURED: {
-        SetAseState(leAudioDevice, ase, AseState::BTA_LE_AUDIO_ASE_STATE_RELEASING);
+      case AseState::BTA_LE_AUDIO_ASE_STATE_CODEC_CONFIGURED: {
+        SetAseState(leAudioDevice, ase,
+                    AseState::BTA_LE_AUDIO_ASE_STATE_RELEASING);
 
         if (group->HaveAllActiveDevicesAsesTheSameState(
                     AseState::BTA_LE_AUDIO_ASE_STATE_RELEASING)) {
@@ -3499,6 +3498,7 @@ private:
         }
         break;
       }
+      case AseState::BTA_LE_AUDIO_ASE_STATE_QOS_CONFIGURED:
       case AseState::BTA_LE_AUDIO_ASE_STATE_STREAMING: {
         SetAseState(leAudioDevice, ase, AseState::BTA_LE_AUDIO_ASE_STATE_RELEASING);
 
