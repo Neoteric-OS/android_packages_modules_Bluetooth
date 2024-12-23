@@ -1488,7 +1488,7 @@ const char* bta_dm_get_remname(void) {
 }
 
 #ifndef BTA_DM_GATT_CLOSE_DELAY_TOUT
-#define BTA_DM_GATT_CLOSE_DELAY_TOUT 1000
+#define BTA_DM_GATT_CLOSE_DELAY_TOUT 5000
 #endif
 
 /*******************************************************************************
