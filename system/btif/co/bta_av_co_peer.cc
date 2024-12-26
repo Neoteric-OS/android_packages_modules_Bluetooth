@@ -221,10 +221,10 @@ BtaAvCoSep* BtaAvCoPeerCache::FindPeerSink(BtaAvCoPeer* p_peer, btav_a2dp_codec_
         if (!vbr_bl) {
           log::verbose("AAC VBR is enabled, show AAC support in selectable capability");
         } else {
-           log::verbose("peer {}, checking in AAC BL", ADDRESS_TO_LOGGABLE_CSTR(p_peer->addr));
+           log::verbose("peer {}, checking in AAC BL", p_peer->addr.ToRedactedStringForLogging());
            if (!bta_av_co_check_peer_eligible_for_aac_codec(p_peer)) {
              log::verbose("peer {}, AAC not supported for this remote",
-                           ADDRESS_TO_LOGGABLE_CSTR(p_peer->addr));
+                           p_peer->addr.ToRedactedStringForLogging());
              return nullptr;
            }
         }
@@ -232,7 +232,7 @@ BtaAvCoSep* BtaAvCoPeerCache::FindPeerSink(BtaAvCoPeer* p_peer, btav_a2dp_codec_
          log::verbose("Remote does not support AAC VBR, check in AAC WL");
          if (!bta_av_co_check_peer_eligible_for_aac_codec(p_peer)) {
              log::verbose("peer {}, AAC not supported for this remote",
-                           ADDRESS_TO_LOGGABLE_CSTR(p_peer->addr));
+                           p_peer->addr.ToRedactedStringForLogging());
              return nullptr;
          }
      }
