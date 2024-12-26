@@ -1501,6 +1501,7 @@ cc_test {
         ":TestMockMainShim",
         ":TestMockRustFfi",
         ":TestMockStackBtm",
+        ":TestMockStackConnMgr",
         ":TestMockStackL2cap",
         ":TestMockStackMetrics",
         "gatt/gatt_db.cc",
