@@ -76,7 +76,6 @@ class DistanceMeasurementInitiator {
         }
     }
 
-    private static final int DISTANCE_MEASUREMENT_DURATION_SEC = 3600;
     private int mode_int = 0;
     private int duration_int = 0;
     private int freq_int = 0;
@@ -164,8 +163,12 @@ class DistanceMeasurementInitiator {
         return List.of(Freq.MEDIUM.toString(), Freq.HIGH.toString(), Freq.LOW.toString());
     }
 
+    List<String> getMeasureDurationsInSeconds() {
+        return List.of("3600", "300", "60", "10");
+    }
+
     @SuppressLint("MissingPermission") // permissions are checked upfront
-    void startDistanceMeasurement(String distanceMeasurementMethodName, String selectedFreq, String sec_mode, String freq, String duration) {
+    void startDistanceMeasurement(String distanceMeasurementMethodName, String selectedFreq, String sec_mode, String freq, int duration) {
       if (mTargetDevice == null) {
         printLog("do Gatt connect first");
         return;
@@ -180,15 +183,10 @@ class DistanceMeasurementInitiator {
                                            .build();
 
       mode_int = getDistanceMeasurementMethodId(distanceMeasurementMethodName);
-      if (TextUtils.isEmpty(duration)) {
-        duration = "60";
-      }
-
-      duration_int = Integer.parseInt(duration);
 
       DistanceMeasurementParams params =
           new DistanceMeasurementParams.Builder(mTargetDevice)
-              .setDurationSeconds(duration_int)
+              .setDurationSeconds(duration)
               .setFrequency(Freq.fromName(selectedFreq).getFreq())
               .setMethodId(getDistanceMeasurementMethodId(distanceMeasurementMethodName))
               .setChannelSoundingParams(csParams)

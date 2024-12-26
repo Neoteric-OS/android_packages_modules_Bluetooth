@@ -98,6 +98,10 @@ public class InitiatorViewModel extends AndroidViewModel {
         return mDistanceMeasurementInitiator.getMeasurementFreqs();
     }
 
+    List<String> getMeasurementDurations() {
+        return mDistanceMeasurementInitiator.getMeasureDurationsInSeconds();
+    }
+
     // TODO freq2 parameter now unused
     void toggleCsStartStop(
         String distanceMeasurementMethodName, String freq, String security_mode, String freq2, String duration) {
