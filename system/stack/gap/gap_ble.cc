@@ -914,7 +914,7 @@ void gap_chk_encr_data(RawAddress bda, uint16_t conn_id, tGAP_ATTR db_attr) {
   }
 
   if (conn_id == GATT_INVALID_CONN_ID) {
-    log::error("Unable to find conn_id for {}", ADDRESS_TO_LOGGABLE_CSTR(bda));
+    log::error("Unable to find conn_id for {}", bda.ToRedactedStringForLogging());
     return;
   }
 
@@ -961,7 +961,7 @@ void GAP_BleAttrDBUpdate(uint16_t attr_uuid, tGAP_BLE_ATTR_VALUE* p_value) {
               db_attr.attr_value.enc_key_material = p_value->enc_key_material;
               for (auto& cb : gap_clcbs) {
                 if (cb.connected) {
-                  log::debug(" BDA: {} conn_id: {}", ADDRESS_TO_LOGGABLE_CSTR(cb.bda), cb.conn_id);
+                  log::debug(" BDA: {} conn_id: {}", cb.bda.ToRedactedStringForLogging(), cb.conn_id);
                   gap_chk_encr_data(cb.bda, cb.conn_id, db_attr);
                 }
               }
@@ -1051,7 +1051,7 @@ void gap_ble_config_cccd_enc_key_cmpl(bool status, const RawAddress& bda, uint16
   tGAP_CLCB* p_clcb = find_clcb_by_bd_addr(bda);
 
   if (p_clcb == NULL) {
-    log::debug("p_clcb is NULL for {}", ADDRESS_TO_LOGGABLE_CSTR(bda));
+    log::debug("p_clcb is NULL for {}", bda.ToRedactedStringForLogging());
     return;
   }
 
@@ -1107,7 +1107,7 @@ bool GAP_BleConfigCccdForKeyMaterial(const RawAddress& peer_bda, uint16_t handle
  *
  ******************************************************************************/
 bool GAP_BleDiscEncKeyMaterialCCCD(const RawAddress& peer_bda) {
-  log::debug("peer_bda: {}", ADDRESS_TO_LOGGABLE_CSTR(peer_bda));
+  log::debug("peer_bda: {}", peer_bda.ToRedactedStringForLogging());
   return accept_client_operation(peer_bda, 0, 0, GATTC_OPTYPE_DISCOVERY, GATT_DISC_CHAR_DSCPT,
                                  NULL);
 }
