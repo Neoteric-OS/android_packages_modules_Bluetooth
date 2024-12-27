@@ -133,14 +133,14 @@ struct gatt_interface_t {
                 [](tGATT_IF client_if, const RawAddress& remote_bda, bool is_direct) {
                   disc_gatt_history_.Push(base::StringPrintf(
                           "%-32s bd_addr:%s client_if:%hu is_direct:%c", "GATTC_CancelOpen",
-                          ADDRESS_TO_LOGGABLE_CSTR(remote_bda), client_if,
+                          remote_bda.ToRedactedStringForLogging(), client_if,
                           (is_direct) ? 'T' : 'F'));
                   BTA_GATTC_CancelOpen(client_if, remote_bda, is_direct);
                 },
         .BTA_GATTC_Refresh =
                 [](const RawAddress& remote_bda) {
                   disc_gatt_history_.Push(base::StringPrintf("%-32s bd_addr:%s", "GATTC_Refresh",
-                                                             ADDRESS_TO_LOGGABLE_CSTR(remote_bda)));
+                                                             remote_bda.ToRedactedStringForLogging()));
                   BTA_GATTC_Refresh(remote_bda);
                 },
         .BTA_GATTC_GetGattDb =
@@ -179,7 +179,7 @@ struct gatt_interface_t {
                    tBTM_BLE_CONN_TYPE connection_type, bool opportunistic) {
                   disc_gatt_history_.Push(base::StringPrintf(
                           "%-32s bd_addr:%s client_if:%hu type:0x%x opportunistic:%c", "GATTC_Open",
-                          ADDRESS_TO_LOGGABLE_CSTR(remote_bda), client_if, connection_type,
+                          remote_bda.ToRedactedStringForLogging(), client_if, connection_type,
                           (opportunistic) ? 'T' : 'F'));
                   BTA_GATTC_Open(client_if, remote_bda, connection_type, opportunistic);
                 },
@@ -1653,7 +1653,7 @@ static void bta_dm_proc_open_evt(tBTA_GATTC_OPEN* p_data) {
 
   disc_gatt_history_.Push(base::StringPrintf(
           "%-32s bd_addr:%s conn_id:%hu client_if:%hu event:%s", "GATTC_EventCallback",
-          ADDRESS_TO_LOGGABLE_CSTR(p_data->remote_bda), p_data->conn_id, p_data->client_if,
+          p_data->remote_bda.ToRedactedStringForLogging(), p_data->conn_id, p_data->client_if,
           gatt_client_event_text(BTA_GATTC_OPEN_EVT).c_str()));
 
   bta_dm_search_cb.conn_id = p_data->conn_id;

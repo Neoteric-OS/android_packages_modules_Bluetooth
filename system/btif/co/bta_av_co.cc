@@ -1040,11 +1040,11 @@ void BtaAvCo::DebugDump(int fd) {
   dprintf(fd, "\nA2DP Peers State:\n");
   dprintf(fd, "  Source: active peer: %s\n",
           (bta_av_source_state_.getActivePeer() != nullptr)
-                  ? ADDRESS_TO_LOGGABLE_CSTR(bta_av_source_state_.getActivePeer()->addr)
+                  ? bta_av_source_state_.getActivePeer()->addr.ToRedactedStringForLogging().c_str()
                   : "null");
   dprintf(fd, "  Sink: active peer: %s\n",
           (bta_av_sink_state_.getActivePeer() != nullptr)
-                  ? ADDRESS_TO_LOGGABLE_CSTR(bta_av_sink_state_.getActivePeer()->addr)
+                  ? bta_av_sink_state_.getActivePeer()->addr.ToRedactedStringForLogging().c_str()
                   : "null");
 
   for (size_t i = 0; i < BTA_AV_CO_NUM_ELEMENTS(peer_cache_->peers_); i++) {
@@ -1052,7 +1052,7 @@ void BtaAvCo::DebugDump(int fd) {
     if (peer.addr.IsEmpty()) {
       continue;
     }
-    dprintf(fd, "  Peer: %s\n", ADDRESS_TO_LOGGABLE_CSTR(peer.addr));
+    dprintf(fd, "  Peer: %s\n", peer.addr.ToRedactedStringForLogging().c_str());
     dprintf(fd, "    Number of sinks: %u\n", peer.num_sinks);
     dprintf(fd, "    Number of sources: %u\n", peer.num_sources);
     dprintf(fd, "    Number of SEPs: %u\n", peer.num_seps);
@@ -1302,7 +1302,7 @@ bool BtaAvCo::UpdateSelectableSourceCodec(const A2dpCodecConfig& codec_config,
                                           BtaAvCoPeer* p_peer) {
   log::verbose("peer {}", p_peer->addr);
 
-  log::verbose("peer {} checking for codec {}", ADDRESS_TO_LOGGABLE_CSTR(p_peer->addr),
+  log::verbose("peer {} checking for codec {}", p_peer->addr.ToRedactedStringForLogging(),
                codec_config.name().c_str());
 
   // Find the peer Sink for the codec

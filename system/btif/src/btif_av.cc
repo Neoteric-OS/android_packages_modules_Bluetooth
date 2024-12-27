@@ -535,7 +535,7 @@ public:
     if (!peer_address.IsEmpty() && peer && (peer->IsSink() && AllowedToConnect(peer_address)) &&
         peer->CheckFlags(BtifAvPeer::kFlagPendingStart)) {
       log::error("Pending Start Response on  {}, Return Fail",
-                 ADDRESS_TO_LOGGABLE_STR(peer_address));
+                 peer_address.ToRedactedStringForLogging());
       return false;
     }
 
@@ -2557,7 +2557,7 @@ bool BtifAvStateMachine::StateOpened::ProcessEvent(uint32_t event, void* p_data)
       const btif_av_codec_mode_change_t* p_codec_mode_change =
               static_cast<const btif_av_codec_mode_change_t*>(p_data);
       log::info("Peer {} : event={} flags={} enc_mode={}",
-                ADDRESS_TO_LOGGABLE_CSTR(peer_.PeerAddress()), BtifAvEvent::EventName(event),
+                peer_.PeerAddress().ToRedactedStringForLogging(), BtifAvEvent::EventName(event),
                 peer_.FlagsToString(), p_codec_mode_change->enc_mode);
 
       BTA_AvSetCodecMode(peer_.BtaHandle(), p_codec_mode_change->enc_mode);
@@ -2784,7 +2784,7 @@ bool BtifAvStateMachine::StateStarted::ProcessEvent(uint32_t event, void* p_data
       const btif_av_codec_mode_change_t* p_codec_mode_change =
               static_cast<const btif_av_codec_mode_change_t*>(p_data);
       log::info("Peer {} : event={} flags={} enc_mode={}",
-                ADDRESS_TO_LOGGABLE_CSTR(peer_.PeerAddress()), BtifAvEvent::EventName(event),
+                peer_.PeerAddress().ToRedactedStringForLogging(), BtifAvEvent::EventName(event),
                 peer_.FlagsToString(), p_codec_mode_change->enc_mode);
 
       BTA_AvSetCodecMode(peer_.BtaHandle(), p_codec_mode_change->enc_mode);
@@ -4113,7 +4113,7 @@ static void btif_debug_av_peer_dump(int fd, const BtifAvPeer& peer) {
       break;
   }
 
-  dprintf(fd, "  Peer: %s\n", ADDRESS_TO_LOGGABLE_CSTR(peer.PeerAddress()));
+  dprintf(fd, "  Peer: %s\n", peer.PeerAddress().ToRedactedStringForLogging().c_str());
   dprintf(fd, "    Connected: %s\n", peer.IsConnected() ? "true" : "false");
   dprintf(fd, "    Streaming: %s\n", peer.IsStreaming() ? "true" : "false");
   dprintf(fd, "    SEP: %d(%s)\n", peer.PeerSep(), (peer.IsSource()) ? "Source" : "Sink");
@@ -4139,7 +4139,8 @@ static void btif_debug_av_source_dump(int fd) {
   if (!enabled) {
     return;
   }
-  dprintf(fd, "  Active peer: %s\n", ADDRESS_TO_LOGGABLE_CSTR(btif_av_source.ActivePeer()));
+  dprintf(fd, "  Active peer: %s\n",
+          btif_av_source.ActivePeer().ToRedactedStringForLogging().c_str());
   dprintf(fd, "  Peers:\n");
   btif_av_source.DumpPeersInfo(fd);
 }
@@ -4151,7 +4152,8 @@ static void btif_debug_av_sink_dump(int fd) {
   if (!enabled) {
     return;
   }
-  dprintf(fd, "  Active peer: %s\n", ADDRESS_TO_LOGGABLE_CSTR(btif_av_sink.ActivePeer()));
+  dprintf(fd, "  Active peer: %s\n",
+          btif_av_sink.ActivePeer().ToRedactedStringForLogging().c_str());
   dprintf(fd, "  Peers:\n");
   btif_av_sink.DumpPeersInfo(fd);
 }
@@ -4303,7 +4305,7 @@ void btif_av_update_codec_mode() {
       }
       BtifAvEvent btif_av_event(BTIF_AV_SET_CODEC_MODE_EVT, &codec_mode_change,
                                 sizeof(codec_mode_change));
-      log::info("peer_address={} event={}", ADDRESS_TO_LOGGABLE_CSTR(btif_av_source_active_peer()),
+      log::info("peer_address={} event={}", btif_av_source_active_peer().ToRedactedStringForLogging(),
                 btif_av_event.ToString());
       do_in_main_thread(base::Bind(&btif_av_handle_event,
                                    AVDT_TSEP_SNK,  // peer_sep

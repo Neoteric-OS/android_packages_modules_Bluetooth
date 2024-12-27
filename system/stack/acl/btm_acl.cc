@@ -2578,7 +2578,7 @@ tACL_CONN* btm_acl_for_bda(const RawAddress& bd_addr, tBT_TRANSPORT transport) {
 tBTM_STATUS BTM_FlowSpec(const RawAddress& addr, tBT_FLOW_SPEC* p_flow, tBTM_CMPL_CB* p_cb) {
   tACL_CONN* p = nullptr;
 
-  log::verbose("BdAddr: {}", ADDRESS_TO_LOGGABLE_STR(addr));
+  log::verbose("BdAddr: {}", addr.ToRedactedStringForLogging());
 
   /* If someone already waiting on the version, do not allow another */
   if (btm_cb.devcb.p_flow_spec_cmpl_cb) {

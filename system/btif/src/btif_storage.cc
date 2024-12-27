@@ -1447,7 +1447,7 @@ void btif_debug_linkkey_type_dump(int fd) {
   for (const auto& bd_addr : btif_config_get_paired_devices()) {
     auto bdstr = bd_addr.ToString();
     int linkkey_type;
-    dprintf(fd, "  %s\n", ADDRESS_TO_LOGGABLE_CSTR(bd_addr));
+    dprintf(fd, "  %s\n", bd_addr.ToRedactedStringForLogging().c_str());
 
     dprintf(fd, "    BR: ");
     if (btif_config_get_int(bdstr, BTIF_STORAGE_KEY_LINK_KEY_TYPE, &linkkey_type)) {
@@ -1558,7 +1558,7 @@ void btif_storage_remove_enc_key_material(const RawAddress* remote_bd_addr) {
               log::debug(" in Adapter");
             } else {
               key = remote_bd_addr->ToString();
-              log::debug(" in bd addr:{}", ADDRESS_TO_LOGGABLE_CSTR(*remote_bd_addr));
+              log::debug(" in bd addr:{}", remote_bd_addr->ToRedactedStringForLogging());
             }
             btif_config_remove(key, BTIF_STORAGE_KEY_ENCR_DATA);
           },

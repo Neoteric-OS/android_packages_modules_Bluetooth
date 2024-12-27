@@ -725,6 +725,7 @@ cc_fuzz {
         "libbluetooth_l2cap_pdl",
         "libbluetooth_log",
         "libbluetooth_smp_pdl",
+        "libbt-common",
         "libbt-platform-protos-lite",
     ],
     shared_libs: [
@@ -1501,6 +1502,7 @@ cc_test {
         ":TestMockMainShim",
         ":TestMockRustFfi",
         ":TestMockStackBtm",
+        ":TestMockStackConnMgr",
         ":TestMockStackL2cap",
         ":TestMockStackMetrics",
         "gatt/gatt_db.cc",
@@ -1668,6 +1670,7 @@ cc_test {
         "libprotobuf-cpp-lite",
         "libstatslog_bt",
         "server_configurable_flags",
+        "libaconfig_storage_read_api_cc",
     ],
     target: {
         android: {
@@ -1991,6 +1994,7 @@ cc_test {
         "liblog",
         "libosi",
         "server_configurable_flags",
+        "libaconfig_storage_read_api_cc",
     ],
     aidl: {
         libs: ["bluetooth_constants"],
