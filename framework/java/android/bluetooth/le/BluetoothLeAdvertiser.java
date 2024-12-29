@@ -277,9 +277,9 @@ public final class BluetoothLeAdvertiser {
      * method returns immediately, the operation status is delivered through {@code
      * callback.onAdvertisingSetStarted()}.
      *
-     * <p>Requires the {@link android.Manifest.permission#BLUETOOTH_PRIVILEGED} permission only when
+     * <p>Requires the {@link android.Manifest.permission#BLUETOOTH_PRIVILEGED} permission when
      * {@code parameters.getOwnAddressType()} is different from {@code
-     * AdvertisingSetParameters.ADDRESS_TYPE_DEFAULT}.
+     * AdvertisingSetParameters.ADDRESS_TYPE_DEFAULT} or {@code parameters.isDirected()} is true.
      *
      * <p>The {@link android.Manifest.permission#BLUETOOTH_ADVERTISE} permission is always enforced.
      *
@@ -327,9 +327,9 @@ public final class BluetoothLeAdvertiser {
      * method returns immediately, the operation status is delivered through {@code
      * callback.onAdvertisingSetStarted()}.
      *
-     * <p>Requires the {@link android.Manifest.permission#BLUETOOTH_PRIVILEGED} permission only when
+     * <p>Requires the {@link android.Manifest.permission#BLUETOOTH_PRIVILEGED} permission when
      * {@code parameters.getOwnAddressType()} is different from {@code
-     * AdvertisingSetParameters.ADDRESS_TYPE_DEFAULT}.
+     * AdvertisingSetParameters.ADDRESS_TYPE_DEFAULT} or {@code parameters.isDirected()} is true.
      *
      * <p>The {@link android.Manifest.permission#BLUETOOTH_ADVERTISE} permission is always enforced.
      *
@@ -379,9 +379,9 @@ public final class BluetoothLeAdvertiser {
      * method returns immediately, the operation status is delivered through {@code
      * callback.onAdvertisingSetStarted()}.
      *
-     * <p>Requires the {@link android.Manifest.permission#BLUETOOTH_PRIVILEGED} permission only when
+     * <p>Requires the {@link android.Manifest.permission#BLUETOOTH_PRIVILEGED} permission when
      * {@code parameters.getOwnAddressType()} is different from {@code
-     * AdvertisingSetParameters.ADDRESS_TYPE_DEFAULT}.
+     * AdvertisingSetParameters.ADDRESS_TYPE_DEFAULT} or {@code parameters.isDirected()} is true.
      *
      * <p>The {@link android.Manifest.permission#BLUETOOTH_ADVERTISE} permission is always enforced.
      *
@@ -436,9 +436,9 @@ public final class BluetoothLeAdvertiser {
      * method returns immediately, the operation status is delivered through {@code
      * callback.onAdvertisingSetStarted()}.
      *
-     * <p>Requires the {@link android.Manifest.permission#BLUETOOTH_PRIVILEGED} permission only when
+     * <p>Requires the {@link android.Manifest.permission#BLUETOOTH_PRIVILEGED} permission when
      * {@code parameters.getOwnAddressType()} is different from {@code
-     * AdvertisingSetParameters.ADDRESS_TYPE_DEFAULT}.
+     * AdvertisingSetParameters.ADDRESS_TYPE_DEFAULT} or {@code parameters.isDirected()} is true.
      *
      * <p>The {@link android.Manifest.permission#BLUETOOTH_ADVERTISE} permission is always enforced.
      *
@@ -502,10 +502,10 @@ public final class BluetoothLeAdvertiser {
      * services/characteristics in this server, rather than the union of all GATT services (across
      * all opened servers).
      *
-     * <p>Requires the {@link android.Manifest.permission#BLUETOOTH_PRIVILEGED} permission only when
+     * <p>Requires the {@link android.Manifest.permission#BLUETOOTH_PRIVILEGED} permission when
      * {@code parameters.getOwnAddressType()} is different from {@code
-     * AdvertisingSetParameters.ADDRESS_TYPE_DEFAULT} or when the {@code gattServer} is already
-     * registered
+     * AdvertisingSetParameters.ADDRESS_TYPE_DEFAULT} or {@code parameters.isDirected()} is true or
+     * when the {@code gattServer} is already registered
      *
      * <p>The {@link android.Manifest.permission#BLUETOOTH_ADVERTISE} permission is always enforced.
      *
