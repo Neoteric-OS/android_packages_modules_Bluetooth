@@ -74,6 +74,7 @@ using bluetooth::le_audio::types::BidirectionalPair;
 using bluetooth::le_audio::types::CisState;
 using bluetooth::le_audio::types::DataPathState;
 using bluetooth::le_audio::types::LeAudioContextType;
+using bluetooth::le_audio::CodecManager;
 
 namespace bluetooth::le_audio {
 std::ostream& operator<<(std::ostream& os, const DeviceConnectState& state) {
@@ -312,6 +313,8 @@ bool LeAudioDevice::ConfigureAses(const set_configurations::AudioSetConfiguratio
           (direction == types::kLeAudioDirectionSink) ? snk_audio_locations_ : src_audio_locations_;
 
   auto const& group_ase_configs = audio_set_conf->confs.get(direction);
+  log::info("group_ase_configs size: {}", group_ase_configs.size());
+
   std::vector<set_configurations::AseConfiguration> ase_configs;
   std::copy_if(group_ase_configs.cbegin(), group_ase_configs.cend(),
                std::back_inserter(ase_configs), [&audio_locations](auto const& cfg) {
@@ -324,11 +327,13 @@ bool LeAudioDevice::ConfigureAses(const set_configurations::AudioSetConfiguratio
                   */
                  auto config = cfg.codec.params.GetAsCoreCodecConfig();
                  if (!config.audio_channel_allocation.has_value()) {
+                   log::info("audio_channel_allocation in config not exist");
                    return true;
                  }
 
                  // No locations bits means mono audio
                  if (audio_locations.none()) {
+                   log::info("audio_locations not exist");
                    return true;
                  }
 
@@ -338,14 +343,17 @@ bool LeAudioDevice::ConfigureAses(const set_configurations::AudioSetConfiguratio
                });
 
   auto const& pacs = (direction == types::kLeAudioDirectionSink) ? snk_pacs_ : src_pacs_;
-  for (size_t i = 0; i < ase_configs.size() && ase; ++i) {
-    auto const& ase_cfg = ase_configs.at(i);
-    if (utils::IsCodecUsingLtvFormat(ase_cfg.codec.id) &&
-        !utils::GetConfigurationSupportedPac(pacs, ase_cfg.codec, ase_cfg.vendor_metadata,
-                                             context_type)) {
-      log::error("{}, No {} PAC found matching codec: {}. Stop the activation.", address_,
-                 direction_str, common::ToString(ase_cfg.codec));
-      return false;
+  log::info("ase_configs size: {}", ase_configs.size());
+  if (!CodecManager::GetInstance()->IsUsingCodecExtensibility()) {
+    for (size_t i = 0; i < ase_configs.size() && ase; ++i) {
+      auto const& ase_cfg = ase_configs.at(i);
+      if (utils::IsCodecUsingLtvFormat(ase_cfg.codec.id) &&
+          !utils::GetConfigurationSupportedPac(pacs, ase_cfg.codec, ase_cfg.vendor_metadata,
+                                               context_type)) {
+        log::error("{}, No {} PAC found matching codec: {}. Stop the activation.", address_,
+                   direction_str, common::ToString(ase_cfg.codec));
+        return false;
+      }
     }
   }
 
@@ -356,6 +364,7 @@ bool LeAudioDevice::ConfigureAses(const set_configurations::AudioSetConfiguratio
    * scenario
    */
   uint8_t active_ases = *number_of_already_active_group_ase;
+  log::info("active_ases: {}", active_ases);
 
   // Before we activate the ASEs, make sure we have the right configuration
   // Check for matching PACs only if we know that the LTV format is being used.
@@ -364,15 +373,18 @@ bool LeAudioDevice::ConfigureAses(const set_configurations::AudioSetConfiguratio
   int needed_ase = std::min((int)(max_required_ase_per_dev), (int)(ase_configs.size()));
   log::debug("{}, {} {} ASE(s) required for this configuration.", address_, needed_ase,
              direction_str);
+  log::info("max_required_ase_per_dev: {}", max_required_ase_per_dev);
 
-  for (int i = 0; i < needed_ase; ++i) {
-    auto const& ase_cfg = ase_configs.at(i);
-    if (utils::IsCodecUsingLtvFormat(ase_cfg.codec.id) &&
-        !utils::GetConfigurationSupportedPac(pacs, ase_cfg.codec, ase_cfg.vendor_metadata,
-                                             context_type)) {
-      log::error("{}, No {} PAC found matching codec: {}. Stop the activation.", address_,
-                 direction_str, common::ToString(ase_cfg.codec));
-      return false;
+  if (!CodecManager::GetInstance()->IsUsingCodecExtensibility()) {
+    for (int i = 0; i < needed_ase; ++i) {
+      auto const& ase_cfg = ase_configs.at(i);
+      if (utils::IsCodecUsingLtvFormat(ase_cfg.codec.id) &&
+          !utils::GetConfigurationSupportedPac(pacs, ase_cfg.codec, ase_cfg.vendor_metadata,
+                                               context_type)) {
+        log::error("{}, No {} PAC found matching codec: {}. Stop the activation.", address_,
+                   direction_str, common::ToString(ase_cfg.codec));
+        return false;
+      }
     }
   }
 
@@ -415,33 +427,35 @@ bool LeAudioDevice::ConfigureAses(const set_configurations::AudioSetConfiguratio
       ase->channel_count = ase_cfg.codec.channel_count_per_iso_stream;
       uint32_t audio_location =
               PickAudioLocation(strategy, audio_locations, group_audio_locations_memo);
-      if (ase->codec_id.coding_format == types::kLeAudioCodingFormatLC3) {
-        /* Let's choose audio channel allocation if not set */
-        ase->codec_config.Add(codec_spec_conf::kLeAudioLtvTypeAudioChannelAllocation,
-                              audio_location);
+      if (!CodecManager::GetInstance()->IsUsingCodecExtensibility()) {
+        if (ase->codec_id.coding_format == types::kLeAudioCodingFormatLC3) {
+          /* Let's choose audio channel allocation if not set */
+          ase->codec_config.Add(codec_spec_conf::kLeAudioLtvTypeAudioChannelAllocation,
+                                audio_location);
 
-        /* Get default value if no requirement for specific frame blocks per sdu
-         */
-        if (!ase->codec_config.Find(codec_spec_conf::kLeAudioLtvTypeCodecFrameBlocksPerSdu)) {
-          ase->codec_config.Add(
-                  codec_spec_conf::kLeAudioLtvTypeCodecFrameBlocksPerSdu,
-                  GetMaxCodecFramesPerSduFromPac(utils::GetConfigurationSupportedPac(
-                          pacs, ase_cfg.codec, ase_cfg.vendor_metadata, context_type)));
+          /* Get default value if no requirement for specific frame blocks per sdu
+           */
+          if (!ase->codec_config.Find(codec_spec_conf::kLeAudioLtvTypeCodecFrameBlocksPerSdu)) {
+            ase->codec_config.Add(
+                    codec_spec_conf::kLeAudioLtvTypeCodecFrameBlocksPerSdu,
+                    GetMaxCodecFramesPerSduFromPac(utils::GetConfigurationSupportedPac(
+                            pacs, ase_cfg.codec, ase_cfg.vendor_metadata, context_type)));
+          }
+        } else if (ase->codec_id.coding_format == types::kLeAudioCodingFormatVendorSpecific &&
+                   (ase->codec_id.vendor_codec_id == types::kLeAudioCodingFormatAptxLe ||
+                    ase->codec_id.vendor_codec_id == types::kLeAudioCodingFormatAptxLeX)) {
+          /* Let's choose audio channel allocation if not set */
+          ase->codec_config.Add(codec_spec_conf::qcom_codec_spec_conf::
+                                        kLeAudioCodecAptxLeTypeAudioChannelAllocation,
+                                audio_location);
+          uint8_t len = sizeof(audio_location) + 1;
+          uint8_t type = codec_spec_conf::qcom_codec_spec_conf::
+                  kLeAudioCodecAptxLeTypeAudioChannelAllocation;
+          ase->vendor_codec_config.insert(ase->vendor_codec_config.end(), &len, &len + 1);
+          ase->vendor_codec_config.insert(ase->vendor_codec_config.end(), &type, &type + 1);
+          ase->vendor_codec_config.insert(ase->vendor_codec_config.end(), ((uint8_t*)&audio_location),
+                                          ((uint8_t*)&audio_location) + sizeof(uint32_t));
         }
-      } else if (ase->codec_id.coding_format == types::kLeAudioCodingFormatVendorSpecific &&
-                 (ase->codec_id.vendor_codec_id == types::kLeAudioCodingFormatAptxLe ||
-                  ase->codec_id.vendor_codec_id == types::kLeAudioCodingFormatAptxLeX)) {
-        /* Let's choose audio channel allocation if not set */
-        ase->codec_config.Add(codec_spec_conf::qcom_codec_spec_conf::
-                                      kLeAudioCodecAptxLeTypeAudioChannelAllocation,
-                              audio_location);
-        uint8_t len = sizeof(audio_location) + 1;
-        uint8_t type = codec_spec_conf::qcom_codec_spec_conf::
-                kLeAudioCodecAptxLeTypeAudioChannelAllocation;
-        ase->vendor_codec_config.insert(ase->vendor_codec_config.end(), &len, &len + 1);
-        ase->vendor_codec_config.insert(ase->vendor_codec_config.end(), &type, &type + 1);
-        ase->vendor_codec_config.insert(ase->vendor_codec_config.end(), ((uint8_t*)&audio_location),
-                                        ((uint8_t*)&audio_location) + sizeof(uint32_t));
       }
 
       ase->qos_config.sdu_interval = ase_cfg.qos.sduIntervalUs;
