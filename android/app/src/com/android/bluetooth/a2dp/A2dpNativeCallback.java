@@ -92,4 +92,11 @@ class A2dpNativeCallback {
         Log.d(TAG, "isMandatoryCodecPreferred: optional preference " + enabled);
         return enabled == BluetoothA2dp.OPTIONAL_CODECS_PREF_DISABLED;
     }
+
+    @VisibleForTesting
+    void onMetadataUpdate(int context_type) {
+        Log.w(TAG, "Context Type: " + context_type);
+
+        mA2dpService.setMetadataContext(context_type);
+    }
 }
