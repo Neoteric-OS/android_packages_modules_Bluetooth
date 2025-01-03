@@ -40,11 +40,19 @@ public:
       : session_type_(sessionType), audio_config_(std::move(audioConfig)) {}
   virtual ~IBluetoothTransportInstance() = default;
 
-  SessionType GetSessionType() const { return session_type_; }
+  SessionType GetSessionType() const {
+    log::info(" - SessionType= {} ", toString(session_type_));
+    return session_type_;
+  }
 
-  AudioConfiguration GetAudioConfiguration() const { return audio_config_; }
+  AudioConfiguration GetAudioConfiguration() const {
+    log::info("audio_config_= {} ", audio_config_.toString());
+    return audio_config_;
+  }
 
   void UpdateAudioConfiguration(const AudioConfiguration& audio_config) {
+    auto audio_conf_tag = audio_config.getTag();
+    log::info("audio_conf_tag- {} ", toString(audio_conf_tag));
     switch (audio_config.getTag()) {
       case AudioConfiguration::pcmConfig:
         audio_config_.set<AudioConfiguration::pcmConfig>(

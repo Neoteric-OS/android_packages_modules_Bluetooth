@@ -6416,6 +6416,8 @@ public:
 
   void UpdateAudioConfigToHal(const ::bluetooth::le_audio::offload_config& config,
                               uint8_t remote_direction) {
+    log::debug("remote_direction: {}", remote_direction);
+
     if ((remote_direction & bluetooth::le_audio::types::kLeAudioDirectionSink) &&
         le_audio_source_hal_client_) {
       le_audio_source_hal_client_->UpdateAudioConfigToHal(config);
