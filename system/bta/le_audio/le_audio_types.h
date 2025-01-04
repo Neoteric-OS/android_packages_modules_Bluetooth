@@ -1201,6 +1201,11 @@ struct AseQosPreferences {
   uint32_t preferred_pres_delay_max = 0;
 };
 
+struct VendorDataPathConfiguration {
+  std::vector<uint8_t> sinkdataPathConfig = {};
+  std::vector<uint8_t> sourcedataPathConfig = {};
+};
+
 struct ase {
   static constexpr uint8_t kAseIdInvalid = 0x00;
 
