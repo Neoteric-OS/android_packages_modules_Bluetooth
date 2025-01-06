@@ -36,7 +36,6 @@
 #include "types/raw_address.h"
 
 namespace android {
-static jmethodID method_OnMetadataUpdate;
 
 static struct {
   jfieldID mNativeCallback;
@@ -47,6 +46,7 @@ static struct {
   jmethodID onAudioStateChanged;
   jmethodID onCodecConfigChanged;
   jmethodID isMandatoryCodecPreferred;
+  jmethodID onMetadataUpdate;
 } android_bluetooth_A2dpNativeCallback;
 
 static struct {
@@ -222,7 +222,9 @@ static void bta2dp_metadata_update_callback(uint16_t context) {
     return;
   }
 
-  return sCallbackEnv->CallVoidMethod(mCallbacksObj, method_OnMetadataUpdate, (jint)context);
+  return sCallbackEnv->CallVoidMethod(
+          mCallbacksObj, android_bluetooth_A2dpNativeCallback.onMetadataUpdate,
+          (jint)context);
 }
 
 static btav_source_callbacks_t sBluetoothA2dpCallbacks = {
@@ -528,7 +530,8 @@ int register_com_android_bluetooth_a2dp(JNIEnv* env) {
            &android_bluetooth_A2dpNativeCallback.onCodecConfigChanged},
           {"isMandatoryCodecPreferred", "([B)Z",
            &android_bluetooth_A2dpNativeCallback.isMandatoryCodecPreferred},
-          {"OnMetadataUpdate", "(I)V", &method_OnMetadataUpdate},
+          {"onMetadataUpdate", "(I)V",
+           &android_bluetooth_A2dpNativeCallback.onMetadataUpdate},
   };
   GET_JAVA_METHODS(env, "com/android/bluetooth/a2dp/A2dpNativeCallback", javaMethods);
 
