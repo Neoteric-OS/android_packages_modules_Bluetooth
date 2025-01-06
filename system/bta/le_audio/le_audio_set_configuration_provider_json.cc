@@ -371,8 +371,6 @@ private:
       metadata_sink.vendor_company_id = metadata_sink_cfg->vendor_company_id();
       metadata_sink.vs_metadata.resize(size);
       STREAM_TO_ARRAY(metadata_sink.vs_metadata.data(), ptr, size);
-    } else {
-      log::error("No matching metadata found");
     }
 
     CodecMetadataSetting metadata_source;
@@ -383,8 +381,6 @@ private:
       metadata_source.vendor_company_id = metadata_source_cfg->vendor_company_id();
       metadata_source.vs_metadata.resize(size);
       STREAM_TO_ARRAY(metadata_source.vs_metadata.data(), ptr, size);
-    } else {
-      log::error("No matching metadata found");
     }
 
     const fbs::le_audio::CodecConfiguration* codec_cfg = nullptr;

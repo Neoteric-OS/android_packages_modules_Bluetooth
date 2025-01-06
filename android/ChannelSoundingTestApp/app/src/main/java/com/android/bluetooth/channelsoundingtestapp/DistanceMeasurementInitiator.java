@@ -12,6 +12,10 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
+ * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
 package com.android.bluetooth.channelsoundingtestapp;
@@ -21,16 +25,22 @@ import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothManager;
 import android.bluetooth.BluetoothStatusCodes;
+import android.bluetooth.le.ChannelSoundingParams;
 import android.bluetooth.le.DistanceMeasurementManager;
 import android.bluetooth.le.DistanceMeasurementMethod;
 import android.bluetooth.le.DistanceMeasurementParams;
 import android.bluetooth.le.DistanceMeasurementResult;
 import android.bluetooth.le.DistanceMeasurementSession;
 import android.content.Context;
+import android.text.TextUtils;
+import android.util.Log;
 import android.util.Pair;
-
 import androidx.annotation.Nullable;
-
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Executor;
@@ -38,7 +48,38 @@ import java.util.concurrent.Executors;
 
 class DistanceMeasurementInitiator {
 
+    enum Freq {
+        HIGH(DistanceMeasurementParams.REPORT_FREQUENCY_HIGH),
+        MEDIUM(DistanceMeasurementParams.REPORT_FREQUENCY_MEDIUM),
+        LOW(DistanceMeasurementParams.REPORT_FREQUENCY_LOW);
+        private final int freq;
+
+        Freq(int freq) {
+            this.freq = freq;
+        }
+
+        int getFreq() {
+            return freq;
+        }
+
+        @Override
+        public String toString() {
+            return name();
+        }
+
+        public static Freq fromName(String name) {
+            try {
+                return Freq.valueOf(name);
+            } catch (IllegalArgumentException e) {
+                return MEDIUM;
+            }
+        }
+    }
+
     private static final int DISTANCE_MEASUREMENT_DURATION_SEC = 3600;
+    private int mode_int = 0;
+    private int duration_int = 0;
+    private int freq_int = 0;
     private static final List<Pair<Integer, String>> mDistanceMeasurementMethodMapping =
             List.of(
                     new Pair<>(DistanceMeasurementMethod.DISTANCE_MEASUREMENT_METHOD_AUTO, "AUTO"),
@@ -119,25 +160,43 @@ class DistanceMeasurementInitiator {
         return methods;
     }
 
+    List<String> getMeasurementFreqs() {
+        return List.of(Freq.MEDIUM.toString(), Freq.HIGH.toString(), Freq.LOW.toString());
+    }
+
     @SuppressLint("MissingPermission") // permissions are checked upfront
-    void startDistanceMeasurement(String distanceMeasurementMethodName) {
+    void startDistanceMeasurement(String distanceMeasurementMethodName, String selectedFreq, String sec_mode, String freq, String duration) {
+      if (mTargetDevice == null) {
+        printLog("do Gatt connect first");
+        return;
+      }
 
-        if (mTargetDevice == null) {
-            printLog("do Gatt connect first");
-            return;
-        }
+      printLog("start CS with device: " + mTargetDevice.getName());
 
-        printLog("start CS with device: " + mTargetDevice.getName());
+      ChannelSoundingParams csParams = new ChannelSoundingParams.Builder()
+                                           .setSightType(0)
+                                           .setLocationType(0)
+                                           .setCsSecurityLevel(Integer.parseInt(sec_mode))
+                                           .build();
 
-        DistanceMeasurementParams params =
-                new DistanceMeasurementParams.Builder(mTargetDevice)
-                        .setDurationSeconds(DISTANCE_MEASUREMENT_DURATION_SEC)
-                        .setFrequency(DistanceMeasurementParams.REPORT_FREQUENCY_LOW)
-                        .setMethodId(getDistanceMeasurementMethodId(distanceMeasurementMethodName))
-                        .build();
-        DistanceMeasurementManager distanceMeasurementManager =
-                mBluetoothAdapter.getDistanceMeasurementManager();
-        distanceMeasurementManager.startMeasurementSession(params, mBtExecutor, mTestcallback);
+      mode_int = getDistanceMeasurementMethodId(distanceMeasurementMethodName);
+      if (TextUtils.isEmpty(duration)) {
+        duration = "60";
+      }
+
+      duration_int = Integer.parseInt(duration);
+
+      DistanceMeasurementParams params =
+          new DistanceMeasurementParams.Builder(mTargetDevice)
+              .setDurationSeconds(duration_int)
+              .setFrequency(Freq.fromName(selectedFreq).getFreq())
+              .setMethodId(getDistanceMeasurementMethodId(distanceMeasurementMethodName))
+              .setChannelSoundingParams(csParams)
+              .build();
+
+      DistanceMeasurementManager distanceMeasurementManager =
+          mBluetoothAdapter.getDistanceMeasurementManager();
+      distanceMeasurementManager.startMeasurementSession(params, mBtExecutor, mTestcallback);
     }
 
     void stopDistanceMeasurement() {
@@ -168,12 +227,17 @@ class DistanceMeasurementInitiator {
                 }
 
                 public void onResult(BluetoothDevice device, DistanceMeasurementResult result) {
-                    printLog(
-                            "DistanceMeasurement onResult ! "
-                                    + result.getResultMeters()
-                                    + ", "
-                                    + result.getErrorMeters());
-                    mBtDistanceMeasurementCallback.onDistanceResult(result.getResultMeters());
+                  double Result = result.getResultMeters();
+                  BigDecimal bd = new BigDecimal(Double.toString(Result));
+                  bd = bd.setScale(1, RoundingMode.HALF_UP);
+                  double roundedResult = bd.doubleValue();
+                  double Err_Result = result.getErrorMeters();
+                  BigDecimal bd_err = new BigDecimal(Double.toString(Err_Result));
+                  bd_err = bd_err.setScale(1, RoundingMode.HALF_UP);
+                  double rounded_errResult = bd_err.doubleValue();
+                  printLog(
+                      "DistanceMeasurement onResult ! " + roundedResult + ", " + rounded_errResult);
+                  mBtDistanceMeasurementCallback.onDistanceResult(result.getResultMeters());
                 }
             };
 

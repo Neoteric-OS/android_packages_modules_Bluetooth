@@ -73,9 +73,6 @@ cc_library_static {
         "packages/modules/Bluetooth/system/gd/hal",
         "packages/modules/Bluetooth/system/udrv/include",
     ],
-    generated_headers: [
-        "BluetoothGeneratedDumpsysDataSchema_h",
-    ],
     srcs: [
         "a2dp/a2dp_aac.cc",
         "a2dp/a2dp_aac_decoder.cc",
@@ -327,7 +324,6 @@ cc_library_static {
         "srvc/srvc_eng.cc",
     ],
     generated_headers: [
-        "BluetoothGeneratedDumpsysDataSchema_h",
         "cxx-bridge-header",
     ],
     cflags: [
@@ -364,7 +360,6 @@ cc_defaults {
     host_supported: true,
     defaults: [
         "bluetooth_cflags",
-        "bluetooth_flatbuffer_bundler_defaults",
     ],
     include_dirs: [
         "packages/modules/Bluetooth/system",
@@ -449,6 +444,7 @@ cc_fuzz {
     static_libs: [
         "bluetooth_flags_c_lib",
         "libbluetooth-types",
+        "libbluetooth_hci_pdl",
         "libbluetooth_log",
         "libbt-platform-protos-lite",
     ],
@@ -471,9 +467,6 @@ cc_fuzz {
         "packages/modules/Bluetooth/system/stack/btm",
         "packages/modules/Bluetooth/system/stack/test/common",
         "packages/modules/Bluetooth/system/stack/test/rfcomm",
-    ],
-    generated_headers: [
-        "BluetoothGeneratedDumpsysDataSchema_h",
     ],
     srcs: [
         ":BluetoothPacketSources",
@@ -525,9 +518,6 @@ cc_fuzz {
         "external/flatbuffers/include",
         "external/rust/crates/quiche/deps/boringssl/src/include",
         "packages/modules/Bluetooth/system/stack/btm",
-    ],
-    generated_headers: [
-        "BluetoothGeneratedDumpsysDataSchema_h",
     ],
     srcs: [
         ":BluetoothPacketSources",
@@ -581,9 +571,6 @@ cc_fuzz {
         "external/rust/crates/quiche/deps/boringssl/src/include",
         "packages/modules/Bluetooth/system/stack/btm",
     ],
-    generated_headers: [
-        "BluetoothGeneratedDumpsysDataSchema_h",
-    ],
     srcs: [
         ":BluetoothPacketSources",
         ":TestCommonMockFunctions",
@@ -630,9 +617,6 @@ cc_fuzz {
         "external/rust/crates/quiche/deps/boringssl/src/include",
         "packages/modules/Bluetooth/system/stack/btm",
     ],
-    generated_headers: [
-        "BluetoothGeneratedDumpsysDataSchema_h",
-    ],
     srcs: [
         ":BluetoothPacketSources",
         ":TestCommonMockFunctions",
@@ -670,9 +654,6 @@ cc_fuzz {
         "external/flatbuffers/include",
         "external/rust/crates/quiche/deps/boringssl/src/include",
         "packages/modules/Bluetooth/system/stack/btm",
-    ],
-    generated_headers: [
-        "BluetoothGeneratedDumpsysDataSchema_h",
     ],
     srcs: [
         ":BluetoothPacketSources",
@@ -720,9 +701,6 @@ cc_fuzz {
         "external/flatbuffers/include",
         "external/rust/crates/quiche/deps/boringssl/src/include",
         "packages/modules/Bluetooth/system/stack/btm",
-    ],
-    generated_headers: [
-        "BluetoothGeneratedDumpsysDataSchema_h",
     ],
     srcs: [
         ":BluetoothPacketSources",
@@ -819,7 +797,6 @@ cc_test {
         "bluetooth_flags_c_lib_for_test",
         "libFraunhoferAAC",
         "libbase",
-        "libbluetooth-dumpsys",
         "libbluetooth-for-tests",
         "libbluetooth-types",
         "libbluetooth_core_rs",
@@ -921,9 +898,6 @@ cc_test {
         "test/rfcomm/stack_rfcomm_test_utils.cc",
         "test/rfcomm/stack_rfcomm_test_utils_test.cc",
     ],
-    generated_headers: [
-        "BluetoothGeneratedDumpsysDataSchema_h",
-    ],
     shared_libs: [
         "libcrypto",
         "libcutils",
@@ -969,7 +943,6 @@ cc_test {
 cc_test {
     name: "net_test_stack_smp",
     defaults: [
-        "bluetooth_flatbuffer_bundler_defaults",
         "fluoride_defaults",
         "mts_defaults",
     ],
@@ -1009,9 +982,6 @@ cc_test {
         "smp/smp_main.cc",
         "smp/smp_utils.cc",
         "test/stack_smp_test.cc",
-    ],
-    generated_headers: [
-        "BluetoothGeneratedDumpsysDataSchema_h",
     ],
     shared_libs: [
         "libaconfig_storage_read_api_cc",
@@ -1559,6 +1529,7 @@ cc_test {
         "libbluetooth_core_rs_bridge",
         "libbluetooth_crypto_toolbox",
         "libbluetooth_gd",
+        "libbluetooth_hci_pdl",
         "libbluetooth_log",
         "libbt-common",
         "libbt-platform-protos-lite",
@@ -1587,7 +1558,6 @@ cc_test {
         unit_test: true,
     },
     defaults: [
-        "bluetooth_flatbuffer_bundler_defaults",
         "fluoride_defaults",
         "mts_defaults",
     ],
@@ -1595,9 +1565,6 @@ cc_test {
         "btm",
         "include",
         "test/common",
-    ],
-    generated_headers: [
-        "BluetoothGeneratedDumpsysDataSchema_h",
     ],
     include_dirs: [
         "packages/modules/Bluetooth/system",
@@ -1649,7 +1616,6 @@ cc_test {
         unit_test: true,
     },
     defaults: [
-        "bluetooth_flatbuffer_bundler_defaults",
         "fluoride_defaults",
         "mts_defaults",
     ],
@@ -1665,9 +1631,6 @@ cc_test {
         "packages/modules/Bluetooth/system",
         "packages/modules/Bluetooth/system/bta",
         "packages/modules/Bluetooth/system/gd",
-    ],
-    generated_headers: [
-        "BluetoothGeneratedDumpsysDataSchema_h",
     ],
     srcs: [
         ":TestCommonMainHandler",
@@ -1727,7 +1690,6 @@ cc_test {
         unit_test: true,
     },
     defaults: [
-        "bluetooth_flatbuffer_bundler_defaults",
         "fluoride_defaults",
         "mts_defaults",
         "libbtconfigstore_qti_defaults",
@@ -1740,9 +1702,6 @@ cc_test {
     include_dirs: [
         "packages/modules/Bluetooth/system",
         "packages/modules/Bluetooth/system/gd",
-    ],
-    generated_headers: [
-        "BluetoothGeneratedDumpsysDataSchema_h",
     ],
     srcs: [
         ":BluetoothHalSources_hci_host",
@@ -1947,6 +1906,7 @@ cc_test {
         "libbase",
         "libbluetooth-types",
         "libbluetooth_crypto_toolbox",
+        "libbluetooth_hci_pdl",
         "libbluetooth_log",
         "libbt-common",
         "libbt-platform-protos-lite",
@@ -1998,9 +1958,6 @@ cc_test {
         "packages/modules/Bluetooth/system/gd",
         "packages/modules/Bluetooth/system/stack/btm",
     ],
-    generated_headers: [
-        "BluetoothGeneratedDumpsysDataSchema_h",
-    ],
     srcs: [
         ":TestCommonMockFunctions",
         ":TestMockBta",
@@ -2024,6 +1981,7 @@ cc_test {
         "libbase",
         "libbluetooth-types",
         "libbluetooth_gd",
+        "libbluetooth_hci_pdl",
         "libbluetooth_log",
         "libbt-common",
         "libbt-platform-protos-lite",
@@ -2074,9 +2032,6 @@ cc_test {
         "packages/modules/Bluetooth/system/gd",
         "packages/modules/Bluetooth/system/stack/btm",
     ],
-    generated_headers: [
-        "BluetoothGeneratedDumpsysDataSchema_h",
-    ],
     srcs: [
         ":OsiCompatSources",
         ":TestCommonMainHandler",
@@ -2094,6 +2049,7 @@ cc_test {
         ":TestMockStackBtm",
         ":TestMockStackGap",
         ":TestMockStackL2cap",
+        ":TestMockStackMetrics",
         ":TestMockStackSdp",
         ":TestMockStackSmp",
         "ais/ais_ble.cc",
@@ -2168,7 +2124,6 @@ cc_test {
     test_suites: ["general-tests"],
     host_supported: true,
     defaults: [
-        "bluetooth_flatbuffer_bundler_defaults",
         "fluoride_defaults",
         "mts_defaults",
     ],
@@ -2180,9 +2135,6 @@ cc_test {
         "packages/modules/Bluetooth/system",
         "packages/modules/Bluetooth/system/gd",
         "packages/modules/Bluetooth/system/stack/btm",
-    ],
-    generated_headers: [
-        "BluetoothGeneratedDumpsysDataSchema_h",
     ],
     srcs: [
         ":OsiCompatSources",
@@ -2268,7 +2220,6 @@ cc_test {
     test_suites: ["general-tests"],
     host_supported: true,
     defaults: [
-        "bluetooth_flatbuffer_bundler_defaults",
         "fluoride_defaults",
         "mts_defaults",
     ],
@@ -2280,9 +2231,6 @@ cc_test {
         "packages/modules/Bluetooth/system",
         "packages/modules/Bluetooth/system/gd",
         "packages/modules/Bluetooth/system/stack/btm",
-    ],
-    generated_headers: [
-        "BluetoothGeneratedDumpsysDataSchema_h",
     ],
     srcs: [
         ":OsiCompatSources",
@@ -2316,6 +2264,7 @@ cc_test {
         "libbluetooth-types",
         "libbluetooth_core_rs_bridge",
         "libbluetooth_gd",
+        "libbluetooth_hci_pdl",
         "libbluetooth_log",
         "libbt-common",
         "libbt-platform-protos-lite",
@@ -2366,7 +2315,6 @@ cc_test {
         unit_test: true,
     },
     defaults: [
-        "bluetooth_flatbuffer_bundler_defaults",
         "fluoride_defaults",
         "mts_defaults",
     ],
@@ -2378,9 +2326,6 @@ cc_test {
     include_dirs: [
         "packages/modules/Bluetooth/system",
         "packages/modules/Bluetooth/system/gd",
-    ],
-    generated_headers: [
-        "BluetoothGeneratedDumpsysDataSchema_h",
     ],
     srcs: [
         ":BluetoothHalSources_hci_host",
@@ -2497,6 +2442,7 @@ cc_test {
         "libbase",
         "libbluetooth-types",
         "libbluetooth_gd",
+        "libbluetooth_hci_pdl",
         "libbluetooth_log",
         "libbt-common",
         "libbt-platform-protos-lite",

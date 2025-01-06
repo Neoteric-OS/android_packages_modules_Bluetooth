@@ -57,6 +57,7 @@ import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothAdapter.ActiveDeviceProfile;
 import android.bluetooth.BluetoothAdapter.ActiveDeviceUse;
 import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothDevice.BluetoothAddress;
 import android.bluetooth.BluetoothFrameworkInitializer;
 import android.bluetooth.BluetoothMap;
 import android.bluetooth.BluetoothProfile;
@@ -281,10 +282,6 @@ public class AdapterService extends Service {
 
     private final BluetoothHciVendorSpecificDispatcher mBluetoothHciVendorSpecificDispatcher =
             new BluetoothHciVendorSpecificDispatcher();
-    private final BluetoothHciVendorSpecificNativeInterface
-            mBluetoothHciVendorSpecificNativeInterface =
-                    new BluetoothHciVendorSpecificNativeInterface(
-                            mBluetoothHciVendorSpecificDispatcher);
 
     private final Looper mLooper;
     private final AdapterServiceHandler mHandler;
@@ -318,8 +315,8 @@ public class AdapterService extends Service {
     private UserManager mUserManager;
     private CompanionDeviceManager mCompanionDeviceManager;
 
-    // Phone Policy is not used on all devices. Ensure you null check before using it
-    @Nullable private PhonePolicy mPhonePolicy;
+    // Phone Policy is not used on all devices and can be empty
+    private Optional<PhonePolicy> mPhonePolicy = Optional.empty();
 
     private ActiveDeviceManager mActiveDeviceManager;
     private final DatabaseManager mDatabaseManager;
@@ -350,6 +347,7 @@ public class AdapterService extends Service {
     private BassClientService mBassClientService;
     private BatteryService mBatteryService;
     private BluetoothQualityReportNativeInterface mBluetoothQualityReportNativeInterface;
+    private BluetoothHciVendorSpecificNativeInterface mBluetoothHciVendorSpecificNativeInterface;
     private GattService mGattService;
     private ScanController mScanController;
 
@@ -703,7 +701,11 @@ public class AdapterService extends Service {
         mBluetoothQualityReportNativeInterface.init();
 
         if (Flags.hciVendorSpecificExtension()) {
-            mBluetoothHciVendorSpecificNativeInterface.init();
+            mBluetoothHciVendorSpecificNativeInterface =
+                    requireNonNull(
+                            mBluetoothHciVendorSpecificNativeInterface.getInstance(),
+                            "mBluetoothHciVendorSpecificNativeInterface cannot be null");
+            mBluetoothHciVendorSpecificNativeInterface.init(mBluetoothHciVendorSpecificDispatcher);
         }
 
         mSdpManager = new SdpManager(this, mLooper);
@@ -723,17 +725,12 @@ public class AdapterService extends Service {
          */
         if (!isAutomotiveDevice && getResources().getBoolean(R.bool.enable_phone_policy)) {
             Log.i(TAG, "Phone policy enabled");
-            mPhonePolicy = new PhonePolicy(this, new ServiceFactory());
-            mPhonePolicy.start();
+            mPhonePolicy = Optional.of(new PhonePolicy(this, mLooper, new ServiceFactory()));
         } else {
             Log.i(TAG, "Phone policy disabled");
         }
 
-        if (Flags.audioRoutingCentralization()) {
-            mActiveDeviceManager = new AudioRoutingManager(this, new ServiceFactory());
-        } else {
-            mActiveDeviceManager = new ActiveDeviceManager(this, new ServiceFactory());
-        }
+        mActiveDeviceManager = new ActiveDeviceManager(this, new ServiceFactory());
         mActiveDeviceManager.start();
 
         mSilenceDeviceManager.start();
@@ -1490,9 +1487,7 @@ public class AdapterService extends Service {
             mBluetoothKeystoreService.cleanup();
         }
 
-        if (mPhonePolicy != null) {
-            mPhonePolicy.cleanup();
-        }
+        mPhonePolicy.ifPresent(policy -> policy.cleanup());
 
         mSilenceDeviceManager.cleanup();
 
@@ -2416,6 +2411,23 @@ public class AdapterService extends Service {
         }
 
         @Override
+        @NonNull
+        public BluetoothAddress getIdentityAddressWithType(@NonNull String address) {
+            AdapterService service = getService();
+            if (service == null
+                    || !callerIsSystemOrActiveOrManagedUser(
+                            service, TAG, "getIdentityAddressWithType")
+                    || !Utils.checkConnectPermissionForDataDelivery(
+                            service,
+                            Utils.getCallingAttributionSource(mService),
+                            "AdapterService getIdentityAddressWithType")) {
+                return new BluetoothAddress(null, BluetoothDevice.ADDRESS_TYPE_UNKNOWN);
+            }
+            service.enforceCallingOrSelfPermission(BLUETOOTH_PRIVILEGED, null);
+            return service.getIdentityAddressWithType(address);
+        }
+
+        @Override
         public String getName(AttributionSource source) {
             AdapterService service = getService();
             if (service == null
@@ -2721,7 +2733,7 @@ public class AdapterService extends Service {
             }
             service.logUserBondResponse(device, false, source);
             service.mBondAttemptCallerInfo.remove(device.getAddress());
-            service.mPhonePolicy.onRemoveBondRequest(device);
+            service.mPhonePolicy.ifPresent(policy -> policy.onRemoveBondRequest(device));
             deviceProp.setBondingInitiatedLocally(false);
 
             Message msg = service.mBondStateMachine.obtainMessage(BondStateMachine.REMOVE_BOND);
@@ -4439,6 +4451,26 @@ public class AdapterService extends Service {
             service.enforceCallingOrSelfPermission(BLUETOOTH_PRIVILEGED, null);
             return service.mDatabaseManager.isMicrophonePreferredForCalls(device);
         }
+
+        @Override
+        public boolean isLeCocSocketOffloadSupported(AttributionSource source) {
+            AdapterService service = getService();
+            if (service == null) {
+                return false;
+            }
+            service.enforceCallingOrSelfPermission(BLUETOOTH_PRIVILEGED, null);
+            return service.isLeCocSocketOffloadSupported();
+        }
+
+        @Override
+        public boolean isRfcommSocketOffloadSupported(AttributionSource source) {
+            AdapterService service = getService();
+            if (service == null) {
+                return false;
+            }
+            service.enforceCallingOrSelfPermission(BLUETOOTH_PRIVILEGED, null);
+            return service.isRfcommSocketOffloadSupported();
+        }
     }
 
     /**
@@ -4972,6 +5004,38 @@ public class AdapterService extends Service {
                 return address;
             }
         }
+    }
+
+    /**
+     * Returns the identity address and identity address type.
+     *
+     * @param address of remote device
+     * @return a {@link BluetoothDevice.BluetoothAddress} containing identity address and identity
+     *     address type
+     */
+    @NonNull
+    public BluetoothAddress getIdentityAddressWithType(@NonNull String address) {
+        BluetoothDevice device =
+                BluetoothAdapter.getDefaultAdapter().getRemoteDevice(Ascii.toUpperCase(address));
+        DeviceProperties deviceProp = mRemoteDevices.getDeviceProperties(device);
+
+        String identityAddress = null;
+        int identityAddressType = BluetoothDevice.ADDRESS_TYPE_UNKNOWN;
+
+        if (deviceProp != null) {
+            if (deviceProp.getIdentityAddress() != null) {
+                identityAddress = deviceProp.getIdentityAddress();
+            }
+            identityAddressType = deviceProp.getIdentityAddressType();
+        } else {
+            if (Flags.identityAddressNullIfNotKnown()) {
+                identityAddress = null;
+            } else {
+                identityAddress = address;
+            }
+        }
+
+        return new BluetoothAddress(identityAddress, identityAddressType);
     }
 
     private static class CallerInfo {
@@ -6201,11 +6265,8 @@ public class AdapterService extends Service {
         }
     }
 
-    /** Update PhonePolicy when new {@link BluetoothDevice} creates an ACL connection. */
-    public void updatePhonePolicyOnAclConnect(BluetoothDevice device) {
-        if (mPhonePolicy != null) {
-            mPhonePolicy.handleAclConnected(device);
-        }
+    void updatePhonePolicyOnAclConnect(BluetoothDevice device) {
+        mPhonePolicy.ifPresent(policy -> policy.handleAclConnected(device));
     }
 
     /**
@@ -6251,18 +6312,16 @@ public class AdapterService extends Service {
      */
     public void handleProfileConnectionStateChange(
             int profile, BluetoothDevice device, int fromState, int toState) {
-        if (mPhonePolicy != null) {
-            mPhonePolicy.profileConnectionStateChanged(profile, device, fromState, toState);
-        }
+        mPhonePolicy.ifPresent(
+                policy ->
+                        policy.profileConnectionStateChanged(profile, device, fromState, toState));
     }
 
     /** Handle Bluetooth app state when active device changes for a given {@code profile}. */
     public void handleActiveDeviceChange(int profile, BluetoothDevice device) {
         mActiveDeviceManager.profileActiveDeviceChanged(profile, device);
         mSilenceDeviceManager.profileActiveDeviceChanged(profile, device);
-        if (mPhonePolicy != null) {
-            mPhonePolicy.profileActiveDeviceChanged(profile, device);
-        }
+        mPhonePolicy.ifPresent(policy -> policy.profileActiveDeviceChanged(profile, device));
     }
 
     /** Notify MAP and Pbap when a new sdp search record is found. */
@@ -6747,14 +6806,14 @@ public class AdapterService extends Service {
     }
 
     /** Returns scan upgrade duration in millis. */
-    public long getScanUpgradeDurationMillis() {
+    public int getScanUpgradeDurationMillis() {
         synchronized (mDeviceConfigLock) {
             return mScanUpgradeDurationMillis;
         }
     }
 
     /** Returns scan downgrade duration in millis. */
-    public long getScanDowngradeDurationMillis() {
+    public int getScanDowngradeDurationMillis() {
         synchronized (mDeviceConfigLock) {
             return mScanDowngradeDurationMillis;
         }
@@ -6788,7 +6847,8 @@ public class AdapterService extends Service {
         }
     }
 
-    private class DeviceConfigListener implements DeviceConfig.OnPropertiesChangedListener {
+    @VisibleForTesting
+    public class DeviceConfigListener implements DeviceConfig.OnPropertiesChangedListener {
         private static final String LOCATION_DENYLIST_NAME = "location_denylist_name";
         private static final String LOCATION_DENYLIST_MAC = "location_denylist_mac";
         private static final String LOCATION_DENYLIST_ADVERTISING_DATA =
@@ -6818,9 +6878,15 @@ public class AdapterService extends Service {
 
         private static final int DEFAULT_SCAN_QUOTA_COUNT = 5;
         private static final long DEFAULT_SCAN_QUOTA_WINDOW_MILLIS = 30 * SECOND_IN_MILLIS;
-        private static final long DEFAULT_SCAN_TIMEOUT_MILLIS = 10 * MINUTE_IN_MILLIS;
-        private static final int DEFAULT_SCAN_UPGRADE_DURATION_MILLIS = (int) SECOND_IN_MILLIS * 6;
-        private static final int DEFAULT_SCAN_DOWNGRADE_DURATION_BT_CONNECTING_MILLIS =
+
+        @VisibleForTesting
+        public static final long DEFAULT_SCAN_TIMEOUT_MILLIS = 10 * MINUTE_IN_MILLIS;
+
+        @VisibleForTesting
+        public static final int DEFAULT_SCAN_UPGRADE_DURATION_MILLIS = (int) SECOND_IN_MILLIS * 6;
+
+        @VisibleForTesting
+        public static final int DEFAULT_SCAN_DOWNGRADE_DURATION_BT_CONNECTING_MILLIS =
                 (int) SECOND_IN_MILLIS * 6;
 
         public void start() {
@@ -7158,9 +7224,7 @@ public class AdapterService extends Service {
         for (int i = 0; i < uuids.length; i++) {
             Log.d(TAG, "sendUuidsInternal: index=" + i + " uuid=" + uuids[i]);
         }
-        if (mPhonePolicy != null) {
-            mPhonePolicy.onUuidsDiscovered(device, uuids);
-        }
+        mPhonePolicy.ifPresent(policy -> policy.onUuidsDiscovered(device, uuids));
     }
 
     //Delaying A2DP Disconnect
@@ -7213,5 +7277,27 @@ public class AdapterService extends Service {
         } catch (Exception e) {
             Log.e(TAG, "Error happened while removing contents: ", e);
         }
+    }
+
+    /** Get the number of the supported offloaded LE COC sockets. */
+    public int getNumberOfSupportedOffloadedLeCocSockets() {
+        return mAdapterProperties.getNumberOfSupportedOffloadedLeCocSockets();
+    }
+
+    /** Check if the offloaded LE COC socket is supported. */
+    public boolean isLeCocSocketOffloadSupported() {
+        int val = getNumberOfSupportedOffloadedLeCocSockets();
+        return val > 0;
+    }
+
+    /** Get the number of the supported offloaded RFCOMM sockets. */
+    public int getNumberOfSupportedOffloadedRfcommSockets() {
+        return mAdapterProperties.getNumberOfSupportedOffloadedRfcommSockets();
+    }
+
+    /** Check if the offloaded RFCOMM socket is supported. */
+    public boolean isRfcommSocketOffloadSupported() {
+        int val = getNumberOfSupportedOffloadedRfcommSockets();
+        return val > 0;
     }
 }

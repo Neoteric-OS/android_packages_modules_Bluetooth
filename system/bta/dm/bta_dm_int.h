@@ -384,9 +384,9 @@ void bta_dm_disable_timer_cback(void);
 void bta_dm_bredr_cleanup(void);
 void bta_dm_bredr_startup(void);
 
-namespace fmt {
+namespace std {
 template <>
 struct formatter<tBTA_DM_CONN_STATE> : enum_formatter<tBTA_DM_CONN_STATE> {};
-}  // namespace fmt
+}  // namespace std
 
 #endif /* BTA_DM_INT_H */

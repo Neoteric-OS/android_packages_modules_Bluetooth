@@ -183,7 +183,7 @@ void BluetoothAudioClientInterface::FetchAudioProvider() {
   }
 
   log::info("IBluetoothAudioProvidersFactory::openProvider() returned {}{}",
-            fmt::ptr(provider_.get()), (provider_->isRemote() ? " (remote)" : " (local)"));
+            std::format_ptr(provider_.get()), (provider_->isRemote() ? " (remote)" : " (local)"));
 }
 
 BluetoothAudioSinkClientInterface::BluetoothAudioSinkClientInterface(

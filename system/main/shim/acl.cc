@@ -123,16 +123,16 @@ struct hash<ConnectAddressWithType> {
 };
 }  // namespace std
 
-namespace fmt {
+namespace std {
 template <>
 struct formatter<ConnectAddressWithType> : formatter<std::string> {
   template <class Context>
   typename Context::iterator format(const ConnectAddressWithType& address, Context& ctx) const {
     std::string repr = address.ToRedactedStringForLogging();
-    return fmt::formatter<std::string>::format(repr, ctx);
+    return std::formatter<std::string>::format(repr, ctx);
   }
 };
-}  // namespace fmt
+}  // namespace std
 
 namespace {
 
@@ -1325,7 +1325,7 @@ void DumpsysNeighbor(int fd) {
                 (timestamper_in_milliseconds.GetTimestamp() -
                  btm_cb.neighbor.classic_inquiry.start_time_ms) /
                         1000.0,
-                btm_cb.neighbor.classic_inquiry.results);
+                (unsigned long)btm_cb.neighbor.classic_inquiry.results);
   }
   if (btm_cb.neighbor.le_scan.start_time_ms == 0) {
     LOG_DUMPSYS(fd, "Le scan:disabled");
@@ -1334,7 +1334,7 @@ void DumpsysNeighbor(int fd) {
             fd, "Le scan:enabled duration_s:%.3f results:%lu",
             (timestamper_in_milliseconds.GetTimestamp() - btm_cb.neighbor.le_scan.start_time_ms) /
                     1000.0,
-            btm_cb.neighbor.le_scan.results);
+            (unsigned long)btm_cb.neighbor.le_scan.results);
   }
   const auto copy = btm_cb.neighbor.inquiry_history_->Pull();
   LOG_DUMPSYS(fd, "Last %zu inquiry scans:", copy.size());
@@ -1343,8 +1343,9 @@ void DumpsysNeighbor(int fd) {
                 "  %s - %s duration_ms:%-5llu num_resp:%-2u"
                 " std:%-2u rssi:%-2u ext:%-2u %12s",
                 EpochMillisToString(it.entry.start_time_ms).c_str(),
-                EpochMillisToString(it.timestamp).c_str(), it.timestamp - it.entry.start_time_ms,
-                it.entry.num_resp, it.entry.resp_type[BTM_INQ_RESULT_STANDARD],
+                EpochMillisToString(it.timestamp).c_str(),
+                (unsigned long long)(it.timestamp - it.entry.start_time_ms), it.entry.num_resp,
+                it.entry.resp_type[BTM_INQ_RESULT_STANDARD],
                 it.entry.resp_type[BTM_INQ_RESULT_WITH_RSSI],
                 it.entry.resp_type[BTM_INQ_RESULT_EXTENDED],
                 btm_inquiry_cmpl_status_text(it.entry.status).c_str());

@@ -97,7 +97,7 @@ inline std::string smp_status_text(const tSMP_STATUS& status) {
   }
 }
 
-namespace fmt {
+namespace std {
 template <>
 struct formatter<tSMP_STATUS> : enum_formatter<tSMP_STATUS> {};
-}  // namespace fmt
+}  // namespace std

@@ -490,8 +490,9 @@ static void bta_dm_discover_name(const RawAddress& remote_bd_addr) {
   bta_dm_search_cb.peer_bdaddr = remote_bd_addr;
 
   log::verbose("name_discover_done = {} p_btm_inq_info 0x{} state = {}, transport={}",
-               bta_dm_search_cb.name_discover_done, fmt::ptr(bta_dm_search_cb.p_btm_inq_info),
-               bta_dm_search_get_state(), transport);
+               bta_dm_search_cb.name_discover_done,
+               std::format_ptr(bta_dm_search_cb.p_btm_inq_info), bta_dm_search_get_state(),
+               transport);
 
   if (bta_dm_search_cb.p_btm_inq_info) {
     log::verbose("appl_knows_rem_name {}", bta_dm_search_cb.p_btm_inq_info->appl_knows_rem_name);
@@ -748,7 +749,7 @@ constexpr size_t kSearchStateHistorySize = 50;
 constexpr char kTimeFormatString[] = "%Y-%m-%d %H:%M:%S";
 
 constexpr unsigned MillisPerSecond = 1000;
-std::string EpochMillisToString(long long time_ms) {
+std::string EpochMillisToString(uint64_t time_ms) {
   time_t time_sec = time_ms / MillisPerSecond;
   struct tm tm;
   localtime_r(&time_sec, &tm);

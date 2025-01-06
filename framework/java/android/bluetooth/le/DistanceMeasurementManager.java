@@ -12,6 +12,10 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
+ * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
 package android.bluetooth.le;
@@ -149,8 +153,10 @@ public final class DistanceMeasurementManager {
             cancellationSignal.setOnCancelListener(() -> session.stopSession());
 
             if (mSessionMap.containsKey(params.getDevice())) {
-                throw new IllegalStateException(
-                        params.getDevice().getAnonymizedAddress() + " already registered");
+                // throw new IllegalStateException(
+                //  params.getDevice().getAnonymizedAddress() + " already registered");
+            } else {
+                mSessionMap.put(params.getDevice(), session);
             }
 
             mSessionMap.put(params.getDevice(), session);
@@ -232,8 +238,10 @@ public final class DistanceMeasurementManager {
      *
      * <p>See: https://bluetooth.com/specifications/specs/core60-html/
      *
-     * @return the set of supported security levels, empty when Channel Sounding is not supported or
-     *     encounters an internal error.
+     * @return the set of supported security levels, empty when encounters an internal error.
+     * @throws UnsupportedOperationException if the {@link
+     *     android.content.pm.PackageManager#FEATURE_BLUETOOTH_LE_CHANNEL_SOUNDING} is not
+     *     supported.
      * @hide
      */
     @FlaggedApi(Flags.FLAG_CHANNEL_SOUNDING_25Q2_APIS)

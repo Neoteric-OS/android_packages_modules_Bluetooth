@@ -1682,9 +1682,10 @@ void l2c_enqueue_peer_data(tL2C_CCB* p_ccb, BT_HDR* p_buf) {
 
   if (p_ccb->xmit_hold_q == NULL) {
     log::error(
-            "empty queue: p_ccb = {} p_ccb->in_use = {} p_ccb->chnl_state = {} p_ccb->local_cid = "
-            "{} p_ccb->remote_cid = {}",
-            fmt::ptr(p_ccb), p_ccb->in_use, p_ccb->chnl_state, p_ccb->local_cid, p_ccb->remote_cid);
+            "empty queue: p_ccb = {} p_ccb->in_use = {} p_ccb->chnl_state = {} "
+            "p_ccb->local_cid = {} p_ccb->remote_cid = {}",
+            std::format_ptr(p_ccb), p_ccb->in_use, p_ccb->chnl_state, p_ccb->local_cid,
+            p_ccb->remote_cid);
   } else {
     fixed_queue_enqueue(p_ccb->xmit_hold_q, p_buf);
   }

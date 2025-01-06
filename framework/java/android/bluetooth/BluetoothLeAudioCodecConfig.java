@@ -47,6 +47,7 @@ public final class BluetoothLeAudioCodecConfig implements Parcelable {
             prefix = "SOURCE_CODEC_TYPE_",
             value = {
                 SOURCE_CODEC_TYPE_LC3,
+                SOURCE_CODEC_TYPE_OPUS,
                 SOURCE_CODEC_TYPE_APTX_ADAPTIVE_LE,
                 SOURCE_CODEC_TYPE_INVALID,
                 SOURCE_CODEC_TYPE_APTX_ADAPTIVE_R4,
@@ -57,20 +58,23 @@ public final class BluetoothLeAudioCodecConfig implements Parcelable {
 
     public static final int SOURCE_CODEC_TYPE_LC3 = 0;
 
+    @FlaggedApi(Flags.FLAG_LEAUDIO_ADD_OPUS_CODEC_TYPE)
+    public static final int SOURCE_CODEC_TYPE_OPUS = 1;
+
     @SuppressLint("UnflaggedApi")
-    public static final int SOURCE_CODEC_TYPE_APTX_ADAPTIVE_LE = 1;
+    public static final int SOURCE_CODEC_TYPE_APTX_ADAPTIVE_LE = 2;
 
     public static final int SOURCE_CODEC_TYPE_INVALID = 1000 * 1000;
     /**
      * AptX Adaptive R4 Codec.
      * @hide
      */
-    public static final int SOURCE_CODEC_TYPE_APTX_ADAPTIVE_R4 = 2;
+    public static final int SOURCE_CODEC_TYPE_APTX_ADAPTIVE_R4 = 3;
     /**
      * Default Codec.
      * @hide
      */
-    public static final int SOURCE_CODEC_TYPE_DEFAULT = 3;
+    public static final int SOURCE_CODEC_TYPE_DEFAULT = 4;
 
     /** @hide */
     @IntDef(
@@ -468,6 +472,11 @@ public final class BluetoothLeAudioCodecConfig implements Parcelable {
             case SOURCE_CODEC_TYPE_DEFAULT:
                 return "DEFAULT";
             default:
+                if (Flags.leaudioAddOpusCodecType()) {
+                    if (mCodecType == SOURCE_CODEC_TYPE_OPUS) {
+                        return "Opus";
+                    }
+                }
                 break;
         }
         return "UNKNOWN CODEC(" + mCodecType + ")";

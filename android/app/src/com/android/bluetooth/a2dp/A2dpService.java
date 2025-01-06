@@ -60,7 +60,6 @@ import com.android.bluetooth.BluetoothStatsLog;
 import com.android.bluetooth.Utils;
 import com.android.bluetooth.btservice.ActiveDeviceManager;
 import com.android.bluetooth.btservice.AdapterService;
-import com.android.bluetooth.btservice.AudioRoutingManager;
 import com.android.bluetooth.csip.CsipSetCoordinatorService;
 import com.android.bluetooth.btservice.MetricsLogger;
 import com.android.bluetooth.btservice.ProfileService;
@@ -1429,13 +1428,11 @@ public class A2dpService extends ProfileService {
         if (toState == BluetoothProfile.STATE_CONNECTED) {
             MetricsLogger.logProfileConnectionEvent(BluetoothMetricsProto.ProfileId.A2DP);
         }
-        if (!Flags.audioRoutingCentralization()) {
-            // Set the active device if only one connected device is supported and it was connected
-            if (toState == BluetoothProfile.STATE_CONNECTED && (mMaxConnectedAudioDevices == 1)) {
-                setActiveDevice(device);
-            }
-            // When disconnected, ActiveDeviceManager will call setActiveDevice(null)
+        // Set the active device if only one connected device is supported and it was connected
+        if (toState == BluetoothProfile.STATE_CONNECTED && (mMaxConnectedAudioDevices == 1)) {
+            setActiveDevice(device);
         }
+        // When disconnected, ActiveDeviceManager will call setActiveDevice(null)
 
         // Check if the device is disconnected - if unbond, remove the state machine
         if (toState == BluetoothProfile.STATE_DISCONNECTED) {
@@ -1573,11 +1570,6 @@ public class A2dpService extends ProfileService {
             A2dpService service = getServiceAndEnforceConnect(source);
             if (service == null) {
                 return false;
-            }
-            if (Flags.audioRoutingCentralization()) {
-                return ((AudioRoutingManager) service.getActiveDeviceManager())
-                        .activateDeviceProfile(device, BluetoothProfile.A2DP)
-                        .join();
             }
 
             if (device == null) {

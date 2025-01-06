@@ -42,14 +42,14 @@
 
 using namespace bluetooth;
 
-namespace fmt {
+namespace std {
 template <>
 struct formatter<tUIPC_EVENT> : enum_formatter<tUIPC_EVENT> {};
 template <>
 struct formatter<tHEARING_AID_CTRL_ACK> : enum_formatter<tHEARING_AID_CTRL_ACK> {};
 template <>
 struct formatter<tHEARING_AID_CTRL_CMD> : enum_formatter<tHEARING_AID_CTRL_CMD> {};
-}  // namespace fmt
+}  // namespace std
 
 namespace {
 #define CASE_RETURN_STR(const) \
@@ -437,7 +437,7 @@ void HearingAidAudioSource::DebugDump(int fd) {
          << stats.media_read_total_underflow_bytes
          << "\n    Last update time ago in ms (underflow)                  : "
          << (stats.media_read_last_underflow_us > 0
-                     ? (unsigned long long)(now_us - stats.media_read_last_underflow_us) / 1000
+                     ? (now_us - stats.media_read_last_underflow_us) / 1000
                      : 0)
          << std::endl;
   dprintf(fd, "%s", stream.str().c_str());
