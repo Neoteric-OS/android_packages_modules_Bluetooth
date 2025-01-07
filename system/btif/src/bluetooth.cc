@@ -880,7 +880,7 @@ static int set_event_filter_connection_setup_all_devices() {
   return BT_STATUS_SUCCESS;
 }
 
-static void dump(int fd, const char** arguments) {
+static void dump(int fd, const char** /*arguments*/) {
   log::debug("Started bluetooth dumpsys");
   btif_debug_conn_dump(fd);
   btif_debug_bond_event_dump(fd);
@@ -914,7 +914,7 @@ static void dump(int fd, const char** arguments) {
   DumpsysRecord(fd);
   L2CA_Dumpsys(fd);
   DumpsysBtm(fd);
-  bluetooth::shim::Dump(fd, arguments);
+  bluetooth::shim::Dump(fd);
   power_telemetry::GetInstance().Dumpsys(fd);
   log::debug("Finished bluetooth dumpsys");
 }

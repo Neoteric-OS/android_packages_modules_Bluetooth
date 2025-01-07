@@ -1311,7 +1311,11 @@ public final class Utils {
         long elapsedRealtime();
     }
 
-    public static final TimeProvider sSystemClock = new SystemClockTimeProvider();
+    private static final TimeProvider sSystemClock = new SystemClockTimeProvider();
+
+    public static TimeProvider getSystemClock() {
+        return sSystemClock;
+    }
 
     private static final class SystemClockTimeProvider implements TimeProvider {
         @Override

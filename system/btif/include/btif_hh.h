@@ -19,7 +19,6 @@
 #ifndef BTIF_HH_H
 #define BTIF_HH_H
 
-#include <base/strings/stringprintf.h>
 #include <bluetooth/log.h>
 #include <hardware/bluetooth.h>
 #include <hardware/bt_hh.h>
@@ -74,7 +73,7 @@ inline std::string btif_hh_status_text(const BTIF_HH_STATUS& status) {
     CASE_RETURN_TEXT(BTIF_HH_ENABLED);
     CASE_RETURN_TEXT(BTIF_HH_DISABLING);
     default:
-      return base::StringPrintf("UNKNOWN[%u]", status);
+      return std::format("UNKNOWN[{}]", static_cast<unsigned>(status));
   }
 }
 
@@ -133,7 +132,7 @@ typedef struct {
   btif_hh_added_device_t added_devices[BTIF_HH_MAX_ADDED_DEV];
   bool service_dereg_active;
 
-  std::list<tAclLinkSpec> pending_connections;
+  std::list<tAclLinkSpec> new_connection_requests;
 } btif_hh_cb_t;
 
 /*******************************************************************************

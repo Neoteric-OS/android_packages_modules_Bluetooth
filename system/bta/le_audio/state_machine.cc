@@ -1196,13 +1196,21 @@ public:
     }
 
     uint8_t data_path_id = bluetooth::hci::iso_manager::kIsoDataPathHci;
+    bluetooth::le_audio::types::LeAudioCodecId codec = {
+            .coding_format = bluetooth::hci::kIsoCodingFormatTransparent,
+            .vendor_company_id = 0x0000,
+            .vendor_codec_id = 0x0000};
     log::info("DSA mode used: {}", static_cast<int>(group->dsa_.mode));
     switch (group->dsa_.mode) {
       case DsaMode::ISO_HW:
         data_path_id = bluetooth::hci::iso_manager::kIsoDataPathPlatformDefault;
+        if (!com::android::bluetooth::flags::dsa_hw_transparent_codec()) {
+          codec = bluetooth::le_audio::types::kLeAudioCodecHeadtracking;
+        }
         break;
       case DsaMode::ISO_SW:
         data_path_id = bluetooth::hci::iso_manager::kIsoDataPathHci;
+        codec = bluetooth::le_audio::types::kLeAudioCodecHeadtracking;
         break;
       default:
         log::warn("Unexpected DsaMode: {}", static_cast<int>(group->dsa_.mode));
@@ -1224,11 +1232,9 @@ public:
     bluetooth::hci::iso_manager::iso_data_path_params param = {
             .data_path_dir = bluetooth::hci::iso_manager::kIsoDataPathDirectionOut,
             .data_path_id = data_path_id,
-            .codec_id_format = bluetooth::le_audio::types::kLeAudioCodecHeadtracking.coding_format,
-            .codec_id_company =
-                    bluetooth::le_audio::types::kLeAudioCodecHeadtracking.vendor_company_id,
-            .codec_id_vendor =
-                    bluetooth::le_audio::types::kLeAudioCodecHeadtracking.vendor_codec_id,
+            .codec_id_format = codec.coding_format,
+            .codec_id_company = codec.vendor_company_id,
+            .codec_id_vendor = codec.vendor_codec_id,
             .controller_delay = 0x00000000,
             .codec_conf = std::vector<uint8_t>(),
     };
@@ -1343,8 +1349,7 @@ public:
     log::assert_that(ase != nullptr,
                      "shouldn't be called without an active ASE, device {}, "
                      "group id: {}, cis handle 0x{:04x}",
-                     ADDRESS_TO_LOGGABLE_CSTR(leAudioDevice->address_), event->cig_id,
-                     event->cis_conn_hdl);
+                     leAudioDevice->address_, event->cig_id, event->cis_conn_hdl);
 
     PrepareAndSendReceiverStartReady(leAudioDevice, ase);
   }
@@ -1353,8 +1358,8 @@ public:
     tGATT_WRITE_TYPE write_type = GATT_WRITE_NO_RSP;
 
     if (value.size() > (leAudioDevice->mtu_ - 3)) {
-      log::warn("{}, using long write procedure ({} > {})", leAudioDevice->address_,
-                static_cast<int>(value.size()), leAudioDevice->mtu_ - 3);
+      log::warn("{}, using long write procedure ({} > {})", leAudioDevice->address_, value.size(),
+                leAudioDevice->mtu_ - 3);
 
       /* Note, that this type is actually LONG WRITE.
        * Meaning all the Prepare Writes plus Execute is handled in the stack
@@ -3456,9 +3461,9 @@ private:
 
     switch (ase->state) {
       case AseState::BTA_LE_AUDIO_ASE_STATE_DISABLING:
-      case AseState::BTA_LE_AUDIO_ASE_STATE_CODEC_CONFIGURED:
-      case AseState::BTA_LE_AUDIO_ASE_STATE_QOS_CONFIGURED: {
-        SetAseState(leAudioDevice, ase, AseState::BTA_LE_AUDIO_ASE_STATE_RELEASING);
+      case AseState::BTA_LE_AUDIO_ASE_STATE_CODEC_CONFIGURED: {
+        SetAseState(leAudioDevice, ase,
+                    AseState::BTA_LE_AUDIO_ASE_STATE_RELEASING);
 
         if (group->HaveAllActiveDevicesAsesTheSameState(
                     AseState::BTA_LE_AUDIO_ASE_STATE_RELEASING)) {
@@ -3493,6 +3498,7 @@ private:
         }
         break;
       }
+      case AseState::BTA_LE_AUDIO_ASE_STATE_QOS_CONFIGURED:
       case AseState::BTA_LE_AUDIO_ASE_STATE_STREAMING: {
         SetAseState(leAudioDevice, ase, AseState::BTA_LE_AUDIO_ASE_STATE_RELEASING);
 

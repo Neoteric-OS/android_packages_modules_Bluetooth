@@ -24,7 +24,6 @@
 
 #define LOG_TAG "l2c_ble"
 
-#include <base/strings/stringprintf.h>
 #include <bluetooth/log.h>
 #include <com_android_bluetooth_flags.h>
 
@@ -89,6 +88,15 @@ hci_role_t L2CA_GetBleConnRole(const RawAddress& bd_addr) {
   return p_lcb->LinkRole();
 }
 
+uint16_t L2CA_GetBleConnInterval(const RawAddress& bd_addr) {
+  tL2C_LCB* p_lcb = l2cu_find_lcb_by_bd_addr(bd_addr, BT_TRANSPORT_LE);
+  if (p_lcb == nullptr) {
+    log::error("lcb for {} is not available", bd_addr);
+    return 0;
+  }
+  return p_lcb->ConnInterval();
+}
+
 /*******************************************************************************
  *
  * Function l2cble_notify_le_connection
@@ -108,10 +116,10 @@ void l2cble_notify_le_connection(const RawAddress& bda) {
   if (get_btm_client_interface().peer.BTM_IsAclConnectionUp(bda, BT_TRANSPORT_LE) &&
       p_lcb->link_state != LST_CONNECTED) {
     /* update link status */
+    p_lcb->link_state = LST_CONNECTED;
     // TODO Move this back into acl layer
     btm_establish_continue_from_address(bda, BT_TRANSPORT_LE);
-    /* update l2cap link status and send callback */
-    p_lcb->link_state = LST_CONNECTED;
+    /* send callback */
     l2cu_process_fixed_chnl_resp(p_lcb);
   }
 
@@ -172,6 +180,7 @@ bool l2cble_conn_comp(uint16_t handle, tHCI_ROLE role, const RawAddress& bda,
   /* update link parameter, set peripheral link as non-spec default upon link up
    */
   p_lcb->min_interval = p_lcb->max_interval = conn_interval;
+  p_lcb->SetConnInterval(conn_interval);
   p_lcb->timeout = conn_timeout;
   p_lcb->latency = conn_latency;
   p_lcb->conn_update_mask = L2C_BLE_NOT_DEFAULT_PARAM;
@@ -1152,7 +1161,7 @@ void l2cble_process_data_length_change_event(uint16_t handle, uint16_t tx_data_l
               "{}",
               p_lcb->remote_bd_addr, p_lcb->tx_data_len, tx_data_len);
       BTM_LogHistory(kBtmLogTag, p_lcb->remote_bd_addr, "LE Data length change",
-                     base::StringPrintf("tx_octets:%hu => %hu", p_lcb->tx_data_len, tx_data_len));
+                     std::format("tx_octets:{} => {}", p_lcb->tx_data_len, tx_data_len));
       p_lcb->tx_data_len = tx_data_len;
     } else {
       log::debug(

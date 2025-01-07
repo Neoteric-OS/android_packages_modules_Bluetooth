@@ -21,7 +21,6 @@
 #include "btif/include/btif_av.h"
 
 #include <base/functional/bind.h>
-#include <base/strings/stringprintf.h>
 #include <bluetooth/log.h>
 #include <com_android_bluetooth_flags.h>
 #include <frameworks/proto_logging/stats/enums/bluetooth/a2dp/enums.pb.h>
@@ -1146,7 +1145,7 @@ std::string BtifAvPeer::FlagsToString() const {
     result = "None";
   }
 
-  return base::StringPrintf("0x%x(%s)", flags_, result.c_str());
+  return std::format("0x{:x}({})", flags_, result);
 }
 
 bt_status_t BtifAvPeer::Init() {
@@ -2905,7 +2904,7 @@ static void btif_av_source_initiate_av_open_timer_timeout(void* data) {
   BtifAvPeer* peer = reinterpret_cast<BtifAvPeer*>(data);
   bool device_connected = false;
 
-  if (com::android::bluetooth::flags::avrcp_connect_a2dp_with_delay() && is_new_avrcp_enabled()) {
+  if (is_new_avrcp_enabled()) {
     // check if device is connected
     if (bluetooth::avrcp::AvrcpService::Get() != nullptr) {
       device_connected =
