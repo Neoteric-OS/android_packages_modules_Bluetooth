@@ -1852,6 +1852,8 @@ bool LeAudioDeviceGroup::ConfigureAses(
       required_device_cnt--;
     };
 
+    log::info("required_device_cnt: {}", required_device_cnt);
+
     // First use the devices claiming proper support
     for (auto* device = GetFirstDeviceWithAvailableContext(context_type);
          device != nullptr && required_device_cnt > 0;

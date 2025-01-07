@@ -2070,9 +2070,19 @@ public class BassClientService extends ProfileService {
                 for (int syncedBroadcast : syncedBroadcasts) {
                     addSelectSourceRequest(syncedBroadcast, true);
                 }
+                // when starting scan, clear the previously cached broadcast scan results
+                mCachedBroadcasts
+                        .keySet()
+                        .removeIf(
+                                key ->
+                                        !mPausedBroadcastIds.containsKey(key)
+                                                || !mPausedBroadcastIds
+                                                        .get(key)
+                                                        .equals(PauseType.SINK_UNINTENTIONAL));
+            } else {
+                // when starting scan, clear the previously cached broadcast scan results
+                mCachedBroadcasts.clear();
             }
-            // when starting scan, clear the previously cached broadcast scan results
-            mCachedBroadcasts.clear();
             // clear previous sources notify flag before scanning new result
             // this is to make sure the active sources are notified even if already synced
             if (mPeriodicAdvertisementResultMap != null) {
@@ -3070,13 +3080,12 @@ public class BassClientService extends ProfileService {
                 }
             }
         } else {
-            if (!isAllowedToAddSource()) {
-                Log.d(TAG, "Add source to pending list");
-                synchronized (mPendingAddSourcesLock) {
+            synchronized (mPendingAddSourcesLock) {
+                if (!isAllowedToAddSource()) {
+                    Log.d(TAG, "Add source to pending list");
                     mPendingAddSources.push(new AddSourceData(sink, sourceMetadata, isGroupOp));
+                    return;
                 }
-
-                return;
             }
         }
 

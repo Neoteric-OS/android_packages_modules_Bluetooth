@@ -242,7 +242,12 @@ bool BluetoothAudioClientInterface::UpdateAudioConfig(const AudioConfiguration& 
   bool is_leaudio_broadcast_offload_session =
           (transport_->GetSessionType() ==
            SessionType::LE_AUDIO_BROADCAST_HARDWARE_OFFLOAD_ENCODING_DATAPATH);
+
   auto audio_config_tag = audio_config.getTag();
+
+  log::info("SessionType- {} ", toString(transport_->GetSessionType()));
+  log::info("audio_config_tag- {} ", toString(audio_config_tag));
+
   bool is_software_audio_config =
           (is_software_session && audio_config_tag == AudioConfiguration::pcmConfig);
   bool is_a2dp_offload_audio_config =
@@ -258,6 +263,13 @@ bool BluetoothAudioClientInterface::UpdateAudioConfig(const AudioConfiguration& 
           (bta_ag_is_sco_managed_by_audio() &&
            transport_->GetSessionType() == SessionType::HFP_HARDWARE_OFFLOAD_DATAPATH &&
            audio_config_tag == AudioConfiguration::hfpConfig);
+
+  log::info(":is_software_audio_config: {}, is_a2dp_offload_audio_config: {},"
+            " is_hfp_offload_audio_config: {}, is_leaudio_unicast_offload_audio_config: {},"
+            " is_leaudio_broadcast_offload_audio_config: {}", is_software_audio_config,
+            is_a2dp_offload_audio_config, is_hfp_offload_audio_config,
+            is_leaudio_unicast_offload_audio_config, is_leaudio_broadcast_offload_audio_config);
+
   if (!is_software_audio_config && !is_a2dp_offload_audio_config &&
       !is_leaudio_unicast_offload_audio_config && !is_leaudio_broadcast_offload_audio_config &&
       !is_hfp_offload_audio_config) {
@@ -345,6 +357,7 @@ int BluetoothAudioClientInterface::StartSession() {
   std::unique_ptr<DataMQ> data_mq;
   DataMQDesc mq_desc;
 
+  log::info("Calling provider startSession");
   auto aidl_retval = provider_->startSession(stack_if, transport_->GetAudioConfiguration(),
                                              latency_modes_, &mq_desc);
   if (!aidl_retval.isOk()) {
@@ -371,11 +384,13 @@ int BluetoothAudioClientInterface::StartSession() {
               transport_->GetSessionType() == SessionType::HFP_HARDWARE_OFFLOAD_DATAPATH)) {
     transport_->ResetPresentationPosition();
     session_started_ = true;
+    log::info("session_started_: {}", session_started_);
     return 0;
   }
   if (data_mq_ && data_mq_->isValid()) {
     transport_->ResetPresentationPosition();
     session_started_ = true;
+    log::info("data_mq_ is valid, session_started_: {}", session_started_);
     return 0;
   } else {
     if (!data_mq_) {

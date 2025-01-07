@@ -716,7 +716,7 @@ void Device::TrackChangedNotificationResponse(uint8_t label, bool interim, std::
 }
 
 void Device::PlaybackStatusNotificationResponse(uint8_t label, bool interim, PlayStatus status) {
-  log::verbose("");
+  log::verbose("PlaybackStatusNotificationResponse, label:{}, interim:{}", label, interim);
   if (status.state == PlayState::PAUSED) {
     play_pos_update_cb_.Cancel();
   }
@@ -728,12 +728,36 @@ void Device::PlaybackStatusNotificationResponse(uint8_t label, bool interim, Pla
     return;
   }
 
+  log::verbose("status.state: {}", status.state);
   auto state_to_send = status.state;
   if (!IsActive()) {
     state_to_send = PlayState::PAUSED;
   }
   if (!interim && state_to_send == last_play_status_.state) {
     log::verbose("Not sending notification due to no state update {}", address_);
+    return;
+  }
+
+  log::verbose("last_play_status_.state: {}", last_play_status_.state);
+  if (interim && last_play_status_.state != state_to_send &&
+      (last_play_status_.state == PlayState::PAUSED ||
+       last_play_status_.state == PlayState::PLAYING)) {
+    log::verbose("playback Status has changed from last playstatus response");
+    auto lastresponse =
+       RegisterNotificationResponseBuilder::MakePlaybackStatusBuilder(
+         interim, last_play_status_.state);
+    send_message_cb_.Run(label, false, std::move(lastresponse));
+
+    last_play_status_.state = state_to_send;
+
+    log::verbose("Send new playback Status CHANGED");
+    auto newresponse =
+        RegisterNotificationResponseBuilder::MakePlaybackStatusBuilder(
+            false, IsActive() ? status.state : PlayState::PAUSED);
+    send_message_cb_.Run(label, false, std::move(newresponse));
+
+    active_labels_.erase(label);
+    play_status_changed_ = Notification(false, 0);
     return;
   }
 

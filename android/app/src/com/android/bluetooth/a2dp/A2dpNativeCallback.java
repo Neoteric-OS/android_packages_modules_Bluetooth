@@ -93,11 +93,10 @@ class A2dpNativeCallback {
         return enabled == BluetoothA2dp.OPTIONAL_CODECS_PREF_DISABLED;
     }
 
-    void OnMetadataUpdate(int context_type) {
+    @VisibleForTesting
+    void onMetadataUpdate(int context_type) {
         Log.w(TAG, "Context Type: " + context_type);
-        A2dpService service = A2dpService.getA2dpService();
-        if (service != null) {
-            service.setMetadataContext(context_type);
-        }
+
+        mA2dpService.setMetadataContext(context_type);
     }
 }

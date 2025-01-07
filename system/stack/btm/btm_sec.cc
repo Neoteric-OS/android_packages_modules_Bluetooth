@@ -1111,6 +1111,13 @@ bool BTM_SecIsSecurityPending(const RawAddress& bd_addr) {
                        p_dev_rec->sec_rec.le_link == tSECURITY_STATE::AUTHENTICATING);
 }
 
+bool BTM_SecIsLeSecurityPending(const RawAddress& bd_addr) {
+  tBTM_SEC_DEV_REC* p_dev_rec = btm_find_dev(bd_addr);
+  return p_dev_rec &&
+         (p_dev_rec->sec_rec.is_security_state_le_encrypting() ||
+          p_dev_rec->sec_rec.le_link == tSECURITY_STATE::AUTHENTICATING);
+}
+
 /*******************************************************************************
  * disconnect the ACL link, if it's not done yet.
  ******************************************************************************/
@@ -3044,14 +3051,15 @@ static bool btm_sec_auth_retry(uint16_t handle, uint8_t status) {
     btm_restore_mode();
     p_dev_rec->sm4 |= BTM_SM4_RETRY;
     p_dev_rec->sec_rec.sec_flags &= ~BTM_SEC_LINK_KEY_KNOWN;
-    log::verbose("Retry for missing key sm4:x{:x} sec_flags:0x{:x}", p_dev_rec->sm4,
-                 p_dev_rec->sec_rec.sec_flags);
+    log::verbose("Retry for missing key sm4:x{:x} sec_flags:0x{:x} sec_req_flags:0x{:x}",
+                 p_dev_rec->sm4, p_dev_rec->sec_rec.sec_flags, p_dev_rec->sec_rec.security_required);
 
     /* With BRCM controller, we do not need to delete the stored link key in
        controller.
        If the stack may sit on top of other controller, we may need this
        BTM_DeleteStoredLinkKey (bd_addr, NULL); */
     p_dev_rec->sec_rec.classic_link = tSECURITY_STATE::IDLE;
+    p_dev_rec->sec_rec.required_security_flags_for_pairing = p_dev_rec->sec_rec.security_required;
     btm_sec_execute_procedure(p_dev_rec);
     return true;
   }
@@ -3404,8 +3412,10 @@ void btm_sec_encrypt_change(uint16_t handle, tHCI_STATUS status, uint8_t encr_en
         /* BR/EDR is encrypted with LK that can be used to derive LE LTK */
         p_dev_rec->sec_rec.new_encryption_key_is_p256 = false;
 
-        log::verbose("start SM over BR/EDR");
-        SMP_BR_PairWith(p_dev_rec->bd_addr);
+        if (!interop_match_addr(INTEROP_DISABLE_OUTGOING_BR_SMP, &p_dev_rec->bd_addr)) {
+          log::verbose("start SM over BR/EDR");
+          SMP_BR_PairWith(p_dev_rec->bd_addr);
+        }
       }
     }
   }

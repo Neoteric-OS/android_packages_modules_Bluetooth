@@ -370,6 +370,8 @@ typedef enum {
   // Some HOGP devices requires MTU exchange be part of the initial setup to function.
   INTEROP_HOGP_FORCE_MTU_EXCHANGE,
 
+  INTEROP_DISABLE_OUTGOING_BR_SMP,
+
   END_OF_INTEROP_LIST
 } interop_feature_t;
 
