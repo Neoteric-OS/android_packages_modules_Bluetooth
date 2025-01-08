@@ -1617,7 +1617,9 @@ public class LeAudioService extends ProfileService {
      */
     public boolean isBroadcastPendingStart(int broadcastId) {
         boolean ret = (mBroadcastIdPendingStart.isPresent()
-                && mBroadcastIdPendingStart.get().equals(broadcastId));
+                && mBroadcastIdPendingStart.get().equals(broadcastId))
+                || (mCreateBroadcastTimeoutEvent != null
+                && mCreateBroadcastTimeoutEvent.mBroadcastId.equals(broadcastId));
         Log.d(TAG, "isBroadcastPendingStart " + ret);
         return ret;
     }
