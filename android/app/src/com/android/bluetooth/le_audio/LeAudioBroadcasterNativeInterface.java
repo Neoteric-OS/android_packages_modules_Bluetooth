@@ -137,6 +137,7 @@ public class LeAudioBroadcasterNativeInterface {
         LeAudioStackEvent event =
                 new LeAudioStackEvent(LeAudioStackEvent.EVENT_TYPE_BROADCAST_AUDIO_SESSION_CREATED);
 
+        event.device = getDevice(Utils.getBytesFromAddress("FF:FF:FF:FF:FF:FF"));
         event.valueBool1 = success;
         sendMessageToService(event);
     }
