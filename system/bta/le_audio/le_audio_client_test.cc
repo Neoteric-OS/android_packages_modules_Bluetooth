@@ -323,6 +323,10 @@ public:
   MOCK_METHOD((std::optional<::bluetooth::le_audio::set_configurations::AudioSetConfiguration>),
               GetUnicastConfig, (const CodecManager::UnicastConfigurationRequirements&),
               (const override));
+  MOCK_METHOD((::bluetooth::le_audio::types::VendorDataPathConfiguration),
+              GetVendorConfigureDataPathPayload,
+              ((std::vector<uint16_t>), (::bluetooth::le_audio::types::LeAudioContextType),
+              (bool), (bool)), (override));
   MOCK_METHOD((void), UpdateBroadcastAudioConfigToHal,
               (const ::bluetooth::le_audio::broadcast_offload_config&), (override));
   MOCK_METHOD((void), SuspendedForReconfiguration, (), (override));

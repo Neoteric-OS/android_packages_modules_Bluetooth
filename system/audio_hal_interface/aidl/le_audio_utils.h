@@ -69,6 +69,17 @@ GetAidlLeAudioDeviceCapabilitiesFromStackFormat(
                 ::aidl::android::hardware::bluetooth::audio::CodecSpecificConfigurationLtv>&
                 aidl_config_ltvs);
 
+::bluetooth::le_audio::types::VendorDataPathConfiguration
+GetStackConfigureDataPathPayloadFromAidlFormat(
+        ::aidl::android::hardware::bluetooth::audio::IBluetoothAudioProvider::
+        LeAudioDataPathConfigurationPair& dataPathConfig);
+
+const ::aidl::android::hardware::bluetooth::audio::
+                                    IBluetoothAudioProvider::StreamConfig
+         GetAidlConfigureDataPathPayloadFromStackFormat(
+             std::vector<uint16_t> conn_handles,
+             ::bluetooth::le_audio::types::LeAudioContextType context_type);
+
 ::bluetooth::le_audio::broadcaster::BroadcastSubgroupBisCodecConfig GetStackBisConfigFromAidlFormat(
         const ::aidl::android::hardware::bluetooth::audio::IBluetoothAudioProvider::
                 LeAudioSubgroupBisConfiguration& aidl_cfg,

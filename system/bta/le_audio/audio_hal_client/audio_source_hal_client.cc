@@ -87,6 +87,11 @@ public:
           const override;
   std::optional<::bluetooth::le_audio::set_configurations::AudioSetConfiguration> GetUnicastConfig(
           const CodecManager::UnicastConfigurationRequirements& requirements) const override;
+  ::bluetooth::le_audio::types::VendorDataPathConfiguration GetVendorConfigureDataPathPayload(
+               std::vector<uint16_t> conn_handles,
+               ::bluetooth::le_audio::types::LeAudioContextType context_type,
+               bool is_cis_dir_sink, bool is_cis_dir_source) override;
+
   void UpdateBroadcastAudioConfigToHal(
           const ::bluetooth::le_audio::broadcast_offload_config& config) override;
   void SuspendedForReconfiguration() override;
@@ -492,6 +497,23 @@ SourceImpl::GetUnicastConfig(
 
   log::info("");
   return halSinkInterface_->GetUnicastConfig(requirements);
+}
+
+::bluetooth::le_audio::types::VendorDataPathConfiguration
+SourceImpl::GetVendorConfigureDataPathPayload(
+             std::vector<uint16_t> conn_handles,
+             ::bluetooth::le_audio::types::LeAudioContextType context_type,
+             bool is_cis_dir_sink, bool is_cis_dir_source) {
+
+  ::bluetooth::le_audio::types::VendorDataPathConfiguration vdp = {};
+  if (halSinkInterface_ == nullptr) {
+    log::error("Audio HAL Audio sink is null!");
+    return vdp;
+  }
+
+  log::info("");
+  return halSinkInterface_->GetVendorConfigureDataPathPayload(
+                conn_handles, context_type, is_cis_dir_sink, is_cis_dir_source);
 }
 
 void SourceImpl::UpdateBroadcastAudioConfigToHal(

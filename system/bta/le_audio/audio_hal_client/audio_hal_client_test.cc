@@ -109,6 +109,11 @@ public:
               GetUnicastConfig,
               (const ::bluetooth::le_audio::CodecManager::UnicastConfigurationRequirements&),
               (const));
+  MOCK_METHOD((::bluetooth::le_audio::types::VendorDataPathConfiguration),
+              GetVendorConfigureDataPathPayload,
+              ((std::vector<uint16_t>), (::bluetooth::le_audio::types::LeAudioContextType),
+              (bool), (bool)));
+
   MOCK_METHOD((void), UpdateBroadcastAudioConfigToHal,
               (const ::bluetooth::le_audio::broadcast_offload_config&));
   MOCK_METHOD((size_t), Read, (uint8_t* p_buf, uint32_t len));
@@ -197,6 +202,15 @@ LeAudioClientInterface::Sink::GetUnicastConfig(
         const {
   return sink_mock->GetUnicastConfig(requirements);
 }
+::bluetooth::le_audio::types::VendorDataPathConfiguration
+LeAudioClientInterface::Sink::GetVendorConfigureDataPathPayload(
+             std::vector<uint16_t> conn_handles,
+             ::bluetooth::le_audio::types::LeAudioContextType context_type,
+             bool is_cis_dir_sink, bool is_cis_dir_source) {
+  return sink_mock->GetVendorConfigureDataPathPayload(conn_handles, context_type,
+                                                        is_cis_dir_sink, is_cis_dir_source);
+}
+
 void LeAudioClientInterface::Sink::SuspendedForReconfiguration() {}
 void LeAudioClientInterface::Sink::ReconfigurationComplete() {}
 
