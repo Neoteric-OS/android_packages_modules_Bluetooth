@@ -4180,7 +4180,7 @@ public class AdapterService extends Service {
             Set<Integer> eventCodesSet =
                     Arrays.stream(eventCodes).boxed().collect(Collectors.toSet());
             if (eventCodesSet.stream()
-                    .anyMatch((n) -> (n < 0) || (n >= 0x50 && n < 0x60) || (n > 0xff))) {
+                    .anyMatch((n) -> (n < 0) || (n >= 0x52 && n < 0x60) || (n > 0xff))) {
                 throw new IllegalArgumentException("invalid vendor-specific event code");
             }
 
@@ -4410,6 +4410,12 @@ public class AdapterService extends Service {
             }
             service.enforceCallingOrSelfPermission(BLUETOOTH_PRIVILEGED, null);
             return service.isRfcommSocketOffloadSupported();
+        }
+
+        @Override
+        public IBinder getBluetoothAdvertise() {
+            AdapterService service = getService();
+            return service == null ? null : service.getBluetoothAdvertise();
         }
     }
 
@@ -6148,6 +6154,11 @@ public class AdapterService extends Service {
         }
     }
 
+    @Nullable
+    IBinder getBluetoothAdvertise() {
+        return mGattService == null ? null : mGattService.getBluetoothAdvertise();
+    }
+
     @RequiresPermission(BLUETOOTH_CONNECT)
     void unregAllGattClient(AttributionSource source) {
         if (mGattService != null) {
@@ -6227,10 +6238,9 @@ public class AdapterService extends Service {
             Log.w(TAG, "GATT Service is not running!");
             return;
         }
-        if (Flags.scanManagerRefactor()) {
-            mScanController.notifyProfileConnectionStateChange(profile, fromState, toState);
-        } else {
-            mGattService.notifyProfileConnectionStateChange(profile, fromState, toState);
+        ScanController controller = getBluetoothScanController();
+        if (controller != null) {
+            controller.notifyProfileConnectionStateChange(profile, fromState, toState);
         }
     }
 
