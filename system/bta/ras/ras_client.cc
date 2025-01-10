@@ -46,6 +46,8 @@
 #include "types/bluetooth/uuid.h"
 #include "types/bt_transport.h"
 #include "types/raw_address.h"
+#include "stack/btm/btm_dev.h"
+#include "stack/btm/security_device_record.h"
 
 using namespace bluetooth;
 using namespace ::ras;
@@ -61,6 +63,12 @@ RasClientImpl* instance;
 enum CallbackDataType { VENDOR_SPECIFIC_REPLY };
 enum TimeoutType { TIMEOUT_NONE, FIRST_SEGMENT, FOLLOWING_SEGMENT, RANGING_DATA_READY };
 enum RangingType { RANGING_TYPE_NONE, REAL_TIME, ON_DEMAND };
+static constexpr uint16_t kCachedDataSize = 10;
+static constexpr uint16_t kInvalidGattHandle = 0x0000;
+static constexpr uint16_t kFirstSegmentRangingDataTimeoutMs = 5000;
+static constexpr uint16_t kFirstSegmentRangingDataTimeoutMs_lowpower = 10000;
+static constexpr uint16_t kFollowingSegmentTimeoutMs = 1000;
+static constexpr uint16_t kRangingDataReadyTimeoutMs = 5000;
 
 class RasClientImpl : public bluetooth::ras::RasClient {
   static constexpr uint16_t kCachedDataSize = 10;
@@ -518,7 +526,7 @@ public:
     value[2] = (uint8_t)((ranging_counter >> 8) & 0xFF);
     BTA_GATTC_WriteCharValue(tracker->conn_id_, characteristic->value_handle, GATT_WRITE_NO_RSP,
                              value, GATT_AUTH_REQ_NO_MITM, GattWriteCallback, nullptr);
-    SetTimeOutAlarm(tracker, kFirstSegmentRangingDataTimeoutMs, FIRST_SEGMENT);
+    SetTimeOutAlarm(tracker, kFirstSegmentRangingDataTimeoutMs, TimeoutType::FIRST_SEGMENT);
   }
 
   void AckRangingData(uint16_t ranging_counter, std::shared_ptr<RasTracker> tracker) {
@@ -790,7 +798,12 @@ public:
       log::info("Subscribe Real-time Ranging Data");
       tracker->ranging_type_ = REAL_TIME;
       SubscribeCharacteristic(tracker, kRasRealTimeRangingDataCharacteristic);
-      SetTimeOutAlarm(tracker, kFirstSegmentRangingDataTimeoutMs, TimeoutType::FIRST_SEGMENT);
+      tBTM_SEC_DEV_REC* p_dev_rec = btm_find_or_alloc_dev(tracker->address_);
+      if(p_dev_rec && (p_dev_rec->conn_params.peripheral_latency >= 2)) {
+        SetTimeOutAlarm(tracker, kFirstSegmentRangingDataTimeoutMs_lowpower, TimeoutType::FIRST_SEGMENT);
+      } else {
+        SetTimeOutAlarm(tracker, kFirstSegmentRangingDataTimeoutMs, TimeoutType::FIRST_SEGMENT);
+      }
     } else {
       log::info("Subscribe On-demand Ranging Data");
       tracker->ranging_type_ = ON_DEMAND;
