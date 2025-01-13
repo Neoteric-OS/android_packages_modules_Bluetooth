@@ -372,6 +372,9 @@ typedef enum {
 
   INTEROP_DISABLE_OUTGOING_BR_SMP,
 
+  // Some devices claim to support HFP in EIR but does not actually support it.
+  INTEROP_DISABLE_HF_PROFILE,
+
   END_OF_INTEROP_LIST
 } interop_feature_t;
 
