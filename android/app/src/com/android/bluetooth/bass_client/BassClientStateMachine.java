@@ -156,6 +156,7 @@ class BassClientStateMachine extends StateMachine {
     @VisibleForTesting BluetoothGattCharacteristic mBroadcastScanControlPoint;
     private final Map<Integer, Boolean> mFirstTimeBisDiscoveryMap;
     private int mPASyncRetryCounter = 0;
+    private boolean mBassStateReady = false;
     @VisibleForTesting int mNumOfBroadcastReceiverStates = 0;
     int mNumOfReadyBroadcastReceiverStates = 0;
     @VisibleForTesting int mPendingOperation = -1;
@@ -1262,6 +1263,7 @@ class BassClientStateMachine extends StateMachine {
             if (leaudioBroadcastResyncHelper()) {
                 // Notify service BASS state ready for operations
                 mService.getCallbacks().notifyBassStateReady(mDevice);
+                mBassStateReady = true;
             }
             if (mBluetoothLeBroadcastReceiveStates.size() == mNumOfBroadcastReceiverStates) {
                 log("The last receive state");
@@ -1626,6 +1628,7 @@ class BassClientStateMachine extends StateMachine {
                                     + status
                                     + "mBluetoothGatt"
                                     + mBluetoothGatt);
+                    mService.getCallbacks().notifyBassStateSetupFailed(mDevice);
                 }
             } else {
                 log("remote initiated callback");
@@ -1653,6 +1656,7 @@ class BassClientStateMachine extends StateMachine {
                     if (mNumOfReadyBroadcastReceiverStates == mNumOfBroadcastReceiverStates) {
                         // Notify service BASS state ready for operations
                         mService.getCallbacks().notifyBassStateReady(mDevice);
+                        mBassStateReady = true;
                     }
                 } else {
                     processBroadcastReceiverStateObsolete(
@@ -1697,6 +1701,9 @@ class BassClientStateMachine extends StateMachine {
             if (status == BluetoothGatt.GATT_SUCCESS) {
                 Log.d(TAG, "mtu: " + mtu);
                 mMaxSingleAttributeWriteValueLen = mtu - ATT_WRITE_CMD_HDR_LEN;
+            } else {
+                Log.w(TAG, "onMtuChanged failed: " + status);
+                mService.getCallbacks().notifyBassStateSetupFailed(mDevice);
             }
         }
 
@@ -1968,6 +1975,7 @@ class BassClientStateMachine extends StateMachine {
         }
         mPendingOperation = -1;
         mPendingMetadata = null;
+        mBassStateReady = false;
         mCurrentMetadata.clear();
         mPendingRemove.clear();
     }
@@ -2970,6 +2978,10 @@ class BassClientStateMachine extends StateMachine {
 
     int getMaximumSourceCapacity() {
         return mNumOfBroadcastReceiverStates;
+    }
+
+    boolean isBassStateReady() {
+        return mBassStateReady;
     }
 
     BluetoothLeBroadcastMetadata getCurrentBroadcastMetadata(Integer sourceId) {
