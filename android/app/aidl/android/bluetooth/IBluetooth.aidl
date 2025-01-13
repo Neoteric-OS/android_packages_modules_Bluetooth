@@ -415,4 +415,7 @@ interface IBluetooth
 
     @JavaPassthrough(annotation="@android.annotation.RequiresNoPermission")
     IBinder getBluetoothAdvertise();
+
+    @JavaPassthrough(annotation="@android.annotation.RequiresNoPermission")
+    IBinder getDistanceMeasurement();
 }
