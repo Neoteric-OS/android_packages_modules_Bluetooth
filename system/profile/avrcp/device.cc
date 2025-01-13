@@ -30,7 +30,6 @@
 #include "device/include/interop.h"
 #include "internal_include/stack_config.h"
 #include "l2cdefs.h"
-#include "os/logging/log_adapter.h"
 #include "osi/include/properties.h"
 #include "packet/avrcp/avrcp_reject_packet.h"
 #include "packet/avrcp/general_reject_packet.h"

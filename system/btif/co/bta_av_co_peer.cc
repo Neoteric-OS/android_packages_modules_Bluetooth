@@ -28,9 +28,8 @@
 
 #include "bta/include/bta_av_api.h"
 #include "device/include/interop.h"
-#include "os/logging/log_adapter.h"
-#include "osi/include/properties.h"
 #include "hardware/bt_av.h"
+#include "osi/include/properties.h"
 #include "stack/include/a2dp_codec_api.h"
 #include "stack/include/avdt_api.h"
 #include "stack/include/bt_types.h"
@@ -188,7 +187,6 @@ BtaAvCoSep* BtaAvCoPeerCache::FindPeerSink(BtaAvCoPeer* p_peer, btav_a2dp_codec_
     return nullptr;
   }
 
-
   // Find the peer Sink for the codec
   for (size_t index = 0; index < p_peer->num_sup_sinks; index++) {
     BtaAvCoSep* p_sink = &p_peer->sinks[index];
@@ -200,42 +198,42 @@ BtaAvCoSep* BtaAvCoPeerCache::FindPeerSink(BtaAvCoPeer* p_peer, btav_a2dp_codec_
       log::warn("invalid codec index for peer {}", p_peer->addr);
       continue;
     }
-    if(codec_index == BTAV_A2DP_CODEC_INDEX_SOURCE_AAC) {
-      log::verbose("Remote AAC VBR cap is {}",p_sink->codec_caps[6]);
+    if (codec_index == BTAV_A2DP_CODEC_INDEX_SOURCE_AAC) {
+      log::verbose("Remote AAC VBR cap is {}", p_sink->codec_caps[6]);
       bool remote_vbr = (p_sink->codec_caps[6] >> 7) & 1;
       log::verbose("Checking if peer is in AAC WL");
       bool vbr_bl = false;
-      bool vbr_supp = osi_property_get_bool("persist.vendor.qcom.bluetooth.aac_vbr_ctl.enabled",
-                   true);
+      bool vbr_supp =
+              osi_property_get_bool("persist.vendor.qcom.bluetooth.aac_vbr_ctl.enabled", true);
       log::verbose("AAC VBR prop value is {}", vbr_supp);
       if (vbr_supp) {
-        if(remote_vbr) {
+        if (remote_vbr) {
           if (interop_match_addr(INTEROP_DISABLE_AAC_VBR_CODEC, &p_peer->addr)) {
             log::verbose("AAC VBR is not supported for this BL remote device");
             vbr_bl = true;
           }
         }
       }
-      if(remote_vbr) {
+      if (remote_vbr) {
         log::verbose("Remote supports AAC VBR");
         if (!vbr_bl) {
           log::verbose("AAC VBR is enabled, show AAC support in selectable capability");
         } else {
-           log::verbose("peer {}, checking in AAC BL", p_peer->addr.ToRedactedStringForLogging());
-           if (!bta_av_co_check_peer_eligible_for_aac_codec(p_peer)) {
-             log::verbose("peer {}, AAC not supported for this remote",
-                           p_peer->addr.ToRedactedStringForLogging());
-             return nullptr;
-           }
+          log::verbose("peer {}, checking in AAC BL", p_peer->addr.ToRedactedStringForLogging());
+          if (!bta_av_co_check_peer_eligible_for_aac_codec(p_peer)) {
+            log::verbose("peer {}, AAC not supported for this remote",
+                         p_peer->addr.ToRedactedStringForLogging());
+            return nullptr;
+          }
         }
       } else {
-         log::verbose("Remote does not support AAC VBR, check in AAC WL");
-         if (!bta_av_co_check_peer_eligible_for_aac_codec(p_peer)) {
-             log::verbose("peer {}, AAC not supported for this remote",
-                           p_peer->addr.ToRedactedStringForLogging());
-             return nullptr;
-         }
-     }
+        log::verbose("Remote does not support AAC VBR, check in AAC WL");
+        if (!bta_av_co_check_peer_eligible_for_aac_codec(p_peer)) {
+          log::verbose("peer {}, AAC not supported for this remote",
+                       p_peer->addr.ToRedactedStringForLogging());
+          return nullptr;
+        }
+      }
     }
     return p_sink;
   }
