@@ -22,7 +22,7 @@ sysprop_library {
     },
     apex_available: [
       "//apex_available:platform",
-      "com.android.btservices",
+      "com.android.bt",
     ],
 }
 
@@ -33,6 +33,6 @@ cc_library_static {
     export_include_dirs: ["exported_include"],
     export_static_lib_headers: ["libcom.android.sysprop.bluetooth"],
     visibility: ["//packages/modules/Bluetooth/system:__subpackages__"],
-    apex_available: ["com.android.btservices"],
+    apex_available: ["com.android.bt"],
     min_sdk_version: "Tiramisu",
 }

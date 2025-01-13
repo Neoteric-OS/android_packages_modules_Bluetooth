@@ -102,7 +102,7 @@ java_library {
     ],
     sdk_version: "system_server_current",
     min_sdk_version: "Tiramisu",
-    apex_available: ["com.android.btservices"],
+    apex_available: ["com.android.bt"],
     visibility: [":__subpackages__"],
 }
 
@@ -146,7 +146,7 @@ java_library {
 
     sdk_version: "system_server_current",
     min_sdk_version: "Tiramisu",
-    apex_available: ["com.android.btservices"],
+    apex_available: ["com.android.bt"],
 }
 
 java_library {
@@ -165,7 +165,7 @@ java_library {
 
     sdk_version: "system_current",
     min_sdk_version: "Tiramisu",
-    apex_available: ["com.android.btservices"],
+    apex_available: ["com.android.bt"],
 }
 
 //platform_compat_config
