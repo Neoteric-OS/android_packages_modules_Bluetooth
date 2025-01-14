@@ -887,6 +887,15 @@ public class GattService extends ProfileService {
             }
             service.disconnectAll(attributionSource);
         }
+
+        @Override
+        public void unregAll(AttributionSource attributionSource) {
+            GattService service = getService();
+            if (service == null) {
+                return;
+            }
+            service.unregAll(attributionSource);
+        }
     }
 
     /**************************************************************************
