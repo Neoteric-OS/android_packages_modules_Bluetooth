@@ -496,6 +496,7 @@ public class A2dpService extends ProfileService {
         synchronized (mActiveSwitchingGuard) {
             BluetoothDevice previousActiveDevice = null;
             synchronized (mStateMachines) {
+            Log.d(TAG," removeActiveDevice(): mActiveDevice: " + mActiveDevice);
                 if (mActiveDevice == null) return true;
                 previousActiveDevice = mActiveDevice;
                 mActiveDevice = null;
@@ -1183,7 +1184,6 @@ public class A2dpService extends ProfileService {
                 Log.e(TAG, "Callback called when LeAudioService is stopped");
                 return;
             }
-
             synchronized (mStateMachines) {
                 for (AudioDeviceInfo deviceInfo : removedDevices) {
                     if (deviceInfo.getType() != AudioDeviceInfo.TYPE_BLUETOOTH_A2DP) {
@@ -1196,7 +1196,6 @@ public class A2dpService extends ProfileService {
                     }
 
                     mExposedActiveDevice = null;
-
                     Log.d(
                             TAG,
                             " onAudioDevicesRemoved: "
