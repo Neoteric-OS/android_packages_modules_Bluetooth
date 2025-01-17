@@ -352,7 +352,7 @@ public:
         stream_setup_time_(0) {}
 
   void Init(int group_id, LeAudioContextType context_type, int num_of_devices) {
-    Reset();
+    Reset(bluetooth::groups::kGroupUnknown);
     group_id_ = group_id;
     context_type_ = context_type;
     num_of_devices_ = num_of_devices;
@@ -360,7 +360,13 @@ public:
                  ToString(context_type_), num_of_devices);
   }
 
-  void Reset(void) {
+  void Reset(int group_id) {
+    if (group_id != bluetooth::groups::kGroupUnknown && group_id != group_id_) {
+      log::verbose("StreamSpeedTracker Reset called for invalid group_id: {} != {}", group_id,
+                   group_id_);
+      return;
+    }
+
     log::verbose("StreamSpeedTracker group_id: {}", group_id_);
     is_started_ = false;
     group_id_ = bluetooth::groups::kGroupUnknown;
@@ -403,14 +409,15 @@ public:
                  ToString(context_type_), total_time_);
   }
 
-  bool IsStarted(void) {
-    if (is_started_) {
+  bool IsStarted(int group_id) {
+    if (is_started_ && group_id_ == group_id) {
       log::verbose("StreamSpeedTracker group_id: {}, {} is_started_: {} ", group_id_,
                    ToString(context_type_), is_started_);
-    } else {
-      log::verbose("StreamSpeedTracker not started ");
+      return true;
     }
-    return is_started_;
+    log::verbose("StreamSpeedTracker not started {} or group_id does not match ({} ! = {}) ",
+                 is_started_, group_id, group_id_);
+    return false;
   }
 
   void Dump(std::stringstream& stream) {
@@ -1616,11 +1623,7 @@ public:
        * before group activation (active group context would take care of
        * Sink HAL client cleanup).
        */
-      if (com::android::bluetooth::flags::leaudio_use_audio_recording_listener()) {
-        if (sink_monitor_mode_ && !enable) {
-          local_metadata_context_types_.sink.clear();
-        }
-      } else {
+      if (!com::android::bluetooth::flags::leaudio_use_audio_recording_listener()) {
         if (sink_monitor_mode_ && !enable && le_audio_sink_hal_client_ &&
             active_group_id_ == bluetooth::groups::kGroupUnknown) {
           local_metadata_context_types_.sink.clear();
@@ -2053,7 +2056,7 @@ public:
     /* If group become active while phone call, let's configure it right away,
      * so when audio framework resumes the stream, it will be almost there.
      */
-    if (IsInCall()) {
+    if (IsInCall() || IsInVoipCall()) {
       PrepareStreamForAConversational(group);
     }
   }
@@ -6499,9 +6502,9 @@ public:
 
   void speed_start_setup(int group_id, LeAudioContextType context_type, int num_of_connected,
                          bool is_reconfig = false) {
-    log::verbose("is_started {} is_reconfig {} num_of_connected {}", speed_tracker_.IsStarted(),
-                 is_reconfig, num_of_connected);
-    if (!speed_tracker_.IsStarted()) {
+    log::verbose("is_started {} is_reconfig {} num_of_connected {}",
+                 speed_tracker_.IsStarted(group_id), is_reconfig, num_of_connected);
+    if (!speed_tracker_.IsStarted(group_id)) {
       speed_tracker_.Init(group_id, context_type, num_of_connected);
     }
     if (is_reconfig) {
@@ -6511,26 +6514,27 @@ public:
     }
   }
 
-  void speed_stop_reconfig(void) {
+  void speed_stop_reconfig(int group_id) {
     log::verbose("");
-    if (!speed_tracker_.IsStarted()) {
+    if (!speed_tracker_.IsStarted(group_id)) {
       return;
     }
+
     speed_tracker_.ReconfigurationComplete();
   }
 
-  void speed_stream_created() {
+  void speed_stream_created(int group_id) {
     log::verbose("");
-    if (!speed_tracker_.IsStarted()) {
+    if (!speed_tracker_.IsStarted(group_id)) {
       return;
     }
 
     speed_tracker_.StreamCreated();
   }
 
-  void speed_stop_setup() {
+  void speed_stop_setup(int group_id) {
     log::verbose("");
-    if (!speed_tracker_.IsStarted()) {
+    if (!speed_tracker_.IsStarted(group_id)) {
       return;
     }
 
@@ -6540,7 +6544,7 @@ public:
 
     speed_tracker_.StopStreamSetup();
     stream_speed_history_.emplace_front(speed_tracker_);
-    speed_tracker_.Reset();
+    speed_tracker_.Reset(group_id);
   }
 
   void notifyGroupStreamStatus(int group_id, GroupStreamStatus groupStreamStatus) {
@@ -6595,7 +6599,7 @@ public:
      */
     CancelStreamingRequest();
     ReconfigurationComplete(previously_active_directions);
-    speed_stop_reconfig();
+    speed_stop_reconfig(active_group_id_);
   }
 
   void OnStateMachineStatusReportCb(int group_id, GroupStreamStatus status) {
@@ -6614,7 +6618,7 @@ public:
           return;
         }
 
-        speed_stream_created();
+        speed_stream_created(group_id);
         bluetooth::le_audio::MetricsCollector::Get()->OnStreamStarted(active_group_id_,
                                                                       configuration_context_type_);
 
@@ -6636,7 +6640,7 @@ public:
            * Just stop streaming
            */
           log::warn("Stopping stream for group {} as AF not interested.", group_id);
-          speed_stop_setup();
+          speed_stop_setup(group_id);
           groupStateMachine_->StopStream(group);
           return;
         }
@@ -6651,7 +6655,7 @@ public:
                   "reconfigure to {}",
                   ToString(group->GetConfigurationContextType()),
                   ToString(configuration_context_type_));
-          speed_stop_setup();
+          speed_stop_setup(group_id);
           initReconfiguration(group, group->GetConfigurationContextType());
           return;
         }
@@ -6673,11 +6677,11 @@ public:
           StartReceivingAudio(group_id);
         }
 
-        speed_stop_setup();
+        speed_stop_setup(group_id);
         break;
       }
       case GroupStreamStatus::SUSPENDED:
-        speed_tracker_.Reset();
+        speed_tracker_.Reset(group_id);
         /** Stop Audio but don't release all the Audio resources */
         SuspendAudio();
         break;
@@ -6821,7 +6825,7 @@ public:
           }
         }
 
-        speed_tracker_.Reset();
+        speed_tracker_.Reset(group_id);
 
         if (group) {
           NotifyUpperLayerGroupTurnedIdleDuringCall(group->group_id_);
