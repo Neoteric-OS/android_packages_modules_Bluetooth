@@ -2785,8 +2785,8 @@ protected:
 
     std::vector<::bluetooth::le_audio::btle_audio_codec_config_t> framework_encode_preference;
     BtaAppRegisterCallback app_register_callback;
-    EXPECT_CALL(mock_gatt_interface_, AppRegister(_, _, _))
-            .WillOnce(DoAll(SaveArg<0>(&gatt_callback), SaveArg<1>(&app_register_callback)));
+    EXPECT_CALL(mock_gatt_interface_, AppRegister(_, _, _, _))
+            .WillOnce(DoAll(SaveArg<1>(&gatt_callback), SaveArg<2>(&app_register_callback)));
     LeAudioClient::Initialize(
             &mock_audio_hal_client_callbacks_,
             base::Bind([](MockFunction<void()>* foo) { foo->Call(); }, &mock_storage_load),
@@ -2980,8 +2980,8 @@ TEST_F(UnicastTestNoInit, InitializeNoHal_2_1) {
   ON_CALL(mock_hal_2_1_verifier, Call()).WillByDefault([]() -> bool { return false; });
 
   BtaAppRegisterCallback app_register_callback;
-  ON_CALL(mock_gatt_interface_, AppRegister(_, _, _))
-          .WillByDefault(DoAll(SaveArg<0>(&gatt_callback), SaveArg<1>(&app_register_callback)));
+  ON_CALL(mock_gatt_interface_, AppRegister(_, _, _, _))
+          .WillByDefault(DoAll(SaveArg<1>(&gatt_callback), SaveArg<2>(&app_register_callback)));
   std::vector<::bluetooth::le_audio::btle_audio_codec_config_t> framework_encode_preference;
 
   EXPECT_DEATH(
@@ -3777,8 +3777,8 @@ TEST_F(UnicastTestNoInit, ConnectFailedDueToInvalidParameters) {
 
   // Initialize
   BtaAppRegisterCallback app_register_callback;
-  ON_CALL(mock_gatt_interface_, AppRegister(_, _, _))
-          .WillByDefault(DoAll(SaveArg<0>(&gatt_callback), SaveArg<1>(&app_register_callback)));
+  ON_CALL(mock_gatt_interface_, AppRegister(_, _, _, _))
+          .WillByDefault(DoAll(SaveArg<1>(&gatt_callback), SaveArg<2>(&app_register_callback)));
   LeAudioClient::Initialize(
           &mock_audio_hal_client_callbacks_,
           base::Bind([](MockFunction<void()>* foo) { foo->Call(); }, &mock_storage_load),
@@ -3885,8 +3885,8 @@ TEST_F(UnicastTestNoInit, LoadStoredEarbudsBroakenStorage) {
 
   // Initialize
   BtaAppRegisterCallback app_register_callback;
-  ON_CALL(mock_gatt_interface_, AppRegister(_, _, _))
-          .WillByDefault(DoAll(SaveArg<0>(&gatt_callback), SaveArg<1>(&app_register_callback)));
+  ON_CALL(mock_gatt_interface_, AppRegister(_, _, _, _))
+          .WillByDefault(DoAll(SaveArg<1>(&gatt_callback), SaveArg<2>(&app_register_callback)));
   LeAudioClient::Initialize(
           &mock_audio_hal_client_callbacks_,
           base::Bind([](MockFunction<void()>* foo) { foo->Call(); }, &mock_storage_load),
@@ -4029,8 +4029,8 @@ TEST_F(UnicastTestNoInit, LoadStoredEarbudsCsisGrouped) {
 
   // Initialize
   BtaAppRegisterCallback app_register_callback;
-  ON_CALL(mock_gatt_interface_, AppRegister(_, _, _))
-          .WillByDefault(DoAll(SaveArg<0>(&gatt_callback), SaveArg<1>(&app_register_callback)));
+  ON_CALL(mock_gatt_interface_, AppRegister(_, _, _, _))
+          .WillByDefault(DoAll(SaveArg<1>(&gatt_callback), SaveArg<2>(&app_register_callback)));
   LeAudioClient::Initialize(
           &mock_audio_hal_client_callbacks_,
           base::Bind([](MockFunction<void()>* foo) { foo->Call(); }, &mock_storage_load),
@@ -4148,8 +4148,8 @@ TEST_F(UnicastTest, LoadStoredBandedHeadphones) {
 
   // Re-Initialize & load from storage
   BtaAppRegisterCallback app_register_callback;
-  ON_CALL(mock_gatt_interface_, AppRegister(_, _, _))
-          .WillByDefault(DoAll(SaveArg<0>(&gatt_callback), SaveArg<1>(&app_register_callback)));
+  ON_CALL(mock_gatt_interface_, AppRegister(_, _, _, _))
+          .WillByDefault(DoAll(SaveArg<1>(&gatt_callback), SaveArg<2>(&app_register_callback)));
   std::vector<::bluetooth::le_audio::btle_audio_codec_config_t> framework_encode_preference;
   LeAudioClient::Initialize(
           &mock_audio_hal_client_callbacks_,
@@ -4281,8 +4281,8 @@ TEST_F(UnicastTestNoInit, ServiceChangedBeforeServiceIsConnected) {
 
   // Initialize
   BtaAppRegisterCallback app_register_callback;
-  ON_CALL(mock_gatt_interface_, AppRegister(_, _, _))
-          .WillByDefault(DoAll(SaveArg<0>(&gatt_callback), SaveArg<1>(&app_register_callback)));
+  ON_CALL(mock_gatt_interface_, AppRegister(_, _, _, _))
+          .WillByDefault(DoAll(SaveArg<1>(&gatt_callback), SaveArg<2>(&app_register_callback)));
   LeAudioClient::Initialize(
           &mock_audio_hal_client_callbacks_,
           base::Bind([](MockFunction<void()>* foo) { foo->Call(); }, &mock_storage_load),
@@ -4415,8 +4415,8 @@ TEST_F(UnicastTestNoInit, LoadStoredEarbudsCsisGroupedDifferently) {
 
   // Initialize
   BtaAppRegisterCallback app_register_callback;
-  ON_CALL(mock_gatt_interface_, AppRegister(_, _, _))
-          .WillByDefault(DoAll(SaveArg<0>(&gatt_callback), SaveArg<1>(&app_register_callback)));
+  ON_CALL(mock_gatt_interface_, AppRegister(_, _, _, _))
+          .WillByDefault(DoAll(SaveArg<1>(&gatt_callback), SaveArg<2>(&app_register_callback)));
   std::vector<::bluetooth::le_audio::btle_audio_codec_config_t> framework_encode_preference;
   LeAudioClient::Initialize(
           &mock_audio_hal_client_callbacks_,

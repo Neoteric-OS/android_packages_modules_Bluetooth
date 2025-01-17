@@ -53,6 +53,7 @@ using namespace bluetooth;
 using namespace ::ras;
 using namespace ::ras::feature;
 using namespace ::ras::uuid;
+using bluetooth::ras::RasDisconnectReason;
 using bluetooth::ras::VendorSpecificCharacteristic;
 
 namespace {
@@ -163,6 +164,7 @@ public:
       return;
     }
     BTA_GATTC_AppRegister(
+            "ranging_service",
             [](tBTA_GATTC_EVT event, tBTA_GATTC* p_data) {
               if (instance && p_data) {
                 instance->GattcCallback(event, p_data);
@@ -294,6 +296,8 @@ public:
 
     if (evt.status != GATT_SUCCESS) {
       log::error("Failed to connect to server device {}", evt.remote_bda);
+      callbacks_->OnDisconnected(tracker->address_for_cs_,
+                                 RasDisconnectReason::SERVER_NOT_AVAILABLE);
       return;
     }
     tracker->conn_id_ = evt.conn_id;
@@ -315,7 +319,7 @@ public:
       BTA_GATTC_Close(evt.conn_id);
       return;
     }
-    callbacks_->OnDisconnected(tracker->address_for_cs_);
+    callbacks_->OnDisconnected(tracker->address_for_cs_, RasDisconnectReason::GATT_DISCONNECT);
     trackers_.remove(tracker);
   }
 
@@ -345,6 +349,8 @@ public:
       return;
     } else if (!service_found) {
       log::error("Can't find Ranging Service in the services list");
+      callbacks_->OnDisconnected(tracker->address_for_cs_,
+                                 RasDisconnectReason::SERVER_NOT_AVAILABLE);
       return;
     } else {
       log::info("Found Ranging Service");
@@ -354,7 +360,10 @@ public:
 
     if (UseCachedData(tracker)) {
       log::info("Use cached data for Ras features and vendor specific characteristic");
-      SubscribeCharacteristic(tracker, kRasControlPointCharacteristic);
+      if (!SubscribeCharacteristic(tracker, kRasControlPointCharacteristic)) {
+        callbacks_->OnDisconnected(tracker->address_for_cs_,
+                                   RasDisconnectReason::SERVER_NOT_AVAILABLE);
+      }
       AllCharacteristicsReadComplete(tracker);
     } else {
       // Read Vendor Specific Uuid
@@ -377,6 +386,8 @@ public:
       auto characteristic = tracker->FindCharacteristicByUuid(kRasFeaturesCharacteristic);
       if (characteristic == nullptr) {
         log::error("Can not find Characteristic for Ras Features");
+        callbacks_->OnDisconnected(tracker->address_for_cs_,
+                                   RasDisconnectReason::SERVER_NOT_AVAILABLE);
         return;
       }
       BTA_GATTC_ReadCharacteristic(
@@ -387,7 +398,9 @@ public:
               },
               &gatt_read_callback_data_);
 
-      SubscribeCharacteristic(tracker, kRasControlPointCharacteristic);
+      if (!SubscribeCharacteristic(tracker, kRasControlPointCharacteristic)) {
+        callbacks_->OnDisconnected(tracker->address_for_cs_, RasDisconnectReason::FATAL_ERROR);
+      }
     }
   }
 
@@ -635,23 +648,23 @@ public:
     }
   }
 
-  void SubscribeCharacteristic(std::shared_ptr<RasTracker> tracker, const Uuid uuid) {
+  bool SubscribeCharacteristic(std::shared_ptr<RasTracker> tracker, const Uuid uuid) {
     auto characteristic = tracker->FindCharacteristicByUuid(uuid);
     if (characteristic == nullptr) {
       log::warn("Can't find characteristic 0x{:04x}", uuid.As16Bit());
-      return;
+      return false;
     }
     uint16_t ccc_handle = FindCccHandle(characteristic);
     if (ccc_handle == GAP_INVALID_HANDLE) {
       log::warn("Can't find Client Characteristic Configuration descriptor");
-      return;
+      return false;
     }
 
     tGATT_STATUS register_status = BTA_GATTC_RegisterForNotifications(gatt_if_, tracker->address_,
                                                                       characteristic->value_handle);
     if (register_status != GATT_SUCCESS) {
       log::error("Fail to register, {}", gatt_status_text(register_status));
-      return;
+      return false;
     }
 
     std::vector<uint8_t> value(2);
@@ -671,6 +684,7 @@ public:
               }
             },
             nullptr);
+    return true;
   }
 
   void UnsubscribeCharacteristic(std::shared_ptr<RasTracker> tracker, const Uuid uuid) {
@@ -797,7 +811,11 @@ public:
     if (tracker->remote_supported_features_ & feature::kRealTimeRangingData) {
       log::info("Subscribe Real-time Ranging Data");
       tracker->ranging_type_ = REAL_TIME;
-      SubscribeCharacteristic(tracker, kRasRealTimeRangingDataCharacteristic);
+      if (!SubscribeCharacteristic(tracker, kRasRealTimeRangingDataCharacteristic)) {
+        callbacks_->OnDisconnected(tracker->address_for_cs_,
+                                   RasDisconnectReason::SERVER_NOT_AVAILABLE);
+        return;
+      }
       tBTM_SEC_DEV_REC* p_dev_rec = btm_find_or_alloc_dev(tracker->address_);
       if(p_dev_rec && (p_dev_rec->conn_params.peripheral_latency >= 2)) {
         SetTimeOutAlarm(tracker, kFirstSegmentRangingDataTimeoutMs_lowpower, TimeoutType::FIRST_SEGMENT);
@@ -807,9 +825,13 @@ public:
     } else {
       log::info("Subscribe On-demand Ranging Data");
       tracker->ranging_type_ = ON_DEMAND;
-      SubscribeCharacteristic(tracker, kRasOnDemandDataCharacteristic);
-      SubscribeCharacteristic(tracker, kRasRangingDataReadyCharacteristic);
-      SubscribeCharacteristic(tracker, kRasRangingDataOverWrittenCharacteristic);
+      if (!SubscribeCharacteristic(tracker, kRasOnDemandDataCharacteristic) ||
+          !SubscribeCharacteristic(tracker, kRasRangingDataReadyCharacteristic) ||
+          !SubscribeCharacteristic(tracker, kRasRangingDataOverWrittenCharacteristic)) {
+        callbacks_->OnDisconnected(tracker->address_for_cs_,
+                                   RasDisconnectReason::SERVER_NOT_AVAILABLE);
+        return;
+      }
       SetTimeOutAlarm(tracker, kRangingDataReadyTimeoutMs, TimeoutType::RANGING_DATA_READY);
     }
     auto characteristic = tracker->FindCharacteristicByUuid(kRasRealTimeRangingDataCharacteristic);
