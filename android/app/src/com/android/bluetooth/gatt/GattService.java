@@ -343,7 +343,8 @@ public class GattService extends ProfileService {
             Log.d(
                     TAG,
                     "Binder is dead - unregistering client (" + mPackageName + " " + mAppIf + ")!");
-            unregisterClient(mAppIf, getAttributionSource());
+            unregisterClient(
+                    mAppIf, getAttributionSource(), ContextMap.RemoveReason.REASON_BINDER_DIED);
         }
     }
 
@@ -429,7 +430,8 @@ public class GattService extends ProfileService {
             if (service == null) {
                 return;
             }
-            service.unregisterClient(clientIf, attributionSource);
+            service.unregisterClient(
+                    clientIf, attributionSource, ContextMap.RemoveReason.REASON_UNREGISTER_CLIENT);
         }
 
         @Override
@@ -912,7 +914,7 @@ public class GattService extends ProfileService {
                 app.id = clientIf;
                 app.linkToDeath(new ClientDeathRecipient(clientIf, app.name));
             } else {
-                mClientMap.remove(uuid);
+                mClientMap.remove(uuid, ContextMap.RemoveReason.REASON_REGISTER_FAILED);
             }
             app.callback.onClientRegistered(status, clientIf);
         }
@@ -1562,7 +1564,8 @@ public class GattService extends ProfileService {
     public void unregAll(AttributionSource attributionSource) {
         for (Integer appId : mClientMap.getAllAppsIds()) {
             Log.d(TAG, "unreg:" + appId);
-            unregisterClient(appId, attributionSource);
+            unregisterClient(
+                    appId, attributionSource, ContextMap.RemoveReason.REASON_UNREGISTER_ALL);
         }
         for (Integer appId : mServerMap.getAllAppsIds()) {
             Log.d(TAG, "unreg:" + appId);
@@ -1602,7 +1605,8 @@ public class GattService extends ProfileService {
     }
 
     @RequiresPermission(BLUETOOTH_CONNECT)
-    void unregisterClient(int clientIf, AttributionSource attributionSource) {
+    void unregisterClient(
+            int clientIf, AttributionSource attributionSource, ContextMap.RemoveReason reason) {
         if (!Utils.checkConnectPermissionForDataDelivery(
                 this, attributionSource, "GattService unregisterClient")) {
             return;
@@ -1618,7 +1622,7 @@ public class GattService extends ProfileService {
                             BluetoothStatsLog.BLUETOOTH_CROSS_LAYER_EVENT_REPORTED__STATE__END,
                             attributionSource.getUid());
         }
-        mClientMap.remove(clientIf);
+        mClientMap.remove(clientIf, reason);
         mNativeInterface.gattClientUnregisterApp(clientIf);
     }
 
@@ -2732,7 +2736,7 @@ public class GattService extends ProfileService {
 
         deleteServices(serverIf);
 
-        mServerMap.remove(serverIf);
+        mServerMap.remove(serverIf, ContextMap.RemoveReason.REASON_UNREGISTER_SERVER);
         mNativeInterface.gattServerUnregisterApp(serverIf);
     }
 
