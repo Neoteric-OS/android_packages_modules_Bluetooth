@@ -346,6 +346,114 @@ GetAidlLeAudioDeviceCapabilitiesFromStackFormat(
   return stack_ltv;
 }
 
+::bluetooth::le_audio::types::VendorDataPathConfiguration
+GetStackConfigureDataPathPayloadFromAidlFormat(
+        ::aidl::android::hardware::bluetooth::audio::IBluetoothAudioProvider::
+        LeAudioDataPathConfigurationPair& dataPathConfig) {
+
+  log::debug("");
+  ::bluetooth::le_audio::types::VendorDataPathConfiguration dp = {};
+
+  /* Host to Controller data path */
+  auto sink_input_config = dataPathConfig.inputConfig;
+
+  /* Controller to Host data path */
+  auto source_output_config = dataPathConfig.outputConfig;
+
+  uint8_t len = 0;
+  if (sink_input_config.has_value() && source_output_config.has_value()) {
+    log::debug("both sink_input_config, source_output_config exist, push it");
+    auto dp_sink_config =
+       sink_input_config.value().dataPathConfiguration.configuration.value();
+    auto dp_source_config =
+       source_output_config.value().dataPathConfiguration.configuration.value();
+    //Need to check below
+    //dp = {dp_sink_config, dp_source_config};
+    dp.sinkdataPathConfig = dp_sink_config;
+
+    len = dp.sinkdataPathConfig.size();
+    log::debug(": sinkdataPathConfig size: {}", len);
+    for (uint8_t i = 0; i < len; i ++) {
+      log::debug(": dp.sinkdataPathConfig[{}]: {}", i, dp.sinkdataPathConfig[i]);
+    }
+
+    dp.sourcedataPathConfig = dp_source_config;
+
+    len = 0;
+    len = dp.sourcedataPathConfig.size();
+    log::debug(": sourcedataPathConfig size: {}", len);
+    for (uint8_t i = 0; i < len; i ++) {
+      log::debug(": dp.sourcedataPathConfig[{}]: {}", i, dp.sourcedataPathConfig[i]);
+    }
+
+    return dp;
+  }
+
+  if (sink_input_config.has_value()) {
+    log::debug("sink_input_config exist, push it");
+    auto dp_sink_config =
+           sink_input_config.value().dataPathConfiguration.configuration.value();
+    /*Todo below*/
+    //return dp_sink_config;
+    //dp.value().push_back(dp_sink_config);
+    dp.sinkdataPathConfig = dp_sink_config;
+
+    len = dp.sinkdataPathConfig.size();
+    log::debug(": sinkdataPathConfig size: {}", len);
+    for (uint8_t i = 0; i < len; i ++) {
+      log::debug(": dp.sinkdataPathConfig[{}]: {}", i, dp.sinkdataPathConfig[i]);
+    }
+  }
+
+  if (source_output_config.has_value()) {
+    log::debug("source_output_config exist, push it");
+    auto dp_source_config =
+           source_output_config.value().dataPathConfiguration.configuration.value();
+    /*Todo below*/
+    //return dp_source_config.configuration.value();
+    //dp.value().push_back(dp_source_config);
+    dp.sourcedataPathConfig = dp_source_config;
+
+    len = dp.sourcedataPathConfig.size();
+    log::debug(": sourcedataPathConfig size: {}", len);
+    for (uint8_t i = 0; i < len; i ++) {
+      log::debug(": dp.sourcedataPathConfig[{}]: {}", i, dp.sourcedataPathConfig[i]);
+    }
+  }
+  return dp;
+}
+
+const ::aidl::android::hardware::bluetooth::audio::
+                                    IBluetoothAudioProvider::StreamConfig
+GetAidlConfigureDataPathPayloadFromStackFormat(std::vector<uint16_t> conn_handles,
+                    ::bluetooth::le_audio::types::LeAudioContextType context_type) {
+
+  ::aidl::android::hardware::bluetooth::audio::
+                                      IBluetoothAudioProvider::StreamConfig cfg;
+
+  log::debug("");
+  //Re-check if required.
+  cfg.audioContext.bitmask = static_cast<uint16_t>(context_type);
+
+  log::debug("audioContext bitmask: {}", (unsigned)cfg.audioContext.bitmask);
+  log::debug("conn_handles size: {}", (unsigned)conn_handles.size());
+
+  for (uint8_t i = 0; i < (unsigned)conn_handles.size(); ++i) {
+    log::debug("conn_handles[{}]: {}", (unsigned)i, conn_handles[i]);
+    auto streamMap =
+     ::aidl::android::hardware::bluetooth::audio::LeAudioConfiguration::StreamMap();
+    streamMap.streamHandle = conn_handles[i];
+    cfg.streamMap.push_back(streamMap);
+  }
+
+  if (!cfg.streamMap.empty()) {
+    log::debug("return valid StreamConfig");
+  } else {
+    log::debug("not valid StreamConfig, return null");
+  }
+  return cfg;
+}
+
 ::bluetooth::le_audio::broadcaster::BroadcastSubgroupBisCodecConfig GetStackBisConfigFromAidlFormat(
         const ::aidl::android::hardware::bluetooth::audio::IBluetoothAudioProvider::
                 LeAudioSubgroupBisConfiguration& aidl_cfg,

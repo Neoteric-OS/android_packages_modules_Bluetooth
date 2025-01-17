@@ -43,6 +43,8 @@ using aidl::GetAidlLeAudioDeviceCapabilitiesFromStackFormat;
 using aidl::GetAidlLeAudioUnicastConfigurationRequirementsFromStackFormat;
 using aidl::GetStackBroadcastConfigurationFromAidlFormat;
 using aidl::GetStackUnicastConfigurationFromAidlFormat;
+using aidl::GetAidlConfigureDataPathPayloadFromStackFormat;
+using aidl::GetStackConfigureDataPathPayloadFromAidlFormat;
 
 namespace le_audio {
 
@@ -400,6 +402,38 @@ LeAudioClientInterface::Sink::GetUnicastConfig(
   }
   return GetStackUnicastConfigurationFromAidlFormat(requirements.audio_context_type,
                                                     aidl_configs.at(0));
+}
+
+::bluetooth::le_audio::types::VendorDataPathConfiguration
+LeAudioClientInterface::Sink::GetVendorConfigureDataPathPayload(
+       std::vector<uint16_t> conn_handles,
+       ::bluetooth::le_audio::types::LeAudioContextType context_type,
+       bool is_cis_dir_sink, bool is_cis_dir_source) {
+
+  log::debug(": context_type: {}, is_cis_dir_sink: {}, is_cis_dir_source: {}",
+                       (unsigned)context_type, is_cis_dir_sink, is_cis_dir_source);
+
+  auto aidl_sink_config = ::aidl::android::hardware::bluetooth::audio::
+                                      IBluetoothAudioProvider::StreamConfig();
+  auto aidl_source_config = ::aidl::android::hardware::bluetooth::audio::
+                                      IBluetoothAudioProvider::StreamConfig();
+
+  if (is_cis_dir_sink) {
+    aidl_sink_config =
+      GetAidlConfigureDataPathPayloadFromStackFormat(conn_handles, context_type);
+  }
+
+  if (is_cis_dir_source) {
+    aidl_source_config =
+      GetAidlConfigureDataPathPayloadFromStackFormat(conn_handles, context_type);
+  }
+
+  log::debug("Making an AIDL call to fetch configure datapath payload");
+  auto aidl_config_payload = get_aidl_client_interface(is_broadcaster_)
+                        ->getLeAudioAseDatapathConfiguration(aidl_sink_config,
+                                                              aidl_source_config);
+  //Todo valid check on aidl_config_payload
+  return GetStackConfigureDataPathPayloadFromAidlFormat(aidl_config_payload);
 }
 
 void LeAudioClientInterface::Sink::UpdateBroadcastAudioConfigToHal(

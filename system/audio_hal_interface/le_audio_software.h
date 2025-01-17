@@ -133,6 +133,11 @@ public:
     std::optional<::bluetooth::le_audio::set_configurations::AudioSetConfiguration>
     GetUnicastConfig(const ::bluetooth::le_audio::CodecManager::UnicastConfigurationRequirements&
                              requirements) const;
+    ::bluetooth::le_audio::types::VendorDataPathConfiguration
+           GetVendorConfigureDataPathPayload(
+                    std::vector<uint16_t> conn_handles,
+                    ::bluetooth::le_audio::types::LeAudioContextType context_type,
+                    bool is_cis_dir_sink, bool is_cis_dir_source);
 
   private:
     bool is_broadcaster_ = false;

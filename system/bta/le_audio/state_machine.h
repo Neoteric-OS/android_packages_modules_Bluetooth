@@ -46,6 +46,11 @@ public:
   static void Cleanup(void);
   static LeAudioGroupStateMachine* Get(void);
 
+  virtual bool UpdateActiveUnicastAudioHalClient(
+                                    LeAudioSourceAudioHalClient* source_unicast_client,
+                                    LeAudioSinkAudioHalClient* sink_unicast_client,
+                                    bool is_active) = 0;
+
   virtual bool AttachToStream(LeAudioDeviceGroup* group, LeAudioDevice* leAudioDevice,
                               types::BidirectionalPair<std::vector<uint8_t>> ccids) = 0;
   virtual bool StartStream(

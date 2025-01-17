@@ -55,6 +55,7 @@
 #include "osi/include/properties.h"
 #include "stack/include/btm_client_interface.h"
 #include "stack/include/hcimsgs.h"
+#include "audio_hal_client/audio_hal_client.h"
 #include "types/bt_transport.h"
 #include "types/raw_address.h"
 
@@ -264,6 +265,9 @@ using bluetooth::le_audio::types::CodecLocation;
 using bluetooth::le_audio::types::DataPathState;
 using bluetooth::le_audio::types::LeAudioContextType;
 using bluetooth::le_audio::types::LeAudioCoreCodecConfig;
+using bluetooth::le_audio::types::VendorDataPathConfiguration;
+using bluetooth::le_audio::LeAudioSourceAudioHalClient;
+using bluetooth::le_audio::LeAudioSinkAudioHalClient;
 
 void parseVSMetadata(uint8_t total_len, std::vector<uint8_t> metadata,
                      uint8_t cig_id, uint8_t cis_id, struct ase* ase) {
@@ -385,6 +389,63 @@ public:
     log_history_ = nullptr;
   }
 
+  bool UpdateActiveUnicastAudioHalClient(LeAudioSourceAudioHalClient* source_unicast_client,
+                                         LeAudioSinkAudioHalClient* sink_unicast_client,
+                                         bool is_active) {
+    log::debug("local_source: {}, local_sink: {}, is_active: {}", std::format_ptr(source_unicast_client),
+               std::format_ptr(sink_unicast_client), is_active);
+
+    if (source_unicast_client == nullptr && sink_unicast_client == nullptr) {
+      return false;
+    }
+
+    if (is_active) {
+      if (source_unicast_client && unicast_local_source_hal_client != nullptr) {
+        log::error("Trying to override previous source hal client {}",
+                   std::format_ptr(unicast_local_source_hal_client));
+        return false;
+      }
+
+      if (sink_unicast_client && unicast_local_sink_hal_client != nullptr) {
+        log::error("Trying to override previous sink hal client {}",
+                   std::format_ptr(unicast_local_sink_hal_client));
+        return false;
+      }
+
+      if (source_unicast_client) {
+        unicast_local_source_hal_client = source_unicast_client;
+      }
+
+      if (sink_unicast_client) {
+        unicast_local_sink_hal_client = sink_unicast_client;
+      }
+
+      return true;
+    }
+
+    if (source_unicast_client && source_unicast_client != unicast_local_source_hal_client) {
+      log::error("local source session does not match {} != {}", std::format_ptr(source_unicast_client),
+                 std::format_ptr(unicast_local_source_hal_client));
+      return false;
+    }
+
+    if (sink_unicast_client && sink_unicast_client != unicast_local_sink_hal_client) {
+      log::error("local source session does not match {} != {}", std::format_ptr(sink_unicast_client),
+                 std::format_ptr(unicast_local_sink_hal_client));
+      return false;
+    }
+
+    if (source_unicast_client) {
+      unicast_local_source_hal_client = nullptr;
+    }
+
+    if (sink_unicast_client) {
+      unicast_local_sink_hal_client = nullptr;
+    }
+
+    return true;
+  }
+
   bool AttachToStream(LeAudioDeviceGroup* group, LeAudioDevice* leAudioDevice,
                       BidirectionalPair<std::vector<uint8_t>> ccids) override {
     log::info("group id: {} device: {}", group->group_id_, leAudioDevice->address_);
@@ -397,6 +458,16 @@ public:
         group->GetTargetState() != AseState::BTA_LE_AUDIO_ASE_STATE_STREAMING) {
       log::error("Group {} is not streaming or is in transition, state: {}, target state: {}",
                  group->group_id_, ToString(group->GetState()), ToString(group->GetTargetState()));
+      return false;
+    }
+
+    /*Return false if device is not CONNECTED, it will
+     *retry AttachToStream after kDeviceAttachDelayMs.
+     */
+    if (leAudioDevice->GetConnectionState() !=
+                       bluetooth::le_audio::DeviceConnectState::CONNECTED) {
+      log::error("device: {}, in the state: {}", leAudioDevice->address_,
+          bluetooth::common::ToString(leAudioDevice->GetConnectionState()));
       return false;
     }
 
@@ -795,43 +866,81 @@ public:
      */
     bool config_host_to_controller_sent = false;
     bool config_controller_to_host_sent = false;
+    bool config_bi_directional_sent = false;
     /* Above flags to ensure HCI Config data path sent only once for Tx only
      * OR Rx only OR Tx/Rx both based on cis type direction
      */
     for (struct bluetooth::le_audio::types::cis& cis : group->cig.cises) {
-      if (cis.type == bluetooth::le_audio::types::CisType::CIS_TYPE_BIDIRECTIONAL) {
-        if (!config_host_to_controller_sent) {
+      if (!CodecManager::GetInstance()->IsUsingCodecExtensibility()) {
+        if (cis.type == bluetooth::le_audio::types::CisType::CIS_TYPE_BIDIRECTIONAL) {
+          if (!config_host_to_controller_sent) {
+            std::vector<uint8_t> vendor_config_sink = PrepareVendorConfigPayloadData(
+                    group, conn_handles, bluetooth::le_audio::types::kLeAudioDirectionSink);
+            GetInterface().ConfigureDataPath(hci_data_direction_t::HOST_TO_CONTROLLER,
+                                             kIsoDataPathPlatformDefault, vendor_config_sink);
+            config_host_to_controller_sent = true;
+          }
+          if (!config_controller_to_host_sent) {
+            std::vector<uint8_t> vendor_config_source = PrepareVendorConfigPayloadData(
+                    group, conn_handles, bluetooth::le_audio::types::kLeAudioDirectionSource);
+            GetInterface().ConfigureDataPath(hci_data_direction_t::CONTROLLER_TO_HOST,
+                                             kIsoDataPathPlatformDefault, vendor_config_source);
+            config_controller_to_host_sent = true;
+          }
+        } else if (cis.type == bluetooth::le_audio::types::CisType::CIS_TYPE_UNIDIRECTIONAL_SINK) {
+          if (config_host_to_controller_sent) {
+            continue;
+          }
           std::vector<uint8_t> vendor_config_sink = PrepareVendorConfigPayloadData(
                   group, conn_handles, bluetooth::le_audio::types::kLeAudioDirectionSink);
           GetInterface().ConfigureDataPath(hci_data_direction_t::HOST_TO_CONTROLLER,
                                            kIsoDataPathPlatformDefault, vendor_config_sink);
           config_host_to_controller_sent = true;
-        }
-        if (!config_controller_to_host_sent) {
+        } else {
+          if (config_controller_to_host_sent) {
+            continue;
+          }
           std::vector<uint8_t> vendor_config_source = PrepareVendorConfigPayloadData(
                   group, conn_handles, bluetooth::le_audio::types::kLeAudioDirectionSource);
           GetInterface().ConfigureDataPath(hci_data_direction_t::CONTROLLER_TO_HOST,
                                            kIsoDataPathPlatformDefault, vendor_config_source);
+          config_controller_to_host_sent = false;
+        }
+      } else {
+        log::warn(": Fetching vendor data for cis tyte: {}", cis.type);
+        if (cis.type == bluetooth::le_audio::types::CisType::CIS_TYPE_BIDIRECTIONAL) {
+          if (!config_bi_directional_sent) {
+            VendorDataPathConfiguration bidirection_vendor_config =
+              PrepareConfigureDataPathPayloadFromVendorHal(group, conn_handles, true, true);
+            std::vector<uint8_t> vendor_config_sink = bidirection_vendor_config.sinkdataPathConfig;
+            std::vector<uint8_t> vendor_config_source = bidirection_vendor_config.sourcedataPathConfig;
+            GetInterface().ConfigureDataPath(hci_data_direction_t::HOST_TO_CONTROLLER,
+                                             kIsoDataPathPlatformDefault, vendor_config_sink);
+            GetInterface().ConfigureDataPath(hci_data_direction_t::CONTROLLER_TO_HOST,
+                                             kIsoDataPathPlatformDefault, vendor_config_source);
+            config_bi_directional_sent = true;
+          }
+        } else if (cis.type == bluetooth::le_audio::types::CisType::CIS_TYPE_UNIDIRECTIONAL_SINK) {
+          if (config_host_to_controller_sent) {
+            continue;
+          }
+          VendorDataPathConfiguration sink_dir_vendor_config =
+            PrepareConfigureDataPathPayloadFromVendorHal(group, conn_handles, true, false);
+          std::vector<uint8_t> vendor_config_sink = sink_dir_vendor_config.sinkdataPathConfig;
+          GetInterface().ConfigureDataPath(hci_data_direction_t::HOST_TO_CONTROLLER,
+                                           kIsoDataPathPlatformDefault, vendor_config_sink);
+          config_host_to_controller_sent = true;
+        } else {
+          if (config_controller_to_host_sent) {
+            continue;
+          }
+          VendorDataPathConfiguration source_dir_vendor_config =
+            PrepareConfigureDataPathPayloadFromVendorHal(group, conn_handles, false, true);
+          std::vector<uint8_t> vendor_config_source = source_dir_vendor_config.sourcedataPathConfig;
+          GetInterface().ConfigureDataPath(hci_data_direction_t::CONTROLLER_TO_HOST,
+                                           kIsoDataPathPlatformDefault, vendor_config_source);
           config_controller_to_host_sent = true;
         }
-      } else if (cis.type == bluetooth::le_audio::types::CisType::CIS_TYPE_UNIDIRECTIONAL_SINK) {
-        if (config_host_to_controller_sent) {
-          continue;
-        }
-        std::vector<uint8_t> vendor_config_sink = PrepareVendorConfigPayloadData(
-                group, conn_handles, bluetooth::le_audio::types::kLeAudioDirectionSink);
-        GetInterface().ConfigureDataPath(hci_data_direction_t::HOST_TO_CONTROLLER,
-                                         kIsoDataPathPlatformDefault, vendor_config_sink);
-        config_host_to_controller_sent = true;
-      } else {
-        if (config_controller_to_host_sent) {
-          continue;
-        }
-        std::vector<uint8_t> vendor_config_source = PrepareVendorConfigPayloadData(
-                group, conn_handles, bluetooth::le_audio::types::kLeAudioDirectionSource);
-        GetInterface().ConfigureDataPath(hci_data_direction_t::CONTROLLER_TO_HOST,
-                                         kIsoDataPathPlatformDefault, vendor_config_source);
-        config_controller_to_host_sent = false;
       }
     }
     send_vs_cmd(static_cast<uint16_t>(group->GetConfigurationContextType()),
@@ -1597,6 +1706,9 @@ private:
   Callbacks* state_machine_callbacks_;
   alarm_t* watchdog_;
   LeAudioLogHistory* log_history_;
+  LeAudioSourceAudioHalClient* unicast_local_source_hal_client = nullptr;
+  LeAudioSinkAudioHalClient* unicast_local_sink_hal_client = nullptr;
+  //LeAudioSourceAudioHalClient* broadcast_local_source_hal_client = nullptr;
 
   /* This callback is called on timeout during transition to target state */
   void OnStateTransitionTimeout(int group_id) {
@@ -1984,8 +2096,10 @@ private:
         /* First is ase pair is Sink, second Source */
         auto ases_pair = leAudioDevice->GetAsesByCisConnHdl(ase->cis_conn_hdl);
 
-        /* Already in pending state - bi-directional CIS */
-        if (ase->cis_state == CisState::CONNECTING) {
+        /* Already in pending state - bi-directional CIS or second CIS to */
+        /* same device*/
+        if (ase->cis_state == CisState::CONNECTING ||
+            ase->cis_state == CisState::CONNECTED) {
           continue;
         }
 
@@ -2086,7 +2200,51 @@ private:
     }
   }
 
-  static std::vector<uint8_t> PrepareVendorConfigPayloadData(LeAudioDeviceGroup* group,
+  VendorDataPathConfiguration PrepareConfigureDataPathPayloadFromVendorHal(
+                                     LeAudioDeviceGroup* group,
+                                     std::vector<uint16_t> conn_handles,
+                                     bool is_cis_dir_sink, bool is_cis_dir_source) {
+
+    log::debug(": is_cis_dir_sink: {}, is_cis_dir_source: {}",
+                                     is_cis_dir_sink, is_cis_dir_source);
+
+    VendorDataPathConfiguration vendor_datapath_config = {};
+    auto context_type = group->GetConfigurationContextType();
+
+    if (CodecManager::GetInstance()->GetCodecLocation() == CodecLocation::HOST) {
+      LOG(INFO) << __func__ << "send empty payload for non-offload";
+      return vendor_datapath_config;
+    }
+
+    LeAudioDevice* leAudioDevice = group->GetFirstActiveDevice();
+    LOG_ASSERT(leAudioDevice) << __func__ << " Shouldn't be called without an active device.";
+
+    /*auto datapath_state = CisState::ASSIGNED;
+    auto ase = leAudioDevice->GetFirstActiveAseByCisAndDataPathState(datapath_state,
+                                                                     DataPathState::IDLE);
+    if (!ase) {
+      LOG(INFO) << __func__ << "Invalid datapath state " << datapath_state;
+      return vendor_datapath_config;
+    }
+
+    if (is_cis_dir_sink) {
+      ase = leAudioDevice->GetFirstActiveAseByDirection(bluetooth::le_audio::types::kLeAudioDirectionSink);
+      if (!ase) {
+        LOG(INFO) << __func__ << "Inactive ASE for direction " << direction;
+        return vendor_datapath_config;
+      }
+    }*/
+
+    auto hal_payload =
+      unicast_local_source_hal_client->GetVendorConfigureDataPathPayload(
+                      conn_handles, context_type, is_cis_dir_sink, is_cis_dir_source);
+    vendor_datapath_config.sinkdataPathConfig = hal_payload.sinkdataPathConfig;
+    vendor_datapath_config.sourcedataPathConfig = hal_payload.sourcedataPathConfig;
+
+    return vendor_datapath_config;
+  }
+
+  std::vector<uint8_t> PrepareVendorConfigPayloadData(LeAudioDeviceGroup* group,
                                                              std::vector<uint16_t> conn_handles,
                                                              uint8_t direction) {
     std::vector<uint8_t> vendor_datapath_config;
@@ -2741,7 +2899,9 @@ private:
           return;
         }
 
-        if (group->GetState() == AseState::BTA_LE_AUDIO_ASE_STATE_STREAMING) {
+        if (group->GetState() == AseState::BTA_LE_AUDIO_ASE_STATE_STREAMING ||
+            (group->GetTargetState() == AseState::BTA_LE_AUDIO_ASE_STATE_STREAMING &&
+                                       group->cig.GetState() == CigState::CREATED)) {
           /* We are here because of the reconnection of the single device. */
           PrepareAndSendEnable(leAudioDevice);
           return;

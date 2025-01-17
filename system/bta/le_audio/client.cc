@@ -1944,6 +1944,10 @@ public:
       auto result = CodecManager::GetInstance()->UpdateActiveUnicastAudioHalClient(
               le_audio_source_hal_client_.get(), le_audio_sink_hal_client_.get(), false);
       log::assert_that(result, "Could not update session to codec manager");
+
+      result = groupStateMachine_->UpdateActiveUnicastAudioHalClient(
+              le_audio_source_hal_client_.get(), le_audio_sink_hal_client_.get(), false);
+      log::assert_that(result, "Could not update session to state machine");
     }
 
     if (!le_audio_source_hal_client_) {
@@ -1967,6 +1971,11 @@ public:
     auto result = CodecManager::GetInstance()->UpdateActiveUnicastAudioHalClient(
             le_audio_source_hal_client_.get(), le_audio_sink_hal_client_.get(), true);
     log::assert_that(result, "Could not update session to codec manager");
+
+    result = groupStateMachine_->UpdateActiveUnicastAudioHalClient(
+            le_audio_source_hal_client_.get(), le_audio_sink_hal_client_.get(), true);
+    log::assert_that(result, "Could not update session to state machine");
+
 
     /* Mini policy: Try configure audio HAL sessions with most recent context.
      * If reconfiguration is not needed it means, context type is not supported.
@@ -6795,6 +6804,9 @@ public:
            */
           log::error("Internal state machine error");
           group->PrintDebugState();
+          if (group->GetState() != AseState::BTA_LE_AUDIO_ASE_STATE_IDLE) {
+            defer_notify_inactive_until_stop_ = true;
+          }
           groupSetAndNotifyInactive();
         }
 
@@ -6955,6 +6967,10 @@ private:
     auto result = CodecManager::GetInstance()->UpdateActiveUnicastAudioHalClient(
             le_audio_source_hal_client_.get(), le_audio_sink_hal_client_.get(), false);
     log::assert_that(result, "Could not update session to codec manager");
+
+    result = groupStateMachine_->UpdateActiveUnicastAudioHalClient(
+            le_audio_source_hal_client_.get(), le_audio_sink_hal_client_.get(), false);
+    log::assert_that(result, "Could not update session to state machine");
 
     if (le_audio_source_hal_client_) {
       le_audio_source_hal_client_->Stop();

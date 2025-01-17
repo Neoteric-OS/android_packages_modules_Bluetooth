@@ -1681,7 +1681,9 @@ public class LeAudioService extends ProfileService {
      */
     public boolean isBroadcastPendingStart(int broadcastId) {
         boolean ret = (mBroadcastIdPendingStart.isPresent()
-                && mBroadcastIdPendingStart.get().equals(broadcastId));
+                && mBroadcastIdPendingStart.get().equals(broadcastId))
+                || (mCreateBroadcastTimeoutEvent != null
+                && mCreateBroadcastTimeoutEvent.mBroadcastId.equals(broadcastId));
         Log.d(TAG, "isBroadcastPendingStart " + ret);
         return ret;
     }
@@ -4117,6 +4119,7 @@ public class LeAudioService extends ProfileService {
              */
             if (mAwaitingBroadcastCreateResponse && !areAllGroupsInNotActiveState()) {
                 /* Broadcast would be created once unicast group became inactive */
+                /*
                 Log.i(TAG, "Unicast group is active, deactivate due to pending broadcast");
 
                 if (!leaudioUseAudioRecordingListener()) {
@@ -4125,6 +4128,13 @@ public class LeAudioService extends ProfileService {
                 }
 
                 removeActiveDevice(true);
+                */
+
+                /* Notify Broadcast device active while broadcast audio session created*/
+                Log.i(TAG, "Notify Broadcast device active to Audio framework");
+                if (!device.equals(mActiveBroadcastAudioDevice)) {
+                   updateBroadcastActiveDevice(device, mActiveBroadcastAudioDevice, true);
+                }
             }
         } else if (stackEvent.type == LeAudioStackEvent.EVENT_TYPE_NATIVE_INITIALIZED) {
             mLeAudioNativeIsInitialized = true;
@@ -5022,7 +5032,8 @@ public class LeAudioService extends ProfileService {
                 if (isBroadcastReadyToBeReActivated()
                         && isAudioModeChangedFromCommunicationToNormal(
                                 previousAudioMode, mCurrentAudioMode)
-                        && (getActiveGroupId() == LE_AUDIO_GROUP_ID_INVALID)) {
+                        && (getActiveGroupId() == LE_AUDIO_GROUP_ID_INVALID)
+                        && mBroadcastIdDeactivatedForUnicastTransition.isPresent()) {
                     stopBroadcast(mBroadcastIdDeactivatedForUnicastTransition.get());
                     mBroadcastIdDeactivatedForUnicastTransition = Optional.empty();
                     break;

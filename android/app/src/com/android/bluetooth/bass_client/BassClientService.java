@@ -3067,7 +3067,8 @@ public class BassClientService extends ProfileService {
                     }
                 } else {
                     if (leAudioService == null
-                            || !leAudioService.isPlaying(sourceMetadata.getBroadcastId())) {
+                            || !(leAudioService.isPlaying(sourceMetadata.getBroadcastId())
+                                || leAudioService.isBroadcastPendingStart(sourceMetadata.getBroadcastId()))) {
                         Log.w(TAG, "addSource: Local source can't be add");
 
                         mCallbacks.notifySourceAddFailed(
