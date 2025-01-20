@@ -1312,6 +1312,8 @@ bool A2DP_CodecEquals(const uint8_t* p_codec_info_a, const uint8_t* p_codec_info
       return A2DP_VendorCodecEqualsAptx(p_codec_info_a, p_codec_info_b);
     case bluetooth::a2dp::CodecId::APTX_HD:
       return A2DP_VendorCodecEqualsAptxHd(p_codec_info_a, p_codec_info_b);
+    case bluetooth::a2dp::CodecId::APTX_AD:
+      return A2DP_VendorCodecEqualsAptxAdaptive(p_codec_info_a, p_codec_info_b);
     case bluetooth::a2dp::CodecId::LDAC:
       return A2DP_VendorCodecEqualsLdac(p_codec_info_a, p_codec_info_b);
     case bluetooth::a2dp::CodecId::OPUS:
@@ -1342,6 +1344,8 @@ int A2DP_GetTrackSampleRate(const uint8_t* p_codec_info) {
       return A2DP_VendorGetTrackSampleRateAptx(p_codec_info);
     case bluetooth::a2dp::CodecId::APTX_HD:
       return A2DP_VendorGetTrackSampleRateAptxHd(p_codec_info);
+    case bluetooth::a2dp::CodecId::APTX_AD:
+      return A2DP_VendorGetTrackSampleRateAptxAdaptive(p_codec_info);
     case bluetooth::a2dp::CodecId::LDAC:
       return A2DP_VendorGetTrackSampleRateLdac(p_codec_info);
     case bluetooth::a2dp::CodecId::OPUS:
@@ -1372,6 +1376,8 @@ int A2DP_GetTrackBitsPerSample(const uint8_t* p_codec_info) {
       return A2DP_VendorGetTrackBitsPerSampleAptx(p_codec_info);
     case bluetooth::a2dp::CodecId::APTX_HD:
       return A2DP_VendorGetTrackBitsPerSampleAptxHd(p_codec_info);
+    case bluetooth::a2dp::CodecId::APTX_AD:
+      return A2DP_VendorGetTrackBitsPerSampleAptxAdaptive(p_codec_info);
     case bluetooth::a2dp::CodecId::LDAC:
       return A2DP_VendorGetTrackBitsPerSampleLdac(p_codec_info);
     case bluetooth::a2dp::CodecId::OPUS:
@@ -1402,6 +1408,8 @@ int A2DP_GetTrackChannelCount(const uint8_t* p_codec_info) {
       return A2DP_VendorGetTrackChannelCountAptx(p_codec_info);
     case bluetooth::a2dp::CodecId::APTX_HD:
       return A2DP_VendorGetTrackChannelCountAptxHd(p_codec_info);
+    case bluetooth::a2dp::CodecId::APTX_AD:
+      return A2DP_VendorGetTrackChannelCountAptxAdaptive(p_codec_info);
     case bluetooth::a2dp::CodecId::LDAC:
       return A2DP_VendorGetTrackChannelCountLdac(p_codec_info);
     case bluetooth::a2dp::CodecId::OPUS:
@@ -1453,6 +1461,8 @@ bool A2DP_GetPacketTimestamp(const uint8_t* p_codec_info, const uint8_t* p_data,
       return A2DP_VendorGetPacketTimestampAptx(p_codec_info, p_data, p_timestamp);
     case bluetooth::a2dp::CodecId::APTX_HD:
       return A2DP_VendorGetPacketTimestampAptxHd(p_codec_info, p_data, p_timestamp);
+    case bluetooth::a2dp::CodecId::APTX_AD:
+      return A2DP_VendorGetPacketTimestampAptxAdaptive(p_codec_info, p_data, p_timestamp);
     case bluetooth::a2dp::CodecId::LDAC:
       return A2DP_VendorGetPacketTimestampLdac(p_codec_info, p_data, p_timestamp);
     case bluetooth::a2dp::CodecId::OPUS:
