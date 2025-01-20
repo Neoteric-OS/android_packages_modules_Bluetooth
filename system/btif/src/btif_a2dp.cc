@@ -74,6 +74,10 @@ bool btif_a2dp_on_started(const RawAddress& peer_addr, tBTA_AV_START* p_av_start
       log::warn("peer {} A2DP is suspending and ignores the started event", peer_addr);
       return false;
     }
+    if (bluetooth::audio::a2dp::is_offload_session_unknown()) {
+      log::error("session type is unkown");
+      return false;
+    }
     if (btif_av_is_a2dp_offload_running()) {
       btif_av_stream_start_offload();
     } else {
