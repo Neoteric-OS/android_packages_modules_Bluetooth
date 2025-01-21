@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 The Android Open Source Project
+ * Copyright (C) 2013 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,22 +14,9 @@
  * limitations under the License.
  */
 
-/*
- * Generated mock file from original source file
- *   Functions generated:14
- */
+package com.android.bluetooth.gatt
 
-#define LOG_TAG "bt_shim"
-
-#include "main/shim/shim.h"
-#include "test/common/mock_functions.h"
-
-namespace test {
-namespace mock {
-bool bluetooth_shim_is_gd_stack_started_up = false;
-}
-}  // namespace test
-bool bluetooth::shim::is_gd_stack_started_up() {
-  inc_func_call_count(__func__);
-  return test::mock::bluetooth_shim_is_gd_stack_started_up;
+object GattServiceConfig {
+    @JvmField val TAG_PREFIX = "BtGatt."
+    @JvmField val DEBUG_ADMIN = false
 }

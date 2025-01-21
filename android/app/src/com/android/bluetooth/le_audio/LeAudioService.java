@@ -2089,38 +2089,52 @@ public class LeAudioService extends ProfileService {
 
     private class AudioServerScanCallback extends IScannerCallback.Stub {
         // See BluetoothLeScanner.BleScanCallbackWrapper.mScannerId
-        int mScannerId = 0;
+        static final int SCANNER_NOT_INITIALIZED = -2;
+        static final int SCANNER_INITIALIZING = -1;
+        int mScannerId = SCANNER_NOT_INITIALIZED;
 
         synchronized void startBackgroundScan() {
-            if (mScannerId != 0) {
-                Log.d(TAG, "Scanner is already registered with id " + mScannerId);
+            if (mScannerId >= 0) {
+                Log.i(
+                        TAG,
+                        "startBackgroundScan: Scanner is already registered with id " + mScannerId);
                 return;
             }
+
+            if (mScannerId == SCANNER_INITIALIZING) {
+                Log.i(TAG, "startBackgroundScan: Scanner is already initializing");
+                return;
+            }
+
+            mScannerId = SCANNER_INITIALIZING;
+
             mAdapterService
                     .getBluetoothScanController()
-                    .getTransitionalScanHelper()
                     .registerScannerInternal(this, getAttributionSource(), null);
         }
 
         synchronized void stopBackgroundScan() {
-            if (mScannerId == 0) {
-                Log.d(TAG, "Scanner is already unregistered");
+            if (mScannerId < 0) {
+                Log.d(TAG, "Scanner is not running (mScannerId=" + mScannerId + ")");
                 return;
             }
             mAdapterService
                     .getBluetoothScanController()
-                    .getTransitionalScanHelper()
                     .stopScanInternal(mScannerId);
 
             mAdapterService
                     .getBluetoothScanController()
-                    .getTransitionalScanHelper()
                     .unregisterScannerInternal(mScannerId);
-            mScannerId = 0;
+            mScannerId = SCANNER_NOT_INITIALIZED;
         }
 
         @Override
         public synchronized void onScannerRegistered(int status, int scannerId) {
+            Log.d(TAG, "onScannerRegistered: status: " + status + ", id:" + scannerId);
+            if (status != 0) {
+                mScannerId = SCANNER_NOT_INITIALIZED;
+                return;
+            }
             mScannerId = scannerId;
 
             /* Filter we are building here will not match to anything.
@@ -2141,7 +2155,6 @@ public class LeAudioService extends ProfileService {
 
             mAdapterService
                     .getBluetoothScanController()
-                    .getTransitionalScanHelper()
                     .startScanInternal(scannerId, settings, List.of(filter));
         }
 
@@ -3069,7 +3082,7 @@ public class LeAudioService extends ProfileService {
             return false;
         }
 
-        return bassClientService.isAnyReceiverReceivingBroadcast(getGroupDevices(groupId));
+        return bassClientService.isAnyReceiverActive(getGroupDevices(groupId));
     }
 
     private void notifyGroupStreamStatusChanged(int groupId, int groupStreamStatus) {
@@ -3824,7 +3837,8 @@ public class LeAudioService extends ProfileService {
                             }
 
                             if (leaudioBigDependsOnAudioState()) {
-                                if (mAwaitingBroadcastCreateResponse) {
+                                if (mAwaitingBroadcastCreateResponse
+                                        && !Flags.leaudioBroadcastPrimaryGroupSelection()) {
                                     updateFallbackUnicastGroupIdForBroadcast(groupId);
                                 }
                             } else {
@@ -4217,11 +4231,6 @@ public class LeAudioService extends ProfileService {
                 return;
             }
 
-            if (descriptor.mGroupId != LE_AUDIO_GROUP_ID_INVALID) {
-                /* In case device is still in the group, let's remove it */
-                mNativeInterface.groupRemoveNode(descriptor.mGroupId, device);
-            }
-
             descriptor.mGroupId = LE_AUDIO_GROUP_ID_INVALID;
             descriptor.mSinkAudioLocation = BluetoothLeAudio.AUDIO_LOCATION_INVALID;
             descriptor.mDirection = AUDIO_DIRECTION_NONE;
@@ -4391,6 +4400,11 @@ public class LeAudioService extends ProfileService {
                             false,
                             hasFallbackDevice,
                             false);
+                    /* Set by default earliest connected device */
+                    if (Flags.leaudioBroadcastPrimaryGroupSelection()
+                            && mUnicastGroupIdDeactivatedForBroadcastTransition == groupId) {
+                        setDefaultBroadcastToUnicastFallbackGroup();
+                    }
                     return;
                 }
 

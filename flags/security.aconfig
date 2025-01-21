@@ -36,10 +36,10 @@ flag {
 }
 
 flag {
-  name: "le_enc_on_reconnection"
+  name: "le_enc_on_reconnect"
   namespace: "bluetooth"
   description: "Encrypt LE link on reconnection with bonded devices"
-  bug: "356201480"
+  bug: "388864535"
   metadata {
     purpose: PURPOSE_BUGFIX
   }
@@ -111,6 +111,16 @@ flag {
     namespace: "bluetooth"
     description: "Disconnect ACL link when encryption fails"
     bug: "378764380"
+    metadata {
+        purpose: PURPOSE_BUGFIX
+    }
+}
+
+flag {
+    name: "upgrade_temp_bonding_on_auth_req"
+    namespace: "bluetooth"
+    description: "Upgrade security If it is on temp bonding & authentication is requirement"
+    bug: "385747513"
     metadata {
         purpose: PURPOSE_BUGFIX
     }

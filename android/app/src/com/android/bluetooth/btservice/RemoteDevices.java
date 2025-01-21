@@ -1414,25 +1414,23 @@ public class RemoteDevices {
     }
 
     private void removeAddressMapping(String address) {
-        if (Flags.temporaryPairingDeviceProperties()) {
-            DeviceProperties deviceProperties = mDevices.get(address);
-            if (deviceProperties != null) {
-                String pseudoAddress = mDualDevicesMap.get(address);
-                if (pseudoAddress != null) {
-                    deviceProperties = mDevices.get(pseudoAddress);
-                }
+        DeviceProperties deviceProperties = mDevices.get(address);
+        if (deviceProperties != null) {
+            String pseudoAddress = mDualDevicesMap.get(address);
+            if (pseudoAddress != null) {
+                deviceProperties = mDevices.get(pseudoAddress);
             }
+        }
 
-            if (deviceProperties != null) {
-                int leConnectionHandle =
-                        deviceProperties.getConnectionHandle(BluetoothDevice.TRANSPORT_LE);
-                int bredrConnectionHandle =
-                        deviceProperties.getConnectionHandle(BluetoothDevice.TRANSPORT_BREDR);
-                if (leConnectionHandle != BluetoothDevice.ERROR
-                        || bredrConnectionHandle != BluetoothDevice.ERROR) {
-                    // Device still connected, wait for disconnection to remove the properties
-                    return;
-                }
+        if (deviceProperties != null) {
+            int leConnectionHandle =
+                    deviceProperties.getConnectionHandle(BluetoothDevice.TRANSPORT_LE);
+            int bredrConnectionHandle =
+                    deviceProperties.getConnectionHandle(BluetoothDevice.TRANSPORT_BREDR);
+            if (leConnectionHandle != BluetoothDevice.ERROR
+                    || bredrConnectionHandle != BluetoothDevice.ERROR) {
+                // Device still connected, wait for disconnection to remove the properties
+                return;
             }
         }
 
@@ -1448,7 +1446,7 @@ public class RemoteDevices {
     void onBondStateChange(BluetoothDevice device, int newState) {
         String address = device.getAddress();
 
-        if (Flags.removeAddressMapOnUnbond() && newState == BluetoothDevice.BOND_NONE) {
+        if (newState == BluetoothDevice.BOND_NONE) {
             removeAddressMapping(address);
         }
     }

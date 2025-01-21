@@ -30,7 +30,6 @@
 #include "device/include/interop.h"
 #include "internal_include/stack_config.h"
 #include "l2cdefs.h"
-#include "os/logging/log_adapter.h"
 #include "osi/include/properties.h"
 #include "packet/avrcp/avrcp_reject_packet.h"
 #include "packet/avrcp/general_reject_packet.h"
@@ -873,6 +872,7 @@ void Device::GetElementAttributesResponse(uint8_t label,
                                           SongInfo info) {
   auto get_element_attributes_pkt = pkt;
   auto attributes_requested = get_element_attributes_pkt->GetAttributesRequested();
+  bool all_attributes_flag = com::android::bluetooth::flags::get_all_element_attributes_empty();
 
   // To Pass PTS TC AVCTP/TG/FRA/BV-02-C
   /* After AVCTP connection is established with remote,
@@ -904,10 +904,12 @@ void Device::GetElementAttributesResponse(uint8_t label,
     for (const auto& attribute : attributes_requested) {
       if (info.attributes.find(attribute) != info.attributes.end()) {
         response->AddAttributeEntry(*info.attributes.find(attribute));
+      } else if (all_attributes_flag) {
+        response->AddAttributeEntry(attribute, std::string());
       }
     }
   } else {  // zero attributes requested which means all attributes requested
-    if (!com::android::bluetooth::flags::get_all_element_attributes_empty()) {
+    if (!all_attributes_flag) {
       for (const auto& attribute : info.attributes) {
         response->AddAttributeEntry(attribute);
       }

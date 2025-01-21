@@ -1632,7 +1632,7 @@ void btm_ble_connection_established(const RawAddress& bda) {
   }
 
   // Encrypt the link if device is bonded
-  if (com::android::bluetooth::flags::le_enc_on_reconnection() &&
+  if (com::android::bluetooth::flags::le_enc_on_reconnect() &&
       p_dev_rec->sec_rec.is_le_link_key_known()) {
     btm_ble_set_encryption(bda, BTM_BLE_SEC_ENCRYPT,
                            p_dev_rec->role_central ? HCI_ROLE_CENTRAL : HCI_ROLE_PERIPHERAL);
@@ -1645,7 +1645,8 @@ void btm_ble_connection_established(const RawAddress& bda) {
   }
 
   if (com::android::bluetooth::flags::read_le_appearance() && p_dev_rec != nullptr &&
-      !p_dev_rec->sec_rec.is_le_link_key_known()) {
+      (com::android::bluetooth::flags::le_appearance_after_ctkd() ||
+       !p_dev_rec->sec_rec.is_le_link_key_known())) {
     // Unknown device
     if (p_dev_rec->dev_class == kDevClassEmpty || p_dev_rec->dev_class == kDevClassUnclassified) {
       // Class of device not known, read appearance characteristic

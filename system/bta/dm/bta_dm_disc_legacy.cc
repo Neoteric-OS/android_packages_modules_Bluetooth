@@ -38,7 +38,6 @@
 #include "device/include/interop.h"
 #include "internal_include/bt_target.h"
 #include "main/shim/dumpsys.h"
-#include "os/logging/log_adapter.h"
 #include "osi/include/allocator.h"
 #include "stack/btm/btm_int_types.h"  // TimestampedStringCircularBuffer
 #include "stack/btm/neighbor_inquiry.h"
@@ -139,8 +138,9 @@ struct gatt_interface_t {
                 },
         .BTA_GATTC_Refresh =
                 [](const RawAddress& remote_bda) {
-                  disc_gatt_history_.Push(base::StringPrintf("%-32s bd_addr:%s", "GATTC_Refresh",
-                                                             remote_bda.ToRedactedStringForLogging()));
+                  disc_gatt_history_.Push(
+                          base::StringPrintf("%-32s bd_addr:%s", "GATTC_Refresh",
+                                             remote_bda.ToRedactedStringForLogging()));
                   BTA_GATTC_Refresh(remote_bda);
                 },
         .BTA_GATTC_GetGattDb =
@@ -1143,8 +1143,9 @@ static void bta_dm_discover_name(const RawAddress& remote_bd_addr) {
   bta_dm_search_cb.peer_bdaddr = remote_bd_addr;
 
   log::verbose("name_discover_done = {} p_btm_inq_info 0x{} state = {}, transport={}",
-               bta_dm_search_cb.name_discover_done, std::format_ptr(bta_dm_search_cb.p_btm_inq_info),
-               bta_dm_search_get_state(), transport);
+               bta_dm_search_cb.name_discover_done,
+               std::format_ptr(bta_dm_search_cb.p_btm_inq_info), bta_dm_search_get_state(),
+               transport);
 
   if (bta_dm_search_cb.p_btm_inq_info) {
     log::verbose("appl_knows_rem_name {}", bta_dm_search_cb.p_btm_inq_info->appl_knows_rem_name);

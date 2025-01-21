@@ -588,6 +588,11 @@ LeAudioClientInterface* LeAudioClientInterface::Get() {
 
 void LeAudioClientInterface::SetAllowedDsaModes(DsaModes /*dsa_modes*/) { return; }
 
+std::optional<bluetooth::le_audio::ProviderInfo> LeAudioClientInterface::GetCodecConfigProviderInfo(
+        void) const {
+  return std::nullopt;
+}
+
 }  // namespace le_audio
 }  // namespace audio
 }  // namespace bluetooth
