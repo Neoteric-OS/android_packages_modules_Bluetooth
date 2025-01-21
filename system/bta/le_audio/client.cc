@@ -1434,11 +1434,6 @@ public:
   void SetCodecConfigPreference(
           int group_id, bluetooth::le_audio::btle_audio_codec_config_t input_codec_config,
           bluetooth::le_audio::btle_audio_codec_config_t output_codec_config) override {
-    if (!com::android::bluetooth::flags::leaudio_set_codec_config_preference()) {
-      log::debug("leaudio_set_codec_config_preference flag is not enabled");
-      return;
-    }
-
     LeAudioDeviceGroup* group = aseGroups_.FindById(group_id);
 
     if (!group) {
@@ -1459,11 +1454,15 @@ public:
       group->UpdateAudioSetConfigurationCache(LeAudioContextType::CONVERSATIONAL);
     }
 
-    if (group->SetPreferredAudioSetConfiguration(input_codec_config, output_codec_config)) {
-      log::info("group id: {}, setting preferred codec is successful.", group_id);
+    if (!com::android::bluetooth::flags::leaudio_set_codec_config_preference()) {
+      log::debug("leaudio_set_codec_config_preference flag is not enabled");
     } else {
-      log::warn("group id: {}, setting preferred codec is failed.", group_id);
-      return;
+      if (group->SetPreferredAudioSetConfiguration(input_codec_config, output_codec_config)) {
+        log::info("group id: {}, setting preferred codec is successful.", group_id);
+      } else {
+        log::warn("group id: {}, setting preferred codec is failed.", group_id);
+        return;
+      }
     }
 
     if (group_id != active_group_id_) {
