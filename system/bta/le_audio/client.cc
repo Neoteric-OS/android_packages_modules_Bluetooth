@@ -6755,6 +6755,7 @@ public:
           UpdateLocationsAndContextsAvailability(group);
           if (group->IsPendingConfiguration()) {
             UpdatePriorCodecTypeToHal(group);
+            SuspendedForReconfiguration();
             group->SetSuspendedForReconfiguration();
             log::debug(
                     "Pending configuration for group_id: {} pre_configuration_context_type_ : {} "
@@ -6797,8 +6798,7 @@ public:
                     "configuration_context_type_ {}",
                     ToString(pre_configuration_context_type_),
                     ToString(configuration_context_type_));
-            if ((configuration_context_type_ != pre_configuration_context_type_) &&
-                GroupStream(group->group_id_, configuration_context_type_, remote_contexts)) {
+            if (GroupStream(group->group_id_, configuration_context_type_, remote_contexts)) {
               log::info("configuration succeed, wait for new status for group {}",
                         group->group_id_);
               /* If configuration succeed wait for new status. */
@@ -6905,11 +6905,6 @@ public:
 
           if (audio_receiver_state_ != AudioState::IDLE) {
             audio_receiver_state_ = AudioState::RELEASING;
-          }
-
-          if (group && group->IsPendingConfiguration()) {
-            log::info("Releasing for reconfiguration, don't send anything on CISes");
-            SuspendedForReconfiguration();
           }
         }
 
