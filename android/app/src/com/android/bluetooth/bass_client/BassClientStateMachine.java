@@ -47,6 +47,7 @@ import android.bluetooth.le.PeriodicAdvertisingCallback;
 import android.bluetooth.le.PeriodicAdvertisingReport;
 import android.bluetooth.le.ScanRecord;
 import android.bluetooth.le.ScanResult;
+import android.content.AttributionSource;
 import android.content.Intent;
 import android.os.Binder;
 import android.os.Looper;
@@ -1084,6 +1085,7 @@ class BassClientStateMachine extends StateMachine {
                     msg.arg2 = BluetoothLeBroadcastReceiveState.PA_SYNC_STATE_IDLE;
                     msg.obj = metaDataToUpdate;
                     sendMessage(msg);
+                    return;
                 }
             }
             Message m = obtainMessage(BassClientStateMachine.REMOVE_BCAST_SOURCE);
@@ -1897,6 +1899,10 @@ class BassClientStateMachine extends StateMachine {
             mGattCallback = new GattCallback();
         }
 
+        mDevice.setAttributionSource(
+                (new AttributionSource.Builder(AttributionSource.myAttributionSource()))
+                        .setAttributionTag("BassClient")
+                        .build());
         BluetoothGatt gatt =
                 mDevice.connectGatt(
                         mService,

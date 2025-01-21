@@ -430,16 +430,26 @@ tGATT_TCB* gatt_find_tcb_by_addr(const RawAddress& bda, tBT_TRANSPORT transport)
   return p_tcb;
 }
 
+/* This is  for connection manager */
+std::string get_client_name(uint8_t gatt_if) {
+  if (gatt_if == CONN_MGR_ID_L2CAP) {
+    return "L2CAP";
+  }
+
+  tGATT_REG* reg = gatt_get_regcb(gatt_if);
+  return (reg == nullptr) ? "" : reg->name;
+}
+
 std::string gatt_tcb_get_holders_info_string(const tGATT_TCB* p_tcb) {
   std::stringstream stream;
 
   if (p_tcb->app_hold_link.size() == 0) {
     stream << "No ACL holders";
   } else {
-    stream << "ACL holders gatt_if:";
+    stream << "ACL holders gatt_if: ";
 
     for (auto gatt_if : p_tcb->app_hold_link) {
-      stream << static_cast<int>(gatt_if) << ",";
+      stream << get_client_name(gatt_if) << " (" << +gatt_if << "), ";
     }
   }
   return stream.str();
@@ -1362,17 +1372,30 @@ tGATT_SR_CMD* gatt_sr_get_cmd_by_trans_id(tGATT_TCB* p_tcb, uint32_t trans_id) {
  * Returns          True if thetotal application callback count is zero
  *
  ******************************************************************************/
-bool gatt_sr_is_cback_cnt_zero(tGATT_TCB& tcb) {
-  if (com::android::bluetooth::flags::gatt_client_dynamic_allocation()) {
-    return tcb.sr_cmd.cback_cnt_map.empty();
+bool gatt_sr_is_cback_cnt_zero(tGATT_TCB& tcb, uint16_t cid) {
+  tGATT_SR_CMD* sr_cmd_p;
+  if (cid == tcb.att_lcid) {
+    sr_cmd_p = &tcb.sr_cmd;
   } else {
-    for (uint8_t i = 0; i < GATT_MAX_APPS; i++) {
-      if (tcb.sr_cmd.cback_cnt[i]) {
-        return false;
-      }
+    EattChannel* channel = EattExtension::GetInstance()->FindEattChannelByCid(tcb.peer_bda, cid);
+    if (channel == nullptr) {
+      log::warn("{}, cid 0x{:02x} already disconnected", tcb.peer_bda, cid);
+      return true;
     }
-    return true;
+    sr_cmd_p = &channel->server_outstanding_cmd_;
   }
+
+  if (com::android::bluetooth::flags::gatt_client_dynamic_allocation()) {
+    return sr_cmd_p->cback_cnt_map.empty();
+  }
+
+  for (uint8_t i = 0; i < GATT_MAX_APPS; i++) {
+    if (sr_cmd_p->cback_cnt[i] != 0) {
+      return false;
+    }
+  }
+
+  return true;
 }
 
 /*******************************************************************************

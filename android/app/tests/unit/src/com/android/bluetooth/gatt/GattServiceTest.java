@@ -299,7 +299,7 @@ public class GattServiceTest {
                 mService.getDevicesMatchingConnectionStates(states, mAttributionSource);
 
         int expectedSize = 1;
-        assertThat(deviceList.size()).isEqualTo(expectedSize);
+        assertThat(deviceList).hasSize(expectedSize);
 
         BluetoothDevice bluetoothDevice = deviceList.get(0);
         assertThat(bluetoothDevice.getAddress()).isEqualTo(address);
@@ -314,7 +314,10 @@ public class GattServiceTest {
         mService.registerClient(uuid, callback, eattSupport, mAttributionSource);
         verify(mNativeInterface)
                 .gattClientRegisterApp(
-                        uuid.getLeastSignificantBits(), uuid.getMostSignificantBits(), eattSupport);
+                        uuid.getLeastSignificantBits(),
+                        uuid.getMostSignificantBits(),
+                        mAttributionSource.getPackageName(),
+                        eattSupport);
     }
 
     @Test
@@ -326,15 +329,17 @@ public class GattServiceTest {
 
         mService.registerClient(uuid, callback, /* eattSupport= */ true, mAttributionSource);
         verify(mClientMap, never()).add(any(), any(), any(), any());
-        verify(mNativeInterface, never()).gattClientRegisterApp(anyLong(), anyLong(), anyBoolean());
+        verify(mNativeInterface, never())
+                .gattClientRegisterApp(anyLong(), anyLong(), anyString(), anyBoolean());
     }
 
     @Test
     public void unregisterClient() {
         int clientIf = 3;
 
-        mService.unregisterClient(clientIf, mAttributionSource);
-        verify(mClientMap).remove(clientIf);
+        mService.unregisterClient(
+                clientIf, mAttributionSource, ContextMap.RemoveReason.REASON_UNREGISTER_CLIENT);
+        verify(mClientMap).remove(clientIf, ContextMap.RemoveReason.REASON_UNREGISTER_CLIENT);
         verify(mNativeInterface).gattClientUnregisterApp(clientIf);
     }
 
@@ -581,7 +586,7 @@ public class GattServiceTest {
         doReturn(appIds).when(mClientMap).getAllAppsIds();
 
         mService.unregAll(mAttributionSource);
-        verify(mClientMap).remove(appId);
+        verify(mClientMap).remove(appId, ContextMap.RemoveReason.REASON_UNREGISTER_ALL);
         verify(mNativeInterface).gattClientUnregisterApp(appId);
     }
 
