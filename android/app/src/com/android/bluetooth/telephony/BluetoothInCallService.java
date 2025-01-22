@@ -205,8 +205,6 @@ public class BluetoothInCallService extends InCallService {
 
     private final CallInfo mCallInfo;
 
-    protected boolean mOnCreateCalled = false;
-
     private int mMaxNumberOfCalls = 0;
 
     private boolean mEnableDsdaMode = false;
@@ -485,7 +483,6 @@ public class BluetoothInCallService extends InCallService {
     private BluetoothInCallService(CallInfo callInfo) {
         Log.i(TAG, "BluetoothInCallService is created");
         mCallInfo = Objects.requireNonNullElseGet(callInfo, () -> new CallInfo());
-        sInstance = this;
         mExecutor = Executors.newSingleThreadExecutor();
     }
 
@@ -1059,10 +1056,6 @@ public class BluetoothInCallService extends InCallService {
     @RequiresPermission(allOf = {BLUETOOTH_CONNECT, MODIFY_PHONE_STATE})
     public boolean listCurrentCalls() {
         synchronized (LOCK) {
-            if (!mOnCreateCalled) {
-                Log.w(TAG, "listcurrentCalls() is called before onCreate()");
-                return false;
-            }
             enforceModifyPermission();
             // only log if it is after we recently updated the headset state or else it can
             // clog the android log since this can be queried every second.
@@ -1308,61 +1301,64 @@ public class BluetoothInCallService extends InCallService {
 
     @Override
     public void onCreate() {
-        Log.d(TAG, "onCreate");
         super.onCreate();
-        mAdapter = requireNonNull(getSystemService(BluetoothManager.class)).getAdapter();
-        mTelephonyManager = requireNonNull(getSystemService(TelephonyManager.class));
-        mTelecomManager = requireNonNull(getSystemService(TelecomManager.class));
-        mAdapter.getProfileProxy(this, mProfileListener, BluetoothProfile.HEADSET);
-        mAdapter.getProfileProxy(this, mProfileListener, BluetoothProfile.LE_CALL_CONTROL);
-        mBluetoothAdapterReceiver = new BluetoothAdapterReceiver();
-        IntentFilter intentFilter = new IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED);
-        intentFilter.setPriority(IntentFilter.SYSTEM_HIGH_PRIORITY);
-        registerReceiver(mBluetoothAdapterReceiver, intentFilter);
+        synchronized (LOCK) {
+            Log.d(TAG, "onCreate");
+            mAdapter = requireNonNull(getSystemService(BluetoothManager.class)).getAdapter();
+            mTelephonyManager = requireNonNull(getSystemService(TelephonyManager.class));
+            mTelecomManager = requireNonNull(getSystemService(TelecomManager.class));
+            mAdapter.getProfileProxy(this, mProfileListener, BluetoothProfile.HEADSET);
+            mAdapter.getProfileProxy(this, mProfileListener, BluetoothProfile.LE_CALL_CONTROL);
+            mBluetoothAdapterReceiver = new BluetoothAdapterReceiver();
+            IntentFilter intentFilter = new IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED);
+            intentFilter.setPriority(IntentFilter.SYSTEM_HIGH_PRIORITY);
+            registerReceiver(mBluetoothAdapterReceiver, intentFilter);
 
-        if (mVoiceCapabilityChangeReceiver == null) {
-            Log.d(TAG, "onCreate(): mVoiceCapabilityChangeReceiver ");
-            mVoiceCapabilityChangeReceiver = new BluetoothAdapterReceiver();
-            IntentFilter intentfilter = new IntentFilter(
-                TelecomManager.ACTION_TTY_PREFERRED_MODE_CHANGED);
-            intentFilter.addAction(ACTION_MSIM_VOICE_CAPABILITY_CHANGED);
-            registerReceiver(mVoiceCapabilityChangeReceiver, intentfilter,
-                android.Manifest.permission.MODIFY_PHONE_STATE, null, Context.RECEIVER_EXPORTED);
+            if (mVoiceCapabilityChangeReceiver == null) {
+                Log.d(TAG, "onCreate(): mVoiceCapabilityChangeReceiver ");
+                mVoiceCapabilityChangeReceiver = new BluetoothAdapterReceiver();
+                IntentFilter intentfilter = new IntentFilter(
+                    TelecomManager.ACTION_TTY_PREFERRED_MODE_CHANGED);
+                intentFilter.addAction(ACTION_MSIM_VOICE_CAPABILITY_CHANGED);
+                registerReceiver(mVoiceCapabilityChangeReceiver, intentfilter,
+                    android.Manifest.permission.MODIFY_PHONE_STATE, null, Context.RECEIVER_EXPORTED);
+            }
+            mEnableDsdaMode = SystemProperties.getBoolean(ENABLE_DSDA_SUPPORT, true);
+            if (mEnableDsdaMode)  {
+              Log.d(TAG, "MEnableDsdaMode is: " + mEnableDsdaMode);
+              if (mHandler == null) {
+                Log.w(TAG, "start InCall Service thread");
+                mHandlerThread = new HandlerThread("InCallHandler");
+                mHandlerThread.start();
+                mHandler = new InCallHandler(mHandlerThread.getLooper());
+              }
+              Log.w(TAG, "InCall service exit");
+            }
+            mTelephonyManager = getSystemService(TelephonyManager.class);
+            mTelecomManager = getSystemService(TelecomManager.class);
+            sInstance = this;
         }
-        mOnCreateCalled = true;
-        mEnableDsdaMode = SystemProperties.getBoolean(ENABLE_DSDA_SUPPORT, true);
-        if (mEnableDsdaMode)  {
-          Log.d(TAG, "MEnableDsdaMode is: " + mEnableDsdaMode);
-          if (mHandler == null) {
-            Log.w(TAG, "start InCall Service thread");
-            mHandlerThread = new HandlerThread("InCallHandler");
-            mHandlerThread.start();
-            mHandler = new InCallHandler(mHandlerThread.getLooper());
-          }
-          Log.w(TAG, "InCall service exit");
-        }
-        mTelephonyManager = getSystemService(TelephonyManager.class);
-        mTelecomManager = getSystemService(TelecomManager.class);
     }
 
     @Override
     public void onDestroy() {
-        Log.d(TAG, "onDestroy");
-        clear();
-        mOnCreateCalled = false;
-        if (mHandler != null) {
-           // Shut down the thread
-           Log.d(TAG, "cleanup IncallHandler");
-           mHandler.removeCallbacksAndMessages(null);
-           Looper looper = mHandler.getLooper();
-           if (looper != null) {
-              looper.quit();
-           }
-              mHandler = null;
-        }
-        if (mHandlerThread != null) {
-           mHandlerThread.quit();
-           mHandlerThread = null;
+        synchronized (LOCK) {
+            Log.d(TAG, "onDestroy");
+            clear();
+            if (mHandler != null) {
+               // Shut down the thread
+               Log.d(TAG, "cleanup IncallHandler");
+               mHandler.removeCallbacksAndMessages(null);
+               Looper looper = mHandler.getLooper();
+               if (looper != null) {
+                  looper.quit();
+               }
+                  mHandler = null;
+            }
+            if (mHandlerThread != null) {
+               mHandlerThread.quit();
+               mHandlerThread = null;
+            }
         }
         super.onDestroy();
     }

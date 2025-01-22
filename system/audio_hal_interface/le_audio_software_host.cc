@@ -339,6 +339,14 @@ LeAudioClientInterface::Sink::GetUnicastConfig(
   return std::nullopt;
 }
 
+::bluetooth::le_audio::types::VendorDataPathConfiguration
+LeAudioClientInterface::Sink::GetVendorConfigureDataPathPayload(
+       std::vector<uint16_t> conn_handles,
+       ::bluetooth::le_audio::types::LeAudioContextType context_type,
+       bool is_cis_dir_sink, bool is_cis_dir_source) {
+  return {};
+}
+
 std::optional<::bluetooth::le_audio::broadcaster::BroadcastConfiguration>
 LeAudioClientInterface::Sink::GetBroadcastConfig(
         const std::vector<std::pair<::bluetooth::le_audio::types::LeAudioContextType,
@@ -579,6 +587,11 @@ LeAudioClientInterface* LeAudioClientInterface::Get() {
 }
 
 void LeAudioClientInterface::SetAllowedDsaModes(DsaModes /*dsa_modes*/) { return; }
+
+std::optional<bluetooth::le_audio::ProviderInfo> LeAudioClientInterface::GetCodecConfigProviderInfo(
+        void) const {
+  return std::nullopt;
+}
 
 }  // namespace le_audio
 }  // namespace audio

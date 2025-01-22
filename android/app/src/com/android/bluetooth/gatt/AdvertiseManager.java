@@ -51,6 +51,7 @@ public class AdvertiseManager {
 
     private final GattService mService;
     private final AdvertiseManagerNativeInterface mNativeInterface;
+    private final AdvertiseBinder mAdvertiseBinder;
     private final AdvertiserMap mAdvertiserMap;
 
     @GuardedBy("itself")
@@ -78,6 +79,7 @@ public class AdvertiseManager {
         HandlerThread thread = new HandlerThread("BluetoothAdvertiseManager");
         thread.start();
         mHandler = new Handler(thread.getLooper());
+        mAdvertiseBinder = new AdvertiseBinder(service, this);
     }
 
     // TODO(b/327849650): We shouldn't need this, it should be safe to do in the cleanup method. But
@@ -88,6 +90,7 @@ public class AdvertiseManager {
 
     void cleanup() {
         Log.d(TAG, "cleanup()");
+        mAdvertiseBinder.cleanup();
         mNativeInterface.cleanup();
         synchronized (mAdvertisers) {
             mAdvertisers.clear();
@@ -107,6 +110,10 @@ public class AdvertiseManager {
 
     void dump(StringBuilder sb) {
         mAdvertiserMap.dump(sb);
+    }
+
+    AdvertiseBinder getBinder() {
+        return mAdvertiseBinder;
     }
 
     static class AdvertiserInfo {
@@ -204,8 +211,7 @@ public class AdvertiseManager {
             mAdvertiserMap.removeAppAdvertiseStats(regId);
         }
 
-        IBinder gattBinder = mService.getBinder();
-        callback.onAdvertisingSetStarted(gattBinder, advertiserId, txPower, status);
+        callback.onAdvertisingSetStarted(mAdvertiseBinder, advertiserId, txPower, status);
     }
 
     void onAdvertisingEnabled(int advertiserId, boolean enable, int status) throws Exception {
@@ -259,9 +265,11 @@ public class AdvertiseManager {
                         != AdvertisingSetParameters.ADDRESS_TYPE_RANDOM_NON_RESOLVABLE) {
             Log.w(TAG, "Cannot advertise an isolated GATT server using a resolvable address");
             try {
-                IBinder gattBinder = mService.getBinder();
                 callback.onAdvertisingSetStarted(
-                        gattBinder, 0x00, 0x00, AdvertiseCallback.ADVERTISE_FAILED_INTERNAL_ERROR);
+                        mAdvertiseBinder,
+                        0x00,
+                        0x00,
+                        AdvertiseCallback.ADVERTISE_FAILED_INTERNAL_ERROR);
             } catch (RemoteException exception) {
                 Log.e(TAG, "Failed to callback:" + Log.getStackTraceString(exception));
             }
@@ -337,9 +345,11 @@ public class AdvertiseManager {
         } catch (IllegalArgumentException e) {
             try {
                 binder.unlinkToDeath(deathRecipient, 0);
-                IBinder gattBinder = mService.getBinder();
                 callback.onAdvertisingSetStarted(
-                        gattBinder, 0x00, 0x00, AdvertiseCallback.ADVERTISE_FAILED_DATA_TOO_LARGE);
+                        mAdvertiseBinder,
+                        0x00,
+                        0x00,
+                        AdvertiseCallback.ADVERTISE_FAILED_DATA_TOO_LARGE);
             } catch (RemoteException exception) {
                 Log.e(TAG, "Failed to callback:" + Log.getStackTraceString(exception));
             }
@@ -625,4 +635,5 @@ public class AdvertiseManager {
             stats.onPeriodicAdvertiseEnabled(enable);
         }
     }
+
 }

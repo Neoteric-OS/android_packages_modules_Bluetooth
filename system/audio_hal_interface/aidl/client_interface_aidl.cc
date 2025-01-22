@@ -660,6 +660,35 @@ BluetoothAudioClientInterface::getLeAudioAseQosConfiguration(
   return qos_configuration;
 }
 
+IBluetoothAudioProvider::LeAudioDataPathConfigurationPair
+BluetoothAudioClientInterface::getLeAudioAseDatapathConfiguration(
+        const std::optional<IBluetoothAudioProvider::StreamConfig>& sinkConfig,
+        const std::optional<IBluetoothAudioProvider::StreamConfig>& sourceConfig) {
+  std::lock_guard<std::mutex> guard(internal_mutex_);
+  log::assert_that(provider_ != nullptr, "assert failed: provider_ != nullptr");
+
+  IBluetoothAudioProvider::LeAudioDataPathConfigurationPair dataPathConfiguration;
+  if (sinkConfig.has_value()) {
+    log::error("BluetoothAudioHal:: sinkConfig has valid info");
+  } else {
+    log::error("BluetoothAudioHal:: sinkConfig has not valid info");
+  }
+
+  if (sourceConfig.has_value()) {
+    log::error("BluetoothAudioHal:: sinkConfig has valid info");
+  } else {
+    log::error("BluetoothAudioHal:: sourceConfig has not valid info");
+  }
+  auto aidl_retval = provider_->getLeAudioAseDatapathConfiguration(sinkConfig,
+                                           sourceConfig, &dataPathConfiguration);
+
+  if (!aidl_retval.isOk()) {
+    log::error("BluetoothAudioHal::getLeAudioAseDatapathConfiguration failure: {}",
+               aidl_retval.getDescription());
+  }
+  return dataPathConfiguration;
+}
+
 void BluetoothAudioClientInterface::onSinkAseMetadataChanged(
         IBluetoothAudioProvider::AseState state, int32_t cigId, int32_t cisId,
         std::optional<std::vector<std::optional<MetadataLtv>>>& metadata) {

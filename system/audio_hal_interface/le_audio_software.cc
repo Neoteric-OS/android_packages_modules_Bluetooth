@@ -25,6 +25,7 @@
 #include <vector>
 
 #include "aidl/android/hardware/bluetooth/audio/AudioContext.h"
+#include "aidl/client_interface_aidl.h"
 #include "aidl/le_audio_software_aidl.h"
 #include "aidl/le_audio_utils.h"
 #include "bta/le_audio/codec_manager.h"
@@ -38,11 +39,15 @@
 namespace bluetooth {
 namespace audio {
 
+using aidl::BluetoothAudioClientInterface;
 using aidl::GetAidlLeAudioBroadcastConfigurationRequirementFromStackFormat;
 using aidl::GetAidlLeAudioDeviceCapabilitiesFromStackFormat;
 using aidl::GetAidlLeAudioUnicastConfigurationRequirementsFromStackFormat;
 using aidl::GetStackBroadcastConfigurationFromAidlFormat;
+using aidl::GetStackProviderInfoFromAidl;
 using aidl::GetStackUnicastConfigurationFromAidlFormat;
+using aidl::GetAidlConfigureDataPathPayloadFromStackFormat;
+using aidl::GetStackConfigureDataPathPayloadFromAidlFormat;
 
 namespace le_audio {
 
@@ -55,6 +60,7 @@ using ::aidl::android::hardware::bluetooth::audio::AudioContext;
 using ::aidl::android::hardware::bluetooth::audio::IBluetoothAudioProvider;
 using ::aidl::android::hardware::bluetooth::audio::LatencyMode;
 using ::aidl::android::hardware::bluetooth::audio::LeAudioCodecConfiguration;
+using ::aidl::android::hardware::bluetooth::audio::SessionType;
 
 using ::bluetooth::le_audio::CodecManager;
 using ::bluetooth::le_audio::set_configurations::AudioSetConfiguration;
@@ -379,7 +385,7 @@ LeAudioClientInterface::Sink::GetUnicastConfig(
   std::vector<IBluetoothAudioProvider::LeAudioConfigurationRequirement> reqs;
   reqs.push_back(GetAidlLeAudioUnicastConfigurationRequirementsFromStackFormat(
           requirements.audio_context_type, requirements.sink_requirements,
-          requirements.source_requirements));
+          requirements.source_requirements, requirements.flags));
 
   log::debug("Making an AIDL call");
   auto aidl_configs = get_aidl_client_interface(is_broadcaster_)
@@ -400,6 +406,38 @@ LeAudioClientInterface::Sink::GetUnicastConfig(
   }
   return GetStackUnicastConfigurationFromAidlFormat(requirements.audio_context_type,
                                                     aidl_configs.at(0));
+}
+
+::bluetooth::le_audio::types::VendorDataPathConfiguration
+LeAudioClientInterface::Sink::GetVendorConfigureDataPathPayload(
+       std::vector<uint16_t> conn_handles,
+       ::bluetooth::le_audio::types::LeAudioContextType context_type,
+       bool is_cis_dir_sink, bool is_cis_dir_source) {
+
+  log::debug(": context_type: {}, is_cis_dir_sink: {}, is_cis_dir_source: {}",
+                       (unsigned)context_type, is_cis_dir_sink, is_cis_dir_source);
+
+  auto aidl_sink_config = ::aidl::android::hardware::bluetooth::audio::
+                                      IBluetoothAudioProvider::StreamConfig();
+  auto aidl_source_config = ::aidl::android::hardware::bluetooth::audio::
+                                      IBluetoothAudioProvider::StreamConfig();
+
+  if (is_cis_dir_sink) {
+    aidl_sink_config =
+      GetAidlConfigureDataPathPayloadFromStackFormat(conn_handles, context_type);
+  }
+
+  if (is_cis_dir_source) {
+    aidl_source_config =
+      GetAidlConfigureDataPathPayloadFromStackFormat(conn_handles, context_type);
+  }
+
+  log::debug("Making an AIDL call to fetch configure datapath payload");
+  auto aidl_config_payload = get_aidl_client_interface(is_broadcaster_)
+                        ->getLeAudioAseDatapathConfiguration(aidl_sink_config,
+                                                              aidl_source_config);
+  //Todo valid check on aidl_config_payload
+  return GetStackConfigureDataPathPayloadFromAidlFormat(aidl_config_payload);
 }
 
 void LeAudioClientInterface::Sink::UpdateBroadcastAudioConfigToHal(
@@ -857,10 +895,6 @@ bool LeAudioClientInterface::ReleaseSource(LeAudioClientInterface::Source* sourc
 }
 
 void LeAudioClientInterface::SetAllowedDsaModes(DsaModes dsa_modes) {
-  if (!com::android::bluetooth::flags::leaudio_dynamic_spatial_audio()) {
-    return;
-  }
-
   if (HalVersionManager::GetHalTransport() == BluetoothAudioHalTransport::AIDL) {
     if (aidl::le_audio::LeAudioSinkTransport::interface_unicast_ == nullptr ||
         aidl::le_audio::LeAudioSinkTransport::instance_unicast_ == nullptr) {
@@ -892,6 +926,26 @@ void LeAudioClientInterface::SetAllowedDsaModes(DsaModes dsa_modes) {
   }
 }
 
+std::optional<bluetooth::le_audio::ProviderInfo> LeAudioClientInterface::GetCodecConfigProviderInfo(
+        void) const {
+  if (HalVersionManager::GetHalTransport() != BluetoothAudioHalTransport::AIDL) {
+    log::error("Not using an AIDL HAL transport. Provider Info is not available.");
+    return std::nullopt;
+  }
+
+  auto encoding_provider_info = BluetoothAudioClientInterface::GetProviderInfo(
+          SessionType::LE_AUDIO_HARDWARE_OFFLOAD_ENCODING_DATAPATH, nullptr);
+
+  auto decoding_provider_info = BluetoothAudioClientInterface::GetProviderInfo(
+          SessionType::LE_AUDIO_HARDWARE_OFFLOAD_DECODING_DATAPATH, nullptr);
+
+  if (!encoding_provider_info.has_value() && !decoding_provider_info.has_value()) {
+    log::info("LE Audio offload codec extensibility is enabled, but the provider info is empty");
+    return std::nullopt;
+  }
+
+  return GetStackProviderInfoFromAidl(encoding_provider_info, decoding_provider_info);
+}
 }  // namespace le_audio
 }  // namespace audio
 }  // namespace bluetooth

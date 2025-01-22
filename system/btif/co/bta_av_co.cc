@@ -50,7 +50,6 @@
 #include "device/include/device_iot_config.h"
 #include "device/include/interop.h"
 #include "include/hardware/bt_av.h"
-#include "os/logging/log_adapter.h"
 #include "osi/include/allocator.h"
 #include "osi/include/properties.h"
 #include "stack/include/a2dp_codec_api.h"
