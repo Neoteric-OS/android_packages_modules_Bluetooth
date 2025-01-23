@@ -280,7 +280,9 @@ public final class BluetoothQualityReport implements Parcelable {
     private static final int BQR_VERSION_6_0 = 0x104;
 
     private static int getBqrCommonLength(int version) {
-        if (version < BQR_VERSION_4_0) {
+        if (version == 0) {
+            return BqrCommon.BQR_COMMON_LEN;
+        } else if (version < BQR_VERSION_4_0) {
             return 55;
         } else if (version <= BQR_VERSION_5_0) {
             return 79;
@@ -776,6 +778,7 @@ public final class BluetoothQualityReport implements Parcelable {
     @SystemApi
     public static final class BqrCommon implements Parcelable {
         private static final String TAG = BluetoothQualityReport.TAG + ".BqrCommon";
+        static final int BQR_COMMON_LEN = 85;
 
         private @QualityReportId int mQualityReportId;
         private int mPacketType;
