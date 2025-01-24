@@ -2611,12 +2611,10 @@ public class LeAudioService extends ProfileService {
                         + ", isBroadcastPlaying: "
                         + isBroadcastPlaying);
 
-        if (!Flags.leaudioBroadcastPrimaryGroupSelection()
-                && isBroadcastActive()
-                && currentlyActiveGroupId == LE_AUDIO_GROUP_ID_INVALID
-                && (mUnicastGroupIdDeactivatedForBroadcastTransition != LE_AUDIO_GROUP_ID_INVALID
-                || isBroadcastPlaying)) {
-
+        /* Replace fallback unicast and monitoring input device if device is active local
+         * broadcaster.
+         */
+        if (isAnyBroadcastInStreamingState()) {
             LeAudioGroupDescriptor fallbackGroupDescriptor = getGroupDescriptor(groupId);
             // If broadcast is ongoing and need to update unicast fallback active group
             // we need to update the cached group id and skip changing the active device
@@ -3341,6 +3339,11 @@ public class LeAudioService extends ProfileService {
         }
     }
 
+    private boolean isAnyBroadcastInStreamingState() {
+        return mBroadcastDescriptors.values().stream()
+                .anyMatch(d -> d.mState.equals(LeAudioStackEvent.BROADCAST_STATE_STREAMING));
+    }
+
     void transitionFromBroadcastToUnicast() {
         if (mUnicastGroupIdDeactivatedForBroadcastTransition == LE_AUDIO_GROUP_ID_INVALID) {
             Log.d(TAG, "No deactivated group due for broadcast transmission");
@@ -3354,8 +3357,7 @@ public class LeAudioService extends ProfileService {
             }
 
             // Notify audio manager
-            if (mBroadcastDescriptors.values().stream()
-                    .noneMatch(d -> d.mState.equals(LeAudioStackEvent.BROADCAST_STATE_STREAMING))) {
+            if (!isAnyBroadcastInStreamingState()) {
                 updateBroadcastActiveDevice(null, mActiveBroadcastAudioDevice, suppressNoisyIntent);
             }
             return;
@@ -4134,11 +4136,7 @@ public class LeAudioService extends ProfileService {
                     }
 
                     // Notify audio manager
-                    if (mBroadcastDescriptors.values().stream()
-                            .anyMatch(
-                                    d ->
-                                            d.mState.equals(
-                                                    LeAudioStackEvent.BROADCAST_STATE_STREAMING))) {
+                    if (isAnyBroadcastInStreamingState()) {
                         if (!Objects.equals(device, mActiveBroadcastAudioDevice)) {
                             updateBroadcastActiveDevice(device, mActiveBroadcastAudioDevice, true);
                         }
