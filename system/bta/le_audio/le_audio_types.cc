@@ -139,6 +139,9 @@ void get_cis_count(LeAudioContextType context_type,
           } else if (context_type == LeAudioContextType::LIVE ||
                      context_type == LeAudioContextType::VOICEASSISTANTS) {
             out_cis_count_bidir = 2 * expected_device_cnt;
+          } else if (context_type == LeAudioContextType::GAME) {
+            out_cis_count_bidir = expected_device_cnt;
+            out_cis_count_unidir_sink = expected_device_cnt;
           } else {
             out_cis_count_bidir = expected_device_cnt;
             if (avail_group_ase_src_count > 1) {
@@ -908,22 +911,6 @@ std::ostream& operator<<(std::ostream& os, const AudioContexts& contexts) {
   return os;
 }
 
-template <typename T>
-const T& BidirectionalPair<T>::get(uint8_t direction) const {
-  log::assert_that(direction < types::kLeAudioDirectionBoth,
-                   "Unsupported complex direction. Consider using "
-                   "get_bidirectional<>() instead.");
-  return (direction == types::kLeAudioDirectionSink) ? sink : source;
-}
-
-template <typename T>
-T& BidirectionalPair<T>::get(uint8_t direction) {
-  log::assert_that(direction < types::kLeAudioDirectionBoth,
-                   "Unsupported complex direction. Reference to a single "
-                   "complex direction value is not supported.");
-  return (direction == types::kLeAudioDirectionSink) ? sink : source;
-}
-
 /* Bidirectional getter trait for AudioContexts bidirectional pair */
 template <>
 AudioContexts get_bidirectional(BidirectionalPair<AudioContexts> p) {
@@ -1008,24 +995,6 @@ std::ostream& operator<<(std::ostream& os, const LeAudioMetadata& config) {
   os << "}";
   return os;
 }
-
-template struct BidirectionalPair<AudioContexts>;
-template struct BidirectionalPair<AudioLocations>;
-template struct BidirectionalPair<CisType>;
-template struct BidirectionalPair<LeAudioConfigurationStrategy>;
-template struct BidirectionalPair<ase*>;
-template struct BidirectionalPair<std::string>;
-template struct BidirectionalPair<std::vector<uint8_t>>;
-template struct BidirectionalPair<stream_configuration>;
-template struct BidirectionalPair<stream_parameters>;
-template struct BidirectionalPair<uint16_t>;
-template struct BidirectionalPair<uint8_t>;
-template struct BidirectionalPair<bool>;
-template struct BidirectionalPair<int>;
-template struct BidirectionalPair<std::vector<set_configurations::AseConfiguration>>;
-template struct BidirectionalPair<set_configurations::QosConfigSetting>;
-template struct BidirectionalPair<
-        std::unique_ptr<const bluetooth::le_audio::btle_audio_codec_config_t>>;
 
 }  // namespace types
 }  // namespace bluetooth::le_audio

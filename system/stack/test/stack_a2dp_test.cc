@@ -305,7 +305,7 @@ protected:
         case BTAV_A2DP_CODEC_INDEX_SINK_OPUS:
           supported = true;
           break;
-        case BTAV_A2DP_CODEC_INDEX_SOURCE_APTX_TWS:
+        case BTAV_A2DP_CODEC_INDEX_SOURCE_APTX_ADAPTIVE:
         case BTAV_A2DP_CODEC_INDEX_SOURCE_LC3:
         case BTAV_A2DP_CODEC_INDEX_MAX:
         case BTAV_A2DP_CODEC_INDEX_SOURCE_MAX:

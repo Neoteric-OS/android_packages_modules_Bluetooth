@@ -29,7 +29,6 @@ import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.annotation.RequiresPermission;
 import android.annotation.SuppressLint;
-import android.bluetooth.BluetoothClass;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothHeadset;
 import android.bluetooth.BluetoothProfile;
@@ -2939,16 +2938,7 @@ public class HeadsetService extends ProfileService {
         List<BluetoothDevice> fallbackCandidates = getConnectedDevices();
         List<BluetoothDevice> uninterestedCandidates = new ArrayList<>();
         for (BluetoothDevice device : fallbackCandidates) {
-            byte[] deviceType =
-                    dbManager.getCustomMeta(device, BluetoothDevice.METADATA_DEVICE_TYPE);
-            BluetoothClass deviceClass =
-                    new BluetoothClass(
-                            mAdapterService.getRemoteDevices().getBluetoothClass(device));
-            if ((deviceClass != null
-                            && deviceClass.getMajorDeviceClass()
-                                    == BluetoothClass.Device.WEARABLE_WRIST_WATCH)
-                    || (deviceType != null
-                            && BluetoothDevice.DEVICE_TYPE_WATCH.equals(new String(deviceType)))) {
+            if (Utils.isWatch(mAdapterService, device)) {
                 uninterestedCandidates.add(device);
             }
         }
