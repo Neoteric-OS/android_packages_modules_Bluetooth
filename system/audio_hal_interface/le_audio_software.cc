@@ -299,6 +299,7 @@ void LeAudioClientInterface::Sink::UpdateAudioConfigToHal(
     return;
   }
 
+  log::info("");
   get_aidl_client_interface(is_broadcaster_)
           ->UpdateAudioConfig(aidl::le_audio::offload_config_to_hal_audio_config(offload_config));
 }
@@ -370,30 +371,6 @@ LeAudioClientInterface::Sink::GetUnicastConfig(
 
   log::debug("Source Pac Records");
   PrintPacRecords(requirements.source_pacs);
-
-  /*for (const ::bluetooth::le_audio::CodecManager::UnicastConfigurationRequirements
-                ::DeviceDirectionRequirements& sink_reqiurement : *requirements.sink_requirements) {
-    std::stringstream debug_str;
-    debug_str << "Sink requirement" << "\n\tTarget_Latency: " << (unsigned)sink_reqiurement.target_latency
-              << "\n\ttarget_Phy: " << (unsigned)sink_reqiurement.target_Phy
-              << "\n\tLtvs:\n";
-    if (!sink_reqiurement.params.IsEmpty()) {
-      debug_str << sink_reqiurement.params.ToString("", ::bluetooth::le_audio::types::CodecConfigLtvFormat);
-    }
-    log::debug("{}", debug_str.str());
-  }
-
-  for (const ::bluetooth::le_audio::CodecManager::UnicastConfigurationRequirements
-                ::DeviceDirectionRequirements& source_reqiurement : *requirements.source_requirements) {
-    std::stringstream debug_str;
-    debug_str << "Source requirement" << "\n\tTarget_Latency: " << (unsigned)source_reqiurement.target_latency
-              << "\n\ttarget_Phy: " << (unsigned)source_reqiurement.target_Phy
-              << "\n\tLtvs:\n";
-    if (!source_reqiurement.params.IsEmpty()) {
-      debug_str << source_reqiurement.params.ToString("", ::bluetooth::le_audio::types::CodecConfigLtvFormat);
-    }
-    log::debug("{}", debug_str.str());
-  }*/
 
   auto aidl_sink_pacs = GetAidlLeAudioDeviceCapabilitiesFromStackFormat(requirements.sink_pacs);
 

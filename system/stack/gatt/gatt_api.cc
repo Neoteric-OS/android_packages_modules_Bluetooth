@@ -162,6 +162,19 @@ static void gatt_update_for_database_change() {
   }
 }
 
+bool is_existing_service(const Uuid& app_uuid128, Uuid* p_svc_uuid) {
+  for (auto& info : *gatt_cb.srv_list_info) {
+    Uuid* p_this_uuid = gatts_get_service_uuid(info.p_db);
+
+    if (p_this_uuid && app_uuid128 == info.app_uuid &&
+        *p_svc_uuid == *p_this_uuid) {
+      log::error("existing Service Found: {}", *p_svc_uuid);
+      return true;
+    }
+  }
+  return false;
+}
+
 /*******************************************************************************
  *
  * Function         GATTS_AddService
@@ -189,6 +202,11 @@ tGATT_STATUS GATTS_AddService(tGATT_IF gatt_if, btgatt_db_element_t* service, in
 
   if (!p_reg) {
     log::error("Invalid gatt_if={}", gatt_if);
+    return GATT_INTERNAL_ERROR;
+  }
+
+  if (is_existing_service(p_reg->app_uuid128, &svc_uuid)) {
+    log::error(" existing service for gatt_if={}", gatt_if);
     return GATT_INTERNAL_ERROR;
   }
 
@@ -398,11 +416,8 @@ bool GATTS_DeleteService(tGATT_IF gatt_if, Uuid* p_svc_uuid, uint16_t svc_inst) 
     GATTS_StopService(it->asgn_range.s_handle);
   }
 
-  gatt_update_for_database_change();
-  gatt_proc_srv_chg();
-
-  log::verbose("released handles s_hdl=0x{:x}, e_hdl=0x{:x}", it->asgn_range.s_handle,
-               it->asgn_range.e_handle);
+  log::verbose("released handles s_hdl=0x{:x}, e_hdl=0x{:x}",
+               it->asgn_range.s_handle, it->asgn_range.e_handle);
 
   if ((it->asgn_range.s_handle >= gatt_cb.hdl_cfg.app_start_hdl) &&
       gatt_cb.cb_info.p_nv_save_callback) {
@@ -410,6 +425,9 @@ bool GATTS_DeleteService(tGATT_IF gatt_if, Uuid* p_svc_uuid, uint16_t svc_inst) 
   }
 
   gatt_cb.hdl_list_info->erase(it);
+
+  gatt_update_for_database_change();
+  gatt_proc_srv_chg();
   return true;
 }
 
@@ -1492,7 +1510,7 @@ bool GATT_Connect(tGATT_IF gatt_if, const RawAddress& bd_addr, tBLE_ADDR_TYPE ad
         log::warn("{} already added to gatt_if {} direct conn list", bd_addr, gatt_if);
       }
 
-      ret = connection_manager::create_le_connection(gatt_if, bd_addr, addr_type);
+      ret = connection_manager::direct_connect_add(gatt_if, bd_addr, addr_type);
     }
 
   } else {

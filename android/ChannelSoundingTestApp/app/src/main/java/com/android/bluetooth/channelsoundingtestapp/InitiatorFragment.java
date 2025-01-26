@@ -80,6 +80,8 @@ public class InitiatorFragment extends Fragment {
 
   private ArrayAdapter<String> mFreqArrayAdapter;
   private Spinner mSpinnerFreq;
+  private ArrayAdapter<String> mDurationArrayAdapter;
+  private Spinner mSpinnerDuration;
 
   @Override
   public View onCreateView(
@@ -96,6 +98,7 @@ public class InitiatorFragment extends Fragment {
     mButtonCs = (Button) root.findViewById(R.id.btn_cs);
     mSpinnerDmMethod = (Spinner) root.findViewById(R.id.spinner_dm_method);
     mSpinnerFreq = (Spinner) root.findViewById(R.id.spinner_freq);
+    mSpinnerDuration = (Spinner) root.findViewById(R.id.spinner_duration);
     mDistanceViewLayout = (LinearLayout) root.findViewById(R.id.layout_distance_view);
     mDistanceText = new TextView(getContext());
     mDistanceViewLayout.addView(mDistanceText);
@@ -125,6 +128,12 @@ public class InitiatorFragment extends Fragment {
                         getContext(), android.R.layout.simple_spinner_item, new ArrayList<>());
         mFreqArrayAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         mSpinnerFreq.setAdapter(mFreqArrayAdapter);
+        mDurationArrayAdapter =
+                new ArrayAdapter<String>(
+                        getContext(), android.R.layout.simple_spinner_item, new ArrayList<>());
+        mDurationArrayAdapter.setDropDownViewResource(
+                android.R.layout.simple_spinner_dropdown_item);
+        mSpinnerDuration.setAdapter(mDurationArrayAdapter);
 
         mInitiatorViewModel = new ViewModelProvider(this).get(InitiatorViewModel.class);
         mBleConnectionViewModel = new ViewModelProvider(this).get(BleConnectionViewModel.class);

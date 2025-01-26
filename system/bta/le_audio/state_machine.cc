@@ -738,6 +738,7 @@ public:
     log_history_->AddLogHistory(kLogHciEvent, group->group_id_, RawAddress::kEmpty,
                                 kLogCisCreateOp + "STATUS=" + loghex(status));
 
+    log::info(": CIG create status: {}", status);
     if (status != HCI_SUCCESS) {
       if (status == HCI_ERR_COMMAND_DISALLOWED) {
         /*
@@ -910,6 +911,7 @@ public:
             kLogHciEvent, group->group_id_, leAudioDevice->address_,
             kLogSetDataPathOp + "cis_h:" + loghex(conn_handle) + " STATUS=" + loghex(status));
 
+    log::warn(": Group: {}, status: {}, conn_handle: {} ", group->group_id_, status, conn_handle);
     if (status) {
       log::error("failed to setup data path");
       StopStream(group);
@@ -1250,6 +1252,7 @@ public:
                                 kLogCisEstablishedOp + "cis_h:" + loghex(event->cis_conn_hdl) +
                                         " STATUS=" + loghex(event->status));
 
+    log::warn("CIS established status:{}", event->status);
     if (event->status != HCI_SUCCESS) {
       if (ases_pair.sink) {
         ases_pair.sink->cis_state = CisState::ASSIGNED;
@@ -2019,6 +2022,7 @@ private:
   }
 
   static void PrepareDataPath(int group_id, struct ase* ase) {
+    log::debug(": group_id: {}", group_id);
     bluetooth::hci::iso_manager::iso_data_path_params param = {
             .data_path_dir = ase->direction == bluetooth::le_audio::types::kLeAudioDirectionSink
                                      ? bluetooth::hci::iso_manager::kIsoDataPathDirectionIn

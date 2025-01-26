@@ -1345,8 +1345,6 @@ static void btm_process_inq_results_rssi(EventView event) {
 
     /* Check if this address has already been processed for this inquiry */
     if (btm_inq_find_bdaddr(bda)) {
-      /* log::verbose("BDA seen before {}", ADDRESS_TO_LOGGABLE_CSTR(bda));
-       */
 
       /* By default suppose no update needed */
       i_rssi = (int8_t)rssi;

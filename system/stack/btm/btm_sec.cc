@@ -1111,6 +1111,13 @@ bool BTM_SecIsSecurityPending(const RawAddress& bd_addr) {
                        p_dev_rec->sec_rec.le_link == tSECURITY_STATE::AUTHENTICATING);
 }
 
+bool BTM_SecIsLeSecurityPending(const RawAddress& bd_addr) {
+  tBTM_SEC_DEV_REC* p_dev_rec = btm_find_dev(bd_addr);
+  return p_dev_rec &&
+         (p_dev_rec->sec_rec.is_security_state_le_encrypting() ||
+          p_dev_rec->sec_rec.le_link == tSECURITY_STATE::AUTHENTICATING);
+}
+
 /*******************************************************************************
  * disconnect the ACL link, if it's not done yet.
  ******************************************************************************/
@@ -2255,7 +2262,7 @@ tBTM_SEC_DEV_REC* btm_rnr_add_name_to_security_record(const RawAddress* p_bd_add
 void btm_sec_rmt_name_request_complete(const RawAddress* p_bd_addr, const uint8_t* p_bd_name,
                                        tHCI_STATUS hci_status) {
   log::info("btm_sec_rmt_name_request_complete for {}",
-            p_bd_addr ? ADDRESS_TO_LOGGABLE_CSTR(*p_bd_addr) : "null");
+            p_bd_addr ? p_bd_addr->ToRedactedStringForLogging() : "null");
 
   if ((!p_bd_addr && !get_btm_client_interface().peer.BTM_IsAclConnectionUp(
                              btm_sec_cb.connecting_bda, BT_TRANSPORT_BR_EDR)) ||
@@ -2269,9 +2276,8 @@ void btm_sec_rmt_name_request_complete(const RawAddress* p_bd_addr, const uint8_
   if (p_dev_rec == nullptr) {
     log::warn(
             "Remote read request complete for unknown device peer:{} "
-            "pairing_state:{} "
-            "hci_status:{} name:{}",
-            (p_bd_addr) ? ADDRESS_TO_LOGGABLE_CSTR(*p_bd_addr) : "null",
+            "pairing_state:{} hci_status:{} name:{}",
+            p_bd_addr ? p_bd_addr->ToRedactedStringForLogging() : "null",
             tBTM_SEC_CB::btm_pair_state_descr(btm_sec_cb.pairing_state),
             hci_status_code_text(hci_status), reinterpret_cast<char const*>(p_bd_name));
     return;
@@ -3045,14 +3051,15 @@ static bool btm_sec_auth_retry(uint16_t handle, uint8_t status) {
     btm_restore_mode();
     p_dev_rec->sm4 |= BTM_SM4_RETRY;
     p_dev_rec->sec_rec.sec_flags &= ~BTM_SEC_LINK_KEY_KNOWN;
-    log::verbose("Retry for missing key sm4:x{:x} sec_flags:0x{:x}", p_dev_rec->sm4,
-                 p_dev_rec->sec_rec.sec_flags);
+    log::verbose("Retry for missing key sm4:x{:x} sec_flags:0x{:x} sec_req_flags:0x{:x}",
+                 p_dev_rec->sm4, p_dev_rec->sec_rec.sec_flags, p_dev_rec->sec_rec.security_required);
 
     /* With BRCM controller, we do not need to delete the stored link key in
        controller.
        If the stack may sit on top of other controller, we may need this
        BTM_DeleteStoredLinkKey (bd_addr, NULL); */
     p_dev_rec->sec_rec.classic_link = tSECURITY_STATE::IDLE;
+    p_dev_rec->sec_rec.required_security_flags_for_pairing = p_dev_rec->sec_rec.security_required;
     btm_sec_execute_procedure(p_dev_rec);
     return true;
   }
@@ -3277,6 +3284,11 @@ void btm_sec_encrypt_change(uint16_t handle, tHCI_STATUS status, uint8_t encr_en
 
   if (transport == BT_TRANSPORT_LE) {
     key_size = p_dev_rec->sec_rec.ble_keys.key_size;
+    if (key_size == 0 && status == HCI_SUCCESS && encr_enable == HCI_ENCRYPT_MODE_ON) {
+      /* Only case when key size is 0 during successfull encryption is pairing - for this case look
+       * up the key size */
+      key_size = SMP_GetPendingPairingKeySize();
+    }
   }
 
   log::debug(
@@ -3400,8 +3412,10 @@ void btm_sec_encrypt_change(uint16_t handle, tHCI_STATUS status, uint8_t encr_en
         /* BR/EDR is encrypted with LK that can be used to derive LE LTK */
         p_dev_rec->sec_rec.new_encryption_key_is_p256 = false;
 
-        log::verbose("start SM over BR/EDR");
-        SMP_BR_PairWith(p_dev_rec->bd_addr);
+        if (!interop_match_addr(INTEROP_DISABLE_OUTGOING_BR_SMP, &p_dev_rec->bd_addr)) {
+          log::verbose("start SM over BR/EDR");
+          SMP_BR_PairWith(p_dev_rec->bd_addr);
+        }
       }
     }
   }
@@ -3436,8 +3450,7 @@ void btm_sec_encrypt_change(uint16_t handle, tHCI_STATUS status, uint8_t encr_en
   tBTM_STATUS btm_status = btm_sec_execute_procedure(p_dev_rec);
   /* If there is no next procedure, or procedure failed to start, notify the
    * caller */
-  if (static_cast<std::underlying_type_t<tBTM_STATUS>>(status) !=
-      static_cast<uint8_t>(tBTM_STATUS::BTM_CMD_STARTED)) {
+  if (btm_status != tBTM_STATUS::BTM_CMD_STARTED){
     btm_sec_dev_rec_cback_event(p_dev_rec, btm_status, false);
   }
 }

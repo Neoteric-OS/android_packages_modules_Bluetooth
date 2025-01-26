@@ -46,6 +46,7 @@ public:
   virtual void BleSetPhy(const RawAddress& bd_addr, uint8_t tx_phys, uint8_t rx_phys,
                          uint16_t phy_options) = 0;
   virtual bool SecIsSecurityPending(const RawAddress& bd_addr) = 0;
+  virtual bool SecIsLeSecurityPending(const RawAddress& bd_addr) = 0;
   virtual void RequestPeerSCA(RawAddress const& bd_addr, tBT_TRANSPORT transport) = 0;
   virtual uint16_t GetHCIConnHandle(RawAddress const& bd_addr, tBT_TRANSPORT transport) = 0;
   virtual void AclDisconnectFromHandle(uint16_t handle, tHCI_STATUS reason) = 0;
@@ -83,6 +84,7 @@ public:
               (const RawAddress& bd_addr, uint8_t tx_phys, uint8_t rx_phys, uint16_t phy_options),
               (override));
   MOCK_METHOD((bool), SecIsSecurityPending, (const RawAddress& bd_addr), (override));
+  MOCK_METHOD((bool), SecIsLeSecurityPending, (const RawAddress& bd_addr), (override));
   MOCK_METHOD((void), RequestPeerSCA, (RawAddress const& bd_addr, tBT_TRANSPORT transport),
               (override));
   MOCK_METHOD((uint16_t), GetHCIConnHandle, (RawAddress const& bd_addr, tBT_TRANSPORT transport),

@@ -1852,6 +1852,8 @@ bool LeAudioDeviceGroup::ConfigureAses(
       required_device_cnt--;
     };
 
+    log::info("required_device_cnt: {}", required_device_cnt);
+
     // First use the devices claiming proper support
     for (auto* device = GetFirstDeviceWithAvailableContext(context_type);
          device != nullptr && required_device_cnt > 0;
@@ -2384,7 +2386,7 @@ void LeAudioDeviceGroup::Dump(std::stringstream& stream, int active_group_id) co
       stream << "\n\t cis id: " << static_cast<int>(cis.id)
              << ",\ttype: " << static_cast<int>(cis.type)
              << ",\tconn_handle: " << static_cast<int>(cis.conn_handle)
-             << ",\taddr: " << ADDRESS_TO_LOGGABLE_STR(cis.addr);
+             << ",\taddr: " << cis.addr.ToRedactedStringForLogging();
     }
   }
   stream << "\n";
