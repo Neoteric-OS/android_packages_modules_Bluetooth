@@ -180,6 +180,9 @@ public:
                std::optional<const ::bluetooth::le_audio::types::PublishedAudioCapabilities*>),
               (const override));
 
+  MOCK_METHOD((void), UpdateMetadataChanged, (::bluetooth::le_audio::types::AseState& state,
+               int cig_id, int cis_id, const std::vector<uint8_t>& data), (override));
+
   MOCK_METHOD((void), OnDestroyed, ());
   virtual ~MockLeAudioSinkHalClient() override { OnDestroyed(); }
 };
@@ -217,6 +220,8 @@ public:
               ((std::vector<uint16_t>), (::bluetooth::le_audio::types::LeAudioContextType),
               (bool), (bool)), (override));
 
+  MOCK_METHOD((void), UpdateMetadataChanged, (::bluetooth::le_audio::types::AseState& state,
+               int cig_id, int cis_id, const std::vector<uint8_t>& data), (override));
 
   MOCK_METHOD((void), OnDestroyed, ());
   virtual ~MockLeAudioSourceHalClient() override { OnDestroyed(); }

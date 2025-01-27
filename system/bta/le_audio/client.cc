@@ -6834,6 +6834,20 @@ public:
     group->UpdateCisConfiguration(direction);
   }
 
+  void UpdateMetadataCb(AseState state, int cig_id, int cis_id,
+       const std::vector<uint8_t>& data) {
+    if (le_audio_source_hal_client_) {
+      log::info("calling source Metadata Changed");
+      le_audio_source_hal_client_->UpdateMetadataChanged(state,
+          cig_id, cis_id, data);
+    }
+    if (le_audio_sink_hal_client_) {
+      log::info("calling sink Metadata Changed");
+      le_audio_sink_hal_client_->UpdateMetadataChanged(state,
+          cig_id, cis_id, data);
+    }
+  }
+
 private:
   tGATT_IF gatt_if_;
   bluetooth::le_audio::LeAudioClientCallbacks* callbacks_;
@@ -7241,6 +7255,13 @@ public:
   void OnUpdatedCisConfiguration(int group_id, uint8_t direction) {
     if (instance) {
       instance->OnUpdatedCisConfiguration(group_id, direction);
+    }
+  }
+
+  void UpdateMetadataCb(AseState state, int cig_id, int cis_id,
+       const std::vector<uint8_t>& data) {
+    if (instance) {
+      instance->UpdateMetadataCb(state, cig_id, cis_id, data);
     }
   }
 };

@@ -97,6 +97,9 @@ public:
   void SuspendedForReconfiguration() override;
   void ReconfigurationComplete() override;
 
+  void UpdateMetadataChanged(::bluetooth::le_audio::types::AseState& state,
+          int cig_id, int cis_id, const std::vector<uint8_t>& data) override;
+
   // Internal functionality
   SourceImpl(bool is_broadcaster)
       : le_audio_sink_hal_state_(HAL_UNINITIALIZED),
@@ -485,6 +488,17 @@ std::optional<broadcaster::BroadcastConfiguration> SourceImpl::GetBroadcastConfi
 
   log::info("");
   return halSinkInterface_->GetBroadcastConfig(subgroup_quality, pacs);
+}
+
+void SourceImpl::UpdateMetadataChanged(::bluetooth::le_audio::types::AseState& state,
+       int cig_id, int cis_id, const std::vector<uint8_t>& data) {
+  if (halSinkInterface_ == nullptr) {
+    log::error("Audio HAL Audio sink is null!");
+    return;
+  }
+
+  log::info("");
+  halSinkInterface_->UpdateMetadataChanged(state, cig_id, cis_id, data);
 }
 
 std::optional<::bluetooth::le_audio::set_configurations::AudioSetConfiguration>
