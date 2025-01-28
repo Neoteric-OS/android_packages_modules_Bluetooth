@@ -71,6 +71,8 @@ import com.android.bluetooth.Utils;
 import com.android.bluetooth.flags.Flags;
 import com.android.bluetooth.hfp.BluetoothHeadsetProxy;
 import com.android.bluetooth.tbs.BluetoothLeCallControlProxy;
+import com.android.bluetooth.le_audio.LeAudioService;
+import com.android.bluetooth.btservice.ServiceFactory;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -178,6 +180,10 @@ public class BluetoothInCallService extends InCallService {
     boolean mIsTerminatedByClient = false;
 
     private static final Object LOCK = new Object();
+
+    private final ServiceFactory mFactory = new ServiceFactory();
+
+    private LeAudioService mLeAudioService;
 
     @VisibleForTesting BluetoothHeadsetProxy mBluetoothHeadset;
 
@@ -1297,6 +1303,13 @@ public class BluetoothInCallService extends InCallService {
     public void onCallAudioStateChanged(CallAudioState audioState) {
         super.onCallAudioStateChanged(audioState);
         Log.d(TAG, "onCallAudioStateChanged, audioState == " + audioState);
+
+        mLeAudioService = mFactory.getLeAudioService();
+        if (mLeAudioService == null) {
+            Log.e(TAG, "leAudioService not available");
+            return;
+        }
+        mLeAudioService.updateCallAudioRoute(audioState.getRoute());
     }
 
     @Override
