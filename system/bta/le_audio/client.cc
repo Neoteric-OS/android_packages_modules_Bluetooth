@@ -1434,11 +1434,6 @@ public:
   void SetCodecConfigPreference(
           int group_id, bluetooth::le_audio::btle_audio_codec_config_t input_codec_config,
           bluetooth::le_audio::btle_audio_codec_config_t output_codec_config) override {
-    if (!com::android::bluetooth::flags::leaudio_set_codec_config_preference()) {
-      log::debug("leaudio_set_codec_config_preference flag is not enabled");
-      return;
-    }
-
     LeAudioDeviceGroup* group = aseGroups_.FindById(group_id);
 
     if (!group) {
@@ -1459,11 +1454,15 @@ public:
       group->UpdateAudioSetConfigurationCache(LeAudioContextType::CONVERSATIONAL);
     }
 
-    if (group->SetPreferredAudioSetConfiguration(input_codec_config, output_codec_config)) {
-      log::info("group id: {}, setting preferred codec is successful.", group_id);
+    if (!com::android::bluetooth::flags::leaudio_set_codec_config_preference()) {
+      log::debug("leaudio_set_codec_config_preference flag is not enabled");
     } else {
-      log::warn("group id: {}, setting preferred codec is failed.", group_id);
-      return;
+      if (group->SetPreferredAudioSetConfiguration(input_codec_config, output_codec_config)) {
+        log::info("group id: {}, setting preferred codec is successful.", group_id);
+      } else {
+        log::warn("group id: {}, setting preferred codec is failed.", group_id);
+        return;
+      }
     }
 
     if (group_id != active_group_id_) {
@@ -1583,10 +1582,20 @@ public:
       }
     }
 
+    log::debug("reconfigure: {} ", reconfigure);
     if (reconfigure) {
-      ReconfigureOrUpdateRemote(group, bluetooth::le_audio::types::kLeAudioDirectionSink);
+      if (in_call_) {
+        if (((audio_sender_state_ == AudioState::IDLE) &&
+             (audio_receiver_state_ == AudioState::IDLE)) ||
+            (audio_sender_state_ > AudioState::IDLE)) {
+          ReconfigureOrUpdateRemote(group, bluetooth::le_audio::types::kLeAudioDirectionSink);
+        } else if (audio_receiver_state_ > AudioState::IDLE) {
+          ReconfigureOrUpdateRemote(group, bluetooth::le_audio::types::kLeAudioDirectionSource);
+        }
+      } else {
+        ReconfigureOrUpdateRemote(group, bluetooth::le_audio::types::kLeAudioDirectionSink);
+      }
     }
-    ProcessCallAvailbilityToUpdateMetadata(in_call);
   }
 
   bool IsInCall() override {
@@ -6755,6 +6764,7 @@ public:
           UpdateLocationsAndContextsAvailability(group);
           if (group->IsPendingConfiguration()) {
             UpdatePriorCodecTypeToHal(group);
+            SuspendedForReconfiguration();
             group->SetSuspendedForReconfiguration();
             log::debug(
                     "Pending configuration for group_id: {} pre_configuration_context_type_ : {} "
@@ -6797,8 +6807,7 @@ public:
                     "configuration_context_type_ {}",
                     ToString(pre_configuration_context_type_),
                     ToString(configuration_context_type_));
-            if ((configuration_context_type_ != pre_configuration_context_type_) &&
-                GroupStream(group->group_id_, configuration_context_type_, remote_contexts)) {
+            if (GroupStream(group->group_id_, configuration_context_type_, remote_contexts)) {
               log::info("configuration succeed, wait for new status for group {}",
                         group->group_id_);
               /* If configuration succeed wait for new status. */
@@ -6876,6 +6885,20 @@ public:
         }
         break;
       }
+      case GroupStreamStatus::RELEASING_AUTONOMOUS:
+        /* Remote device releases all the ASEs autonomusly. This should not happen and not sure what
+         * is the remote device intention. If remote wants stop the stream then MCS shall be used to
+         * stop the stream in a proper way. For a phone call, GTBS shall be used. For now we assume
+         * this device has does not want to be used for streaming and mark it as Inactive.
+         */
+        log::warn("Group {} is doing autonomous release, make it inactive", group_id);
+        if (group) {
+          group->PrintDebugState();
+          groupSetAndNotifyInactive();
+        }
+        audio_sender_state_ = AudioState::IDLE;
+        audio_receiver_state_ = AudioState::IDLE;
+        break;
       case GroupStreamStatus::RELEASING:
       case GroupStreamStatus::SUSPENDING:
         log::debug(" defer_notify_inactive_until_stop_: {}", defer_notify_inactive_until_stop_);
@@ -6890,12 +6913,15 @@ public:
            * it means that it is some internal state machine error. This is very unlikely and
            * for now just Inactivate the group.
            */
-          log::error("Internal state machine error");
+          log::error("Internal state machine error for group {}", group_id);
           group->PrintDebugState();
           if (group->GetState() != AseState::BTA_LE_AUDIO_ASE_STATE_IDLE) {
             defer_notify_inactive_until_stop_ = true;
           }
           groupSetAndNotifyInactive();
+          audio_sender_state_ = AudioState::IDLE;
+          audio_receiver_state_ = AudioState::IDLE;
+          return;
         }
 
         if (is_active_group_operation) {
@@ -6905,11 +6931,6 @@ public:
 
           if (audio_receiver_state_ != AudioState::IDLE) {
             audio_receiver_state_ = AudioState::RELEASING;
-          }
-
-          if (group && group->IsPendingConfiguration()) {
-            log::info("Releasing for reconfiguration, don't send anything on CISes");
-            SuspendedForReconfiguration();
           }
         }
 
