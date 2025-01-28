@@ -3360,8 +3360,13 @@ private:
           struct le_audio::client_parser::ascs::ase_transient_state_params rsp;
 
           if (ParseAseStatusTransientStateParams(rsp, len, data)) {
-            parseVSMetadata(rsp.metadata.size(), rsp.metadata, rsp.cig_id,
-                rsp.cis_id, ase);
+            if (CodecManager::GetInstance()->IsUsingCodecExtensibility()) {
+              state_machine_callbacks_->UpdateMetadataCb(ase->state, rsp.cig_id, rsp.cis_id,
+                rsp.metadata);
+            } else {
+              parseVSMetadata(rsp.metadata.size(), rsp.metadata, rsp.cig_id,
+                 rsp.cis_id, ase);
+            }
           }
         }
 
@@ -3486,8 +3491,13 @@ private:
           return;
         }
 
-        parseVSMetadata(rsp.metadata.size(), rsp.metadata,
-            rsp.cig_id, rsp.cis_id, ase);
+        if (CodecManager::GetInstance()->IsUsingCodecExtensibility()) {
+          state_machine_callbacks_->UpdateMetadataCb(ase->state, rsp.cig_id, rsp.cis_id,
+            rsp.metadata);
+        } else {
+          parseVSMetadata(rsp.metadata.size(), rsp.metadata, rsp.cig_id,
+             rsp.cis_id, ase);
+        }
         /* Cache current set up metadata values for for further possible
          * reconfiguration
          */
