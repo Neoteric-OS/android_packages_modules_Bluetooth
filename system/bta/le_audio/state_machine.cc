@@ -3247,6 +3247,9 @@ private:
       return;
     }
 
+    std::vector<uint16_t> conn_handles;
+    AudioContexts ctx_type;
+
     /* Request server to update ASEs with new metadata */
     for (struct ase* ase = leAudioDevice->GetFirstActiveAse(); ase != nullptr;
          ase = leAudioDevice->GetNextActiveAse(ase)) {
@@ -3294,6 +3297,8 @@ private:
       conf.ase_id = ase->id;
       conf.metadata = ase->metadata;
       confs.push_back(conf);
+      conn_handles.push_back(ase->cis_conn_hdl);
+      ctx_type = directional_audio_context;
 
       extra_stream << "meta: " << base::HexEncode(conf.metadata.data(), conf.metadata.size())
                    << ";;";
@@ -3303,6 +3308,9 @@ private:
       std::vector<uint8_t> value;
       bluetooth::le_audio::client_parser::ascs::PrepareAseCtpUpdateMetadata(confs, value);
       WriteToControlPoint(leAudioDevice, value);
+
+      send_vs_cmd(static_cast<uint16_t>(ctx_type.value()),
+         leAudioDevice->group_id_, conn_handles.size(), conn_handles, leAudioDevice->isLeXDevice());
 
       log::info("group_id: {}, {}", leAudioDevice->group_id_, leAudioDevice->address_);
 
