@@ -5861,6 +5861,16 @@ public class LeAudioService extends ProfileService {
         return getConnectedGroupLeadDevice(groupId);
     }
 
+    public void updateCallAudioRoute(int callAudioRoute) {
+        Log.d(TAG, "updateCallAudioRoute(" + callAudioRoute + ")");
+
+        if (!mLeAudioNativeIsInitialized) {
+            Log.e(TAG, "Le Audio not initialized properly.");
+            return;
+        }
+        mNativeInterface.updateCallAudioRoute(callAudioRoute);
+    }
+
     /**
      * Sends the preferred audio profile change requested from a call to {@link
      * BluetoothAdapter#setPreferredAudioProfiles(BluetoothDevice, Bundle)} to the audio framework
