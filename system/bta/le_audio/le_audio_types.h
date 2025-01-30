@@ -1268,6 +1268,12 @@ struct ase {
   AseQosPreferences qos_preferences;
 
   std::vector<uint8_t> metadata;
+
+  /* To pass vendorspecific metadata to BT HAL*/
+  LeAudioLtvMap vendor_metadata;
+
+  /* Below vs_metadata and is_vsmetadata_available used only for metadata update
+   * while enabling or streaming */
   std::vector<uint8_t> vs_metadata;
 
   bool is_vsmetadata_available;
@@ -1339,7 +1345,6 @@ struct CodecMetadataSetting {
   int8_t vendor_metadata_type;
   std::vector<uint8_t> vs_metadata;
 };
-
 std::ostream& operator<<(std::ostream& os, const CodecConfigSetting& config);
 
 struct QosConfigSetting {

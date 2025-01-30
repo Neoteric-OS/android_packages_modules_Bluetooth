@@ -227,6 +227,8 @@ public:
   void DisconnectAcl(void);
   std::vector<uint8_t> GetMetadata(types::AudioContexts context_type,
                                    const std::vector<uint8_t>& ccid_list);
+  void SetVendorCodecSpecificMetadataToAse(struct types::ase* ase,
+                       const uint16_t company_id, const std::vector<uint8_t>& vs_metadata);
   bool IsMetadataChanged(const types::BidirectionalPair<types::AudioContexts>& context_types,
                          const types::BidirectionalPair<std::vector<uint8_t>>& ccid_lists);
 
