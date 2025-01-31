@@ -375,6 +375,8 @@ private:
   std::set<uint8_t> active_labels_;
 
   int8_t volume_ = -1;
+  bool fast_forwarding_ = false;
+  bool fast_rewinding_  = false;
 };
 
 }  // namespace avrcp
