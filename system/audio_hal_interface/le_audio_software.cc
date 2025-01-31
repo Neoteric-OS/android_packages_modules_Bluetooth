@@ -295,6 +295,26 @@ void LeAudioClientInterface::Sink::StopSession() {
   get_aidl_client_interface(is_broadcaster_)->EndSession();
 }
 
+void LeAudioClientInterface::Sink::UpdateMetadataChanged(::bluetooth::le_audio::types::AseState&
+     state, int cig_id, int cis_id, const std::vector<uint8_t>& data) {
+  log::info("sink");
+  ::bluetooth::le_audio::types::LeAudioLtvMap metadata_ltv;
+  metadata_ltv.Parse(data.data(), data.size());
+  auto aidl_metadata = aidl::GetAidlMetadataFromStackFormat(metadata_ltv);
+  IBluetoothAudioProvider::AseState ase_state;
+  if (state == ::bluetooth::le_audio::types::AseState::BTA_LE_AUDIO_ASE_STATE_ENABLING) {
+    ase_state = IBluetoothAudioProvider::AseState::ENABLING;
+  } else if (state == ::bluetooth::le_audio::types::AseState::BTA_LE_AUDIO_ASE_STATE_STREAMING) {
+    ase_state = IBluetoothAudioProvider::AseState::STREAMING;
+  } else if (state == ::bluetooth::le_audio::types::AseState::BTA_LE_AUDIO_ASE_STATE_DISABLING) {
+    ase_state = IBluetoothAudioProvider::AseState::DISABLING;
+  } else {
+    log::error("Invalid AseState {}", static_cast<int>(state));
+    return;
+  }
+  get_aidl_client_interface(is_broadcaster_)->onSinkAseMetadataChanged(ase_state, cig_id, cis_id, aidl_metadata);
+}
+
 void LeAudioClientInterface::Sink::UpdateAudioConfigToHal(
         const ::bluetooth::le_audio::offload_config& offload_config) {
   if (HalVersionManager::GetHalTransport() == BluetoothAudioHalTransport::HIDL) {
@@ -671,6 +691,26 @@ void LeAudioClientInterface::Source::StopSession() {
   }
   aidl::le_audio::LeAudioSourceTransport::instance->ClearStartRequestState();
   aidl::le_audio::LeAudioSourceTransport::interface->EndSession();
+}
+
+void LeAudioClientInterface::Source::UpdateMetadataChanged(::bluetooth::le_audio::types::AseState&
+     state, int cig_id, int cis_id, const std::vector<uint8_t>& data) {
+  log::info("source");
+  ::bluetooth::le_audio::types::LeAudioLtvMap metadata_ltv;
+  metadata_ltv.Parse(data.data(), data.size());
+  auto aidl_metadata = aidl::GetAidlMetadataFromStackFormat(metadata_ltv);
+  IBluetoothAudioProvider::AseState ase_state;
+  if (state == ::bluetooth::le_audio::types::AseState::BTA_LE_AUDIO_ASE_STATE_ENABLING) {
+    ase_state = IBluetoothAudioProvider::AseState::ENABLING;
+  } else if (state == ::bluetooth::le_audio::types::AseState::BTA_LE_AUDIO_ASE_STATE_STREAMING) {
+    ase_state = IBluetoothAudioProvider::AseState::STREAMING;
+  } else if (state == ::bluetooth::le_audio::types::AseState::BTA_LE_AUDIO_ASE_STATE_DISABLING) {
+    ase_state = IBluetoothAudioProvider::AseState::DISABLING;
+  } else {
+    log::error("Invalid AseState {}", static_cast<int>(state));
+    return;
+  }
+  aidl::le_audio::LeAudioSourceTransport::interface->onSourceAseMetadataChanged(ase_state, cig_id, cis_id, aidl_metadata);
 }
 
 void LeAudioClientInterface::Source::UpdateAudioConfigToHal(

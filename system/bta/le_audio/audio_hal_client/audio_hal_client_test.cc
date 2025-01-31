@@ -117,6 +117,8 @@ public:
   MOCK_METHOD((void), UpdateBroadcastAudioConfigToHal,
               (const ::bluetooth::le_audio::broadcast_offload_config&));
   MOCK_METHOD((size_t), Read, (uint8_t* p_buf, uint32_t len));
+  MOCK_METHOD((void), UpdateMetadataChanged, (::bluetooth::le_audio::types::AseState& state,
+               int cig_id, int cis_id, const std::vector<uint8_t>& data));
 };
 
 class MockLeAudioClientInterfaceSource : public LeAudioClientInterface::Source {
@@ -131,6 +133,8 @@ public:
   MOCK_METHOD((void), CancelStreamingRequest, (), (override));
   MOCK_METHOD((void), UpdateAudioConfigToHal, (const ::bluetooth::le_audio::offload_config&));
   MOCK_METHOD((size_t), Write, (const uint8_t* p_buf, uint32_t len));
+  MOCK_METHOD((void), UpdateMetadataChanged, (::bluetooth::le_audio::types::AseState& state,
+               int cig_id, int cis_id, const std::vector<uint8_t>& data));
 };
 
 class MockLeAudioClientInterface : public LeAudioClientInterface {
@@ -214,6 +218,12 @@ LeAudioClientInterface::Sink::GetVendorConfigureDataPathPayload(
 void LeAudioClientInterface::Sink::SuspendedForReconfiguration() {}
 void LeAudioClientInterface::Sink::ReconfigurationComplete() {}
 
+void LeAudioClientInterface::Sink::UpdateMetadataChanged(
+         ::bluetooth::le_audio::types::AseState& state,
+         int cig_id, int cis_id, const std::vector<uint8_t>& data) {}
+void LeAudioClientInterface::Source::UpdateMetadataChanged(
+         ::bluetooth::le_audio::types::AseState& state,
+         int cig_id, int cis_id, const std::vector<uint8_t>& data) {}
 void LeAudioClientInterface::Source::Cleanup() {}
 void LeAudioClientInterface::Source::SetPcmParameters(const PcmParameters& /*params*/) {}
 void LeAudioClientInterface::Source::SetRemoteDelay(uint16_t /*delay_report_ms*/) {}

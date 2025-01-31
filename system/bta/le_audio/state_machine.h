@@ -38,6 +38,8 @@ public:
     virtual void StatusReportCb(int group_id, bluetooth::le_audio::GroupStreamStatus status) = 0;
     virtual void OnStateTransitionTimeout(int group_id) = 0;
     virtual void OnUpdatedCisConfiguration(int group_id, uint8_t direction) = 0;
+    virtual void UpdateMetadataCb(types::AseState state, int cig_id, int cis_id,
+            const std::vector<uint8_t>& data) = 0;
   };
 
   virtual ~LeAudioGroupStateMachine() = default;
