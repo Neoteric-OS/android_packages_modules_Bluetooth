@@ -187,6 +187,8 @@ public:
               (override));
   MOCK_METHOD((void), OnStateTransitionTimeout, (int group_id), (override));
   MOCK_METHOD((void), OnUpdatedCisConfiguration, (int group_id, uint8_t direction), (override));
+  MOCK_METHOD((void), UpdateMetadataCb, (types::AseState state, int cig_id, int cis_id,
+               const std::vector<uint8_t>& data), (override));
 };
 
 class MockAseRemoteStateMachine {
