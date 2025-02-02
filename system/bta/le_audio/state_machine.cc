@@ -3247,6 +3247,9 @@ private:
       return;
     }
 
+    std::vector<uint16_t> conn_handles;
+    AudioContexts ctx_type;
+
     /* Request server to update ASEs with new metadata */
     for (struct ase* ase = leAudioDevice->GetFirstActiveAse(); ase != nullptr;
          ase = leAudioDevice->GetNextActiveAse(ase)) {
@@ -3294,6 +3297,8 @@ private:
       conf.ase_id = ase->id;
       conf.metadata = ase->metadata;
       confs.push_back(conf);
+      conn_handles.push_back(ase->cis_conn_hdl);
+      ctx_type = directional_audio_context;
 
       extra_stream << "meta: " << base::HexEncode(conf.metadata.data(), conf.metadata.size())
                    << ";;";
@@ -3303,6 +3308,9 @@ private:
       std::vector<uint8_t> value;
       bluetooth::le_audio::client_parser::ascs::PrepareAseCtpUpdateMetadata(confs, value);
       WriteToControlPoint(leAudioDevice, value);
+
+      send_vs_cmd(static_cast<uint16_t>(ctx_type.value()),
+         leAudioDevice->group_id_, conn_handles.size(), conn_handles, leAudioDevice->isLeXDevice());
 
       log::info("group_id: {}, {}", leAudioDevice->group_id_, leAudioDevice->address_);
 
@@ -3360,8 +3368,13 @@ private:
           struct le_audio::client_parser::ascs::ase_transient_state_params rsp;
 
           if (ParseAseStatusTransientStateParams(rsp, len, data)) {
-            parseVSMetadata(rsp.metadata.size(), rsp.metadata, rsp.cig_id,
-                rsp.cis_id, ase);
+            if (CodecManager::GetInstance()->IsUsingCodecExtensibility()) {
+              state_machine_callbacks_->UpdateMetadataCb(ase->state, rsp.cig_id, rsp.cis_id,
+                rsp.metadata);
+            } else {
+              parseVSMetadata(rsp.metadata.size(), rsp.metadata, rsp.cig_id,
+                 rsp.cis_id, ase);
+            }
           }
         }
 
@@ -3486,8 +3499,13 @@ private:
           return;
         }
 
-        parseVSMetadata(rsp.metadata.size(), rsp.metadata,
-            rsp.cig_id, rsp.cis_id, ase);
+        if (CodecManager::GetInstance()->IsUsingCodecExtensibility()) {
+          state_machine_callbacks_->UpdateMetadataCb(ase->state, rsp.cig_id, rsp.cis_id,
+            rsp.metadata);
+        } else {
+          parseVSMetadata(rsp.metadata.size(), rsp.metadata, rsp.cig_id,
+             rsp.cis_id, ase);
+        }
         /* Cache current set up metadata values for for further possible
          * reconfiguration
          */

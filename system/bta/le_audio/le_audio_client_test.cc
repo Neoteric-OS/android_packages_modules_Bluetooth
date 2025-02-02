@@ -299,6 +299,8 @@ public:
   MOCK_METHOD((void), ReconfigurationComplete, (), (override));
 
   MOCK_METHOD((void), OnDestroyed, ());
+  MOCK_METHOD((void), UpdateMetadataChanged, (::bluetooth::le_audio::types::AseState& state,
+               int cig_id, int cis_id, const std::vector<uint8_t>& data));
   virtual ~MockLeAudioSinkHalClient() override { OnDestroyed(); }
 };
 
@@ -333,6 +335,8 @@ public:
   MOCK_METHOD((void), ReconfigurationComplete, (), (override));
 
   MOCK_METHOD((void), OnDestroyed, ());
+  MOCK_METHOD((void), UpdateMetadataChanged, (::bluetooth::le_audio::types::AseState& state,
+               int cig_id, int cis_id, const std::vector<uint8_t>& data));
   virtual ~MockLeAudioSourceHalClient() override { OnDestroyed(); }
 };
 
