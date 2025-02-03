@@ -50,7 +50,6 @@ import android.media.BluetoothProfileConnectionInfo;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
-import android.os.HandlerThread;
 import android.os.Looper;
 import android.os.SystemProperties;
 import android.sysprop.BluetoothProperties;
@@ -1651,12 +1650,14 @@ public class A2dpService extends ProfileService {
         @Override
         public BluetoothCodecStatus getCodecStatus(
                 BluetoothDevice device, AttributionSource source) {
+            requireNonNull(device);
             A2dpService service = getServiceAndEnforceConnect(source);
             if (service == null) {
                 return null;
             }
 
-            service.enforceCallingOrSelfPermission(BLUETOOTH_PRIVILEGED, null);
+            Utils.enforceCdmAssociationIfNotBluetoothPrivileged(
+                    service, service.mCompanionDeviceManager, source, device);
 
             return service.getCodecStatus(device);
         }
@@ -1666,6 +1667,7 @@ public class A2dpService extends ProfileService {
                 BluetoothDevice device,
                 BluetoothCodecConfig codecConfig,
                 AttributionSource source) {
+            requireNonNull(device);
             A2dpService service = getServiceAndEnforceConnect(source);
             if (service == null) {
                 return;

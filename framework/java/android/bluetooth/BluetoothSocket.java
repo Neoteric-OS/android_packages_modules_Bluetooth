@@ -979,6 +979,8 @@ public final class BluetoothSocket implements Closeable {
             if (mL2capBuffer.remaining() == 0) {
                 if (VDBG) Log.v(TAG, "l2cap buffer empty, refilling...");
                 if (fillL2capRxBuffer() == -1) {
+                    Log.d(TAG, "socket EOF, returning -1");
+                    mSocketState = SocketState.CLOSED;
                     return -1;
                 }
             }
@@ -995,6 +997,7 @@ public final class BluetoothSocket implements Closeable {
             ret = mSocketIS.read(b, offset, length);
         }
         if (ret < 0) {
+            mSocketState = SocketState.CLOSED;
             throw new IOException("bt socket closed, read return: " + ret);
         }
         if (VDBG) Log.d(TAG, "read out:  " + mSocketIS + " ret: " + ret);
