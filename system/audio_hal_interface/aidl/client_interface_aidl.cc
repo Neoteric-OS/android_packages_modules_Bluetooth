@@ -675,7 +675,7 @@ BluetoothAudioClientInterface::getLeAudioAseDatapathConfiguration(
   }
 
   if (sourceConfig.has_value()) {
-    log::error("BluetoothAudioHal:: sinkConfig has valid info");
+    log::error("BluetoothAudioHal:: sourceConfig has valid info");
   } else {
     log::error("BluetoothAudioHal:: sourceConfig has not valid info");
   }
