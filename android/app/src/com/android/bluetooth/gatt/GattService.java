@@ -2829,7 +2829,16 @@ public class GattService extends ProfileService {
                         + ", connId="
                         + connId);
 
-        mNativeInterface.gattServerDisconnect(serverIf, address, connId != null ? connId : 0);
+        int state = BluetoothAdapter.STATE_OFF;
+        if (mAdapterService != null) {
+            state = mAdapterService.getState();
+        }
+
+        if(state == BluetoothAdapter.STATE_ON || state == BluetoothAdapter.STATE_BLE_ON) {
+           mNativeInterface.gattServerDisconnect(serverIf, address, connId != null ? connId : 0);
+        } else {
+            Log.w(TAG, "serverDisconnect() - Disallowed in BT state: " + state);
+        }
     }
 
     @RequiresPermission(BLUETOOTH_CONNECT)
