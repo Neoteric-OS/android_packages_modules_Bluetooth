@@ -42,7 +42,7 @@ typedef enum : uint8_t {
   SMP_BR_PARING_IN_PROGR = 0x0D,
   SMP_XTRANS_DERIVE_NOT_ALLOW = 0x0E,
   SMP_KEY_REJECTED = 0x0F,
-  SMP_BUSY = 0x10, /*device is not ready to perform a pairing procedure*/
+  SMP_BUSY =    0x10,  /*device is not ready to perform a pairing procedure*/
   SMP_MAX_FAIL_RSN_PER_SPEC = SMP_BUSY,
 
   /* self defined error code */
@@ -51,16 +51,17 @@ typedef enum : uint8_t {
   /* Unknown IO capability, unable to decide association model */
   SMP_UNKNOWN_IO_CAP = (SMP_MAX_FAIL_RSN_PER_SPEC + 0x02), /* 0x12 */
 
-  SMP_ENC_FAIL = (SMP_MAX_FAIL_RSN_PER_SPEC + 0x06),    /* 0x14 */
-  SMP_STARTED = (SMP_MAX_FAIL_RSN_PER_SPEC + 0x07),     /* 0x15 */
-  SMP_RSP_TIMEOUT = (SMP_MAX_FAIL_RSN_PER_SPEC + 0x08), /* 0x16 */
+  SMP_IMPL_BUSY = (SMP_MAX_FAIL_RSN_PER_SPEC + 0x05),   /* 0x15 */
+  SMP_ENC_FAIL = (SMP_MAX_FAIL_RSN_PER_SPEC + 0x06),    /* 0x16 */
+  SMP_STARTED = (SMP_MAX_FAIL_RSN_PER_SPEC + 0x07),     /* 0x17 */
+  SMP_RSP_TIMEOUT = (SMP_MAX_FAIL_RSN_PER_SPEC + 0x08), /* 0x18 */
 
   /* Unspecified failure reason */
-  SMP_FAIL = (SMP_MAX_FAIL_RSN_PER_SPEC + 0x0A), /* 0x18 */
+  SMP_FAIL = (SMP_MAX_FAIL_RSN_PER_SPEC + 0x0A), /* 0x1A */
 
-  SMP_CONN_TOUT = (SMP_MAX_FAIL_RSN_PER_SPEC + 0x0B),           /* 0x19 */
-  SMP_SIRK_DEVICE_INVALID = (SMP_MAX_FAIL_RSN_PER_SPEC + 0x0C), /* 0x1a */
-  SMP_USER_CANCELLED = (SMP_MAX_FAIL_RSN_PER_SPEC + 0x0D),      /* 0x1b */
+  SMP_CONN_TOUT = (SMP_MAX_FAIL_RSN_PER_SPEC + 0x0B),           /* 0x1B */
+  SMP_SIRK_DEVICE_INVALID = (SMP_MAX_FAIL_RSN_PER_SPEC + 0x0C), /* 0x1C */
+  SMP_USER_CANCELLED = (SMP_MAX_FAIL_RSN_PER_SPEC + 0x0D),      /* 0x1D */
 } tSMP_STATUS;
 
 inline std::string smp_status_text(const tSMP_STATUS& status) {
@@ -84,6 +85,7 @@ inline std::string smp_status_text(const tSMP_STATUS& status) {
     CASE_RETURN_TEXT(SMP_BUSY);
     CASE_RETURN_TEXT(SMP_PAIR_INTERNAL_ERR);
     CASE_RETURN_TEXT(SMP_UNKNOWN_IO_CAP);
+    CASE_RETURN_TEXT(SMP_IMPL_BUSY);
     CASE_RETURN_TEXT(SMP_ENC_FAIL);
     CASE_RETURN_TEXT(SMP_STARTED);
     CASE_RETURN_TEXT(SMP_RSP_TIMEOUT);
