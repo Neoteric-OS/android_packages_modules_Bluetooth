@@ -95,9 +95,9 @@ public class PhonePolicy implements AdapterService.BluetoothStateCallback {
 
     private static final Duration CONNECT_OTHER_PROFILES_TIMEOUT_DELAYED = Duration.ofSeconds(10);
     private static final Duration CONNECT_OTHER_PROFILES_REDUCED_TIMEOUT_DELAYED = Duration.ofSeconds(2);
+    private static final Duration AUTO_CONNECT_PROFILES_TIMEOUT_DELAYED = Duration.ofMillis(500);
 
-    // private static final int AUTO_CONNECT_PROFILES_TIMEOUT= 500;
-	private static final int DELAY_A2DP_SLEEP_MILLIS = 100;
+    private static final int DELAY_A2DP_SLEEP_MILLIS = 100;
 
     private final DatabaseManager mDatabaseManager;
     private final AdapterService mAdapterService;
@@ -782,8 +782,9 @@ public class PhonePolicy implements AdapterService.BluetoothStateCallback {
         Log.d(TAG, log + "delay auto connect by 500 ms");
         if ((mHandler.hasMessages(MESSAGE_AUTO_CONNECT_PROFILES) == false) &&
             (mAdapterService.isQuietModeEnabled()== false)) {
-            //Message m = mHandler.obtainMessage(MESSAGE_AUTO_CONNECT_PROFILES);
-            //mHandler.sendMessageDelayed(m,AUTO_CONNECT_PROFILES_TIMEOUT);
+             Log.d(TAG, log + "posting delayed message to handler for auto connect");
+             mHandler.postDelayed(() -> autoConnectProfilesDelayed(),
+                        AUTO_CONNECT_PROFILES_TIMEOUT_DELAYED.toMillis());
         }
     }
 
