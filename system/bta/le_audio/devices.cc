@@ -462,8 +462,6 @@ bool LeAudioDevice::ConfigureAses(const set_configurations::AudioSetConfiguratio
       ase->is_vsmetadata_available = false;
 
       SetMetadataToAse(ase, metadata_context_types, ccid_lists);
-      SetVendorCodecSpecificMetadataToAse(ase, ase_cfg.vendor_metadata->vendor_company_id,
-                                          ase_cfg.vendor_metadata->vs_metadata);
     }
 
     log::debug(
@@ -1272,22 +1270,6 @@ std::vector<uint8_t> LeAudioDevice::GetMetadata(AudioContexts context_type,
   AppendMetadataLtvEntryForCcidList(metadata, ccid_list);
 
   return metadata;
-}
-
-void LeAudioDevice::SetVendorCodecSpecificMetadataToAse(struct types::ase* ase,
-                       const uint16_t company_id, const std::vector<uint8_t>& vs_metadata) {
-  if (!vs_metadata.empty()) {
-    log::verbose("Vendor Metadata exist, cache it");
-    types::LeAudioLtvMap v_metadata;
-    std::vector<uint8_t> tmp;
-    tmp.push_back(company_id);
-    tmp.push_back(company_id >> 8);
-    tmp.insert(tmp.end(), vs_metadata.begin(), vs_metadata.end());
-    v_metadata.Add(types::kLeAudioMetadataTypeVendorSpecific, tmp);
-    ase->vendor_metadata = v_metadata;
-  } else {
-    log::verbose("not a vendor codec, don't need to set");
-  }
 }
 
 bool LeAudioDevice::IsMetadataChanged(const BidirectionalPair<AudioContexts>& context_types,
