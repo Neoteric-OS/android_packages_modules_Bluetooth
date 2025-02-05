@@ -27,7 +27,8 @@
 #include "gmap_client.h"
 #include "le_audio_types.h"
 #include "osi/include/alarm.h"
-#include "raw_address.h"
+#include "stack/btm/btm_dev.h"
+#include "types/raw_address.h"
 
 namespace bluetooth::le_audio {
 
@@ -139,6 +140,7 @@ public:
               LE_AUDIO_INVALID_CIS_HANDLE,
               false}) {}
   ~LeAudioDevice(void);
+  inline tBLE_BD_ADDR GetAddressWithType() const { return BTM_Sec_GetAddressWithType(address_); }
 
   void SetConnectionState(DeviceConnectState state);
   DeviceConnectState GetConnectionState(void);
@@ -177,10 +179,9 @@ public:
   bool isLeXDevice(void) const;
   uint8_t GetPhyBitmask(void) const;
   uint8_t GetPreferredPhyBitmask(uint8_t preferred_phy) const;
-  bool IsAudioSetConfigurationSupported(
-          const set_configurations::AudioSetConfiguration* audio_set_conf) const;
-  bool ConfigureAses(const set_configurations::AudioSetConfiguration* audio_set_conf,
-                     uint8_t group_size, uint8_t direction, types::LeAudioContextType context_type,
+  bool IsAudioSetConfigurationSupported(const types::AudioSetConfiguration* audio_set_conf) const;
+  bool ConfigureAses(const types::AudioSetConfiguration* audio_set_conf, uint8_t group_size,
+                     uint8_t direction, types::LeAudioContextType context_type,
                      uint8_t* number_of_already_active_group_ase,
                      types::AudioLocations& group_audio_locations_out,
                      const types::AudioContexts& metadata_context_types,
@@ -217,7 +218,8 @@ public:
           types::LeAudioContextType context_type,
           const types::BidirectionalPair<types::AudioContexts>& metadata_context_types,
           types::BidirectionalPair<std::vector<uint8_t>> ccid_lists);
-  void SetMetadataToAse(struct types::ase* ase, const types::AudioContexts& metadata_context_types,
+  void SetMetadataToAse(struct types::ase* ase, const types::LeAudioLtvMap& base_metadata,
+                        const types::AudioContexts& metadata_context_types,
                         const std::vector<uint8_t>& ccid_lists);
 
   void PrintDebugState(void);
@@ -225,7 +227,7 @@ public:
   void Dump(std::stringstream& stream);
   RawAddress GetBdAddress(void);
   void DisconnectAcl(void);
-  std::vector<uint8_t> GetMetadata(types::AudioContexts context_type,
+  types::LeAudioLtvMap GetMetadata(types::AudioContexts context_type,
                                    const std::vector<uint8_t>& ccid_list);
   bool IsMetadataChanged(const types::BidirectionalPair<types::AudioContexts>& context_types,
                          const types::BidirectionalPair<std::vector<uint8_t>>& ccid_lists);

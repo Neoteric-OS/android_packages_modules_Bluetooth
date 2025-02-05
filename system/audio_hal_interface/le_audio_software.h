@@ -69,10 +69,8 @@ struct StreamCallbacks {
 };
 
 struct OffloadCapabilities {
-  std::vector<bluetooth::le_audio::set_configurations::AudioSetConfiguration>
-          unicast_offload_capabilities;
-  std::vector<bluetooth::le_audio::set_configurations::AudioSetConfiguration>
-          broadcast_offload_capabilities;
+  std::vector<bluetooth::le_audio::types::AudioSetConfiguration> unicast_offload_capabilities;
+  std::vector<bluetooth::le_audio::types::AudioSetConfiguration> broadcast_offload_capabilities;
 };
 
 OffloadCapabilities get_offload_capabilities();
@@ -98,7 +96,7 @@ private:
     virtual void ConfirmSuspendRequest() = 0;
     virtual void ConfirmStreamingRequest(bool force) = 0;
     virtual void CancelStreamingRequest() = 0;
-    virtual void UpdateAudioConfigToHal(const ::bluetooth::le_audio::offload_config& config) = 0;
+    virtual void UpdateAudioConfigToHal(const ::bluetooth::le_audio::stream_config& config) = 0;
     virtual void SuspendedForReconfiguration() = 0;
     virtual void ReconfigurationComplete() = 0;
   };
@@ -117,7 +115,7 @@ public:
     void ConfirmSuspendRequest() override;
     void ConfirmStreamingRequest(bool force) override;
     void CancelStreamingRequest() override;
-    void UpdateAudioConfigToHal(const ::bluetooth::le_audio::offload_config& config) override;
+    void UpdateAudioConfigToHal(const ::bluetooth::le_audio::stream_config& config) override;
     void UpdateBroadcastAudioConfigToHal(
             const ::bluetooth::le_audio::broadcast_offload_config& config);
     void SuspendedForReconfiguration() override;
@@ -130,7 +128,7 @@ public:
                     subgroup_quality,
             const std::optional<std::vector<::bluetooth::le_audio::types::acs_ac_record>>& pacs)
             const;
-    std::optional<::bluetooth::le_audio::set_configurations::AudioSetConfiguration>
+    std::optional<::bluetooth::le_audio::types::AudioSetConfiguration>
     GetUnicastConfig(const ::bluetooth::le_audio::CodecManager::UnicastConfigurationRequirements&
                              requirements) const;
     ::bluetooth::le_audio::types::VendorDataPathConfiguration
@@ -156,7 +154,7 @@ public:
     void ConfirmSuspendRequest() override;
     void ConfirmStreamingRequest(bool force) override;
     void CancelStreamingRequest() override;
-    void UpdateAudioConfigToHal(const ::bluetooth::le_audio::offload_config& config) override;
+    void UpdateAudioConfigToHal(const ::bluetooth::le_audio::stream_config& config) override;
     void SuspendedForReconfiguration() override;
     void ReconfigurationComplete() override;
     // Source the given stream of bytes to be sinked into the upper layers

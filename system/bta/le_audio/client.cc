@@ -965,19 +965,19 @@ public:
        configuration_context_type_)->confs.source.at(0).codec.GetOctetsPerFrame();
       auto delay = group->GetRemoteDelay(
        bluetooth::le_audio::types::kLeAudioDirectionSource);
-      bluetooth::le_audio::offload_config config = {
+      bluetooth::le_audio::stream_config config = {
           .stream_map = std::vector<bluetooth::le_audio::stream_map_info>{
                 bluetooth::le_audio::stream_map_info(0x00, 0x00, false)},
           .codec_id = id,
           .bits_per_sample = bits,
-          .sampling_rate = freq,
-          .frame_duration = intvl,
-          .octets_per_frame = sdu,
-          .blocks_per_sdu = 1,
+          .sampling_frequency_hz = freq,
+          .frame_duration_us = intvl,
+          .octets_per_codec_frame = sdu,
+          .codec_frames_blocks_per_sdu = 1,
           .peer_delay_ms = delay,
           .mode = 0,
           .delay = delay,
-          .codec_metadata = std::vector<uint8_t>(),
+          .codec_spec_metadata = std::vector<uint8_t>(),
       };
       if (le_audio_sink_hal_client_) {
         le_audio_sink_hal_client_->UpdateAudioConfigToHal(config);
@@ -1830,7 +1830,7 @@ public:
 
     // Scale by the codec frame blocks per SDU if set
     uint8_t codec_frame_blocks_per_sdu =
-            group->stream_conf.stream_params.source.codec_frames_blocks_per_sdu ?: 1;
+            group->stream_conf.stream_params.source.stream_config.codec_frames_blocks_per_sdu ?: 1;
     audio_framework_source_config.data_interval_us = frame_duration_us * codec_frame_blocks_per_sdu;
 
     le_audio_source_hal_client_->Start(audio_framework_source_config, audioSinkReceiver, dsa_modes);
@@ -4199,21 +4199,23 @@ public:
       return;
     }
 
-    for (auto [cis_handle, audio_location] : stream_params.stream_locations) {
-      if (audio_location & bluetooth::le_audio::codec_spec_conf::kLeAudioLocationAnyLeft) {
-        left_cis_handle = cis_handle;
+    for (auto const& info : stream_params.stream_config.stream_map) {
+      if (info.audio_channel_allocation &
+          bluetooth::le_audio::codec_spec_conf::kLeAudioLocationAnyLeft) {
+        left_cis_handle = info.stream_handle;
       }
-      if (audio_location & bluetooth::le_audio::codec_spec_conf::kLeAudioLocationAnyRight) {
-        right_cis_handle = cis_handle;
+      if (info.audio_channel_allocation &
+          bluetooth::le_audio::codec_spec_conf::kLeAudioLocationAnyRight) {
+        right_cis_handle = info.stream_handle;
       }
     }
 
-    if (stream_params.codec_frames_blocks_per_sdu != 1) {
+    if (stream_params.stream_config.codec_frames_blocks_per_sdu != 1) {
       log::error("Codec Frame Blocks of {} is not supported by the software encoding",
-                 +stream_params.codec_frames_blocks_per_sdu);
+                 +stream_params.stream_config.codec_frames_blocks_per_sdu);
     }
 
-    uint16_t byte_count = stream_params.octets_per_codec_frame;
+    uint16_t byte_count = stream_params.stream_config.octets_per_codec_frame;
     bool mix_to_mono = (left_cis_handle == 0) || (right_cis_handle == 0);
     if (mix_to_mono) {
       std::vector<uint8_t> mono =
@@ -4249,7 +4251,7 @@ public:
           const std::vector<uint8_t>& data,
           const struct bluetooth::le_audio::stream_parameters& stream_params) {
     uint16_t num_channels = stream_params.num_of_channels;
-    uint16_t cis_handle = stream_params.stream_locations.front().first;
+    uint16_t cis_handle = stream_params.stream_config.stream_map.front().stream_handle;
 
     uint16_t number_of_required_samples_per_channel = sw_enc_left->GetNumOfSamplesPerChannel();
     uint8_t bytes_per_sample = sw_enc_left->GetNumOfBytesPerSample();
@@ -4259,12 +4261,12 @@ public:
       return;
     }
 
-    if (stream_params.codec_frames_blocks_per_sdu != 1) {
+    if (stream_params.stream_config.codec_frames_blocks_per_sdu != 1) {
       log::error("Codec Frame Blocks of {} is not supported by the software encoding",
-                 +stream_params.codec_frames_blocks_per_sdu);
+                 +stream_params.stream_config.codec_frames_blocks_per_sdu);
     }
 
-    uint16_t byte_count = stream_params.octets_per_codec_frame;
+    uint16_t byte_count = stream_params.stream_config.octets_per_codec_frame;
     bool mix_to_mono = (num_channels == 1);
     if (mix_to_mono) {
       /* Since we always get two channels from framework, lets make it mono here
@@ -4288,7 +4290,7 @@ public:
           LeAudioDeviceGroup* group) {
     const struct bluetooth::le_audio::stream_configuration* stream_conf = &group->stream_conf;
     log::info("group_id: {}", group->group_id_);
-    if (stream_conf->stream_params.sink.stream_locations.size() == 0) {
+    if (stream_conf->stream_params.sink.stream_config.stream_map.size() == 0) {
       return nullptr;
     }
 
@@ -4311,13 +4313,13 @@ public:
     auto stream_conf = group->stream_conf;
     if ((stream_conf.stream_params.sink.num_of_devices > 2) ||
         (stream_conf.stream_params.sink.num_of_devices == 0) ||
-        stream_conf.stream_params.sink.stream_locations.empty()) {
+        stream_conf.stream_params.sink.stream_config.stream_map.empty()) {
       log::error("Stream configufation is not valid.");
       return;
     }
 
     if ((stream_conf.stream_params.sink.num_of_devices == 2) ||
-        (stream_conf.stream_params.sink.stream_locations.size() == 2)) {
+        (stream_conf.stream_params.sink.stream_config.stream_map.size() == 2)) {
       /* Streaming to two devices or one device with 2 CISes */
       PrepareAndSendToTwoCises(data, stream_conf.stream_params.sink);
     } else {
@@ -4349,13 +4351,14 @@ public:
 
     uint16_t left_cis_handle = 0;
     uint16_t right_cis_handle = 0;
-    for (auto [cis_handle, audio_location] :
-         group->stream_conf.stream_params.source.stream_locations) {
-      if (audio_location & bluetooth::le_audio::codec_spec_conf::kLeAudioLocationAnyLeft) {
-        left_cis_handle = cis_handle;
+    for (auto const& info : group->stream_conf.stream_params.source.stream_config.stream_map) {
+      if (info.audio_channel_allocation &
+          bluetooth::le_audio::codec_spec_conf::kLeAudioLocationAnyLeft) {
+        left_cis_handle = info.stream_handle;
       }
-      if (audio_location & bluetooth::le_audio::codec_spec_conf::kLeAudioLocationAnyRight) {
-        right_cis_handle = cis_handle;
+      if (info.audio_channel_allocation &
+          bluetooth::le_audio::codec_spec_conf::kLeAudioLocationAnyRight) {
+        right_cis_handle = info.stream_handle;
       }
     }
 
@@ -4504,14 +4507,16 @@ public:
     }
 
     log::debug("Sink stream config (#{}):\n",
-               static_cast<int>(stream_conf->stream_params.sink.stream_locations.size()));
-    for (auto stream : stream_conf->stream_params.sink.stream_locations) {
-      log::debug("Cis handle: 0x{:02x}, allocation 0x{:04x}\n", stream.first, stream.second);
+               static_cast<int>(stream_conf->stream_params.sink.stream_config.stream_map.size()));
+    for (auto info : stream_conf->stream_params.sink.stream_config.stream_map) {
+      log::debug("Cis handle: 0x{:02x}, allocation 0x{:04x}\n", info.stream_handle,
+                 info.audio_channel_allocation);
     }
     log::debug("Source stream config (#{}):\n",
-               static_cast<int>(stream_conf->stream_params.source.stream_locations.size()));
-    for (auto stream : stream_conf->stream_params.source.stream_locations) {
-      log::debug("Cis handle: 0x{:02x}, allocation 0x{:04x}\n", stream.first, stream.second);
+               static_cast<int>(stream_conf->stream_params.source.stream_config.stream_map.size()));
+    for (auto info : stream_conf->stream_params.source.stream_config.stream_map) {
+      log::debug("Cis handle: 0x{:02x}, allocation 0x{:04x}\n", info.stream_handle,
+                 info.audio_channel_allocation);
     }
 
     uint16_t remote_delay_ms =
@@ -4546,11 +4551,8 @@ public:
     if (!LeAudioHalVerifier::SupportsStreamActiveApi()) {
       /* We update the target audio allocation before streamStarted so that the
        * CodecManager would know how to configure the encoder. */
-      BidirectionalPair<uint16_t> delays_pair = {
-              .sink = group->GetRemoteDelay(bluetooth::le_audio::types::kLeAudioDirectionSink),
-              .source = group->GetRemoteDelay(bluetooth::le_audio::types::kLeAudioDirectionSource)};
       CodecManager::GetInstance()->UpdateActiveAudioConfig(
-              group->stream_conf.stream_params, delays_pair, group->stream_conf.codec_id,
+              group->stream_conf.stream_params, group->stream_conf.codec_id,
               std::bind(&LeAudioClientImpl::UpdateAudioConfigToHal, weak_factory_.GetWeakPtr(),
                         std::placeholders::_1, std::placeholders::_2));
     }
@@ -4591,7 +4593,7 @@ public:
   const struct bluetooth::le_audio::stream_configuration* GetStreamSourceConfiguration(
           LeAudioDeviceGroup* group) {
     const struct bluetooth::le_audio::stream_configuration* stream_conf = &group->stream_conf;
-    if (stream_conf->stream_params.source.stream_locations.size() == 0) {
+    if (stream_conf->stream_params.source.stream_config.stream_map.size() == 0) {
       return nullptr;
     }
     log::info("configuration: {}", stream_conf->conf->name);
@@ -4646,11 +4648,8 @@ public:
     if (!LeAudioHalVerifier::SupportsStreamActiveApi()) {
       /* We update the target audio allocation before streamStarted so that the
        * CodecManager would know how to configure the encoder. */
-      BidirectionalPair<uint16_t> delays_pair = {
-              .sink = group->GetRemoteDelay(bluetooth::le_audio::types::kLeAudioDirectionSink),
-              .source = group->GetRemoteDelay(bluetooth::le_audio::types::kLeAudioDirectionSource)};
       CodecManager::GetInstance()->UpdateActiveAudioConfig(
-              group->stream_conf.stream_params, delays_pair, group->stream_conf.codec_id,
+              group->stream_conf.stream_params, group->stream_conf.codec_id,
               std::bind(&LeAudioClientImpl::UpdateAudioConfigToHal, weak_factory_.GetWeakPtr(),
                         std::placeholders::_1, std::placeholders::_2));
     }
@@ -6476,15 +6475,15 @@ public:
     }
     log::warn("{} delay {} mode.", delay, mode);
     if (mode != 0xFF) {
-      group->stream_conf.stream_params.sink.mode = mode;
+      group->stream_conf.stream_params.sink.stream_config.mode = mode;
       if (group->IsStreaming()) {
         log::warn("updating mode to bt audio hal");
         group->UpdateCisConfiguration(bluetooth::le_audio::types::kLeAudioDirectionSink);
         BidirectionalPair<uint16_t> delays_pair = {
-          .sink = group->stream_conf.stream_params.sink.delay,
+          .sink = group->stream_conf.stream_params.sink.stream_config.peer_delay_ms,
           .source = 0};
         CodecManager::GetInstance()->UpdateActiveAudioConfig(
-          group->stream_conf.stream_params, delays_pair, group->stream_conf.codec_id,
+          group->stream_conf.stream_params, group->stream_conf.codec_id,
           std::bind(&LeAudioClientImpl::UpdateAudioConfigToHal,
                   weak_factory_.GetWeakPtr(), std::placeholders::_1,
                   std::placeholders::_2));
@@ -6492,7 +6491,7 @@ public:
       }
     }
     if (delay != 0xFFFF) {
-      group->stream_conf.stream_params.sink.delay = delay;
+      group->stream_conf.stream_params.sink.stream_config.peer_delay_ms = delay;
       if (group->IsStreaming()) {
         log::warn("updating delay to bt audio hal");
         group->UpdateCisConfiguration(bluetooth::le_audio::types::kLeAudioDirectionSink);
@@ -6500,7 +6499,7 @@ public:
           .sink = delay,
           .source = 0};
         CodecManager::GetInstance()->UpdateActiveAudioConfig(
-          group->stream_conf.stream_params, delays_pair, group->stream_conf.codec_id,
+          group->stream_conf.stream_params, group->stream_conf.codec_id,
           std::bind(&LeAudioClientImpl::UpdateAudioConfigToHal,
                   weak_factory_.GetWeakPtr(), std::placeholders::_1,
                   std::placeholders::_2));
@@ -6575,7 +6574,7 @@ public:
     }
   }
 
-  void UpdateAudioConfigToHal(const ::bluetooth::le_audio::offload_config& config,
+  void UpdateAudioConfigToHal(const ::bluetooth::le_audio::stream_config& config,
                               uint8_t remote_direction) {
     log::debug("remote_direction: {}", remote_direction);
 
@@ -6773,12 +6772,8 @@ public:
           return;
         }
 
-        BidirectionalPair<uint16_t> delays_pair = {
-                .sink = group->GetRemoteDelay(bluetooth::le_audio::types::kLeAudioDirectionSink),
-                .source =
-                        group->GetRemoteDelay(bluetooth::le_audio::types::kLeAudioDirectionSource)};
         CodecManager::GetInstance()->UpdateActiveAudioConfig(
-                group->stream_conf.stream_params, delays_pair, group->stream_conf.codec_id,
+                group->stream_conf.stream_params, group->stream_conf.codec_id,
                 std::bind(&LeAudioClientImpl::UpdateAudioConfigToHal, weak_factory_.GetWeakPtr(),
                           std::placeholders::_1, std::placeholders::_2));
 

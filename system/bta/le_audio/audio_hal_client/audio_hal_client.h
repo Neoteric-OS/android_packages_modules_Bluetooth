@@ -120,8 +120,9 @@ public:
           const std::vector<std::pair<types::LeAudioContextType, uint8_t>>& subgroup_quality,
           const std::optional<std::vector<::bluetooth::le_audio::types::acs_ac_record>>& pacs)
           const = 0;
-  virtual std::optional<::bluetooth::le_audio::set_configurations::AudioSetConfiguration>
-  GetUnicastConfig(const CodecManager::UnicastConfigurationRequirements& requirements) const = 0;
+  virtual std::optional<::bluetooth::le_audio::types::AudioSetConfiguration> GetUnicastConfig(
+          const CodecManager::UnicastConfigurationRequirements& requirements) const = 0;
+
 
   virtual ::bluetooth::le_audio::types::VendorDataPathConfiguration
   GetVendorConfigureDataPathPayload(std::vector<uint16_t> conn_handles,
@@ -158,7 +159,7 @@ public:
   virtual void CancelStreamingRequest() = 0;
 
   virtual void UpdateRemoteDelay(uint16_t remote_delay_ms) = 0;
-  virtual void UpdateAudioConfigToHal(const ::bluetooth::le_audio::offload_config& config) = 0;
+  virtual void UpdateAudioConfigToHal(const ::bluetooth::le_audio::stream_config& config) = 0;
   virtual void SuspendedForReconfiguration() = 0;
   virtual void ReconfigurationComplete() = 0;
   virtual void UpdateMetadataChanged(::bluetooth::le_audio::types::AseState& state,
@@ -199,7 +200,7 @@ public:
   virtual void ConfirmStreamingRequest(bool force) = 0;
   virtual void CancelStreamingRequest() = 0;
   virtual void UpdateRemoteDelay(uint16_t remote_delay_ms) = 0;
-  virtual void UpdateAudioConfigToHal(const ::bluetooth::le_audio::offload_config& config) = 0;
+  virtual void UpdateAudioConfigToHal(const ::bluetooth::le_audio::stream_config& config) = 0;
   virtual void UpdateBroadcastAudioConfigToHal(
           const ::bluetooth::le_audio::broadcast_offload_config& config) = 0;
   virtual void SuspendedForReconfiguration() = 0;
