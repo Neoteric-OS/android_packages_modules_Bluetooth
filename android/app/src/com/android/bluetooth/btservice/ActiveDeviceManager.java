@@ -632,7 +632,8 @@ public class ActiveDeviceManager implements AdapterService.BluetoothStateCallbac
                     }
                 }
             }
-            leAudioService.deviceDisconnected(device, hasFallbackDevice);
+            Log.d(TAG, "Going for Music Player Pause");
+            leAudioService.deviceDisconnected(device, false);
         }
     }
 
@@ -1305,7 +1306,7 @@ public class ActiveDeviceManager implements AdapterService.BluetoothStateCallbac
                     /* If dual mode is enabled, LEA will be made active once all supported
                     classic audio profiles are made active for the device. */
                     if (!Utils.isDualModeAudioEnabled()) {
-                        setLeAudioActiveDevice(null, true);
+                        setLeAudioActiveDevice(null, false);
                     }
                     setHearingAidActiveDevice(null, true);
                 } else {
@@ -1330,7 +1331,7 @@ public class ActiveDeviceManager implements AdapterService.BluetoothStateCallbac
                         setA2dpActiveDevice(null, true);
                     }
                     if (!Utils.isDualModeAudioEnabled()) {
-                        setLeAudioActiveDevice(null, true);
+                        setLeAudioActiveDevice(null, false);
                     }
                     setHearingAidActiveDevice(null, true);
                 } else {
