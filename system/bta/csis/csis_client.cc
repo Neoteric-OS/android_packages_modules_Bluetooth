@@ -59,7 +59,6 @@
 #include "internal_include/bt_trace.h"
 #include "main/shim/le_scanning_manager.h"
 #include "neighbor_inquiry.h"
-#include "os/logging/log_adapter.h"
 #include "osi/include/osi.h"
 #include "osi/include/stack_power_telemetry.h"
 #include "stack/btm/btm_sec.h"
@@ -139,6 +138,7 @@ public:
   CsisClientImpl(bluetooth::csis::CsisClientCallbacks* callbacks, Closure initCb)
       : gatt_if_(0), callbacks_(callbacks) {
     BTA_GATTC_AppRegister(
+            "csis",
             [](tBTA_GATTC_EVT event, tBTA_GATTC* p_data) {
               if (instance && p_data) {
                 instance->GattcCallback(event, p_data);
@@ -1472,17 +1472,10 @@ private:
     }
 
     auto csis_device = FindDeviceByAddress(result->bd_addr);
-    if (csis_device) {
-      log::debug("Drop known device {}", result->bd_addr);
-      return;
-    }
-
-    /* Make sure device is not already bonded which could
-     * be a case for dual mode devices where
-     */
-    if (BTM_BleIsLinkKeyKnown(result->bd_addr)) {
-      log::verbose("Device {} already bonded. Identity address: {}", result->bd_addr,
-                   *BTM_BleGetIdentityAddress(result->bd_addr));
+    if (csis_device && BTM_BleIsLinkKeyKnown(result->bd_addr)) {
+      log::debug("Drop known device {} already bonded. Identity address: {}",
+                  result->bd_addr,
+                  *BTM_BleGetIdentityAddress(result->bd_addr));
       return;
     }
 
@@ -1924,7 +1917,7 @@ private:
       BtaGattQueue::Clean(evt.conn_id);
     }
     /* Verify bond */
-    if (BTM_SecIsSecurityPending(device->addr)) {
+    if (BTM_SecIsLeSecurityPending(device->addr)) {
       /* if security collision happened, wait for encryption done
        * (BTA_GATTC_ENC_CMPL_CB_EVT) */
       return;

@@ -23,6 +23,10 @@
 
 class MockLeAudioGroupStateMachine : public bluetooth::le_audio::LeAudioGroupStateMachine {
 public:
+  MOCK_METHOD((bool),UpdateActiveUnicastAudioHalClient,
+              (bluetooth::le_audio::LeAudioSourceAudioHalClient* source_unicast_client,
+               bluetooth::le_audio::LeAudioSinkAudioHalClient* sink_unicast_client,
+               bool is_active), (override));
   MOCK_METHOD((bool), StartStream,
               (bluetooth::le_audio::LeAudioDeviceGroup * group,
                bluetooth::le_audio::types::LeAudioContextType context_type,

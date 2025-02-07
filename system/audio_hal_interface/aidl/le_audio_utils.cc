@@ -18,13 +18,22 @@
 
 #include <com_android_bluetooth_flags.h>
 
+#include <iomanip>
 #include <optional>
+#include <sstream>
 
+#include "aidl/android/hardware/bluetooth/audio/ConfigurationFlags.h"
+#include "bta/le_audio/gmap_server.h"
+#include "bta/le_audio/le_audio_types.h"
 #include "hardware/bt_le_audio.h"
 
 namespace bluetooth {
 namespace audio {
 namespace aidl {
+
+using ::aidl::android::hardware::bluetooth::audio::CodecInfo;
+using ::aidl::android::hardware::bluetooth::audio::ConfigurationFlags;
+using ::aidl::android::hardware::bluetooth::audio::IBluetoothAudioProviderFactory;
 
 ::aidl::android::hardware::bluetooth::audio::CodecId GetAidlCodecIdFromStackFormat(
         const ::bluetooth::le_audio::types::LeAudioCodecId& codec_id) {
@@ -346,6 +355,114 @@ GetAidlLeAudioDeviceCapabilitiesFromStackFormat(
   return stack_ltv;
 }
 
+::bluetooth::le_audio::types::VendorDataPathConfiguration
+GetStackConfigureDataPathPayloadFromAidlFormat(
+        ::aidl::android::hardware::bluetooth::audio::IBluetoothAudioProvider::
+        LeAudioDataPathConfigurationPair& dataPathConfig) {
+
+  log::debug("");
+  ::bluetooth::le_audio::types::VendorDataPathConfiguration dp = {};
+
+  /* Host to Controller data path */
+  auto sink_input_config = dataPathConfig.inputConfig;
+
+  /* Controller to Host data path */
+  auto source_output_config = dataPathConfig.outputConfig;
+
+  uint8_t len = 0;
+  if (sink_input_config.has_value() && source_output_config.has_value()) {
+    log::debug("both sink_input_config, source_output_config exist, push it");
+    auto dp_sink_config =
+       sink_input_config.value().dataPathConfiguration.configuration.value();
+    auto dp_source_config =
+       source_output_config.value().dataPathConfiguration.configuration.value();
+    //Need to check below
+    //dp = {dp_sink_config, dp_source_config};
+    dp.sinkdataPathConfig = dp_sink_config;
+
+    len = dp.sinkdataPathConfig.size();
+    log::debug(": sinkdataPathConfig size: {}", len);
+    for (uint8_t i = 0; i < len; i ++) {
+      log::debug(": dp.sinkdataPathConfig[{}]: {}", i, dp.sinkdataPathConfig[i]);
+    }
+
+    dp.sourcedataPathConfig = dp_source_config;
+
+    len = 0;
+    len = dp.sourcedataPathConfig.size();
+    log::debug(": sourcedataPathConfig size: {}", len);
+    for (uint8_t i = 0; i < len; i ++) {
+      log::debug(": dp.sourcedataPathConfig[{}]: {}", i, dp.sourcedataPathConfig[i]);
+    }
+
+    return dp;
+  }
+
+  if (sink_input_config.has_value()) {
+    log::debug("sink_input_config exist, push it");
+    auto dp_sink_config =
+           sink_input_config.value().dataPathConfiguration.configuration.value();
+    /*Todo below*/
+    //return dp_sink_config;
+    //dp.value().push_back(dp_sink_config);
+    dp.sinkdataPathConfig = dp_sink_config;
+
+    len = dp.sinkdataPathConfig.size();
+    log::debug(": sinkdataPathConfig size: {}", len);
+    for (uint8_t i = 0; i < len; i ++) {
+      log::debug(": dp.sinkdataPathConfig[{}]: {}", i, dp.sinkdataPathConfig[i]);
+    }
+  }
+
+  if (source_output_config.has_value()) {
+    log::debug("source_output_config exist, push it");
+    auto dp_source_config =
+           source_output_config.value().dataPathConfiguration.configuration.value();
+    /*Todo below*/
+    //return dp_source_config.configuration.value();
+    //dp.value().push_back(dp_source_config);
+    dp.sourcedataPathConfig = dp_source_config;
+
+    len = dp.sourcedataPathConfig.size();
+    log::debug(": sourcedataPathConfig size: {}", len);
+    for (uint8_t i = 0; i < len; i ++) {
+      log::debug(": dp.sourcedataPathConfig[{}]: {}", i, dp.sourcedataPathConfig[i]);
+    }
+  }
+  return dp;
+}
+
+const ::aidl::android::hardware::bluetooth::audio::
+                                    IBluetoothAudioProvider::StreamConfig
+GetAidlConfigureDataPathPayloadFromStackFormat(std::vector<uint16_t> conn_handles,
+                    ::bluetooth::le_audio::types::LeAudioContextType context_type) {
+
+  ::aidl::android::hardware::bluetooth::audio::
+                                      IBluetoothAudioProvider::StreamConfig cfg;
+
+  log::debug("");
+  //Re-check if required.
+  cfg.audioContext.bitmask = static_cast<uint16_t>(context_type);
+
+  log::debug("audioContext bitmask: {}", (unsigned)cfg.audioContext.bitmask);
+  log::debug("conn_handles size: {}", (unsigned)conn_handles.size());
+
+  for (uint8_t i = 0; i < (unsigned)conn_handles.size(); ++i) {
+    log::debug("conn_handles[{}]: {}", (unsigned)i, conn_handles[i]);
+    auto streamMap =
+     ::aidl::android::hardware::bluetooth::audio::LeAudioConfiguration::StreamMap();
+    streamMap.streamHandle = conn_handles[i];
+    cfg.streamMap.push_back(streamMap);
+  }
+
+  if (!cfg.streamMap.empty()) {
+    log::debug("return valid StreamConfig");
+  } else {
+    log::debug("not valid StreamConfig, return null");
+  }
+  return cfg;
+}
+
 ::bluetooth::le_audio::broadcaster::BroadcastSubgroupBisCodecConfig GetStackBisConfigFromAidlFormat(
         const ::aidl::android::hardware::bluetooth::audio::IBluetoothAudioProvider::
                 LeAudioSubgroupBisConfiguration& aidl_cfg,
@@ -549,6 +666,24 @@ static ::bluetooth::le_audio::set_configurations::AseConfiguration GetStackAseCo
   return config;
 }
 
+static std::string StackTargetLatencyToString(uint8_t target_latency) {
+  switch (target_latency) {
+    case ::bluetooth::le_audio::types::kTargetLatencyUndefined:
+      return "TargetLatencyUndefined";
+    case ::bluetooth::le_audio::types::kTargetLatencyLower:
+      return "LowLatency";
+    case ::bluetooth::le_audio::types::kTargetLatencyBalancedLatencyReliability:
+      return "BalancedReliability";
+    case ::bluetooth::le_audio::types::kTargetLatencyHigherReliability:
+      return "HighReliability";
+    default:
+      std::stringstream str;
+      str << "TargetLatencyUnknown (" << std::hex << std::setw(2) << std::setfill('0')
+          << target_latency << ")";
+      return str.str();
+  }
+}
+
 static std::string GenerateNameForConfig(
         const ::bluetooth::le_audio::set_configurations::AudioSetConfiguration& config) {
   auto namegen = [](const std::vector<::bluetooth::le_audio::set_configurations::AseConfiguration>&
@@ -592,7 +727,7 @@ static std::string GenerateNameForConfig(
           cfg_str << "_" << current_codec.GetDataIntervalUs() << "us";
         }
         // QoS
-        cfg_str << "-TargetLatency_" << +current_config->qos.target_latency;
+        cfg_str << "-" << StackTargetLatencyToString(current_config->qos.target_latency);
 
         if (last_equal_config == configs.end()) {
           break;
@@ -649,6 +784,18 @@ GetStackConfigSettingFromAidl(
     }
   }
 
+  if (aidl_ase_config.flags.has_value()) {
+    if (aidl_ase_config.flags->bitmask &
+        ::aidl::android::hardware::bluetooth::audio::ConfigurationFlags::
+                ALLOW_ASYMMETRIC_CONFIGURATIONS) {
+      log::debug("Asymmetric configuration support flag set.");
+    }
+    if (aidl_ase_config.flags->bitmask &
+        ::aidl::android::hardware::bluetooth::audio::ConfigurationFlags::LOW_LATENCY) {
+      log::debug("Low latency support flag set.");
+    }
+  }
+
   cig_config.name = GenerateNameForConfig(cig_config);
   return cig_config;
 }
@@ -666,6 +813,87 @@ GetStackUnicastConfigurationFromAidlFormat(
     return std::nullopt;
   }
   return stack_config;
+}
+
+static bool isAsymmetricConfigurationSupported(
+        IBluetoothAudioProviderFactory::ProviderInfo const& provider_info) {
+  for (auto& codec_info : provider_info.codecInfos) {
+    if (codec_info.transport.getTag() != CodecInfo::Transport::leAudio) {
+      return false;
+    }
+
+    auto flags = codec_info.transport.get<CodecInfo::Transport::leAudio>().flags;
+
+    if (!flags) {
+      continue;
+    }
+
+    if (flags->bitmask & ConfigurationFlags::ALLOW_ASYMMETRIC_CONFIGURATIONS) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+static bool isLowLatencyConfigurationSupported(
+        IBluetoothAudioProviderFactory::ProviderInfo const& provider_info) {
+  for (auto& codec_info : provider_info.codecInfos) {
+    if (codec_info.transport.getTag() != CodecInfo::Transport::leAudio) {
+      return false;
+    }
+
+    auto flags = codec_info.transport.get<CodecInfo::Transport::leAudio>().flags;
+
+    if (!flags) {
+      continue;
+    }
+
+    if (flags->bitmask & ConfigurationFlags::LOW_LATENCY) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+std::optional<bluetooth::le_audio::ProviderInfo> GetStackProviderInfoFromAidl(
+        std::optional<IBluetoothAudioProviderFactory::ProviderInfo> const& encoding_provider_info,
+        std::optional<IBluetoothAudioProviderFactory::ProviderInfo> const& decoding_provider_info) {
+  (void)encoding_provider_info;
+  (void)decoding_provider_info;
+
+  if (!encoding_provider_info.has_value() && !decoding_provider_info.has_value()) {
+    log::error("Neither the encoding or decoding provider info are correct.");
+    return std::nullopt;
+  }
+
+  std::optional<bluetooth::le_audio::ProviderInfo> result = bluetooth::le_audio::ProviderInfo();
+  if (encoding_provider_info.has_value()) {
+    log::debug("Encoding: {}", encoding_provider_info->toString());
+    if (isAsymmetricConfigurationSupported(encoding_provider_info.value())) {
+      result->allowAsymmetric = true;
+    }
+
+    if (isLowLatencyConfigurationSupported(encoding_provider_info.value())) {
+      result->lowLatency = true;
+    }
+  }
+
+  if (decoding_provider_info.has_value()) {
+    // Iterate and print for the debugging purpose
+    log::debug("Decoding: {}", decoding_provider_info->toString());
+    if (isAsymmetricConfigurationSupported(decoding_provider_info.value())) {
+      result->allowAsymmetric = true;
+    }
+
+    if (isLowLatencyConfigurationSupported(decoding_provider_info.value())) {
+      result->lowLatency = true;
+    }
+  }
+
+  log::debug("Stack: {}", result->toString());
+  return result;
 }
 
 ::aidl::android::hardware::bluetooth::audio::IBluetoothAudioProvider::
@@ -707,7 +935,8 @@ GetStackUnicastConfigurationFromAidlFormat(
                                 DeviceDirectionRequirements>>& sink_reqs,
                 const std::optional<std::vector<
                         ::bluetooth::le_audio::CodecManager::UnicastConfigurationRequirements::
-                                DeviceDirectionRequirements>>& source_reqs) {
+                                DeviceDirectionRequirements>>& source_reqs,
+                ::bluetooth::le_audio::CodecManager::Flags flags) {
   auto aidl_reqs = ::aidl::android::hardware::bluetooth::audio::IBluetoothAudioProvider::
           LeAudioConfigurationRequirement();
 
@@ -774,7 +1003,19 @@ GetStackUnicastConfigurationFromAidlFormat(
 
   log::debug(": audio context: {}", aidl_reqs.audioContext.bitmask);
   // TODO(b/341935895): Add the feature flags mechanism in the stack
-  // aidl_reqs.flags
+  if (flags != ::bluetooth::le_audio::CodecManager::Flags::NONE) {
+    aidl_reqs.flags =
+            std::make_optional<::aidl::android::hardware::bluetooth::audio::ConfigurationFlags>();
+    if (flags & ::bluetooth::le_audio::CodecManager::Flags::ALLOW_ASYMMETRIC) {
+      aidl_reqs.flags->bitmask |= ::aidl::android::hardware::bluetooth::audio::ConfigurationFlags::
+              ALLOW_ASYMMETRIC_CONFIGURATIONS;
+    }
+
+    if (flags & ::bluetooth::le_audio::CodecManager::Flags::LOW_LATENCY) {
+      aidl_reqs.flags->bitmask |=
+              ::aidl::android::hardware::bluetooth::audio::ConfigurationFlags::LOW_LATENCY;
+    }
+  }
 
   return aidl_reqs;
 }

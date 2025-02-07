@@ -262,6 +262,8 @@ constexpr uint8_t  LTV_LEN_MAX_FT                       = 0X01;
 
 constexpr uint8_t  ENCODER_LIMITS_SUB_OP                = 0x24;
 
+constexpr uint8_t  CALL_AUDIO_ROUTE_OVER_BLUETOOTH      = 2;
+
 typedef struct {
   uint8_t cig_id;
   uint8_t cis_id;
@@ -352,7 +354,7 @@ public:
         stream_setup_time_(0) {}
 
   void Init(int group_id, LeAudioContextType context_type, int num_of_devices) {
-    Reset();
+    Reset(bluetooth::groups::kGroupUnknown);
     group_id_ = group_id;
     context_type_ = context_type;
     num_of_devices_ = num_of_devices;
@@ -360,7 +362,13 @@ public:
                  ToString(context_type_), num_of_devices);
   }
 
-  void Reset(void) {
+  void Reset(int group_id) {
+    if (group_id != bluetooth::groups::kGroupUnknown && group_id != group_id_) {
+      log::verbose("StreamSpeedTracker Reset called for invalid group_id: {} != {}", group_id,
+                   group_id_);
+      return;
+    }
+
     log::verbose("StreamSpeedTracker group_id: {}", group_id_);
     is_started_ = false;
     group_id_ = bluetooth::groups::kGroupUnknown;
@@ -403,14 +411,15 @@ public:
                  ToString(context_type_), total_time_);
   }
 
-  bool IsStarted(void) {
-    if (is_started_) {
+  bool IsStarted(int group_id) {
+    if (is_started_ && group_id_ == group_id) {
       log::verbose("StreamSpeedTracker group_id: {}, {} is_started_: {} ", group_id_,
                    ToString(context_type_), is_started_);
-    } else {
-      log::verbose("StreamSpeedTracker not started ");
+      return true;
     }
-    return is_started_;
+    log::verbose("StreamSpeedTracker not started {} or group_id does not match ({} ! = {}) ",
+                 is_started_, group_id, group_id_);
+    return false;
   }
 
   void Dump(std::stringstream& stream) {
@@ -513,6 +522,9 @@ public:
         defer_sink_suspend_ack_until_stop_(false),
         defer_source_suspend_ack_until_stop_(false),
         is_local_sink_metadata_available_(false),
+        defer_sink_suspend_(false),
+        defer_source_suspend_(false),
+        call_audio_route_(-1),
         le_audio_source_hal_client_(nullptr),
         le_audio_sink_hal_client_(nullptr),
         close_vbc_timeout_(alarm_new("LeAudioCloseVbcTimeout")),
@@ -530,7 +542,7 @@ public:
     leAudioHealthStatus_->RegisterCallback(base::BindRepeating(le_audio_health_status_callback));
 
     BTA_GATTC_AppRegister(
-            le_audio_gattc_callback,
+            "le_audio", le_audio_gattc_callback,
             base::Bind(
                     [](base::Closure initCb, uint8_t client_id, uint8_t status) {
                       if (status != GATT_SUCCESS) {
@@ -1427,11 +1439,6 @@ public:
   void SetCodecConfigPreference(
           int group_id, bluetooth::le_audio::btle_audio_codec_config_t input_codec_config,
           bluetooth::le_audio::btle_audio_codec_config_t output_codec_config) override {
-    if (!com::android::bluetooth::flags::leaudio_set_codec_config_preference()) {
-      log::debug("leaudio_set_codec_config_preference flag is not enabled");
-      return;
-    }
-
     LeAudioDeviceGroup* group = aseGroups_.FindById(group_id);
 
     if (!group) {
@@ -1452,11 +1459,15 @@ public:
       group->UpdateAudioSetConfigurationCache(LeAudioContextType::CONVERSATIONAL);
     }
 
-    if (group->SetPreferredAudioSetConfiguration(input_codec_config, output_codec_config)) {
-      log::info("group id: {}, setting preferred codec is successful.", group_id);
+    if (!com::android::bluetooth::flags::leaudio_set_codec_config_preference()) {
+      log::debug("leaudio_set_codec_config_preference flag is not enabled");
     } else {
-      log::warn("group id: {}, setting preferred codec is failed.", group_id);
-      return;
+      if (group->SetPreferredAudioSetConfiguration(input_codec_config, output_codec_config)) {
+        log::info("group id: {}, setting preferred codec is successful.", group_id);
+      } else {
+        log::warn("group id: {}, setting preferred codec is failed.", group_id);
+        return;
+      }
     }
 
     if (group_id != active_group_id_) {
@@ -1521,6 +1532,31 @@ public:
     speed_start_setup(group->group_id_, configuration_context_type_, group->NumOfConnected(), true);
   }
 
+  /* ROUTE_EARPIECE = 1
+  * ROUTE_BLUETOOTH = 2
+  * ROUTE_WIRED_HEADSET = 4
+  * ROUTE_SPEAKER = 8
+  * ROUTE_STREAMING = 16
+  * ROUTE_WIRED_OR_EARPIECE = ROUTE_EARPIECE | ROUTE_WIRED_HEADSET
+  */
+  void UpdateCallAudioRoute(int call_audio_route) override {
+    log::debug("call_audio_route: {}", call_audio_route);
+    call_audio_route_ = call_audio_route;
+    if (call_audio_route_ != CALL_AUDIO_ROUTE_OVER_BLUETOOTH) {
+      log::debug(": defer_sink_suspend_: {}, defer_source_suspend_: {}",
+                                defer_sink_suspend_, defer_source_suspend_);
+
+      if (defer_source_suspend_) {
+         defer_source_suspend_ = false;
+         OnLocalAudioSourceSuspend();
+      }
+      if (defer_sink_suspend_) {
+        defer_sink_suspend_ = false;
+        OnLocalAudioSinkSuspend();
+      }
+    }
+  }
+
   void SetInCall(bool in_call) override {
     log::debug("in_call: {}", in_call);
     if (in_call == in_call_) {
@@ -1576,10 +1612,20 @@ public:
       }
     }
 
+    log::debug("reconfigure: {} ", reconfigure);
     if (reconfigure) {
-      ReconfigureOrUpdateRemote(group, bluetooth::le_audio::types::kLeAudioDirectionSink);
+      if (in_call_) {
+        if (((audio_sender_state_ == AudioState::IDLE) &&
+             (audio_receiver_state_ == AudioState::IDLE)) ||
+            (audio_sender_state_ > AudioState::IDLE)) {
+          ReconfigureOrUpdateRemote(group, bluetooth::le_audio::types::kLeAudioDirectionSink);
+        } else if (audio_receiver_state_ > AudioState::IDLE) {
+          ReconfigureOrUpdateRemote(group, bluetooth::le_audio::types::kLeAudioDirectionSource);
+        }
+      } else {
+        ReconfigureOrUpdateRemote(group, bluetooth::le_audio::types::kLeAudioDirectionSink);
+      }
     }
-    ProcessCallAvailbilityToUpdateMetadata(in_call);
   }
 
   bool IsInCall() override {
@@ -1757,9 +1803,7 @@ public:
     log::assert_that(le_audio_sink_hal_client_ != nullptr, "Sink session not acquired");
 
     DsaModes dsa_modes = {DsaMode::DISABLED};
-    if (com::android::bluetooth::flags::leaudio_dynamic_spatial_audio()) {
-      dsa_modes = group->GetAllowedDsaModes();
-    }
+    dsa_modes = group->GetAllowedDsaModes();
 
     /* We assume that peer device always use same frame duration */
     uint32_t frame_duration_us = 0;
@@ -1845,6 +1889,21 @@ public:
       ClientAudioInterfaceRelease();
       callbacks_->OnGroupStatus(group_id_to_close, GroupStatus::INACTIVE);
       active_group_id_ = bluetooth::groups::kGroupUnknown;
+    }
+  }
+
+  void ConfigureStream(LeAudioDeviceGroup* group, bool up_to_qos_configured) {
+    log::debug("group_id: {}", group->group_id_);
+
+    BidirectionalPair<std::vector<uint8_t>> ccids = {
+            .sink = ContentControlIdKeeper::GetInstance()->GetAllCcids(
+                    local_metadata_context_types_.sink),
+            .source = ContentControlIdKeeper::GetInstance()->GetAllCcids(
+                    local_metadata_context_types_.source)};
+    if (!groupStateMachine_->ConfigureStream(group, configuration_context_type_,
+                                             local_metadata_context_types_, ccids,
+                                             up_to_qos_configured)) {
+      log::info("Could not configure group {}", group->group_id_);
     }
   }
 
@@ -1944,6 +2003,10 @@ public:
       auto result = CodecManager::GetInstance()->UpdateActiveUnicastAudioHalClient(
               le_audio_source_hal_client_.get(), le_audio_sink_hal_client_.get(), false);
       log::assert_that(result, "Could not update session to codec manager");
+
+      result = groupStateMachine_->UpdateActiveUnicastAudioHalClient(
+              le_audio_source_hal_client_.get(), le_audio_sink_hal_client_.get(), false);
+      log::assert_that(result, "Could not update session to state machine");
     }
 
     if (!le_audio_source_hal_client_) {
@@ -1967,6 +2030,11 @@ public:
     auto result = CodecManager::GetInstance()->UpdateActiveUnicastAudioHalClient(
             le_audio_source_hal_client_.get(), le_audio_sink_hal_client_.get(), true);
     log::assert_that(result, "Could not update session to codec manager");
+
+    result = groupStateMachine_->UpdateActiveUnicastAudioHalClient(
+            le_audio_source_hal_client_.get(), le_audio_sink_hal_client_.get(), true);
+    log::assert_that(result, "Could not update session to state machine");
+
 
     /* Mini policy: Try configure audio HAL sessions with most recent context.
      * If reconfiguration is not needed it means, context type is not supported.
@@ -1998,10 +2066,20 @@ public:
     auto previous_active_group = active_group_id_;
     log::info("Active group_id changed {} -> {}", previous_active_group, group_id);
 
+    bool prepare_for_a_call = IsInCall() || IsInVoipCall();
+
     if (previous_active_group == bluetooth::groups::kGroupUnknown) {
       /* Expose audio sessions if there was no previous active group */
       StartAudioSession(group);
       active_group_id_ = group_id;
+
+      /* For the fresh activated LeAudio device, do configuration ahead only when
+       * phone is in a call.
+       */
+      if (prepare_for_a_call) {
+        PrepareStreamForAConversational(group);
+      }
+
     } else {
       /* In case there was an active group. Stop the stream, but before that, set
        * the new group so the group change is correctly handled in OnStateMachineStatusReportCb
@@ -2029,7 +2107,12 @@ public:
         /* Note: On purpose we are not sending INACTIVE status up to Java, because previous active
          * group will be provided in ACTIVE status. This is in order to have single call to audio
          * framework
+         * If group become active while phone call, let's configure it right away up to
+         * the QoS configured state so when audio framework resumes the stream,
+         * only Enable will left.
+         * Otherwise, if there is group switch, let's move ASEs to Configured state.
          */
+        ConfigureStream(group, prepare_for_a_call);
       }
     }
 
@@ -2037,13 +2120,6 @@ public:
 
     if (!defer_notify_active_until_stop_) {
       CheckAndNotifyGroupActive(active_group_id_);
-    }
-
-    /* If group become active while phone call, let's configure it right away,
-     * so when audio framework resumes the stream, it will be almost there.
-     */
-    if (IsInCall()) {
-      PrepareStreamForAConversational(group);
     }
   }
 
@@ -2196,7 +2272,8 @@ public:
                       int source_audio_location, int sink_supported_context_types,
                       int source_supported_context_types, const std::vector<uint8_t>& handles,
                       const std::vector<uint8_t>& sink_pacs,
-                      const std::vector<uint8_t>& source_pacs, const std::vector<uint8_t>& ases) {
+                      const std::vector<uint8_t>& source_pacs, const std::vector<uint8_t>& ases,
+                      const std::vector<uint8_t>& gmap) {
     LeAudioDevice* leAudioDevice = leAudioDevices_.FindByAddress(address);
 
     if (leAudioDevice) {
@@ -2265,6 +2342,14 @@ public:
       log::warn("Could not load ases");
     }
 
+    if (gmap.size() != 0) {
+      leAudioDevice->gmap_client_ = std::make_unique<GmapClient>(leAudioDevice->address_);
+      if (!le_audio::DeserializeGmap(leAudioDevice->gmap_client_.get(), gmap)) {
+        leAudioDevice->gmap_client_.reset();
+        log::warn("Invalid GMAP storage for {}", leAudioDevice->address_);
+      }
+    }
+
     //For BT reboot cases, remotes need PACS discover.
     leAudioDevice->known_service_handles_ = false;
     btif_storage_leaudio_clear_service_data(address);
@@ -2280,6 +2365,11 @@ public:
   bool GetHandlesForStorage(const RawAddress& addr, std::vector<uint8_t>& out) {
     LeAudioDevice* leAudioDevice = leAudioDevices_.FindByAddress(addr);
     return SerializeHandles(leAudioDevice, out);
+  }
+
+  bool GetGmapForStorage(const RawAddress& addr, std::vector<uint8_t>& out) {
+    LeAudioDevice* leAudioDevice = leAudioDevices_.FindByAddress(addr);
+    return SerializeGmap(leAudioDevice->gmap_client_.get(), out);
   }
 
   bool GetSinkPacsForStorage(const RawAddress& addr, std::vector<uint8_t>& out) {
@@ -2681,9 +2771,11 @@ public:
     } else if (leAudioDevice->gmap_client_ != nullptr && GmapClient::IsGmapClientEnabled() &&
                hdl == leAudioDevice->gmap_client_->getRoleHandle()) {
       leAudioDevice->gmap_client_->parseAndSaveGmapRole(len, value);
+      btif_storage_leaudio_update_gmap_bin(leAudioDevice->address_);
     } else if (leAudioDevice->gmap_client_ != nullptr && GmapClient::IsGmapClientEnabled() &&
                hdl == leAudioDevice->gmap_client_->getUGTFeatureHandle()) {
       leAudioDevice->gmap_client_->parseAndSaveUGTFeature(len, value);
+      btif_storage_leaudio_update_gmap_bin(leAudioDevice->address_);
     } else {
       log::error("Unknown attribute read: 0x{:x}", hdl);
     }
@@ -4835,6 +4927,15 @@ public:
     switch (audio_sender_state_) {
       case AudioState::READY_TO_START:
       case AudioState::STARTED:
+        log::debug(": call_audio_route_: {}", call_audio_route_);
+
+        if (le_audio_source_hal_client_ &&
+            IsInCall() && (call_audio_route_ == CALL_AUDIO_ROUTE_OVER_BLUETOOTH)) {
+          log::info("CS call already ongoing, fake ack success");
+          le_audio_source_hal_client_->ConfirmSuspendRequest();
+          defer_source_suspend_ = true;
+          return;
+        }
         audio_sender_state_ = AudioState::READY_TO_RELEASE;
         break;
       case AudioState::RELEASING:
@@ -5105,6 +5206,15 @@ public:
     switch (audio_receiver_state_) {
       case AudioState::READY_TO_START:
       case AudioState::STARTED:
+        log::debug(": call_audio_route_: {}", call_audio_route_);
+
+        if (le_audio_sink_hal_client_ &&
+            IsInCall() && (call_audio_route_ == CALL_AUDIO_ROUTE_OVER_BLUETOOTH)) {
+          log::info("CS call already ongoing, fake ack success");
+          le_audio_sink_hal_client_->ConfirmSuspendRequest();
+          defer_sink_suspend_ = true;
+          return;
+        }
         audio_receiver_state_ = AudioState::READY_TO_RELEASE;
         break;
       case AudioState::RELEASING:
@@ -5882,9 +5992,37 @@ public:
           // Do not take the obsolete metadata
           remote_metadata.get(remote_other_direction).clear();
         } else {
-          remote_metadata.get(remote_other_direction).unset_all(all_bidirectional_contexts);
-          remote_metadata.get(remote_other_direction)
-                  .unset_all(single_direction_only_context_types);
+          // The other direction was opened when already in a bidirectional scenario that was not a
+          // VoIP or a regular Call. We need to figure out which direction metadata is the leading
+          // one.
+          // Note: We usually remove any bidirectional or the previous direction specific context
+          //       from the previous direction metadata and replace it with the just-resumed
+          //       direction (but still bidirectional) context. However when recording is started
+          //       in a GAME scenario, we don't want to reconfigure to or mix the context with LIVE.
+          auto remote_game_uplink_available =
+                  group->GetAvailableContexts(le_audio::types::kLeAudioDirectionSource)
+                          .test(LeAudioContextType::GAME);
+          auto local_game_uplink_active =
+                  (audio_sender_state_ == AudioState::STARTED) &&
+                  remote_metadata.sink.test(LeAudioContextType::GAME) &&
+                  remote_metadata.source.test_any(LeAudioContextType::LIVE |
+                                                  LeAudioContextType::CONVERSATIONAL);
+          log::debug(
+                  "Remote {} metadata change ({}) while having remote {} context ({}) in a "
+                  "bidirectional scenario of {}, local_game_uplink_active: {}, "
+                  "remote_game_uplink_available: {}",
+                  remote_direction_str, ToString(remote_metadata.get(remote_direction)),
+                  remote_other_direction_str, ToString(remote_metadata.get(remote_other_direction)),
+                  ToString(configuration_context_type_), local_game_uplink_active,
+                  remote_game_uplink_available);
+          if (local_game_uplink_active && remote_game_uplink_available) {
+            remote_metadata.source.clear();
+            remote_metadata.source.set(LeAudioContextType::GAME);
+          } else {
+            remote_metadata.get(remote_other_direction).unset_all(all_bidirectional_contexts);
+            remote_metadata.get(remote_other_direction)
+                    .unset_all(single_direction_only_context_types);
+          }
         }
 
         remote_metadata.get(remote_other_direction)
@@ -6023,10 +6161,6 @@ public:
   }
 
   bool DsaReconfigureNeeded(LeAudioDeviceGroup* group, LeAudioContextType context) {
-    if (!com::android::bluetooth::flags::leaudio_dynamic_spatial_audio()) {
-      return false;
-    }
-
     // Reconfigure if DSA mode changed for media streaming
     if (context != bluetooth::le_audio::types::LeAudioContextType::MEDIA) {
       return false;
@@ -6448,9 +6582,9 @@ public:
 
   void speed_start_setup(int group_id, LeAudioContextType context_type, int num_of_connected,
                          bool is_reconfig = false) {
-    log::verbose("is_started {} is_reconfig {} num_of_connected {}", speed_tracker_.IsStarted(),
-                 is_reconfig, num_of_connected);
-    if (!speed_tracker_.IsStarted()) {
+    log::verbose("is_started {} is_reconfig {} num_of_connected {}",
+                 speed_tracker_.IsStarted(group_id), is_reconfig, num_of_connected);
+    if (!speed_tracker_.IsStarted(group_id)) {
       speed_tracker_.Init(group_id, context_type, num_of_connected);
     }
     if (is_reconfig) {
@@ -6460,26 +6594,27 @@ public:
     }
   }
 
-  void speed_stop_reconfig(void) {
+  void speed_stop_reconfig(int group_id) {
     log::verbose("");
-    if (!speed_tracker_.IsStarted()) {
+    if (!speed_tracker_.IsStarted(group_id)) {
       return;
     }
+
     speed_tracker_.ReconfigurationComplete();
   }
 
-  void speed_stream_created() {
+  void speed_stream_created(int group_id) {
     log::verbose("");
-    if (!speed_tracker_.IsStarted()) {
+    if (!speed_tracker_.IsStarted(group_id)) {
       return;
     }
 
     speed_tracker_.StreamCreated();
   }
 
-  void speed_stop_setup() {
+  void speed_stop_setup(int group_id) {
     log::verbose("");
-    if (!speed_tracker_.IsStarted()) {
+    if (!speed_tracker_.IsStarted(group_id)) {
       return;
     }
 
@@ -6489,7 +6624,7 @@ public:
 
     speed_tracker_.StopStreamSetup();
     stream_speed_history_.emplace_front(speed_tracker_);
-    speed_tracker_.Reset();
+    speed_tracker_.Reset(group_id);
   }
 
   void notifyGroupStreamStatus(int group_id, GroupStreamStatus groupStreamStatus) {
@@ -6544,26 +6679,36 @@ public:
      */
     CancelStreamingRequest();
     ReconfigurationComplete(previously_active_directions);
-    speed_stop_reconfig();
+    speed_stop_reconfig(active_group_id_);
   }
 
   void OnStateMachineStatusReportCb(int group_id, GroupStreamStatus status) {
-    log::info("status: {},  group_id: {}, audio_sender_state {}, audio_receiver_state {}",
-              static_cast<int>(status), group_id, bluetooth::common::ToString(audio_sender_state_),
-              bluetooth::common::ToString(audio_receiver_state_));
+    /* When switching stream between two group, it is important to keep track if given status is for
+     * active group or not in order to proper Audio HAL notifications.
+     * It means, we should update Audio HAL and clear common resources when group is an active group
+     * or active group is already cleared.
+     */
+    bool is_active_group_operation =
+            (group_id == active_group_id_ || active_group_id_ == bluetooth::groups::kGroupUnknown);
+
+    log::info(
+            "status: {},  group_id: {}, audio_sender_state {}, audio_receiver_state {}, "
+            "is_active_group_operation {}",
+            static_cast<int>(status), group_id, bluetooth::common::ToString(audio_sender_state_),
+            bluetooth::common::ToString(audio_receiver_state_), is_active_group_operation);
     LeAudioDeviceGroup* group = aseGroups_.FindById(group_id);
 
     notifyGroupStreamStatus(group_id, status);
 
     switch (status) {
       case GroupStreamStatus::STREAMING: {
-        if (group_id != active_group_id_) {
+        if (!is_active_group_operation) {
           log::error("Streaming group {} is no longer active. Stop the group.", group_id);
           GroupStop(group_id);
           return;
         }
 
-        speed_stream_created();
+        speed_stream_created(group_id);
         bluetooth::le_audio::MetricsCollector::Get()->OnStreamStarted(active_group_id_,
                                                                       configuration_context_type_);
 
@@ -6585,7 +6730,7 @@ public:
            * Just stop streaming
            */
           log::warn("Stopping stream for group {} as AF not interested.", group_id);
-          speed_stop_setup();
+          speed_stop_setup(group_id);
           groupStateMachine_->StopStream(group);
           return;
         }
@@ -6600,7 +6745,7 @@ public:
                   "reconfigure to {}",
                   ToString(group->GetConfigurationContextType()),
                   ToString(configuration_context_type_));
-          speed_stop_setup();
+          speed_stop_setup(group_id);
           initReconfiguration(group, group->GetConfigurationContextType());
           return;
         }
@@ -6622,16 +6767,21 @@ public:
           StartReceivingAudio(group_id);
         }
 
-        speed_stop_setup();
+        speed_stop_setup(group_id);
         break;
       }
       case GroupStreamStatus::SUSPENDED:
-        speed_tracker_.Reset();
-        /** Stop Audio but don't release all the Audio resources */
-        SuspendAudio();
+        speed_tracker_.Reset(group_id);
+
+        if (is_active_group_operation) {
+          /** Stop Audio but don't release all the Audio resources */
+          SuspendAudio();
+        }
         break;
       case GroupStreamStatus::CONFIGURED_BY_USER:
-        reconfigurationComplete();
+        if (is_active_group_operation) {
+          reconfigurationComplete();
+        }
         break;
       case GroupStreamStatus::CONFIGURED_AUTONOMOUS:
         /* This state is notified only when
@@ -6640,19 +6790,21 @@ public:
          * it is handled same as IDLE
          */
       case GroupStreamStatus::IDLE: {
-        if (sw_enc_left) {
-          sw_enc_left.reset();
+        if (is_active_group_operation) {
+          if (sw_enc_left) {
+            sw_enc_left.reset();
+          }
+          if (sw_enc_right) {
+            sw_enc_right.reset();
+          }
+          if (sw_dec_left) {
+            sw_dec_left.reset();
+          }
+          if (sw_dec_right) {
+            sw_dec_right.reset();
+          }
+          CleanCachedMicrophoneData();
         }
-        if (sw_enc_right) {
-          sw_enc_right.reset();
-        }
-        if (sw_dec_left) {
-          sw_dec_left.reset();
-        }
-        if (sw_dec_right) {
-          sw_dec_right.reset();
-        }
-        CleanCachedMicrophoneData();
 
         log::debug("configuration_context_type_= {}.", ToString(configuration_context_type_));
         if (group) {
@@ -6660,6 +6812,7 @@ public:
           UpdateLocationsAndContextsAvailability(group);
           if (group->IsPendingConfiguration()) {
             UpdatePriorCodecTypeToHal(group);
+            SuspendedForReconfiguration();
             group->SetSuspendedForReconfiguration();
             log::debug(
                     "Pending configuration for group_id: {} pre_configuration_context_type_ : {} "
@@ -6702,8 +6855,7 @@ public:
                     "configuration_context_type_ {}",
                     ToString(pre_configuration_context_type_),
                     ToString(configuration_context_type_));
-            if ((configuration_context_type_ != pre_configuration_context_type_) &&
-                GroupStream(group->group_id_, configuration_context_type_, remote_contexts)) {
+            if (GroupStream(group->group_id_, configuration_context_type_, remote_contexts)) {
               log::info("configuration succeed, wait for new status for group {}",
                         group->group_id_);
               /* If configuration succeed wait for new status. */
@@ -6712,8 +6864,10 @@ public:
             log::info("Clear pending configuration flag for group {}", group->group_id_);
             group->ClearPendingConfiguration();
             CancelStreamingRequest();
-            reconfigurationComplete();
-          } else {
+            if (is_active_group_operation) {
+              reconfigurationComplete();
+            }
+          } else if (is_active_group_operation) {
             log::info(
                     "sink_monitor_mode_: {}, defer_notify_inactive_until_stop_: {}, "
                     "defer_notify_active_until_stop_: {}, defer_source_suspend_ack_until_stop_: "
@@ -6770,7 +6924,7 @@ public:
           }
         }
 
-        speed_tracker_.Reset();
+        speed_tracker_.Reset(group_id);
 
         if (group) {
           NotifyUpperLayerGroupTurnedIdleDuringCall(group->group_id_);
@@ -6779,6 +6933,20 @@ public:
         }
         break;
       }
+      case GroupStreamStatus::RELEASING_AUTONOMOUS:
+        /* Remote device releases all the ASEs autonomusly. This should not happen and not sure what
+         * is the remote device intention. If remote wants stop the stream then MCS shall be used to
+         * stop the stream in a proper way. For a phone call, GTBS shall be used. For now we assume
+         * this device has does not want to be used for streaming and mark it as Inactive.
+         */
+        log::warn("Group {} is doing autonomous release, make it inactive", group_id);
+        if (group) {
+          group->PrintDebugState();
+          groupSetAndNotifyInactive();
+        }
+        audio_sender_state_ = AudioState::IDLE;
+        audio_receiver_state_ = AudioState::IDLE;
+        break;
       case GroupStreamStatus::RELEASING:
       case GroupStreamStatus::SUSPENDING:
         log::debug(" defer_notify_inactive_until_stop_: {}", defer_notify_inactive_until_stop_);
@@ -6793,23 +6961,27 @@ public:
            * it means that it is some internal state machine error. This is very unlikely and
            * for now just Inactivate the group.
            */
-          log::error("Internal state machine error");
+          log::error("Internal state machine error for group {}", group_id);
           group->PrintDebugState();
+          if (group->GetState() != AseState::BTA_LE_AUDIO_ASE_STATE_IDLE) {
+            defer_notify_inactive_until_stop_ = true;
+          }
           groupSetAndNotifyInactive();
+          audio_sender_state_ = AudioState::IDLE;
+          audio_receiver_state_ = AudioState::IDLE;
+          return;
         }
 
-        if (audio_sender_state_ != AudioState::IDLE) {
-          audio_sender_state_ = AudioState::RELEASING;
+        if (is_active_group_operation) {
+          if (audio_sender_state_ != AudioState::IDLE) {
+            audio_sender_state_ = AudioState::RELEASING;
+          }
+
+          if (audio_receiver_state_ != AudioState::IDLE) {
+            audio_receiver_state_ = AudioState::RELEASING;
+          }
         }
 
-        if (audio_receiver_state_ != AudioState::IDLE) {
-          audio_receiver_state_ = AudioState::RELEASING;
-        }
-
-        if (group && group->IsPendingConfiguration()) {
-          log::info("Releasing for reconfiguration, don't send anything on CISes");
-          SuspendedForReconfiguration();
-        }
         break;
       default:
         break;
@@ -6823,6 +6995,20 @@ public:
       return;
     }
     group->UpdateCisConfiguration(direction);
+  }
+
+  void UpdateMetadataCb(AseState state, int cig_id, int cis_id,
+       const std::vector<uint8_t>& data) {
+    if (le_audio_source_hal_client_) {
+      log::info("calling source Metadata Changed");
+      le_audio_source_hal_client_->UpdateMetadataChanged(state,
+          cig_id, cis_id, data);
+    }
+    if (le_audio_sink_hal_client_) {
+      log::info("calling sink Metadata Changed");
+      le_audio_sink_hal_client_->UpdateMetadataChanged(state,
+          cig_id, cis_id, data);
+    }
   }
 
 private:
@@ -6866,6 +7052,12 @@ private:
   bool defer_source_suspend_ack_until_stop_;
   /* To know whether MM sent sink track update Metadata */
   bool  is_local_sink_metadata_available_;
+  /*To track whether sinkSuspend to be handled later*/
+  bool defer_sink_suspend_;
+  /*To track whether sourceSuspend to be handled later*/
+  bool defer_source_suspend_;
+  /*To track call audio route*/
+  int call_audio_route_;
 
   /* Reconnection mode */
   tBTM_BLE_CONN_TYPE reconnection_mode_;
@@ -6956,6 +7148,10 @@ private:
             le_audio_source_hal_client_.get(), le_audio_sink_hal_client_.get(), false);
     log::assert_that(result, "Could not update session to codec manager");
 
+    result = groupStateMachine_->UpdateActiveUnicastAudioHalClient(
+            le_audio_source_hal_client_.get(), le_audio_sink_hal_client_.get(), false);
+    log::assert_that(result, "Could not update session to state machine");
+
     if (le_audio_source_hal_client_) {
       le_audio_source_hal_client_->Stop();
       le_audio_source_hal_client_.reset();
@@ -6967,14 +7163,14 @@ private:
        * the session callbacks special action from this Module would be
        * required e.g. to Unicast handover.
        */
-      if (!com::android::bluetooth::flags::leaudio_use_audio_recording_listener()) {
-        if (!sink_monitor_mode_) {
-          local_metadata_context_types_.sink.clear();
-          le_audio_sink_hal_client_->Stop();
-          le_audio_sink_hal_client_.reset();
-        }
+      if (com::android::bluetooth::flags::leaudio_use_audio_recording_listener() ||
+          !sink_monitor_mode_) {
+        local_metadata_context_types_.sink.clear();
+        le_audio_sink_hal_client_->Stop();
+        le_audio_sink_hal_client_.reset();
       }
     }
+
     local_metadata_context_types_.source.clear();
     configuration_context_type_ = LeAudioContextType::UNINITIALIZED;
 
@@ -6982,10 +7178,6 @@ private:
   }
 
   bool DsaDataConsume(bluetooth::hci::iso_manager::cis_data_evt* event) {
-    if (!com::android::bluetooth::flags::leaudio_dynamic_spatial_audio()) {
-      return false;
-    }
-
     if (active_group_id_ == bluetooth::groups::kGroupUnknown) {
       return false;
     }
@@ -7230,6 +7422,13 @@ public:
       instance->OnUpdatedCisConfiguration(group_id, direction);
     }
   }
+
+  void UpdateMetadataCb(AseState state, int cig_id, int cis_id,
+       const std::vector<uint8_t>& data) {
+    if (instance) {
+      instance->UpdateMetadataCb(state, cig_id, cis_id, data);
+    }
+  }
 };
 
 CallbacksImpl stateMachineCallbacksImpl;
@@ -7314,14 +7513,12 @@ DeviceGroupsCallbacksImpl deviceGroupsCallbacksImpl;
 
 }  // namespace
 
-void LeAudioClient::AddFromStorage(const RawAddress& addr, bool autoconnect,
-                                   int sink_audio_location, int source_audio_location,
-                                   int sink_supported_context_types,
-                                   int source_supported_context_types,
-                                   const std::vector<uint8_t>& handles,
-                                   const std::vector<uint8_t>& sink_pacs,
-                                   const std::vector<uint8_t>& source_pacs,
-                                   const std::vector<uint8_t>& ases) {
+void LeAudioClient::AddFromStorage(
+        const RawAddress& addr, bool autoconnect, int sink_audio_location,
+        int source_audio_location, int sink_supported_context_types,
+        int source_supported_context_types, const std::vector<uint8_t>& handles,
+        const std::vector<uint8_t>& sink_pacs, const std::vector<uint8_t>& source_pacs,
+        const std::vector<uint8_t>& ases, const std::vector<uint8_t>& gmap) {
   if (!instance) {
     log::error("Not initialized yet");
     return;
@@ -7329,7 +7526,7 @@ void LeAudioClient::AddFromStorage(const RawAddress& addr, bool autoconnect,
 
   instance->AddFromStorage(addr, autoconnect, sink_audio_location, source_audio_location,
                            sink_supported_context_types, source_supported_context_types, handles,
-                           sink_pacs, source_pacs, ases);
+                           sink_pacs, source_pacs, ases, gmap);
 }
 
 bool LeAudioClient::GetHandlesForStorage(const RawAddress& addr, std::vector<uint8_t>& out) {
@@ -7366,6 +7563,15 @@ bool LeAudioClient::GetAsesForStorage(const RawAddress& addr, std::vector<uint8_
   }
 
   return instance->GetAsesForStorage(addr, out);
+}
+
+bool LeAudioClient::GetGmapForStorage(const RawAddress& addr, std::vector<uint8_t>& out) {
+  if (!instance) {
+    log::error("Not initialized yet");
+    return false;
+  }
+
+  return instance->GetGmapForStorage(addr, out);
 }
 
 bool LeAudioClient::IsLeAudioClientRunning(void) { return instance != nullptr; }
@@ -7451,6 +7657,7 @@ void LeAudioClient::Initialize(
 void LeAudioClient::DebugDump(int fd) {
   std::scoped_lock<std::mutex> lock(instance_mutex);
   DeviceGroups::DebugDump(fd);
+  GmapServer::DebugDump(fd);
 
   dprintf(fd, "LeAudio Manager: \n");
   if (instance) {
@@ -7495,10 +7702,6 @@ void LeAudioClient::Cleanup(void) {
 }
 
 bool LeAudioClient::RegisterIsoDataConsumer(LeAudioIsoDataCallback callback) {
-  if (!com::android::bluetooth::flags::leaudio_dynamic_spatial_audio()) {
-    return false;
-  }
-
   log::info("ISO data consumer changed");
   iso_data_callback = callback;
   return true;

@@ -567,8 +567,19 @@ struct BidirectionalPair {
   T sink;
   T source;
 
-  const T& get(uint8_t direction) const;
-  T& get(uint8_t direction);
+  const T& get(uint8_t direction) const {
+    log::assert_that(direction < types::kLeAudioDirectionBoth,
+                     "Unsupported complex direction. Consider using "
+                     "get_bidirectional<>() instead.");
+    return (direction == types::kLeAudioDirectionSink) ? sink : source;
+  }
+
+  T& get(uint8_t direction) {
+    log::assert_that(direction < types::kLeAudioDirectionBoth,
+                     "Unsupported complex direction. Reference to a single "
+                     "complex direction value is not supported.");
+    return (direction == types::kLeAudioDirectionSink) ? sink : source;
+  }
 };
 
 template <typename T>
@@ -1201,6 +1212,11 @@ struct AseQosPreferences {
   uint32_t preferred_pres_delay_max = 0;
 };
 
+struct VendorDataPathConfiguration {
+  std::vector<uint8_t> sinkdataPathConfig = {};
+  std::vector<uint8_t> sourcedataPathConfig = {};
+};
+
 struct ase {
   static constexpr uint8_t kAseIdInvalid = 0x00;
 
@@ -1252,6 +1268,12 @@ struct ase {
   AseQosPreferences qos_preferences;
 
   std::vector<uint8_t> metadata;
+
+  /* To pass vendorspecific metadata to BT HAL*/
+  LeAudioLtvMap vendor_metadata;
+
+  /* Below vs_metadata and is_vsmetadata_available used only for metadata update
+   * while enabling or streaming */
   std::vector<uint8_t> vs_metadata;
 
   bool is_vsmetadata_available;
@@ -1323,7 +1345,6 @@ struct CodecMetadataSetting {
   int8_t vendor_metadata_type;
   std::vector<uint8_t> vs_metadata;
 };
-
 std::ostream& operator<<(std::ostream& os, const CodecConfigSetting& config);
 
 struct QosConfigSetting {

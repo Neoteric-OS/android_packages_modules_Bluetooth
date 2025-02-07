@@ -76,7 +76,6 @@
 #include "main/shim/le_advertising_manager.h"
 #include "main_thread.h"
 #include "metrics/bluetooth_event.h"
-#include "os/logging/log_adapter.h"
 #include "osi/include/properties.h"
 #include "osi/include/stack_power_telemetry.h"
 #include "stack/btm/btm_dev.h"
@@ -360,10 +359,13 @@ void btif_dm_sdp_delay_timer(const RawAddress* bl_bdaddr) {
 
 static bt_status_t btif_in_execute_service_request(tBTA_SERVICE_ID service_id, bool b_enable) {
   log::verbose("service_id:{}", service_id);
-  log::warn("b_enable: {}", b_enable);
-  //bta_dm_clean_
+
   if (service_id == BTA_A2DP_SOURCE_SERVICE_ID && !b_enable) {
     bta_dm_bredr_cleanup();
+    if (pairing_cb.state == BT_BOND_STATE_BONDING) {
+      log::warn("Device in bonding state, proceeding to cancel bond!");
+      btif_dm_cancel_bond(pairing_cb.bd_addr);
+    }
   }
 
   if (service_id == BTA_A2DP_SOURCE_SERVICE_ID && b_enable) {
@@ -1062,9 +1064,8 @@ static void btif_dm_pin_req_evt(tBTA_DM_PIN_REQ* p_pin_req) {
     }
   }
   BTM_LogHistory(kBtmLogTagCallback, bd_addr, "Pin request",
-                 std::format("name:\"{}\" min16:{:c}",
-                             PRIVATE_NAME(reinterpret_cast<char const*>(bd_name.name)),
-                             (p_pin_req->min_16_digit) ? 'T' : 'F'));
+                 std::format("name:\"{}\" min16:{:c}", reinterpret_cast<char const*>(bd_name.name),
+                             p_pin_req->min_16_digit ? 'T' : 'F'));
   GetInterfaceToProfiles()->events->invoke_pin_request_cb(bd_addr, bd_name, cod,
                                                           p_pin_req->min_16_digit);
 }
@@ -1627,9 +1628,7 @@ static void btif_dm_search_devices_evt(tBTA_DM_SEARCH_EVT event, tBTA_DM_SEARCH*
 static bool btif_is_interesting_le_service(bluetooth::Uuid uuid) {
   return uuid.As16Bit() == UUID_SERVCLASS_LE_HID || uuid == UUID_HEARING_AID || uuid == UUID_VC ||
          uuid == UUID_CSIS || uuid == UUID_LE_AUDIO || uuid == UUID_LE_MIDI || uuid == UUID_HAS ||
-         uuid == UUID_BASS || uuid == UUID_BATTERY ||
-         (com::android::bluetooth::flags::android_headtracker_service() &&
-          uuid == ANDROID_HEADTRACKER_SERVICE_UUID);
+         uuid == UUID_BASS || uuid == UUID_BATTERY || uuid == ANDROID_HEADTRACKER_SERVICE_UUID;
 }
 
 static bt_status_t btif_get_existing_uuids(RawAddress* bd_addr, Uuid* existing_uuids) {
@@ -1987,7 +1986,7 @@ static void btif_on_name_read(RawAddress bd_addr, tHCI_ERROR_CODE hci_status, co
   GetInterfaceToProfiles()->events->invoke_remote_device_properties_cb(
           status, bd_addr, properties.size(), properties.data());
   log::info("Callback for read name event addr:{} name:{}", bd_addr,
-            PRIVATE_NAME(reinterpret_cast<char const*>(bd_name)));
+            reinterpret_cast<char const*>(bd_name));
 
   if (!during_device_search) {
     return;
@@ -2001,7 +2000,7 @@ static void btif_on_name_read(RawAddress bd_addr, tHCI_ERROR_CODE hci_status, co
     GetInterfaceToProfiles()->events->invoke_device_found_cb(properties.size(), properties.data());
   } else {
     log::info("Skipping device found callback because cod is zero addr:{} name:{}", bd_addr,
-              PRIVATE_NAME(reinterpret_cast<char const*>(bd_name)));
+              reinterpret_cast<char const*>(bd_name));
   }
 }
 
@@ -3715,9 +3714,8 @@ static void btif_dm_ble_passkey_req_evt(tBTA_DM_PIN_REQ* p_pin_req) {
 
   cod = COD_UNCLASSIFIED;
 
-  BTM_LogHistory(
-          kBtmLogTagCallback, bd_addr, "PIN request",
-          std::format("name:'{}'", PRIVATE_NAME(reinterpret_cast<char const*>(bd_name.name))));
+  BTM_LogHistory(kBtmLogTagCallback, bd_addr, "PIN request",
+                 std::format("name:'{}'", reinterpret_cast<char const*>(bd_name.name)));
 
   GetInterfaceToProfiles()->events->invoke_pin_request_cb(bd_addr, bd_name, cod, false);
 }
@@ -4051,6 +4049,30 @@ void btif_dm_clear_event_mask() { BTA_DmClearEventMask(); }
 void btif_dm_clear_filter_accept_list() { BTA_DmClearFilterAcceptList(); }
 
 void btif_dm_disconnect_all_acls() { BTA_DmDisconnectAllAcls(); }
+
+void btif_dm_disconnect_acl(const RawAddress& bd_addr, tBT_TRANSPORT transport) {
+  log::debug(" {}, transport {}", bd_addr, transport);
+
+  if (transport == BT_TRANSPORT_LE || transport == BT_TRANSPORT_AUTO) {
+    uint16_t acl_handle =
+            get_btm_client_interface().peer.BTM_GetHCIConnHandle(bd_addr, BT_TRANSPORT_LE);
+
+    log::debug("{}, le_acl_handle: {:#x}", bd_addr, acl_handle);
+    if (acl_handle != HCI_INVALID_HANDLE) {
+      acl_disconnect_from_handle(acl_handle, HCI_ERR_PEER_USER, "bt_btif_dm disconnect");
+    }
+  }
+
+  if (transport == BT_TRANSPORT_BR_EDR || transport == BT_TRANSPORT_AUTO) {
+    uint16_t acl_handle =
+            get_btm_client_interface().peer.BTM_GetHCIConnHandle(bd_addr, BT_TRANSPORT_BR_EDR);
+
+    log::debug("{}, bredr_acl_handle: {:#x}", bd_addr, acl_handle);
+    if (acl_handle != HCI_INVALID_HANDLE) {
+      acl_disconnect_from_handle(acl_handle, HCI_ERR_PEER_USER, "bt_btif_dm disconnect");
+    }
+  }
+}
 
 void btif_dm_le_rand(bluetooth::hci::LeRandCallback callback) { BTA_DmLeRand(std::move(callback)); }
 

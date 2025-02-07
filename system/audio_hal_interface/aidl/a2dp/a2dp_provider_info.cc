@@ -30,6 +30,7 @@
 #include "a2dp_vendor.h"
 #include "a2dp_vendor_aptx_constants.h"
 #include "a2dp_vendor_aptx_hd_constants.h"
+#include "a2dp_vendor_aptx_adaptive_constants.h"
 #include "a2dp_vendor_ldac_constants.h"
 #include "a2dp_vendor_opus_constants.h"
 #include "client_interface_aidl.h"
@@ -124,6 +125,9 @@ static std::optional<btav_a2dp_codec_index_t> assignSourceCodecIndex(
       }
       if (vendor_id == A2DP_APTX_HD_VENDOR_ID && codec_id == A2DP_APTX_HD_CODEC_ID_BLUETOOTH) {
         return BTAV_A2DP_CODEC_INDEX_SOURCE_APTX_HD;
+      }
+      if (vendor_id == A2DP_APTX_ADAPTIVE_VENDOR_ID && codec_id == A2DP_APTX_ADAPTIVE_CODEC_ID_BLUETOOTH) {
+        return BTAV_A2DP_CODEC_INDEX_SOURCE_APTX_ADAPTIVE;
       }
       if (vendor_id == A2DP_LDAC_VENDOR_ID && codec_id == A2DP_LDAC_CODEC_ID) {
         return BTAV_A2DP_CODEC_INDEX_SOURCE_LDAC;

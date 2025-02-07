@@ -940,9 +940,6 @@ public class ActiveDeviceManager implements AdapterService.BluetoothStateCallbac
         @Override
         public void onAudioDevicesRemoved(AudioDeviceInfo[] removedDevices) {
             Log.d(TAG, "onAudioDevicesRemoved");
-            if (!Flags.admFallbackWhenWiredAudioDisconnected()) {
-                return;
-            }
             if (!Arrays.stream(removedDevices)
                     .anyMatch(AudioManagerAudioDeviceCallback::isWiredAudioHeadset)) {
                 return;
@@ -1370,15 +1367,7 @@ public class ActiveDeviceManager implements AdapterService.BluetoothStateCallbac
             if (Objects.equals(a2dpFallbackDevice, device)) {
                 Log.d(TAG, "Found an A2DP fallback device: " + device);
                 setA2dpActiveDevice(device);
-                if (Flags.admAlwaysFallbackToAvailableDevice()) {
-                    setHfpActiveDevice(headsetFallbackDevice);
-                } else {
-                    if (Objects.equals(headsetFallbackDevice, device)) {
-                        setHfpActiveDevice(device);
-                    } else {
-                        setHfpActiveDevice(null);
-                    }
-                }
+                setHfpActiveDevice(headsetFallbackDevice);
                 /* If dual mode is enabled, LEA will be made active once all supported
                 classic audio profiles are made active for the device. */
                 if (!Utils.isDualModeAudioEnabled()) {
@@ -1409,15 +1398,7 @@ public class ActiveDeviceManager implements AdapterService.BluetoothStateCallbac
             if (Objects.equals(headsetFallbackDevice, device)) {
                 Log.d(TAG, "Found a HFP fallback device: " + device);
                 setHfpActiveDevice(device);
-                if (Flags.admAlwaysFallbackToAvailableDevice()) {
-                    setA2dpActiveDevice(a2dpFallbackDevice);
-                } else {
-                    if (Objects.equals(a2dpFallbackDevice, device)) {
-                        setA2dpActiveDevice(a2dpFallbackDevice);
-                    } else {
-                        setA2dpActiveDevice(null, true);
-                    }
-                }
+                setA2dpActiveDevice(a2dpFallbackDevice);
                 if (!Utils.isDualModeAudioEnabled()) {
                     setLeAudioActiveDevice(null, true);
                 }

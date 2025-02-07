@@ -133,6 +133,13 @@ public:
     std::optional<::bluetooth::le_audio::set_configurations::AudioSetConfiguration>
     GetUnicastConfig(const ::bluetooth::le_audio::CodecManager::UnicastConfigurationRequirements&
                              requirements) const;
+    ::bluetooth::le_audio::types::VendorDataPathConfiguration
+           GetVendorConfigureDataPathPayload(
+                    std::vector<uint16_t> conn_handles,
+                    ::bluetooth::le_audio::types::LeAudioContextType context_type,
+                    bool is_cis_dir_sink, bool is_cis_dir_source);
+    void UpdateMetadataChanged(::bluetooth::le_audio::types::AseState& state,
+         int cig_id, int cis_id, const std::vector<uint8_t>& data);
 
   private:
     bool is_broadcaster_ = false;
@@ -154,6 +161,8 @@ public:
     void ReconfigurationComplete() override;
     // Source the given stream of bytes to be sinked into the upper layers
     size_t Write(const uint8_t* p_buf, uint32_t len);
+    void UpdateMetadataChanged(::bluetooth::le_audio::types::AseState& state,
+       int cig_id, int cis_id, const std::vector<uint8_t>& data);
   };
 
   // Get LE Audio sink client interface if it's not previously acquired and not
@@ -181,6 +190,9 @@ public:
   // Get interface, if previously not initialized - it'll initialize
   // singleton.
   static LeAudioClientInterface* Get();
+
+  // Get the Codec Configuration Provider info
+  std::optional<bluetooth::le_audio::ProviderInfo> GetCodecConfigProviderInfo(void) const;
 
 private:
   static LeAudioClientInterface* interface;

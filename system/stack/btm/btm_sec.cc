@@ -35,6 +35,8 @@
 #include <cstdint>
 #include <string>
 
+#include "bta/dm/bta_dm_act.h"
+#include "bta/dm/bta_dm_sec_int.h"
 #include "btif/include/btif_storage.h"
 #include "common/metrics.h"
 #include "common/time_util.h"
@@ -103,9 +105,6 @@ extern tBTM_CB btm_cb;
 
 bool btm_ble_init_pseudo_addr(tBTM_SEC_DEV_REC* p_dev_rec, const RawAddress& new_pseudo_addr);
 void bta_dm_remove_device(const RawAddress& bd_addr);
-void bta_dm_on_encryption_change(bt_encryption_change_evt encryption_change);
-void bta_dm_remote_key_missing(const RawAddress bd_addr);
-void bta_dm_process_remove_device(const RawAddress& bd_addr);
 
 static bool btm_sec_start_get_name(tBTM_SEC_DEV_REC* p_dev_rec);
 static void btm_sec_wait_and_start_authentication(tBTM_SEC_DEV_REC* p_dev_rec);
@@ -828,9 +827,6 @@ tBTM_STATUS BTM_SecBond(const RawAddress& bd_addr, tBLE_ADDR_TYPE addr_type,
   if ((transport == BT_TRANSPORT_LE && (dev_type & BT_DEVICE_TYPE_BLE) == 0) ||
       (transport == BT_TRANSPORT_BR_EDR && (dev_type & BT_DEVICE_TYPE_BREDR) == 0)) {
     log::warn("Requested transport and supported transport don't match");
-    if (!com::android::bluetooth::flags::pairing_on_unknown_transport()) {
-      return tBTM_STATUS::BTM_ILLEGAL_ACTION;
-    }
   }
   return btm_sec_bond_by_transport(bd_addr, addr_type, transport);
 }
@@ -1035,7 +1031,7 @@ tBTM_STATUS BTM_SetEncryption(const RawAddress& bd_addr, tBT_TRANSPORT transport
                                                           : p_dev_rec->sec_rec.classic_link;
 
   /* Enqueue security request if security is active */
-  if (!com::android::bluetooth::flags::le_enc_on_reconnection()) {
+  if (!com::android::bluetooth::flags::le_enc_on_reconnect()) {
     if (p_dev_rec->sec_rec.p_callback ||
         (p_dev_rec->sec_rec.le_link != tSECURITY_STATE::IDLE &&
          p_dev_rec->sec_rec.classic_link != tSECURITY_STATE::IDLE)) {
@@ -1105,17 +1101,10 @@ tBTM_STATUS BTM_SetEncryption(const RawAddress& bd_addr, tBT_TRANSPORT transport
   return rc;
 }
 
-bool BTM_SecIsSecurityPending(const RawAddress& bd_addr) {
-  tBTM_SEC_DEV_REC* p_dev_rec = btm_find_dev(bd_addr);
-  return p_dev_rec && (p_dev_rec->sec_rec.is_security_state_encrypting() ||
-                       p_dev_rec->sec_rec.le_link == tSECURITY_STATE::AUTHENTICATING);
-}
-
 bool BTM_SecIsLeSecurityPending(const RawAddress& bd_addr) {
   tBTM_SEC_DEV_REC* p_dev_rec = btm_find_dev(bd_addr);
-  return p_dev_rec &&
-         (p_dev_rec->sec_rec.is_security_state_le_encrypting() ||
-          p_dev_rec->sec_rec.le_link == tSECURITY_STATE::AUTHENTICATING);
+  return p_dev_rec && (p_dev_rec->sec_rec.is_security_state_le_encrypting() ||
+                       p_dev_rec->sec_rec.le_link == tSECURITY_STATE::AUTHENTICATING);
 }
 
 /*******************************************************************************
@@ -1261,8 +1250,7 @@ void BTM_PasskeyReqReply(tBTM_STATUS res, const RawAddress& bd_addr, uint32_t pa
  *
  ******************************************************************************/
 void BTM_ReadLocalOobData(void) {
-  if (com::android::bluetooth::flags::use_local_oob_extended_command() &&
-      bluetooth::shim::GetController()->SupportsSecureConnections()) {
+  if (bluetooth::shim::GetController()->SupportsSecureConnections()) {
     btsnd_hcic_read_local_oob_extended_data();
   } else {
     btsnd_hcic_read_local_oob_data();
@@ -1409,6 +1397,14 @@ static bool btm_sec_is_upgrade_possible(tBTM_SEC_DEV_REC* p_dev_rec, bool is_ori
        * If the application is configured to use a global MITM flag,
        * it probably would not want to upgrade the link key based on the
        * security level database */
+      is_possible = true;
+    }
+
+    /*if authentication is requirement & currently on temp bonding
+     * trigger pairing */
+    if (com::android::bluetooth::flags::upgrade_temp_bonding_on_auth_req() &&
+        (p_dev_rec->sec_rec.security_required & BTM_SEC_OUT_AUTHENTICATE) &&
+        p_dev_rec->sec_rec.is_bond_type_temporary()) {
       is_possible = true;
     }
   }
@@ -2208,7 +2204,7 @@ tBTM_SEC_DEV_REC* btm_rnr_add_name_to_security_record(const RawAddress* p_bd_add
 
   BTM_LogHistory(kBtmLogTag, (p_bd_addr) ? *p_bd_addr : RawAddress::kEmpty, "RNR complete",
                  std::format("hci_status:{} name:{}", hci_error_code_text(hci_status),
-                             PRIVATE_NAME(reinterpret_cast<char const*>(p_bd_name))));
+                             reinterpret_cast<char const*>(p_bd_name)));
 
   if (p_dev_rec == nullptr) {
     // We need to send the callbacks to complete the RNR cycle despite failure
@@ -4713,7 +4709,9 @@ static void btm_sec_wait_and_start_authentication(tBTM_SEC_DEV_REC* p_dev_rec) {
 
   /* Overwrite the system-wide authentication delay if device-specific
    * interoperability delay is needed. */
-  if (interop_match_addr(INTEROP_DELAY_AUTH, addr)) {
+  if (interop_match_addr(INTEROP_DELAY_AUTH, addr) ||
+      interop_match_name(INTEROP_DELAY_AUTH,
+                         reinterpret_cast<char const*>(p_dev_rec->sec_bd_name))) {
     delay_auth = BTM_SEC_START_AUTH_DELAY;
   }
 
@@ -5053,7 +5051,7 @@ static void btm_sec_check_pending_enc_req(tBTM_SEC_DEV_REC* p_dev_rec, tBT_TRANS
     node = list_next(node);
     log::debug("btm_sec_check_pending_enc_req : sec_act=0x{:x}", p_e->sec_act);
     if (p_e->bd_addr == p_dev_rec->bd_addr && p_e->psm == 0 && p_e->transport == transport) {
-      if (!com::android::bluetooth::flags::le_enc_on_reconnection()) {
+      if (!com::android::bluetooth::flags::le_enc_on_reconnect()) {
         if (encr_enable == 0 || transport == BT_TRANSPORT_BR_EDR ||
             p_e->sec_act == BTM_BLE_SEC_ENCRYPT || p_e->sec_act == BTM_BLE_SEC_ENCRYPT_NO_MITM ||
             (p_e->sec_act == BTM_BLE_SEC_ENCRYPT_MITM &&

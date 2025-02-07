@@ -78,6 +78,7 @@ public:
   virtual bool isOutputPreferenceLeAudio(const RawAddress& address) = 0;
   virtual bool isDuplexPreferenceLeAudio(const RawAddress& address) = 0;
   virtual std::vector<RawAddress> GetGroupDevices(const int group_id) = 0;
+  virtual void UpdateCallAudioRoute(int callAudioRoute) = 0;
 
   static bool RegisterIsoDataConsumer(LeAudioIsoDataCallback callback);
 
@@ -87,8 +88,9 @@ public:
                              const std::vector<uint8_t>& handles,
                              const std::vector<uint8_t>& sink_pacs,
                              const std::vector<uint8_t>& source_pacs,
-                             const std::vector<uint8_t>& ases);
+                             const std::vector<uint8_t>& ases, const std::vector<uint8_t>& gmap);
   static bool GetHandlesForStorage(const RawAddress& addr, std::vector<uint8_t>& out);
+  static bool GetGmapForStorage(const RawAddress& addr, std::vector<uint8_t>& out);
   static bool GetSinkPacsForStorage(const RawAddress& addr, std::vector<uint8_t>& out);
   static bool GetSourcePacsForStorage(const RawAddress& addr, std::vector<uint8_t>& out);
   static bool GetAsesForStorage(const RawAddress& addr, std::vector<uint8_t>& out);

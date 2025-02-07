@@ -332,11 +332,23 @@ size_t LeAudioClientInterface::Sink::Read(uint8_t* p_buf, uint32_t len) {
   return bytes_read;
 }
 
+void LeAudioClientInterface::Sink::UpdateMetadataChanged(::bluetooth::le_audio::types::AseState&
+     state, int cig_id, int cis_id, const std::vector<uint8_t>& data) {
+}
+
 std::optional<::bluetooth::le_audio::set_configurations::AudioSetConfiguration>
 LeAudioClientInterface::Sink::GetUnicastConfig(
         const ::bluetooth::le_audio::CodecManager::
                 UnicastConfigurationRequirements& /*requirements*/) const {
   return std::nullopt;
+}
+
+::bluetooth::le_audio::types::VendorDataPathConfiguration
+LeAudioClientInterface::Sink::GetVendorConfigureDataPathPayload(
+       std::vector<uint16_t> conn_handles,
+       ::bluetooth::le_audio::types::LeAudioContextType context_type,
+       bool is_cis_dir_sink, bool is_cis_dir_source) {
+  return {};
 }
 
 std::optional<::bluetooth::le_audio::broadcaster::BroadcastConfiguration>
@@ -355,6 +367,10 @@ void LeAudioClientInterface::Source::Cleanup() {
 
   delete host::le_audio::LeAudioSourceTransport::instance;
   host::le_audio::LeAudioSourceTransport::instance = nullptr;
+}
+
+void LeAudioClientInterface::Source::UpdateMetadataChanged(::bluetooth::le_audio::types::AseState&
+     state, int cig_id, int cis_id, const std::vector<uint8_t>& data) {
 }
 
 void LeAudioClientInterface::Source::SetPcmParameters(const PcmParameters& params) {
@@ -579,6 +595,11 @@ LeAudioClientInterface* LeAudioClientInterface::Get() {
 }
 
 void LeAudioClientInterface::SetAllowedDsaModes(DsaModes /*dsa_modes*/) { return; }
+
+std::optional<bluetooth::le_audio::ProviderInfo> LeAudioClientInterface::GetCodecConfigProviderInfo(
+        void) const {
+  return std::nullopt;
+}
 
 }  // namespace le_audio
 }  // namespace audio

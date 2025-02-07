@@ -38,6 +38,8 @@ public:
     virtual void StatusReportCb(int group_id, bluetooth::le_audio::GroupStreamStatus status) = 0;
     virtual void OnStateTransitionTimeout(int group_id) = 0;
     virtual void OnUpdatedCisConfiguration(int group_id, uint8_t direction) = 0;
+    virtual void UpdateMetadataCb(types::AseState state, int cig_id, int cis_id,
+            const std::vector<uint8_t>& data) = 0;
   };
 
   virtual ~LeAudioGroupStateMachine() = default;
@@ -45,6 +47,11 @@ public:
   static void Initialize(Callbacks* state_machine_callbacks);
   static void Cleanup(void);
   static LeAudioGroupStateMachine* Get(void);
+
+  virtual bool UpdateActiveUnicastAudioHalClient(
+                                    LeAudioSourceAudioHalClient* source_unicast_client,
+                                    LeAudioSinkAudioHalClient* sink_unicast_client,
+                                    bool is_active) = 0;
 
   virtual bool AttachToStream(LeAudioDeviceGroup* group, LeAudioDevice* leAudioDevice,
                               types::BidirectionalPair<std::vector<uint8_t>> ccids) = 0;

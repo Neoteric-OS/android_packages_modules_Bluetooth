@@ -187,6 +187,8 @@ public:
               (override));
   MOCK_METHOD((void), OnStateTransitionTimeout, (int group_id), (override));
   MOCK_METHOD((void), OnUpdatedCisConfiguration, (int group_id, uint8_t direction), (override));
+  MOCK_METHOD((void), UpdateMetadataCb, (types::AseState state, int cig_id, int cis_id,
+               const std::vector<uint8_t>& data), (override));
 };
 
 class MockAseRemoteStateMachine {
@@ -4147,8 +4149,12 @@ TEST_F(StateMachineTest, testAutonomousReleaseMultiple) {
 
   // Validate GroupStreamStatus
   EXPECT_CALL(mock_callbacks_,
-              StatusReportCb(leaudio_group_id, bluetooth::le_audio::GroupStreamStatus::RELEASING))
+              StatusReportCb(leaudio_group_id,
+                             bluetooth::le_audio::GroupStreamStatus::RELEASING_AUTONOMOUS))
           .Times(1);
+  EXPECT_CALL(mock_callbacks_,
+              StatusReportCb(leaudio_group_id, bluetooth::le_audio::GroupStreamStatus::RELEASING))
+          .Times(0);
   EXPECT_CALL(mock_callbacks_,
               StatusReportCb(leaudio_group_id, bluetooth::le_audio::GroupStreamStatus::IDLE))
           .Times(1);

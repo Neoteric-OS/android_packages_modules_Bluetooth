@@ -86,7 +86,7 @@ public class ScanManager {
     public static final int SCAN_MODE_SCREEN_OFF_BALANCED_WINDOW_MS = 183;
     public static final int SCAN_MODE_SCREEN_OFF_BALANCED_INTERVAL_MS = 730;
 
-    // Result type defined in bt stack. Need to be accessed by TransitionalScanHelper.
+    // Result type defined in bt stack. Need to be accessed by ScanController.
     static final int SCAN_RESULT_TYPE_TRUNCATED = 1;
     static final int SCAN_RESULT_TYPE_FULL = 2;
     static final int SCAN_RESULT_TYPE_BOTH = 3;
@@ -120,7 +120,7 @@ public class ScanManager {
     @GuardedBy("mCurUsedTrackableAdvertisementsLock")
     private int mCurUsedTrackableAdvertisements = 0;
 
-    private final TransitionalScanHelper mScanHelper;
+    private final ScanController mScanController;
     private final AdapterService mAdapterService;
     private final TimeProvider mTimeProvider;
     private ScanNative mScanNative;
@@ -161,7 +161,7 @@ public class ScanManager {
 
     public ScanManager(
             AdapterService adapterService,
-            TransitionalScanHelper scanHelper,
+            ScanController scanController,
             BluetoothAdapterProxy bluetoothAdapterProxy,
             Looper looper,
             TimeProvider timeProvider) {
@@ -170,10 +170,10 @@ public class ScanManager {
         mBatchClients = Collections.newSetFromMap(new ConcurrentHashMap<ScanClient, Boolean>());
         mSuspendedScanClients =
                 Collections.newSetFromMap(new ConcurrentHashMap<ScanClient, Boolean>());
-        mScanHelper = scanHelper;
+        mScanController = scanController;
         mAdapterService = adapterService;
         mTimeProvider = timeProvider;
-        mScanNative = new ScanNative(scanHelper);
+        mScanNative = new ScanNative(scanController);
         mDisplayManager = mAdapterService.getSystemService(DisplayManager.class);
         mActivityManager = mAdapterService.getSystemService(ActivityManager.class);
         mLocationManager = mAdapterService.getSystemService(LocationManager.class);
@@ -494,7 +494,7 @@ public class ScanManager {
             }
             if (client.appDied) {
                 Log.d(TAG, "app died, unregister scanner - " + client.scannerId);
-                mScanHelper.unregisterScannerInternal(client.scannerId);
+                mScanController.unregisterScannerInternal(client.scannerId);
             }
         }
 
@@ -1012,9 +1012,9 @@ public class ScanManager {
         private final MsftAdvMonitorMergedPatternList mMsftAdvMonitorMergedPatternList =
                 new MsftAdvMonitorMergedPatternList();
 
-        ScanNative(TransitionalScanHelper scanHelper) {
+        ScanNative(ScanController scanController) {
             mNativeInterface = ScanObjectsFactory.getInstance().getScanNativeInterface();
-            mNativeInterface.init(scanHelper);
+            mNativeInterface.init(scanController);
             mFilterIndexStack = new ArrayDeque<Integer>();
             mClientFilterIndexMap = new HashMap<Integer, Deque<Integer>>();
 
@@ -1388,7 +1388,7 @@ public class ScanManager {
                                 "Error freeing for onfound/onlost filter resources "
                                         + entriesToFreePerFilter);
                         try {
-                            mScanHelper.onScanManagerErrorCallback(
+                            mScanController.onScanManagerErrorCallback(
                                     client.scannerId, ScanCallback.SCAN_FAILED_INTERNAL_ERROR);
                         } catch (RemoteException e) {
                             Log.e(TAG, "failed on onScanManagerCallback at freeing", e);
@@ -1589,7 +1589,7 @@ public class ScanManager {
                                         mAdapterService.getTotalNumOfTrackableAdvertisements());
                             }
                             try {
-                                mScanHelper.onScanManagerErrorCallback(
+                                mScanController.onScanManagerErrorCallback(
                                         scannerId, ScanCallback.SCAN_FAILED_INTERNAL_ERROR);
                             } catch (RemoteException e) {
                                 Log.e(TAG, "failed on onScanManagerCallback", e);
@@ -2142,7 +2142,7 @@ public class ScanManager {
             new ActivityManager.OnUidImportanceListener() {
                 @Override
                 public void onUidImportance(final int uid, final int importance) {
-                    if (mScanHelper.getScannerMap().getAppScanStatsByUid(uid) != null) {
+                    if (mScanController.getScannerMap().getAppScanStatsByUid(uid) != null) {
                         Message message = new Message();
                         message.what = MSG_IMPORTANCE_CHANGE;
                         message.obj = new UidImportance(uid, importance);

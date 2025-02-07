@@ -985,6 +985,19 @@ public class MediaPlayerList {
 
         mActivePlayerId = playerId;
 
+        if (Utils.isPtsTestMode()) {
+            sendFolderUpdate(true, true, false);
+        } else if (Flags.setAddressedPlayer() && Flags.browsingRefactor()) {
+            // If the browsing refactor flag is not active, addressed player should always be 0.
+            // If the new active player has been set by Addressed player key event
+            // We don't send an addressed player update.
+            if (mActivePlayerId != mAddressedPlayerId) {
+                mAddressedPlayerId = mActivePlayerId;
+                Log.d(TAG, "setActivePlayer AddressedPlayer changed to " + mAddressedPlayerId);
+                sendFolderUpdate(false, true, false);
+            }
+        }
+
         MediaPlayerWrapper player = getActivePlayer();
         if (player == null) return;
 
@@ -1000,19 +1013,6 @@ public class MediaPlayerList {
         if (!player.isMetadataSynced()) {
             Log.w(TAG, "setActivePlayer(): Metadata not synced on new player");
             return;
-        }
-
-        if (Utils.isPtsTestMode()) {
-            sendFolderUpdate(true, true, false);
-        } else if (Flags.setAddressedPlayer() && Flags.browsingRefactor()) {
-            // If the browsing refactor flag is not active, addressed player should always be 0.
-            // If the new active player has been set by Addressed player key event
-            // We don't send an addressed player update.
-            if (mActivePlayerId != mAddressedPlayerId) {
-                mAddressedPlayerId = mActivePlayerId;
-                Log.d(TAG, "setActivePlayer AddressedPlayer changed to " + mAddressedPlayerId);
-                sendFolderUpdate(false, true, false);
-            }
         }
 
         MediaData data = player.getCurrentMediaData();
@@ -1261,8 +1261,10 @@ public class MediaPlayerList {
                                     == AudioAttributes.USAGE_ASSISTANCE_NAVIGATION_GUIDANCE)
                                     && (config.getAudioAttributes().getContentType()
                                         == AudioAttributes.CONTENT_TYPE_SPEECH))
-                                || config.getAudioAttributes().getUsage()
-                                    == AudioAttributes.USAGE_MEDIA)) {
+                                || (config.getAudioAttributes().getUsage()
+                                    == AudioAttributes.USAGE_MEDIA)
+                                || (config.getAudioAttributes().getUsage()
+                                   == AudioAttributes.USAGE_NOTIFICATION_RINGTONE))) {
                             activeConfig = config;
                             isActive = true;
                         }

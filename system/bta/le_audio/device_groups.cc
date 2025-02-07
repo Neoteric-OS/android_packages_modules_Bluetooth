@@ -35,6 +35,7 @@
 
 #include "audio_hal_client/audio_hal_client.h"
 #include "bta/include/bta_gatt_api.h"
+#include "bta/le_audio/gmap_server.h"
 #include "bta_csis_api.h"
 #include "bta_groups.h"
 #include "btif/include/btif_profile_storage.h"
@@ -55,7 +56,6 @@
 #include "main/shim/entry.h"
 #include "metrics_collector.h"
 #include "osi/include/properties.h"
-#include "os/logging/log_adapter.h"
 #include "stack/include/btm_client_interface.h"
 #include "types/bt_transport.h"
 
@@ -556,12 +556,15 @@ uint8_t LeAudioDeviceGroup::GetPacking(void) const {
   if (osi_property_get_bool("persist.vendor.btstack.sequential_packing_enable", false)) {
     packing_type = bluetooth::hci::kIsoCigPackingSequential;
     log::warn("Switching to sequential packing type ");
+    return packing_type;
   }
 
   if (!stream_conf.conf) {
-    log::error("No stream configuration has been set.");
+    log::warn("No stream configuration has been set, return interleaved");
     return packing_type;
   }
+
+  log::warn("No stream configuration has been set, return default interleaved");
   return stream_conf.conf->packing;
 }
 
@@ -795,8 +798,8 @@ bool LeAudioDeviceGroup::GetPresentationDelay(uint32_t* delay, uint8_t direction
     } while ((ase = leAudioDevice->GetNextActiveAseWithSameDirection(ase)));
   } while ((leAudioDevice = GetNextActiveDevice(leAudioDevice)));
 
-  if (preferred_delay_min <= preferred_delay_max && preferred_delay_min > delay_min &&
-      preferred_delay_min < delay_max) {
+  if (preferred_delay_min <= preferred_delay_max && preferred_delay_min >= delay_min &&
+      preferred_delay_min <= delay_max) {
     *delay = preferred_delay_min;
   } else {
     *delay = delay_min;
@@ -835,7 +838,10 @@ CodecManager::UnicastConfigurationRequirements
 LeAudioDeviceGroup::GetAudioSetConfigurationRequirements(types::LeAudioContextType ctx_type) const {
   auto new_req = CodecManager::UnicastConfigurationRequirements{
           .audio_context_type = ctx_type,
+          .flags = CodecManager::Flags::NONE,
   };
+
+  bool remote_has_gmap = false;
 
   // Define a requirement for each location. Knowing codec specific
   // capabilities (i.e. multiplexing capability) the config provider can
@@ -943,6 +949,25 @@ LeAudioDeviceGroup::GetAudioSetConfigurationRequirements(types::LeAudioContextTy
         }
       }
     }
+
+    if (device->gmap_client_) {
+      remote_has_gmap = true;
+    }
+  }
+
+  if ((ctx_type == ::bluetooth::le_audio::types::LeAudioContextType::GAME) &&
+      GmapClient::IsGmapClientEnabled() && GmapServer::IsGmapServerEnabled() && remote_has_gmap) {
+    // Allow asymmetric configurations for the low latency GAME scenarios
+    new_req.flags = CodecManager::Flags(CodecManager::Flags::ALLOW_ASYMMETRIC |
+                                        CodecManager::Flags::LOW_LATENCY);
+    log::debug(
+            "GMAP is enabled. Set asymmetric flag for the GAME audio context configuration "
+            "requests.");
+  } else {
+    log::debug(
+            "GMAP is disabled, remote_has_gmap: {}, gmap_client_enabled: {}, gmap_server_enabled: "
+            "{}",
+            remote_has_gmap, GmapClient::IsGmapClientEnabled(), GmapServer::IsGmapServerEnabled());
   }
 
   return new_req;

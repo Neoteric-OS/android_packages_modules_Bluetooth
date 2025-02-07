@@ -25,6 +25,8 @@
 
 #define LOG_TAG "bt_bta_dm"
 
+#include "bta/dm/bta_dm_act.h"
+
 #include <android_bluetooth_sysprop.h>
 #include <base/location.h>
 #include <bluetooth/log.h>
@@ -39,12 +41,15 @@
 #include "bta/dm/bta_dm_int.h"
 #include "bta/dm/bta_dm_sec_int.h"
 #include "bta/include/bta_api.h"
+#include "bta/include/bta_dm_acl.h"
+#include "bta/include/bta_dm_api.h"
 #include "bta/include/bta_le_audio_api.h"
 #include "bta/include/bta_sdp_api.h"
 #include "bta/include/bta_sec_api.h"
 #include "bta/sys/bta_sys.h"
 #include "btif/include/btif_dm.h"
 #include "btif/include/stack_manager_t.h"
+#include "gd/os/rand.h"
 #include "hci/controller_interface.h"
 #include "internal_include/bt_target.h"
 #include "main/shim/acl_api.h"
@@ -54,6 +59,7 @@
 #include "osi/include/properties.h"
 #include "stack/connection_manager/connection_manager.h"
 #include "stack/include/acl_api.h"
+#include "stack/include/ble_scanner.h"
 #include "stack/include/bt_hdr.h"
 #include "stack/include/bt_types.h"
 #include "stack/include/bt_uuid16.h"
@@ -67,19 +73,15 @@
 #include "types/raw_address.h"
 #include "osi/include/osi.h"
 
-// TODO(b/369381361) Enfore -Wmissing-prototypes
-#pragma GCC diagnostic ignored "-Wmissing-prototypes"
-
 using bluetooth::Uuid;
 using namespace bluetooth;
 
-bool ble_vnd_is_included();
-void btm_ble_scanner_init(void);
+static bool ble_vnd_is_included() {
+  // replace build time config BLE_VND_INCLUDED with runtime
+  return android::sysprop::bluetooth::Ble::vnd_included().value_or(true);
+}
 
 static void bta_dm_check_av();
-
-void BTA_dm_update_policy(tBTA_SYS_CONN_STATUS status, uint8_t id, uint8_t app_id,
-                          const RawAddress& peer_addr);
 
 /* Extended Inquiry Response */
 static void bta_dm_set_eir(char* local_name);
@@ -88,7 +90,6 @@ static void bta_dm_disable_conn_down_timer_cback(void* data);
 static void bta_dm_rm_cback(tBTA_SYS_CONN_STATUS status, tBTA_SYS_ID id, uint8_t app_id,
                             const RawAddress& peer_addr);
 static void bta_dm_adjust_roles(bool delay_role_switch);
-tBTM_CONTRL_STATE bta_dm_pm_obtain_controller_state(void);
 static void bta_dm_ctrl_features_rd_cmpl_cback(tHCI_STATUS result);
 
 static const char kPropertySniffOffloadEnabled[] = "persist.bluetooth.sniff_offload.enabled";
@@ -118,6 +119,14 @@ static const char kPropertySniffOffloadEnabled[] = "persist.bluetooth.sniff_offl
 #endif
 
 #define BTA_DM_DISABLE_TIMER 1000
+
+/* New swich delay values behind flag extend_and_randomize_role_switch_delay (in milliseconds) */
+#ifndef BTA_DM_MAX_SWITCH_DELAY_MS
+#define BTA_DM_MAX_SWITCH_DELAY_MS 1500
+#endif
+#ifndef BTA_DM_MIN_SWITCH_DELAY_MS
+#define BTA_DM_MIN_SWITCH_DELAY_MS 1000
+#endif
 
 /* Sysprop path for page timeout */
 #ifndef PROPERTY_PAGE_TIMEOUT
@@ -749,7 +758,7 @@ void BTA_dm_report_role_change(const RawAddress bd_addr, tHCI_ROLE new_role,
   do_in_main_thread(base::BindOnce(handle_role_change, bd_addr, new_role, hci_status));
 }
 
-void handle_remote_features_complete(const RawAddress& bd_addr) {
+static void handle_remote_features_complete(const RawAddress& bd_addr) {
   tBTA_DM_PEER_DEVICE* p_dev = bta_dm_find_peer_device(bd_addr);
   if (!p_dev) {
     log::warn("Unable to find device peer:{}", bd_addr);
@@ -1180,8 +1189,15 @@ static void bta_dm_adjust_roles(bool delay_role_switch) {
                 break;
             }
           } else {
-            alarm_set_on_mloop(bta_dm_cb.switch_delay_timer, BTA_DM_SWITCH_DELAY_TIMER_MS,
-                               bta_dm_delay_role_switch_cback, NULL);
+            uint64_t delay = BTA_DM_SWITCH_DELAY_TIMER_MS;
+            if (com::android::bluetooth::flags::extend_and_randomize_role_switch_delay()) {
+              delay = bluetooth::os::GenerateRandom() %
+                              (BTA_DM_MAX_SWITCH_DELAY_MS - BTA_DM_MIN_SWITCH_DELAY_MS) +
+                      BTA_DM_MIN_SWITCH_DELAY_MS;
+            }
+            log::debug("Set timer to delay role switch:{}", delay);
+            alarm_set_on_mloop(bta_dm_cb.switch_delay_timer, delay, bta_dm_delay_role_switch_cback,
+                               NULL);
           }
         }
       }
@@ -1949,7 +1965,6 @@ void bta_dm_acl_down(const RawAddress& bd_addr, tBT_TRANSPORT transport) {
 }
 void bta_dm_init_cb() { ::bta_dm_init_cb(); }
 void bta_dm_deinit_cb() { ::bta_dm_deinit_cb(); }
-void BTA_dm_on_hw_on() { ::BTA_dm_on_hw_on(); }
 
 }  // namespace testing
 }  // namespace legacy

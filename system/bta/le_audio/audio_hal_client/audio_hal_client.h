@@ -122,6 +122,12 @@ public:
           const = 0;
   virtual std::optional<::bluetooth::le_audio::set_configurations::AudioSetConfiguration>
   GetUnicastConfig(const CodecManager::UnicastConfigurationRequirements& requirements) const = 0;
+
+  virtual ::bluetooth::le_audio::types::VendorDataPathConfiguration
+  GetVendorConfigureDataPathPayload(std::vector<uint16_t> conn_handles,
+             ::bluetooth::le_audio::types::LeAudioContextType context_type,
+             bool is_cis_dir_sink, bool is_cis_dir_source) = 0;
+
 };
 
 /* Used by the local BLE Audio Sink device to pass the audio data
@@ -155,6 +161,8 @@ public:
   virtual void UpdateAudioConfigToHal(const ::bluetooth::le_audio::offload_config& config) = 0;
   virtual void SuspendedForReconfiguration() = 0;
   virtual void ReconfigurationComplete() = 0;
+  virtual void UpdateMetadataChanged(::bluetooth::le_audio::types::AseState& state,
+               int cig_id, int cis_id, const std::vector<uint8_t>& data) = 0;
 
   static std::unique_ptr<LeAudioSinkAudioHalClient> AcquireUnicast();
   static void DebugDump(int fd);
@@ -196,6 +204,8 @@ public:
           const ::bluetooth::le_audio::broadcast_offload_config& config) = 0;
   virtual void SuspendedForReconfiguration() = 0;
   virtual void ReconfigurationComplete() = 0;
+  virtual void UpdateMetadataChanged(::bluetooth::le_audio::types::AseState& state,
+               int cig_id, int cis_id, const std::vector<uint8_t>& data) = 0;
 
   static std::unique_ptr<LeAudioSourceAudioHalClient> AcquireUnicast();
   static std::unique_ptr<LeAudioSourceAudioHalClient> AcquireBroadcast();

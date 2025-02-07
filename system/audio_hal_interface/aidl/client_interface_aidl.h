@@ -108,6 +108,10 @@ public:
   IBluetoothAudioProvider::LeAudioAseQosConfigurationPair getLeAudioAseQosConfiguration(
           IBluetoothAudioProvider::LeAudioAseQosConfigurationRequirement& qosRequirement);
 
+  IBluetoothAudioProvider::LeAudioDataPathConfigurationPair getLeAudioAseDatapathConfiguration(
+          const std::optional<IBluetoothAudioProvider::StreamConfig>& sinkConfig,
+          const std::optional<IBluetoothAudioProvider::StreamConfig>& sourceConfig);
+
   void onSinkAseMetadataChanged(IBluetoothAudioProvider::AseState state, int32_t cigId,
                                 int32_t cisId,
                                 std::optional<std::vector<std::optional<MetadataLtv>>>& metadata);

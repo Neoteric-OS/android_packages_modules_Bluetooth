@@ -70,6 +70,7 @@ enum class GroupStreamStatus {
   IDLE = 0,
   STREAMING,
   RELEASING,
+  RELEASING_AUTONOMOUS,
   SUSPENDING,
   SUSPENDED,
   CONFIGURED_AUTONOMOUS,
@@ -91,9 +92,10 @@ enum class UnicastMonitorModeStatus {
 
 typedef enum {
   LE_AUDIO_CODEC_INDEX_SOURCE_LC3 = 0,
-  LE_AUDIO_CODEC_INDEX_SOURCE_APTX_LE = 1,
-  LE_AUDIO_CODEC_INDEX_SOURCE_APTX_LEX = 2,
-  LE_AUDIO_CODEC_INDEX_SOURCE_DEFAULT = 3,
+  LE_AUDIO_CODEC_INDEX_SOURCE_OPUS = 1,
+  LE_AUDIO_CODEC_INDEX_SOURCE_APTX_LE = 2,
+  LE_AUDIO_CODEC_INDEX_SOURCE_APTX_LEX = 3,
+  LE_AUDIO_CODEC_INDEX_SOURCE_DEFAULT = 4,
   LE_AUDIO_CODEC_INDEX_SOURCE_INVALID = 1000 * 1000,
 } btle_audio_codec_index_t;
 
@@ -409,6 +411,9 @@ public:
   /* Set allowed to stream context */
   virtual void SetGroupAllowedContextMask(int group_id, int sink_context_types,
                                           int source_context_types) = 0;
+
+  /* Update Call Audio route*/
+  virtual void UpdateCallAudioRoute(int callAudioRoute) = 0;
 };
 
 /* Represents the broadcast source state. */

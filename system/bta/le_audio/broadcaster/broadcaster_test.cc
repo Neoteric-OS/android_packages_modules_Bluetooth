@@ -253,11 +253,16 @@ public:
               GetUnicastConfig,
               (const CodecManager::UnicastConfigurationRequirements& requirements),
               (const override));
+  MOCK_METHOD((::bluetooth::le_audio::types::VendorDataPathConfiguration),
+              GetVendorConfigureDataPathPayload,
+              ((std::vector<uint16_t>), (::bluetooth::le_audio::types::LeAudioContextType),
+              (bool), (bool)), (override));
   MOCK_METHOD((void), UpdateBroadcastAudioConfigToHal,
               (const ::bluetooth::le_audio::broadcast_offload_config&), (override));
   MOCK_METHOD((void), SuspendedForReconfiguration, (), (override));
   MOCK_METHOD((void), ReconfigurationComplete, (), (override));
-
+  MOCK_METHOD((void), UpdateMetadataChanged, (::bluetooth::le_audio::types::AseState& state,
+               int cig_id, int cis_id, const std::vector<uint8_t>& data), (override));
   MOCK_METHOD((void), OnDestroyed, ());
   virtual ~MockAudioHalClientEndpoint() { OnDestroyed(); }
 };
@@ -1453,6 +1458,78 @@ TEST_F(BroadcasterTest, AudioResumeWhileStreaming) {
   audio_receiver->OnAudioResume();
   Mock::VerifyAndClearExpectations(mock_audio_source_);
   Mock::VerifyAndClearExpectations(mock_codec_manager_);
+}
+
+TEST_F(BroadcasterTest, AudioResumeAfterSuspend) {
+  com::android::bluetooth::flags::provider_->leaudio_big_depends_on_audio_state(true);
+
+  EXPECT_CALL(*mock_codec_manager_, UpdateActiveBroadcastAudioHalClient(mock_audio_source_, true))
+          .Times(1);
+  LeAudioSourceAudioHalClient::Callbacks* audio_receiver;
+  EXPECT_CALL(*mock_audio_source_, Start)
+          .WillOnce(DoAll(SaveArg<1>(&audio_receiver), Return(true)))
+          .WillRepeatedly(Return(false));
+  auto broadcast_id = InstantiateBroadcast();
+
+  ASSERT_NE(audio_receiver, nullptr);
+
+  // OnAudioResume cause state machine go to STREAMING state so BIG creation
+  EXPECT_CALL(mock_broadcaster_callbacks_,
+              OnBroadcastStateChanged(broadcast_id, BroadcastState::STREAMING))
+          .Times(1);
+  audio_receiver->OnAudioResume();
+  Mock::VerifyAndClearExpectations(mock_audio_source_);
+  Mock::VerifyAndClearExpectations(mock_codec_manager_);
+
+  // OnAudioSuspend cause starting the BIG termination timer
+  audio_receiver->OnAudioSuspend();
+  ASSERT_EQ(2, get_func_call_count("alarm_set_on_mloop"));
+  ASSERT_TRUE(big_terminate_timer_->cb != nullptr);
+  ASSERT_TRUE(broadcast_stop_timer_->cb != nullptr);
+
+  // BIG termination timer execution, state machine go to CONFIGURED state so BIG terminated
+  EXPECT_CALL(mock_broadcaster_callbacks_,
+              OnBroadcastStateChanged(broadcast_id, BroadcastState::CONFIGURED))
+          .Times(1);
+  // Imitate execution of BIG termination timer
+  big_terminate_timer_->cb(big_terminate_timer_->data);
+  Mock::VerifyAndClearExpectations(&mock_broadcaster_callbacks_);
+
+  // OnAudioResume cause state machine go to STREAMING state so BIG creation
+  EXPECT_CALL(mock_broadcaster_callbacks_,
+              OnBroadcastStateChanged(broadcast_id, BroadcastState::STREAMING))
+          .Times(1);
+  audio_receiver->OnAudioResume();
+  Mock::VerifyAndClearExpectations(&mock_broadcaster_callbacks_);
+
+  // OnAudioSuspend cause starting the BIG termination timer
+  audio_receiver->OnAudioSuspend();
+  ASSERT_EQ(4, get_func_call_count("alarm_set_on_mloop"));
+  ASSERT_TRUE(big_terminate_timer_->cb != nullptr);
+  ASSERT_TRUE(broadcast_stop_timer_->cb != nullptr);
+
+  // BIG termination timer execution, state machine go to CONFIGURED state so BIG terminated
+  EXPECT_CALL(mock_broadcaster_callbacks_,
+              OnBroadcastStateChanged(broadcast_id, BroadcastState::CONFIGURED))
+          .Times(1);
+  // Imitate execution of BIG termination timer
+  big_terminate_timer_->cb(big_terminate_timer_->data);
+
+  // Imitate busy ISO
+  iso_active_callback(true);
+
+  EXPECT_CALL(mock_broadcaster_callbacks_,
+              OnBroadcastStateChanged(broadcast_id, BroadcastState::STREAMING))
+          .Times(0);
+  audio_receiver->OnAudioResume();
+  Mock::VerifyAndClearExpectations(&mock_broadcaster_callbacks_);
+
+  // Verify if iso de-activation start streaming
+  EXPECT_CALL(mock_broadcaster_callbacks_,
+              OnBroadcastStateChanged(broadcast_id, BroadcastState::STREAMING))
+          .Times(1);
+  iso_active_callback(false);
+  Mock::VerifyAndClearExpectations(&mock_broadcaster_callbacks_);
 }
 
 // TODO: Add tests for:
