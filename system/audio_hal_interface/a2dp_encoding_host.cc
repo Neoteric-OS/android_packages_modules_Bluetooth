@@ -228,6 +228,7 @@ bool is_hal_offloading() { return false; }
 
 static StreamCallbacks null_stream_callbacks_;
 static StreamCallbacks const* stream_callbacks_ = &null_stream_callbacks_;
+bool is_offload_session_unknown() { return false; }
 
 // Initialize BluetoothAudio HAL: openProvider
 bool init(bluetooth::common::MessageLoopThread* /*message_loop*/,
