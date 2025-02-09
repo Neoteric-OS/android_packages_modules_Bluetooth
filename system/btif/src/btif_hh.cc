@@ -980,12 +980,6 @@ void btif_hh_remove_device(const tAclLinkSpec& link_spec) {
   btif_hh_device_t* p_dev;
   while ((p_dev = btif_hh_find_dev_by_link_spec(link_spec)) != nullptr) {
     announce_vup = true;
-    // Notify upper layers of disconnection to avoid getting states out of sync
-    do_in_jni_thread(base::Bind(
-            [](tAclLinkSpec link_spec) {
-              BTHH_STATE_UPDATE(link_spec, BTHH_CONN_STATE_DISCONNECTED);
-            },
-            link_spec));
 
     if (btif_hh_cb.device_num > 0) {
       btif_hh_cb.device_num--;
@@ -1003,6 +997,12 @@ void btif_hh_remove_device(const tAclLinkSpec& link_spec) {
     if (!com::android::bluetooth::flags::hid_report_queuing()) {
       p_dev->uhid.ready_for_data = false;
     }
+   // Notify upper layers of disconnection to avoid getting states out of sync
+    do_in_jni_thread(base::Bind(
+            [](tAclLinkSpec link_spec) {
+              BTHH_STATE_UPDATE(link_spec, BTHH_CONN_STATE_DISCONNECTED);
+            },
+            link_spec));
   }
 
   if (com::android::bluetooth::flags::remove_input_device_on_vup() && announce_vup) {

@@ -42,6 +42,8 @@
 #include "packet/avrcp/set_addressed_player.h"
 #include "packet/avrcp/set_player_application_setting_value.h"
 #include "types/raw_address.h"
+#include "btif/include/btif_config.h"
+#include "storage/config_keys.h"
 
 // TODO(b/369381361) Enfore -Wmissing-prototypes
 #pragma GCC diagnostic ignored "-Wmissing-prototypes"
@@ -96,6 +98,54 @@ void Device::SetBipClientStatus(bool connected) {
 }
 
 bool Device::HasBipClient() const { return has_bip_client_; }
+
+bool Device::HasCoverArtSupport() const {
+  log::verbose(" address_: {}", address_);
+  bool coverart_supported = false;
+  uint16_t ver = AVRC_REV_INVALID;
+  // Read the remote device's AVRC Controller version from local storage
+  size_t version_value_size = btif_config_get_bin_length(
+      address_.ToString(), BTIF_STORAGE_KEY_AVRCP_CONTROLLER_VERSION);
+  if (version_value_size != sizeof(ver)) {
+    log::error("cached value len wrong, address_={}. Len is {} but should be {}.",
+               address_.ToString(), version_value_size, sizeof(ver));
+    return coverart_supported;
+  }
+
+  if (!btif_config_get_bin(address_.ToString(),
+                           BTIF_STORAGE_KEY_AVRCP_CONTROLLER_VERSION,
+                           (uint8_t*)&ver, &version_value_size)) {
+    log::info("no cached AVRC Controller version for {}", address_);
+    return coverart_supported;
+  }
+  log::verbose(" Remote's AVRCP version: {}", ver);
+  if(ver < AVRC_REV_1_6) {
+    log::info(" AVRCP version is < 1.6, no cover art support");
+    return coverart_supported;
+  }
+
+  // Read the remote device's AVRCP features from local storage
+  uint16_t avrcp_peer_features = 0;
+  size_t features_value_size = btif_config_get_bin_length(
+      address_.ToString(), BTIF_STORAGE_KEY_AV_REM_CTRL_FEATURES);
+  if (features_value_size != sizeof(avrcp_peer_features)) {
+    log::error("cached value len wrong, bdaddr={}. Len is {} but should be {}.",
+               address_, features_value_size, sizeof(avrcp_peer_features));
+    return coverart_supported;
+  }
+
+  if (!btif_config_get_bin(
+          address_.ToString(), BTIF_STORAGE_KEY_AV_REM_CTRL_FEATURES,
+          (uint8_t*)&avrcp_peer_features, &features_value_size)) {
+    log::error("Unable to fetch cached AVRC features");
+    return coverart_supported;
+  }
+
+  coverart_supported =
+      ((AVRCP_FEAT_CA_BIT & avrcp_peer_features) == AVRCP_FEAT_CA_BIT);
+  log::verbose(" Remote's cover art support: {}", coverart_supported);
+  return coverart_supported;
+}
 
 void filter_cover_art(SongInfo& s) {
   for (auto it = s.attributes.begin(); it != s.attributes.end(); it++) {
@@ -729,6 +779,12 @@ void Device::PlaybackStatusNotificationResponse(uint8_t label, bool interim, Pla
 
   log::verbose("status.state: {}", status.state);
   auto state_to_send = status.state;
+  log::verbose("fast_forwarding_: {}, fast_rewinding_: {}", fast_forwarding_, fast_rewinding_);
+  if(fast_forwarding_ || fast_rewinding_) {
+    state_to_send = (fast_forwarding_) ? PlayState::FWD_SEEK : PlayState::REV_SEEK;
+    status.state = (fast_forwarding_) ? PlayState::FWD_SEEK : PlayState::REV_SEEK;
+  }
+  log::verbose("state_to_send: {}", state_to_send);
   if (!IsActive()) {
     state_to_send = PlayState::PAUSED;
   }
@@ -862,6 +918,11 @@ void Device::RejectNotification() {
 
 void Device::GetPlayStatusResponse(uint8_t label, PlayStatus status) {
   log::verbose("position={} duration={} state={}", status.position, status.duration, status.state);
+  if(fast_forwarding_) {
+    status.state = PlayState::FWD_SEEK;
+  } else if(fast_rewinding_) {
+    status.state = PlayState::REV_SEEK;
+  }
   auto response = GetPlayStatusResponseBuilder::MakeBuilder(
           status.duration, status.position, IsActive() ? status.state : PlayState::PAUSED);
   send_message(label, false, std::move(response));
@@ -893,8 +954,9 @@ void Device::GetElementAttributesResponse(uint8_t label,
 
   auto response = GetElementAttributesResponseBuilder::MakeBuilder(ctrl_mtu_);
 
-  // Filter out DEFAULT_COVER_ART handle if this device has no client
-  if (!HasBipClient()) {
+  // Filter out DEFAULT_COVER_ART handle if this device has no client OR Cover art not supported
+  if (!HasBipClient() || !HasCoverArtSupport()) {
+    log::verbose("Remove cover art element if remote doesn't support coverart or has BIP connection");
     filter_cover_art(info);
   }
 
@@ -977,8 +1039,10 @@ void Device::MessageReceived(uint8_t label, std::shared_ptr<Packet> pkt) {
       send_message(label, false, std::move(response));
 
       // TODO (apanicke): Use an enum for media key ID's
-      if (pass_through_packet->GetOperationId() == 0x44 &&
+      if (pass_through_packet->GetOperationId() == uint8_t(OperationID::PLAY) &&
           pass_through_packet->GetKeyState() == KeyState::PUSHED) {
+        fast_forwarding_ = false;
+        fast_rewinding_ = false;
         // We need to get the play status since we need to know
         // what the actual playstate is without being modified
         // by whether the device is active.
@@ -1002,12 +1066,33 @@ void Device::MessageReceived(uint8_t label, std::shared_ptr<Packet> pkt) {
                       return;
                     }
                   }
-
-                  d->media_interface_->SendKeyEvent(0x44, KeyState::PUSHED);
+                  d->media_interface_->SendKeyEvent(uint8_t(OperationID::PLAY), KeyState::PUSHED);
                 },
                 weak_ptr_factory_.GetWeakPtr()));
         return;
       }
+
+      log::verbose(" Operation ID = {}", pass_through_packet->GetOperationId());
+      if(pass_through_packet->GetOperationId() == uint8_t(OperationID::FAST_FORWARD)) {
+        if(pass_through_packet->GetKeyState() == KeyState::PUSHED) {
+          fast_forwarding_ = true;
+        } else if(pass_through_packet->GetKeyState() == KeyState::RELEASED) {
+          fast_forwarding_ = false;
+        }
+      } else if(pass_through_packet->GetOperationId() == uint8_t(OperationID::REWIND)) {
+        if(pass_through_packet->GetKeyState() == KeyState::PUSHED) {
+          fast_rewinding_ = true;
+        } else if(pass_through_packet->GetKeyState() == KeyState::RELEASED) {
+          fast_rewinding_ = false;
+        }
+      } else {
+        fast_forwarding_ = false;
+        fast_rewinding_ = false;
+      }
+      log::verbose("fast_forwarding_: {}, fast_rewinding_: {}", fast_forwarding_, fast_rewinding_);
+      media_interface_->GetPlayStatus(base::Bind(
+          &Device::PlaybackStatusNotificationResponse,
+          weak_ptr_factory_.GetWeakPtr(), play_status_changed_.second, false));
 
       if (IsActive()) {
         media_interface_->SendKeyEvent(pass_through_packet->GetOperationId(),
@@ -1914,6 +1999,8 @@ void Device::DeviceDisconnected() {
   // to reset the local volume var to be sure we send the correct value
   // to the remote device on the next connection.
   volume_ = VOL_NOT_SUPPORTED;
+  fast_forwarding_ = false;
+  fast_rewinding_ = false;
 }
 
 static std::string volumeToStr(int8_t volume) {

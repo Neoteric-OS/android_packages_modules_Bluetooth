@@ -1268,10 +1268,8 @@ static void initializeNative(JNIEnv* env, jobject object) {
     return;
   }
 
-  if (com::android::bluetooth::flags::scan_manager_refactor()) {
-    log::info("Starting rust module");
-    btIf->start_rust_module();
-  }
+  log::info("Starting rust module");
+  btIf->start_rust_module();
 
   sGattIf->advertiser->RegisterCallbacks(JniAdvertisingCallbacks::GetInstance());
   sGattIf->distance_measurement_manager->RegisterDistanceMeasurementCallbacks(
@@ -1287,10 +1285,8 @@ static void cleanupNative(JNIEnv* env, jobject /* object */) {
     return;
   }
 
-  if (com::android::bluetooth::flags::scan_manager_refactor()) {
-    log::info("Stopping rust module");
-    btIf->stop_rust_module();
-  }
+  log::info("Stopping rust module");
+  btIf->stop_rust_module();
 
   if (sGattIf != NULL) {
     sGattIf->cleanup();
