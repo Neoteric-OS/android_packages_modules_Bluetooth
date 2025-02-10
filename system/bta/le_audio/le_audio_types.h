@@ -1269,9 +1269,6 @@ struct ase {
 
   std::vector<uint8_t> metadata;
 
-  /* To pass vendorspecific metadata to BT HAL*/
-  LeAudioLtvMap vendor_metadata;
-
   /* Below vs_metadata and is_vsmetadata_available used only for metadata update
    * while enabling or streaming */
   std::vector<uint8_t> vs_metadata;
