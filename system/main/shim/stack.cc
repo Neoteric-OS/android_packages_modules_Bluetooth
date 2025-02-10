@@ -27,6 +27,7 @@
 #include <future>
 #include <queue>
 #include <string>
+#include <signal.h>
 
 #include "common/strings.h"
 #include "hal/hci_hal.h"
@@ -125,8 +126,10 @@ void Stack::StartEverything() {
 
   log::info("init_status == {}", int(init_status));
 
-  log::assert_that(init_status == std::future_status::ready, "Can't start stack, last instance: {}",
-                   registry_.last_instance_);
+  if (init_status != std::future_status::ready) {
+    log::warn("Can't start stack, last instance: {}", registry_.last_instance_);
+    kill(getpid(), SIGKILL);
+  }
 
   log::info("Successfully toggled Gd stack");
 
