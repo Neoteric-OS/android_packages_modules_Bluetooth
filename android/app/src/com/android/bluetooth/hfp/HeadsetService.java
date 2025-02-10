@@ -1577,6 +1577,9 @@ public class HeadsetService extends ProfileService {
                     updateInbandRinging(device, true);
                 }
             } else if (shouldPersistAudio()) {
+                if (Flags.updateActiveDeviceInBandRingtone()) {
+                    updateInbandRinging(device, true);
+                }
                 if (Utils.isScoManagedByAudioEnabled()) {
                     // tell Audio Framework that active device changed
                     mSystemInterface
