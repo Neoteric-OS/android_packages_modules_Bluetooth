@@ -859,7 +859,6 @@ public:
     osi_property_set_bool(kPropLeAudioBidirSwbSupported, true);
 
     // Codec extensibility disabled by default
-    com::android::bluetooth::flags::provider_->leaudio_multicodec_aidl_support(false);
     osi_property_set_bool(kPropLeAudioCodecExtensibility, false);
 
     CodecManagerTestBase::SetUp();
@@ -877,7 +876,6 @@ public:
     osi_property_set_bool(kPropLeAudioBidirSwbSupported, false);
 
     // Codec extensibility disabled by default
-    com::android::bluetooth::flags::provider_->leaudio_multicodec_aidl_support(false);
     osi_property_set_bool(kPropLeAudioCodecExtensibility, false);
 
     CodecManagerTestBase::SetUp();
@@ -1311,7 +1309,6 @@ TEST_F(CodecManagerTestHost, test_dont_update_broadcast_offloader) {
 }
 
 TEST_F(CodecManagerTestHost, test_dont_call_hal_for_config) {
-  com::android::bluetooth::flags::provider_->leaudio_multicodec_aidl_support(true);
   osi_property_set_bool(kPropLeAudioCodecExtensibility, true);
 
   // Set the offloader capabilities
