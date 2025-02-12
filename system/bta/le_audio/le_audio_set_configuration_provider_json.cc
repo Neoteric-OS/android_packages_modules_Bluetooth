@@ -42,14 +42,14 @@
 #include "osi/include/osi.h"
 #include "osi/include/properties.h"
 
-using bluetooth::le_audio::set_configurations::AseConfiguration;
-using bluetooth::le_audio::set_configurations::AudioSetConfiguration;
-using bluetooth::le_audio::set_configurations::AudioSetConfigurations;
-using bluetooth::le_audio::set_configurations::CodecConfigSetting;
-using bluetooth::le_audio::set_configurations::CodecMetadataSetting;
-using bluetooth::le_audio::set_configurations::LeAudioCodecIdLc3;
-using bluetooth::le_audio::set_configurations::QosConfigSetting;
+using bluetooth::le_audio::types::AseConfiguration;
+using bluetooth::le_audio::types::AudioSetConfiguration;
+using bluetooth::le_audio::types::AudioSetConfigurations;
+using bluetooth::le_audio::types::CodecConfigSetting;
+using bluetooth::le_audio::types::LeAudioCodecIdLc3;
+using bluetooth::le_audio::types::QosConfigSetting;
 using bluetooth::le_audio::types::LeAudioContextType;
+using bluetooth::le_audio::types::QosConfigSetting;
 
 namespace bluetooth::le_audio {
 
@@ -207,7 +207,7 @@ private:
   void SetConfigurationFromFlatSubconfig(
           const fbs::le_audio::AudioSetSubConfiguration* flat_subconfig, QosConfigSetting qos,
           std::vector<AseConfiguration>& subconfigs, types::CodecLocation location,
-          CodecMetadataSetting metadata) {
+          types::CodecMetadataSetting metadata) {
     auto codec_config = CodecConfigSettingFromFlat(
             flat_subconfig->codec_id(), flat_subconfig->max_sdu(), flat_subconfig->iso_interval(),
             flat_subconfig->codec_configuration());
@@ -363,7 +363,7 @@ private:
       log::error("No qos config matching key {} found", qos_source_key);
     }
 
-    CodecMetadataSetting metadata_sink;
+    types::CodecMetadataSetting metadata_sink;
     if (metadata_sink_cfg != nullptr) {
       metadata_sink.vendor_metadata_type = metadata_sink_cfg->type();
       auto ptr = metadata_sink_cfg->compound_value()->value()->data();
@@ -373,7 +373,7 @@ private:
       STREAM_TO_ARRAY(metadata_sink.vs_metadata.data(), ptr, size);
     }
 
-    CodecMetadataSetting metadata_source;
+    types::CodecMetadataSetting metadata_source;
     if (metadata_source_cfg != nullptr) {
       metadata_source.vendor_metadata_type = metadata_source_cfg->type();
       auto ptr = metadata_source_cfg->compound_value()->value()->data();
@@ -403,7 +403,7 @@ private:
       for (auto subconfig : *codec_cfg->subconfigurations()) {
         auto direction = subconfig->direction();
 
-        CodecMetadataSetting codec_metadata = (direction == le_audio::types::kLeAudioDirectionSink)
+        types::CodecMetadataSetting codec_metadata = (direction == le_audio::types::kLeAudioDirectionSink)
                                                       ? metadata_sink
                                                       : metadata_source;
 
@@ -428,7 +428,7 @@ private:
   void processSubconfig(const fbs::le_audio::AudioSetSubConfiguration& subconfig,
                         const QosConfigSetting& qos_setting,
                         std::vector<AseConfiguration>& subconfigs, types::CodecLocation location,
-                        CodecMetadataSetting metadata) {
+                        types::CodecMetadataSetting metadata) {
     SetConfigurationFromFlatSubconfig(&subconfig, qos_setting, subconfigs, location, metadata);
 
     // Recalculate some qos params based on the Core Codec Configuration
@@ -731,7 +731,7 @@ AudioSetConfigurationProvider* AudioSetConfigurationProvider::Get() {
   return config_provider.get();
 }
 
-const set_configurations::AudioSetConfigurations* AudioSetConfigurationProvider::GetConfigurations(
+const types::AudioSetConfigurations* AudioSetConfigurationProvider::GetConfigurations(
         ::bluetooth::le_audio::types::LeAudioContextType content_type) const {
   if (pimpl_->IsRunning()) {
     return pimpl_->config_provider_impl_->GetConfigurationsByContextType(content_type);
@@ -741,11 +741,11 @@ const set_configurations::AudioSetConfigurations* AudioSetConfigurationProvider:
 }
 
 bool AudioSetConfigurationProvider::CheckEnhancedGamingConfig(
-        const set_configurations::AudioSetConfiguration& set_configuration) const {
+        const types::AudioSetConfiguration& set_configuration) const {
   for (auto direction :
        {le_audio::types::kLeAudioDirectionSink, le_audio::types::kLeAudioDirectionSource}) {
     for (const auto& conf : set_configuration.confs.get(direction)) {
-      if (conf.codec.id == bluetooth::le_audio::set_configurations::LeAudioCodecIdLc3 &&
+      if (conf.codec.id == bluetooth::le_audio::types::LeAudioCodecIdLc3 &&
           !conf.vendor_metadata.value().vs_metadata.empty()) {
         std::vector<uint8_t> vndr_metadata;
         vndr_metadata.assign(conf.vendor_metadata.value().vs_metadata.begin(),
@@ -767,7 +767,7 @@ bool AudioSetConfigurationProvider::CheckEnhancedGamingConfig(
 }
 
 bool AudioSetConfigurationProvider::CheckConfigurationIsBiDirSwb(
-        const set_configurations::AudioSetConfiguration& set_configuration) const {
+        const types::AudioSetConfiguration& set_configuration) const {
   uint8_t dir = 0;
 
   for (auto direction :
@@ -783,7 +783,7 @@ bool AudioSetConfigurationProvider::CheckConfigurationIsBiDirSwb(
 }
 
 bool AudioSetConfigurationProvider::CheckConfigurationIsDualBiDirSwb(
-        const set_configurations::AudioSetConfiguration& set_configuration) const {
+        const types::AudioSetConfiguration& set_configuration) const {
   types::BidirectionalPair<uint8_t> swb_direction_counter = {0, 0};
 
   for (auto direction :

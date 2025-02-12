@@ -619,9 +619,7 @@ int ParseSinglePac(std::vector<struct acs_ac_record>& pac_recs, uint16_t len,
   // To-DO: Remove once remote AAR4 pac records available
   TestLeXPacRecords(const_cast<uint8_t*>(value), rec.codec_id.vendor_codec_id);
 
-  bool parsed;
-  rec.metadata = types::LeAudioLtvMap::Parse(value, metadata_len, parsed);
-  if (!parsed) {
+    if (!rec.metadata.Parse(value, metadata_len)) {
     return -1;
   }
 

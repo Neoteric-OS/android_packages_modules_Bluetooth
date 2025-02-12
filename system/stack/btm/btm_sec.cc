@@ -552,7 +552,7 @@ void BTM_PINCodeReply(const RawAddress& bd_addr, tBTM_STATUS res, uint8_t pin_le
   }
 
   p_dev_rec = btm_find_dev(bd_addr);
-  if (p_dev_rec == NULL) {
+  if (p_dev_rec == nullptr) {
     log::error("BTM_PINCodeReply() - no dev CB");
     return;
   }
@@ -654,7 +654,7 @@ tBTM_STATUS btm_sec_bond_by_transport(const RawAddress& bd_addr, tBLE_ADDR_TYPE 
   }
 
   p_dev_rec = btm_find_or_alloc_dev(bd_addr);
-  if (p_dev_rec == NULL) {
+  if (p_dev_rec == nullptr) {
     log::error("No memory to allocate new p_dev_rec");
     return tBTM_STATUS::BTM_NO_RESOURCES;
   }
@@ -1295,7 +1295,7 @@ bool BTM_PeerSupportsSecureConnections(const RawAddress& bd_addr) {
   tBTM_SEC_DEV_REC* p_dev_rec;
 
   p_dev_rec = btm_find_dev(bd_addr);
-  if (p_dev_rec == NULL) {
+  if (p_dev_rec == nullptr) {
     log::warn("unknown BDA: {}", bd_addr);
     return false;
   }
@@ -1445,6 +1445,11 @@ tBTM_STATUS btm_sec_l2cap_access_req_by_requirement(const RawAddress& bd_addr,
   /* Find or get oldest record */
   tBTM_SEC_DEV_REC* p_dev_rec = btm_find_or_alloc_dev(bd_addr);
   if (p_dev_rec == NULL) {
+    return tBTM_STATUS::BTM_NO_RESOURCES;
+  }
+
+  if (p_dev_rec == nullptr) {
+    log::error("No memory to allocate new p_dev_rec");
     return tBTM_STATUS::BTM_NO_RESOURCES;
   }
 
@@ -1721,9 +1726,12 @@ tBTM_STATUS btm_sec_mx_access_request(const RawAddress& bd_addr, bool is_origina
 
   /* Find or get oldest record */
   p_dev_rec = btm_find_or_alloc_dev(bd_addr);
-  if (p_dev_rec == NULL) {
+
+  if (p_dev_rec == nullptr) {
+    log::error("No memory to allocate new p_dev_rec");
     return tBTM_STATUS::BTM_NO_RESOURCES;
   }
+
   /* there are some devices (moto phone) which connects to several services at
    * the same time */
   /* we will process one after another */
@@ -1897,7 +1905,9 @@ void btm_sec_conn_req(const RawAddress& bda, const DEV_CLASS dc) {
   btm_sec_cb.connecting_dc = dc;
 
   p_dev_rec = btm_find_or_alloc_dev(bda);
-  if (p_dev_rec == NULL) {
+
+  if (p_dev_rec == nullptr) {
+    log::error("No memory to allocate new p_dev_rec");
     return;
   }
   p_dev_rec->sm4 |= BTM_SM4_CONN_PEND;
@@ -2442,6 +2452,11 @@ void btm_sec_rmt_host_support_feat_evt(const RawAddress bd_addr, uint8_t feature
     return;
   }
 
+  if (p_dev_rec == nullptr) {
+    log::error("No memory to allocate new p_dev_rec");
+    return;
+  }
+
   log::info("Got btm_sec_rmt_host_support_feat_evt from {}", bd_addr);
 
   log::verbose("btm_sec_rmt_host_support_feat_evt  sm4: 0x{:x}  p[0]: 0x{:x}", p_dev_rec->sm4,
@@ -2490,6 +2505,11 @@ void btm_io_capabilities_req(RawAddress p) {
 
   tBTM_SEC_DEV_REC* p_dev_rec = btm_find_or_alloc_dev(p);
   if (p_dev_rec == NULL) {
+    return;
+  }
+
+  if (p_dev_rec == nullptr) {
+    log::error("No memory to allocate new p_dev_rec");
     return;
   }
 
@@ -2659,6 +2679,11 @@ void btm_io_capabilities_rsp(const tBTM_SP_IO_RSP evt_data) {
   /* Allocate a new device record or reuse the oldest one */
   tBTM_SEC_DEV_REC* p_dev_rec = btm_find_or_alloc_dev(evt_data.bd_addr);
   if (p_dev_rec == NULL) {
+    return;
+  }
+
+  if (p_dev_rec == nullptr) {
+    log::error("No memory to allocate new p_dev_rec");
     return;
   }
 
@@ -2860,7 +2885,7 @@ void btm_simple_pair_complete(const RawAddress bd_addr, uint8_t status) {
   bool disc = false;
 
   p_dev_rec = btm_find_dev(bd_addr);
-  if (p_dev_rec == NULL) {
+  if (p_dev_rec == nullptr) {
     log::error("unknown BDA: {}", bd_addr);
     return;
   }
@@ -2980,7 +3005,7 @@ static void btm_sec_auth_collision(uint16_t handle) {
       BTM_SEC_MAX_COLLISION_DELAY) {
     if (handle == HCI_INVALID_HANDLE) {
       p_dev_rec = btm_sec_find_dev_by_sec_state(tSECURITY_STATE::AUTHENTICATING);
-      if (p_dev_rec == NULL) {
+      if (p_dev_rec == nullptr) {
         p_dev_rec = btm_sec_find_dev_by_sec_state(tSECURITY_STATE::ENCRYPTING);
       }
     } else {
@@ -3576,7 +3601,7 @@ void btm_sec_connected(const RawAddress& bda, uint16_t handle, tHCI_STATUS statu
   uint8_t bit_shift = 0;
 
   tBTM_SEC_DEV_REC* p_dev_rec = btm_find_dev(bda);
-  if (!p_dev_rec) {
+  if (p_dev_rec == nullptr) {
     log::debug(
             "Connected to new device state:{} handle:0x{:04x} status:{} "
             "enc_mode:{} bda:{}",
@@ -3585,10 +3610,12 @@ void btm_sec_connected(const RawAddress& bda, uint16_t handle, tHCI_STATUS statu
 
     if (status == HCI_SUCCESS) {
       p_dev_rec = btm_sec_alloc_dev(bda);
-      if (p_dev_rec == NULL) {
+      if (p_dev_rec == nullptr) {
+        log::debug("new device record Allocation failed for new connection peer:{}", bda);
         return;
+      } else {
+        log::debug("Allocated new device record for new connection peer:{}", bda);
       }
-      log::debug("Allocated new device record for new connection peer:{}", bda);
     } else {
       /* If the device matches with stored paring address
        * reset the paring state to idle */
@@ -4082,7 +4109,9 @@ void btm_sec_encryption_key_refresh_complete(uint16_t handle, tHCI_STATUS status
 void btm_sec_link_key_notification(const RawAddress& p_bda, const Octet16& link_key,
                                    uint8_t key_type) {
   tBTM_SEC_DEV_REC* p_dev_rec = btm_find_or_alloc_dev(p_bda);
-  if (p_dev_rec == NULL) {
+
+  if (p_dev_rec == nullptr) {
+    log::error("No memory to allocate new p_dev_rec");
     return;
   }
   bool we_are_bonding = false;
@@ -4209,6 +4238,11 @@ void btm_sec_link_key_request(const RawAddress bda) {
     return;
   }
 
+  if (p_dev_rec == nullptr) {
+    log::error("No memory to allocate new p_dev_rec");
+    return;
+  }
+
   log::verbose("bda: {}", bda);
   if (!concurrentPeerAuthIsEnabled()) {
     p_dev_rec->sec_rec.classic_link = tSECURITY_STATE::AUTHENTICATING;
@@ -4270,7 +4304,7 @@ static void btm_sec_pairing_timeout(void* /* data */) {
       btm_sec_cb.change_pairing_state(BTM_PAIR_STATE_IDLE);
       /* We need to notify the UI that no longer need the PIN */
       if (btm_sec_cb.api.p_auth_complete_callback) {
-        if (p_dev_rec == NULL) {
+        if (p_dev_rec == nullptr) {
           name[0] = 0;
           (*btm_sec_cb.api.p_auth_complete_callback)(p_cb->pairing_bda, kDevClassEmpty, name,
                                                      HCI_ERR_CONNECTION_TOUT);
@@ -4309,7 +4343,7 @@ static void btm_sec_pairing_timeout(void* /* data */) {
       /* simple pairing failed. Started a 1-sec timer at simple pairing
        * complete.
        * now it's time to tear down the ACL link*/
-      if (p_dev_rec == NULL) {
+      if (p_dev_rec == nullptr) {
         log::error("BTM_PAIR_STATE_WAIT_DISCONNECT unknown BDA: {}", p_cb->pairing_bda);
         break;
       }
@@ -4324,7 +4358,7 @@ static void btm_sec_pairing_timeout(void* /* data */) {
        * authentication*/
       btm_sec_cb.change_pairing_state(BTM_PAIR_STATE_IDLE);
       if (btm_sec_cb.api.p_auth_complete_callback) {
-        if (p_dev_rec == NULL) {
+        if (p_dev_rec == nullptr) {
           name[0] = 0;
           (*btm_sec_cb.api.p_auth_complete_callback)(p_cb->pairing_bda, kDevClassEmpty, name,
                                                      HCI_ERR_CONNECTION_TOUT);
@@ -4384,7 +4418,9 @@ void btm_sec_pin_code_request(const RawAddress p_bda) {
   }
 
   p_dev_rec = btm_find_or_alloc_dev(p_bda);
-  if (p_dev_rec == NULL) {
+
+  if (p_dev_rec == nullptr) {
+    log::error("No memory to allocate new p_dev_rec");
     return;
   }
   /* received PIN code request. must be non-sm4 */
@@ -4490,7 +4526,7 @@ void btm_sec_update_clock_offset(uint16_t handle, uint16_t clock_offset) {
   tBTM_INQ_INFO* p_inq_info;
 
   p_dev_rec = btm_find_dev_by_handle(handle);
-  if (p_dev_rec == NULL) {
+  if (p_dev_rec == nullptr) {
     return;
   }
 
@@ -4720,7 +4756,7 @@ static void btm_sec_auth_timer_timeout(void* data) {
   RawAddress* p_addr = (RawAddress*)data;
   tBTM_SEC_DEV_REC* p_dev_rec = btm_find_dev(*p_addr);
   delete p_addr;
-  if (p_dev_rec == NULL) {
+  if (p_dev_rec == nullptr) {
     log::info("invalid device or not found");
   } else if (btm_dev_authenticated(p_dev_rec)) {
     log::info("device is already authenticated");
@@ -5247,13 +5283,19 @@ void btm_sec_set_peer_sec_caps(uint16_t hci_handle, bool ssp_supported, bool sc_
 // Return DEV_CLASS (uint8_t[3]) of bda. If record doesn't exist, create one.
 DEV_CLASS btm_get_dev_class(const RawAddress& bda) {
   tBTM_SEC_DEV_REC* p_dev_rec = btm_find_or_alloc_dev(bda);
+
+  if (p_dev_rec == nullptr) {
+    log::error("No memory to allocate new p_dev_rec");
+    return kDevClassEmpty;
+  }
+
   return p_dev_rec->dev_class;
 }
 
 void BTM_update_version_info(const RawAddress& bd_addr,
                              const remote_version_info& remote_version_info) {
   tBTM_SEC_DEV_REC* p_dev_rec = btm_find_dev(bd_addr);
-  if (p_dev_rec == NULL) {
+  if (p_dev_rec == nullptr) {
     return;
   }
 
