@@ -1892,7 +1892,7 @@ public:
     }
   }
 
-  void ConfigureStream(LeAudioDeviceGroup* group, bool up_to_qos_configured) {
+  bool ConfigureStream(LeAudioDeviceGroup* group, bool up_to_qos_configured) {
     log::debug("group_id: {}", group->group_id_);
 
     BidirectionalPair<std::vector<uint8_t>> ccids = {
@@ -1900,11 +1900,16 @@ public:
                     local_metadata_context_types_.sink),
             .source = ContentControlIdKeeper::GetInstance()->GetAllCcids(
                     local_metadata_context_types_.source)};
+
+    group->SetPendingConfiguration();
     if (!groupStateMachine_->ConfigureStream(group, configuration_context_type_,
                                              local_metadata_context_types_, ccids,
                                              up_to_qos_configured)) {
-      log::info("Could not configure group {}", group->group_id_);
+      group->ClearPendingConfiguration();
+      return false;
     }
+
+    return true;
   }
 
   void PrepareStreamForAConversational(LeAudioDeviceGroup* group) {
@@ -1924,13 +1929,7 @@ public:
       return;
     }
 
-    BidirectionalPair<std::vector<uint8_t>> ccids = {
-            .sink = ContentControlIdKeeper::GetInstance()->GetAllCcids(
-                    local_metadata_context_types_.sink),
-            .source = ContentControlIdKeeper::GetInstance()->GetAllCcids(
-                    local_metadata_context_types_.source)};
-    if (!groupStateMachine_->ConfigureStream(group, configuration_context_type_,
-                                             local_metadata_context_types_, ccids, true)) {
+    if (!ConfigureStream(group, true)) {
       log::info("Reconfiguration is needed for group {}", group->group_id_);
       initReconfiguration(group, LeAudioContextType::UNSPECIFIED);
     }
@@ -2112,7 +2111,9 @@ public:
          * only Enable will left.
          * Otherwise, if there is group switch, let's move ASEs to Configured state.
          */
-        ConfigureStream(group, prepare_for_a_call);
+         if (!ConfigureStream(group, prepare_for_a_call)) {
+           log::info("Could not configure group {}", group->group_id_);
+         }
       }
     }
 
@@ -6972,14 +6973,14 @@ public:
           return;
         }
 
-        if (is_active_group_operation) {
-          if (audio_sender_state_ != AudioState::IDLE) {
-            audio_sender_state_ = AudioState::RELEASING;
-          }
+        /* Releasing state shall be always set here, because we do support only single group
+         * streaming at the time.  */
+        if (audio_sender_state_ != AudioState::IDLE) {
+          audio_sender_state_ = AudioState::RELEASING;
+        }
 
-          if (audio_receiver_state_ != AudioState::IDLE) {
-            audio_receiver_state_ = AudioState::RELEASING;
-          }
+        if (audio_receiver_state_ != AudioState::IDLE) {
+          audio_receiver_state_ = AudioState::RELEASING;
         }
 
         break;
