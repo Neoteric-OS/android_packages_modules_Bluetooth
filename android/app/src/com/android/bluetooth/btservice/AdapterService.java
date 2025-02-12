@@ -1086,7 +1086,6 @@ public class AdapterService extends Service {
 
         mStartedProfiles.put(BluetoothProfile.GATT, mGattService);
         addProfile(mGattService);
-        mGattService.start();
         mGattService.setAvailable(true);
         onProfileServiceStateChanged(mGattService, BluetoothAdapter.STATE_ON);
     }
@@ -1572,7 +1571,6 @@ public class AdapterService extends Service {
             ProfileService profileService = PROFILE_CONSTRUCTORS.get(profileId).apply(this);
             mStartedProfiles.put(profileId, profileService);
             addProfile(profileService);
-            profileService.start();
             profileService.setAvailable(true);
             // With `Flags.scanManagerRefactor()` GattService initialization is pushed back to
             // `ON` state instead of `BLE_ON`. Here we ensure mGattService is set prior
