@@ -40,11 +40,13 @@
 #include "gap_api.h"
 #include "gatt_api.h"
 #include "gatt_int.h"
+#include "device/include/interop.h"
 #include "internal_include/bt_target.h"
 #include "stack/btm/btm_int_types.h"
 #include "stack/include/bt_types.h"
 #include "stack/include/bt_uuid16.h"
 #include "stack/include/btm_sec_api.h"
+#include "stack/include/btm_ble_addr.h"
 #include "types/bluetooth/uuid.h"
 #include "types/raw_address.h"
 
@@ -866,6 +868,7 @@ static bool read_sr_sirk_req(const RawAddress& peer_bda, tCONN_ID conn_id,
                                                      uint8_t sirk_type, Octet16& sirk)>
                                      cb) {
   tGATT_READ_PARAM param = {};
+  tBLE_ADDR_TYPE address_type = BLE_ADDR_PUBLIC;
 
   param.service.s_handle = 1;
   param.service.e_handle = 0xFFFF;
@@ -873,13 +876,21 @@ static bool read_sr_sirk_req(const RawAddress& peer_bda, tCONN_ID conn_id,
 
   param.service.uuid = bluetooth::Uuid::From16Bit(GATT_UUID_CSIS_SIRK);
 
-  if (interop_match_addr(INTEROP_DISABLE_SIRK_READ_BY_TYPE, &peer_bda)) {
+  uint8_t tcb_idx = gatt_get_tcb_idx(conn_id);
+  tGATT_TCB& tcb = gatt_cb.tcb[tcb_idx];
+
+  RawAddress identity_address = tcb.peer_bda;
+
+  btm_random_pseudo_to_identity_addr(&identity_address, &address_type);
+
+  if (address_type == BLE_ADDR_PUBLIC &&
+      interop_match_addr(INTEROP_DISABLE_SIRK_READ_BY_TYPE, &identity_address)) {
     if (GATTC_Read(conn_id, GATT_READ_CHAR_VALUE, &param) != GATT_SUCCESS) {
       log::error("Read GATT Support features GATT_Read Failed, conn_id: {}",
                  static_cast<int>(conn_id));
       return false;
     }
-  } else {
+  } else{
     if (GATTC_Read(conn_id, GATT_READ_BY_TYPE, &param) != GATT_SUCCESS) {
       log::error("Read GATT Support features GATT_Read Failed, conn_id: {}",
                  static_cast<int>(conn_id));
