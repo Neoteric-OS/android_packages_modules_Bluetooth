@@ -44,6 +44,7 @@ using ::testing::StrictMock;
 bool btif_av_peer_is_connected_sink(const RawAddress& /*peer_address*/) { return true; }
 bool btif_av_peer_is_connected_source(const RawAddress& /*peer_address*/) { return false; }
 bool btif_av_both_enable(void) { return false; }
+void BTA_AvCancelAVRCAlarm(const RawAddress& bdaddr, uint8_t handle) { return; }
 
 namespace bluetooth {
 namespace avrcp {

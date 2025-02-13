@@ -142,11 +142,6 @@ tA2DP_STATUS A2DP_IsVendorSinkCodecSupported(const uint8_t* p_codec_info) {
   // Add checks based on <vendor_id, codec_id>
   // NOTE: Should be done only for local Sink codecs.
 
-  // Check for LDAC
-  if (vendor_id == A2DP_LDAC_VENDOR_ID && codec_id == A2DP_LDAC_CODEC_ID) {
-    return A2DP_IsVendorSinkCodecSupportedLdac(p_codec_info);
-  }
-
   // Check for Opus
   if (vendor_id == A2DP_OPUS_VENDOR_ID && codec_id == A2DP_OPUS_CODEC_ID) {
     return A2DP_IsVendorSinkCodecSupportedOpus(p_codec_info);
@@ -310,11 +305,6 @@ int A2DP_VendorGetSinkTrackChannelType(const uint8_t* p_codec_info) {
   // Add checks based on <vendor_id, codec_id>
   // NOTE: Should be done only for local Sink codecs.
 
-  // Check for LDAC
-  if (vendor_id == A2DP_LDAC_VENDOR_ID && codec_id == A2DP_LDAC_CODEC_ID) {
-    return A2DP_VendorGetSinkTrackChannelTypeLdac(p_codec_info);
-  }
-
   // Check for Opus
   if (vendor_id == A2DP_OPUS_VENDOR_ID && codec_id == A2DP_OPUS_CODEC_ID) {
     return A2DP_VendorGetSinkTrackChannelTypeOpus(p_codec_info);
@@ -401,11 +391,6 @@ const tA2DP_DECODER_INTERFACE* A2DP_VendorGetDecoderInterface(const uint8_t* p_c
   // Add checks based on <vendor_id, codec_id>
   // NOTE: Should be done only for local Sink codecs.
 
-  // Check for LDAC
-  if (vendor_id == A2DP_LDAC_VENDOR_ID && codec_id == A2DP_LDAC_CODEC_ID) {
-    return A2DP_VendorGetDecoderInterfaceLdac(p_codec_info);
-  }
-
   // Check for Opus
   if (vendor_id == A2DP_OPUS_VENDOR_ID && codec_id == A2DP_OPUS_CODEC_ID) {
     return A2DP_VendorGetDecoderInterfaceOpus(p_codec_info);
@@ -491,11 +476,6 @@ btav_a2dp_codec_index_t A2DP_VendorSinkCodecIndex(const uint8_t* p_codec_info) {
   // Add checks based on <vendor_id, codec_id>
   // NOTE: Should be done only for local Sink codecs.
 
-  // Check for LDAC
-  if (vendor_id == A2DP_LDAC_VENDOR_ID && codec_id == A2DP_LDAC_CODEC_ID) {
-    return A2DP_VendorSinkCodecIndexLdac(p_codec_info);
-  }
-
   // Check for Opus
   if (vendor_id == A2DP_OPUS_VENDOR_ID && codec_id == A2DP_OPUS_CODEC_ID) {
     return A2DP_VendorSinkCodecIndexOpus(p_codec_info);
@@ -522,8 +502,6 @@ const char* A2DP_VendorCodecIndexStr(btav_a2dp_codec_index_t codec_index) {
       return A2DP_VendorCodecIndexStrAptxAdaptive();
     case BTAV_A2DP_CODEC_INDEX_SOURCE_LDAC:
       return A2DP_VendorCodecIndexStrLdac();
-    case BTAV_A2DP_CODEC_INDEX_SINK_LDAC:
-      return A2DP_VendorCodecIndexStrLdacSink();
     case BTAV_A2DP_CODEC_INDEX_SOURCE_OPUS:
       return A2DP_VendorCodecIndexStrOpus();
     case BTAV_A2DP_CODEC_INDEX_SINK_OPUS:
@@ -558,8 +536,6 @@ bool A2DP_VendorInitCodecConfig(btav_a2dp_codec_index_t codec_index, AvdtpSepCon
       return A2DP_VendorInitCodecConfigAptxAdaptive(p_cfg);
     case BTAV_A2DP_CODEC_INDEX_SOURCE_LDAC:
       return A2DP_VendorInitCodecConfigLdac(p_cfg);
-    case BTAV_A2DP_CODEC_INDEX_SINK_LDAC:
-      return A2DP_VendorInitCodecConfigLdacSink(p_cfg);
     case BTAV_A2DP_CODEC_INDEX_SOURCE_OPUS:
       return A2DP_VendorInitCodecConfigOpus(p_cfg);
     case BTAV_A2DP_CODEC_INDEX_SINK_OPUS:
