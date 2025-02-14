@@ -292,6 +292,7 @@ bool ParseAseCtpNotification(struct ctp_ntf& ntf, uint16_t len, const uint8_t* v
 bool PrepareAseCtpCodecConfig(const std::vector<struct ctp_codec_conf>& confs_,
                               std::vector<uint8_t>& value) {
   if (confs_.size() == 0) {
+    log::error("Configuration set is empty!");
     return false;
   }
   std::vector<struct ctp_codec_conf> confs = confs_;
@@ -350,6 +351,7 @@ bool PrepareAseCtpCodecConfig(const std::vector<struct ctp_codec_conf>& confs_,
 bool PrepareAseCtpConfigQos(const std::vector<struct ctp_qos_conf>& confs,
                             std::vector<uint8_t>& value) {
   if (confs.size() == 0) {
+    log::error("Configuration set is empty!");
     return false;
   }
   value.resize(confs.size() * kCtpQosConfMinLen + kAseNumSize + kCtpOpSize);
@@ -384,6 +386,7 @@ bool PrepareAseCtpConfigQos(const std::vector<struct ctp_qos_conf>& confs,
 
 bool PrepareAseCtpEnable(const std::vector<struct ctp_enable>& confs, std::vector<uint8_t>& value) {
   if (confs.size() == 0) {
+    log::error("Configuration set is empty!");
     return false;
   }
 
@@ -426,6 +429,7 @@ bool PrepareAseCtpEnable(const std::vector<struct ctp_enable>& confs, std::vecto
 bool PrepareAseCtpAudioReceiverStartReady(const std::vector<uint8_t>& ase_ids,
                                           std::vector<uint8_t>& value) {
   if (ase_ids.size() == 0) {
+    log::error("ASEs ID set is empty!");
     return false;
   }
   value.resize(ase_ids.size() * kAseIdSize + kAseNumSize + kCtpOpSize);
@@ -445,6 +449,7 @@ bool PrepareAseCtpAudioReceiverStartReady(const std::vector<uint8_t>& ase_ids,
 
 bool PrepareAseCtpDisable(const std::vector<uint8_t>& ase_ids, std::vector<uint8_t>& value) {
   if (ase_ids.size() == 0) {
+    log::error("ASEs ID set is empty!");
     return false;
   }
   value.resize(ase_ids.size() * kAseIdSize + kAseNumSize + kCtpOpSize);
@@ -465,6 +470,7 @@ bool PrepareAseCtpDisable(const std::vector<uint8_t>& ase_ids, std::vector<uint8
 bool PrepareAseCtpAudioReceiverStopReady(const std::vector<uint8_t>& ase_ids,
                                          std::vector<uint8_t>& value) {
   if (ase_ids.size() == 0) {
+    log::error("ASEs ID set is empty!");
     return false;
   }
   value.resize(ase_ids.size() * kAseIdSize + kAseNumSize + kCtpOpSize);
@@ -485,6 +491,7 @@ bool PrepareAseCtpAudioReceiverStopReady(const std::vector<uint8_t>& ase_ids,
 bool PrepareAseCtpUpdateMetadata(const std::vector<struct ctp_update_metadata>& confs,
                                  std::vector<uint8_t>& value) {
   if (confs.size() == 0) {
+    log::error("Configuration set is empty!");
     return false;
   }
 
@@ -597,9 +604,9 @@ int ParseSinglePac(std::vector<struct acs_ac_record>& pac_recs, uint16_t len,
   rec.codec_spec_caps_raw.assign(value, value + codec_spec_cap_len);
 
   if (utils::IsCodecUsingLtvFormat(rec.codec_id)) {
-    bool parsed;
-    rec.codec_spec_caps = types::LeAudioLtvMap::Parse(value, codec_spec_cap_len, parsed);
-    if (!parsed) {
+    if (!rec.codec_spec_caps.Parse(value, codec_spec_cap_len)) {
+      log::error("Unable to parse codec specific parameters LTV: {}",
+                 base::HexEncode(value, codec_spec_cap_len));
       return -1;
     }
   }
@@ -620,6 +627,8 @@ int ParseSinglePac(std::vector<struct acs_ac_record>& pac_recs, uint16_t len,
   TestLeXPacRecords(const_cast<uint8_t*>(value), rec.codec_id.vendor_codec_id);
 
     if (!rec.metadata.Parse(value, metadata_len)) {
+    log::error("PAC record contains corrupted LTV formatted metadata: {}",
+               base::HexEncode(value, metadata_len));
     return -1;
   }
 
@@ -645,6 +654,7 @@ bool ParsePacs(std::vector<struct acs_ac_record>& pac_recs, uint16_t len, const 
   for (int i = 0; i < pac_rec_nb; i++) {
     int remaining_len = ParseSinglePac(pac_recs, len, value);
     if (remaining_len < 0) {
+      log::error("Error parsing PAC records.");
       return false;
     }
 

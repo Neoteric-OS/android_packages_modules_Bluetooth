@@ -96,10 +96,13 @@ java_library {
         "modules-utils-shell-command-handler",
     ],
 
-
     kotlincflags: [
         "-Werror",
     ],
+    optimize: {
+        ignore_warnings: false,
+    },
+
     sdk_version: "system_server_current",
     min_sdk_version: "Tiramisu",
     apex_available: ["com.android.bt"],
@@ -120,6 +123,8 @@ java_library {
     optimize: {
         enabled: true,
         shrink: true,
+        proguard_compatibility: true,
+        ignore_warnings: false,
         proguard_flags_files: ["proguard.flags"],
     },
 
