@@ -570,42 +570,6 @@ static ::bluetooth::le_audio::types::CodecConfigSetting GetCodecConfigSettingFro
   return stack_config;
 }
 
-static ::bluetooth::le_audio::types::CodecMetadataSetting GetCodecMetadataSettingFromAidl(
-        const std::optional<::aidl::android::hardware::bluetooth::audio::LeAudioAseConfiguration>&
-                ase_config) {
-  auto metadata_config = ::bluetooth::le_audio::types::CodecMetadataSetting();
-
-  if (ase_config.has_value()) {
-    if (ase_config.value().metadata.has_value()) {
-      auto chosen_codec_config_metadata = ase_config.value().metadata.value();
-      log::debug(": chosen_codec_config_metadata size: {}", chosen_codec_config_metadata.size());
-      for (auto &metadata : chosen_codec_config_metadata) {
-        if (metadata.value().getTag() ==
-                       ::aidl::android::hardware::bluetooth::audio::MetadataLtv::vendorSpecific) {
-           auto cfg_vendor_metadata = metadata.value().get<
-                      ::aidl::android::hardware::bluetooth::audio::MetadataLtv::vendorSpecific>();
-          log::debug(": cfg_vendor_metadata.companyId: {}", cfg_vendor_metadata.companyId);
-
-          if (cfg_vendor_metadata.companyId != 0) {
-            //No need to go for next vendorSpecific metadataLtv,
-            //as it has  config name only to debug
-            log::debug(": valid vendor codec specific Metadata exist.");
-            metadata_config.vendor_company_id = cfg_vendor_metadata.companyId;
-            metadata_config.vendor_metadata_type = cfg_vendor_metadata.opaqueValue[0];
-            int len =
-              sizeof(cfg_vendor_metadata.opaqueValue) / sizeof(cfg_vendor_metadata.opaqueValue[0]);
-            metadata_config.vs_metadata.insert(metadata_config.vs_metadata.begin(),
-                                                  cfg_vendor_metadata.opaqueValue.begin() + 1,
-                                                  cfg_vendor_metadata.opaqueValue.end());
-            break;
-          }
-        }
-      }
-    }
-  }
-  return metadata_config;
-}
-
 ::bluetooth::le_audio::types::DataPathConfiguration GetStackDataPathFromAidlFormat(
         const ::aidl::android::hardware::bluetooth::audio::IBluetoothAudioProvider::
                 LeAudioDataPathConfiguration& dp) {
@@ -656,8 +620,7 @@ static ::bluetooth::le_audio::types::AseConfiguration GetStackAseConfigurationFr
 
   auto config = ::bluetooth::le_audio::types::AseConfiguration(
                                       GetCodecConfigSettingFromAidl(source.aseConfiguration),
-                                      stack_qos,
-                                      GetCodecMetadataSettingFromAidl(source.aseConfiguration));
+                                      stack_qos);
   if (source.dataPathConfiguration.has_value()) {
     config.data_path_configuration = GetStackDataPathFromAidlFormat(*source.dataPathConfiguration);
   }
