@@ -73,8 +73,8 @@ public:
   std::vector<GapData> scan_response_enc;
   std::vector<GapData> periodic_data_enc;
   std::vector<uint8_t> enc_key_value;
-  uint16_t interval_min;
-  uint16_t interval_max;
+  uint32_t interval_min;
+  uint32_t interval_max;
   AdvertisingType advertising_type;
   AdvertiserAddressType requested_advertiser_address_type;
   PeerAddressType peer_address_type;

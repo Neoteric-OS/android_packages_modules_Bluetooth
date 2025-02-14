@@ -68,7 +68,7 @@ auto constexpr kVendorCodecIdOne = bluetooth::le_audio::types::LeAudioCodecId(
          .vendor_company_id = 0xF00D,
          .vendor_codec_id = 0x0001});
 
-set_configurations::CodecConfigSetting kVendorCodecOne = {
+types::CodecConfigSetting kVendorCodecOne = {
         .id = kVendorCodecIdOne,
         .params = types::LeAudioLtvMap({
                 // Add the Sampling Freq and AudioChannelAllocation which are
@@ -81,7 +81,7 @@ set_configurations::CodecConfigSetting kVendorCodecOne = {
         .channel_count_per_iso_stream = 1,
 };
 
-set_configurations::CodecConfigSetting kVendorCodecOneSwb = {
+types::CodecConfigSetting kVendorCodecOneSwb = {
         .id = kVendorCodecIdOne,
         .params = types::LeAudioLtvMap({
                 // Add the Sampling Freq and AudioChannelAllocation which are
@@ -237,7 +237,6 @@ TEST_F(LeAudioDevicesTest, test_get_device_model_name_failed) {
 
 namespace {
 using namespace ::bluetooth::le_audio::codec_spec_caps;
-using namespace ::bluetooth::le_audio::set_configurations;
 using namespace ::bluetooth::le_audio::types;
 
 static const hdl_pair hdl_pair_nil = hdl_pair(0x0000, 0x0000);
@@ -718,15 +717,13 @@ protected:
 
     ON_CALL(*mock_codec_manager_, CheckCodecConfigIsBiDirSwb)
             .WillByDefault(
-                    Invoke([](const bluetooth::le_audio::set_configurations::AudioSetConfiguration&
-                                      config) {
+                    Invoke([](const bluetooth::le_audio::types::AudioSetConfiguration& config) {
                       return AudioSetConfigurationProvider::Get()->CheckConfigurationIsBiDirSwb(
                               config);
                     }));
     ON_CALL(*mock_codec_manager_, CheckCodecConfigIsDualBiDirSwb)
             .WillByDefault(
-                    Invoke([](const bluetooth::le_audio::set_configurations::AudioSetConfiguration&
-                                      config) {
+                    Invoke([](const bluetooth::le_audio::types::AudioSetConfiguration& config) {
                       return AudioSetConfigurationProvider::Get()->CheckConfigurationIsDualBiDirSwb(
                               config);
                     }));
@@ -822,7 +819,7 @@ protected:
 
     for (ase* ase = data.device->GetFirstActiveAse(); ase;
          ase = data.device->GetNextActiveAse(ase)) {
-      active_channel_num.get(ase->direction) += ase->channel_count;
+      active_channel_num.get(ase->direction) += ase->codec_config.channel_count_per_iso_stream;
     }
 
     bool result = true;
@@ -1102,12 +1099,12 @@ protected:
           active_ase = true;
         }
 
-        ASSERT_EQ(ase.codec_id, codec_id);
+        ASSERT_EQ(ase.codec_config.id, codec_id);
 
         /* FIXME: Validate other codec parameters than LC3 if any */
-        ASSERT_EQ(ase.codec_id, LeAudioCodecIdLc3);
-        if (ase.codec_id == LeAudioCodecIdLc3) {
-          auto core_config = ase.codec_config.GetAsCoreCodecConfig();
+        ASSERT_EQ(ase.codec_config.id, LeAudioCodecIdLc3);
+        if (ase.codec_config.id == LeAudioCodecIdLc3) {
+          auto core_config = ase.codec_config.params.GetAsCoreCodecConfig();
           ASSERT_EQ(core_config.sampling_frequency, sampling_frequency);
           ASSERT_EQ(core_config.frame_duration, frame_duration);
           ASSERT_EQ(core_config.octets_per_codec_frame, octets_per_frame);
@@ -2199,7 +2196,7 @@ TEST_P(LeAudioAseConfigurationTest, test_reconnection_media) {
   auto* ase = right->GetFirstActiveAseByDirection(kLeAudioDirectionSink);
   ASSERT_NE(nullptr, ase);
 
-  auto core_config = ase->codec_config.GetAsCoreCodecConfig();
+  auto core_config = ase->codec_config.params.GetAsCoreCodecConfig();
   BidirectionalPair<AudioLocations> group_audio_locations = {
           .sink = *core_config.audio_channel_allocation,
           .source = *core_config.audio_channel_allocation};

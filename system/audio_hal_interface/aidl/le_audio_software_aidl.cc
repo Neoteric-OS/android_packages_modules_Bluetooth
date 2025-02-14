@@ -49,7 +49,7 @@ using ::bluetooth::audio::aidl::BluetoothAudioCtrlAck;
 using ::bluetooth::audio::le_audio::LeAudioClientInterface;
 using ::bluetooth::audio::le_audio::StartRequestState;
 using ::bluetooth::audio::le_audio::StreamCallbacks;
-using ::bluetooth::le_audio::set_configurations::AseConfiguration;
+using ::bluetooth::le_audio::types::AseConfiguration;
 using ::bluetooth::le_audio::types::LeAudioCoreCodecConfig;
 
 using VendorConfiguration =
@@ -583,7 +583,7 @@ bool hal_ucast_capability_to_stack_format(const UnicastCapability& hal_capabilit
     return false;
   }
 
-  stack_capability.id = ::bluetooth::le_audio::set_configurations::LeAudioCodecIdLc3;
+  stack_capability.id = ::bluetooth::le_audio::types::LeAudioCodecIdLc3;
   stack_capability.channel_count_per_iso_stream = channel_count;
 
   stack_capability.params.Add(::bluetooth::le_audio::codec_spec_conf::kLeAudioLtvTypeSamplingFreq,
@@ -639,7 +639,7 @@ static bool hal_bcast_capability_to_stack_format(const BroadcastCapability& hal_
     return false;
   }
 
-  stack_capability.id = ::bluetooth::le_audio::set_configurations::LeAudioCodecIdLc3;
+  stack_capability.id = ::bluetooth::le_audio::types::LeAudioCodecIdLc3;
   stack_capability.channel_count_per_iso_stream = channel_count;
 
   stack_capability.params.Add(::bluetooth::le_audio::codec_spec_conf::kLeAudioLtvTypeSamplingFreq,
@@ -717,18 +717,19 @@ bluetooth::audio::le_audio::OffloadCapabilities get_offload_capabilities() {
   return {offload_capabilities, broadcast_offload_capabilities};
 }
 
-AudioConfiguration offload_config_to_hal_audio_config(
-        const ::bluetooth::le_audio::offload_config& offload_config) {
+AudioConfiguration stream_config_to_hal_audio_config(
+        const ::bluetooth::le_audio::stream_config& offload_config) {
+/* Qualcomm version that needs refactoring because offload_config doesn't exist anymore
   if (offload_config.codec_id.coding_format ==
       ::bluetooth::le_audio::types::kLeAudioCodingFormatLC3) {
     if (offload_config.codec_metadata.empty()) {
       log::info("LC3");
       Lc3Configuration lc3_config{
               .pcmBitDepth = static_cast<int8_t>(offload_config.bits_per_sample),
-              .samplingFrequencyHz = static_cast<int32_t>(offload_config.sampling_rate),
-              .frameDurationUs = static_cast<int32_t>(offload_config.frame_duration),
-              .octetsPerFrame = static_cast<int32_t>(offload_config.octets_per_frame),
-              .blocksPerSdu = static_cast<int8_t>(offload_config.blocks_per_sdu),
+              .samplingFrequencyHz = static_cast<int32_t>(offload_config.sampling_frequency_hz),
+              .frameDurationUs = static_cast<int32_t>(offload_config.frame_duration_us),
+              .octetsPerFrame = static_cast<int32_t>(offload_config.octets_per_codec_frame),
+              .blocksPerSdu = static_cast<int8_t>(offload_config.codec_frames_blocks_per_sdu),
       };
 
       auto peer_delay = offload_config.peer_delay_ms * 1000;
@@ -833,6 +834,29 @@ AudioConfiguration offload_config_to_hal_audio_config(
     }
     return AudioConfiguration(ucast_config);
   }
+ */
+
+// Google Version
+Lc3Configuration lc3_config{
+          .pcmBitDepth = static_cast<int8_t>(offload_config.bits_per_sample),
+          .samplingFrequencyHz = static_cast<int32_t>(offload_config.sampling_frequency_hz),
+          .frameDurationUs = static_cast<int32_t>(offload_config.frame_duration_us),
+          .octetsPerFrame = static_cast<int32_t>(offload_config.octets_per_codec_frame),
+          .blocksPerSdu = static_cast<int8_t>(offload_config.codec_frames_blocks_per_sdu),
+  };
+  LeAudioConfiguration ucast_config = {
+          .peerDelayUs = static_cast<int32_t>(offload_config.peer_delay_ms * 1000),
+          .leAudioCodecConfig = LeAudioCodecConfiguration(lc3_config)};
+
+  for (auto& [handle, location, state] : offload_config.stream_map) {
+    ucast_config.streamMap.push_back({
+            .streamHandle = handle,
+            .audioChannelAllocation = static_cast<int32_t>(location),
+            .isStreamActive = state,
+    });
+  }
+
+  return AudioConfiguration(ucast_config);
 }
 
 AudioConfiguration broadcast_config_to_hal_audio_config(

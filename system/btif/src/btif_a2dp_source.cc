@@ -684,11 +684,11 @@ static void btif_a2dp_source_setup_codec(const RawAddress& peer_address) {
     return;
   }
 
-  btif_a2dp_source_cb.encoder_interface->encoder_init(
-      &peer_params, a2dp_codec_config, btif_a2dp_source_read_callback,
-      btif_a2dp_source_enqueue_callback);
+  encoder_interface->encoder_init(&peer_params, a2dp_codec_config,
+      btif_a2dp_source_read_callback, btif_a2dp_source_enqueue_callback);
 
   // Save a local copy of the encoder_interval_ms
+  btif_a2dp_source_cb.encoder_interface = encoder_interface;
   btif_a2dp_source_cb.encoder_interval_ms =
       btif_a2dp_source_cb.encoder_interface->get_encoder_interval_ms();
 

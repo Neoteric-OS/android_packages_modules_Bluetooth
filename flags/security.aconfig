@@ -9,6 +9,16 @@ flag {
 }
 
 flag {
+    name: "key_missing_ble_peripheral"
+    namespace: "bluetooth"
+    description: "Key missing broadcast for LE devices in peripheral role"
+    bug: "392895615"
+    metadata {
+      purpose: PURPOSE_BUGFIX
+    }
+}
+
+flag {
     name: "key_missing_as_ordered_broadcast"
     namespace: "bluetooth"
     description: "Key missing broadcast would be send as ordered broadcast"
@@ -40,16 +50,6 @@ flag {
   namespace: "bluetooth"
   description: "Encrypt LE link on reconnection with bonded devices"
   bug: "388864535"
-  metadata {
-    purpose: PURPOSE_BUGFIX
-  }
-}
-
-flag {
-  name: "btsec_avdt_msg_ind_type_confusion"
-  namespace: "bluetooth"
-  description: "Properly check current state and sig value of avdt rej/rsp messages before parsing"
-  bug: "358212054"
   metadata {
     purpose: PURPOSE_BUGFIX
   }

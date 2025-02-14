@@ -1737,7 +1737,7 @@ private:
   }
 
   void AddCisToStreamConfiguration(LeAudioDeviceGroup* group, const struct ase* ase) {
-    group->stream_conf.codec_id = ase->codec_id;
+    group->stream_conf.codec_id = ase->codec_config.id;
 
     auto cis_conn_hdl = ase->cis_conn_hdl;
     auto& params = group->stream_conf.stream_params.get(ase->direction);
@@ -1746,58 +1746,60 @@ private:
               ase->direction == bluetooth::le_audio::types::kLeAudioDirectionSink ? "sink"
                                                                                   : "source");
 
-    auto iter = std::find_if(params.stream_locations.begin(), params.stream_locations.end(),
-                             [cis_conn_hdl](auto& pair) { return cis_conn_hdl == pair.first; });
-    log::assert_that(iter == params.stream_locations.end(), "Stream is already there 0x{:04x}",
-                     cis_conn_hdl);
-
-    auto core_config = ase->codec_config.GetAsCoreCodecConfig();
+    auto iter = std::find_if(
+            params.stream_config.stream_map.begin(), params.stream_config.stream_map.end(),
+            [cis_conn_hdl](auto& info) { return cis_conn_hdl == info.stream_handle; });
+    log::assert_that(iter == params.stream_config.stream_map.end(),
+                     "Stream is already there 0x{:04x}", cis_conn_hdl);
 
     params.num_of_devices++;
-    params.num_of_channels += ase->channel_count;
+    params.num_of_channels += ase->codec_config.channel_count_per_iso_stream;
 
-    if (!core_config.audio_channel_allocation.has_value()) {
-      log::warn("ASE has invalid audio location");
-    }
-    auto ase_audio_channel_allocation = core_config.audio_channel_allocation.value_or(0);
+    auto ase_audio_channel_allocation = ase->codec_config.GetAudioChannelAllocation();
     params.audio_channel_allocation |= ase_audio_channel_allocation;
-    params.stream_locations.emplace_back(
-            std::make_pair(ase->cis_conn_hdl, ase_audio_channel_allocation));
+    params.stream_config.stream_map.emplace_back(ase->cis_conn_hdl, ase_audio_channel_allocation,
+                                                 true);
 
-    if (params.sample_frequency_hz == 0) {
-      params.sample_frequency_hz = core_config.GetSamplingFrequencyHz();
-    } else {
-      log::assert_that(params.sample_frequency_hz == core_config.GetSamplingFrequencyHz(),
-                       "sample freq mismatch: {}!={}", params.sample_frequency_hz,
-                       core_config.GetSamplingFrequencyHz());
-    }
-
-    if (params.octets_per_codec_frame == 0) {
-      params.octets_per_codec_frame = *core_config.octets_per_codec_frame;
-    } else {
-      log::assert_that(params.octets_per_codec_frame == *core_config.octets_per_codec_frame,
-                       "octets per frame mismatch: {}!={}", params.octets_per_codec_frame,
-                       *core_config.octets_per_codec_frame);
-    }
-
-    if (params.codec_frames_blocks_per_sdu == 0) {
-      params.codec_frames_blocks_per_sdu = *core_config.codec_frames_blocks_per_sdu;
+    auto core_config = ase->codec_config.params.GetAsCoreCodecConfig();
+    if (params.stream_config.sampling_frequency_hz == 0) {
+      params.stream_config.sampling_frequency_hz = core_config.GetSamplingFrequencyHz();
     } else {
       log::assert_that(
-              params.codec_frames_blocks_per_sdu == *core_config.codec_frames_blocks_per_sdu,
-              "codec_frames_blocks_per_sdu: {}!={}", params.codec_frames_blocks_per_sdu,
-              *core_config.codec_frames_blocks_per_sdu);
+              params.stream_config.sampling_frequency_hz == core_config.GetSamplingFrequencyHz(),
+              "sample freq mismatch: {}!={}", params.stream_config.sampling_frequency_hz,
+              core_config.GetSamplingFrequencyHz());
     }
 
-    if (params.frame_duration_us == 0) {
-      params.frame_duration_us = core_config.GetFrameDurationUs();
+    if (params.stream_config.octets_per_codec_frame == 0) {
+      params.stream_config.octets_per_codec_frame = *core_config.octets_per_codec_frame;
     } else {
-      log::assert_that(params.frame_duration_us == core_config.GetFrameDurationUs(),
-                       "frame_duration_us: {}!={}", params.frame_duration_us,
+      log::assert_that(
+              params.stream_config.octets_per_codec_frame == *core_config.octets_per_codec_frame,
+              "octets per frame mismatch: {}!={}", params.stream_config.octets_per_codec_frame,
+              *core_config.octets_per_codec_frame);
+    }
+
+    if (params.stream_config.codec_frames_blocks_per_sdu == 0) {
+      params.stream_config.codec_frames_blocks_per_sdu = *core_config.codec_frames_blocks_per_sdu;
+    } else {
+      log::assert_that(params.stream_config.codec_frames_blocks_per_sdu ==
+                               *core_config.codec_frames_blocks_per_sdu,
+                       "codec_frames_blocks_per_sdu: {}!={}",
+                       params.stream_config.codec_frames_blocks_per_sdu,
+                       *core_config.codec_frames_blocks_per_sdu);
+    }
+
+    if (params.stream_config.frame_duration_us == 0) {
+      params.stream_config.frame_duration_us = core_config.GetFrameDurationUs();
+    } else {
+      log::assert_that(params.stream_config.frame_duration_us == core_config.GetFrameDurationUs(),
+                       "frame_duration_us: {}!={}", params.stream_config.frame_duration_us,
                        core_config.GetFrameDurationUs());
     }
 
     params.codec_spec_metadata = group->GetCodecVendorMetadata(ase->direction, context_type);
+
+    params.stream_config.peer_delay_ms = group->GetRemoteDelay(ase->direction);
 
     log::info(
             "Added {} Stream Configuration. CIS Connection Handle: {}, Audio "
@@ -2268,7 +2270,7 @@ private:
     if (vendor_metadata.empty()) {
       codec_ver = 0;
     } else {
-      codec_ver = ase->codec_id.coding_format == bluetooth::le_audio::types::kLeAudioCodingFormatLC3
+      codec_ver = ase->codec_config.id.coding_format == bluetooth::le_audio::types::kLeAudioCodingFormatLC3
                           ? (direction == bluetooth::le_audio::types::kLeAudioDirectionSink
                                      ? vendor_metadata[6]
                                      : vendor_metadata[7])
@@ -2279,7 +2281,7 @@ private:
     vendor_datapath_config.insert(vendor_datapath_config.end(), &codec_ver, &codec_ver + 1);
 
     // Populate frequency
-    uint32_t frequency = ase->codec_config.GetAsCoreCodecConfig().GetSamplingFrequencyHz();
+    uint32_t frequency = ase->codec_config.params.GetAsCoreCodecConfig().GetSamplingFrequencyHz();
     uint8_t freq = freq_to_ltv_map.count(frequency) ? freq_to_ltv_map.at(frequency) : 0;
     len = LTV_LEN_FREQ;
     type = LTV_TYPE_FREQ;
@@ -2297,14 +2299,14 @@ private:
     vendor_datapath_config.insert(vendor_datapath_config.end(), &usecase, &usecase + 1);
 
     // Populated codec ID
-    uint16_t vendor_company_id = ase->codec_id.vendor_company_id;
-    uint16_t vendor_codec_id = ase->codec_id.vendor_codec_id;
+    uint16_t vendor_company_id = ase->codec_config.id.vendor_company_id;
+    uint16_t vendor_codec_id = ase->codec_config.id.vendor_codec_id;
     len = LTV_LEN_CODEC_ID;
     type = LTV_TYPE_CODEC_ID;
     vendor_datapath_config.insert(vendor_datapath_config.end(), &len, &len + 1);
     vendor_datapath_config.insert(vendor_datapath_config.end(), &type, &type + 1);
-    vendor_datapath_config.insert(vendor_datapath_config.end(), &ase->codec_id.coding_format,
-                                  &ase->codec_id.coding_format + 1);
+    vendor_datapath_config.insert(vendor_datapath_config.end(), &ase->codec_config.id.coding_format,
+                                  &ase->codec_config.id.coding_format + 1);
     vendor_datapath_config.insert(vendor_datapath_config.end(), vendor_company_id);
     vendor_datapath_config.insert(vendor_datapath_config.end(), vendor_company_id >> 8);
     vendor_datapath_config.insert(vendor_datapath_config.end(), vendor_codec_id);
@@ -2485,13 +2487,13 @@ private:
       conf.ase_id = ase->id;
       conf.target_latency = ase->target_latency;
       conf.target_phy = group->GetTargetPhy(ase->direction);
-      conf.codec_id = ase->codec_id;
+      conf.codec_id = ase->codec_config.id;
 
-      if (!ase->vendor_codec_config.empty()) {
+      if (!ase->codec_config.vendor_params.empty()) {
         log::debug("Using vendor codec configuration.");
-        conf.codec_config = ase->vendor_codec_config;
+        conf.codec_config = ase->codec_config.vendor_params;
       } else {
-        conf.codec_config = ase->codec_config.RawPacket();
+        conf.codec_config = ase->codec_config.params.RawPacket();
       }
       confs.push_back(conf);
 
@@ -2904,6 +2906,7 @@ private:
 
         if (group->GetTargetState() == AseState::BTA_LE_AUDIO_ASE_STATE_QOS_CONFIGURED) {
           cancel_watchdog_if_needed(group->group_id_);
+          group->ClearPendingConfiguration();
           state_machine_callbacks_->StatusReportCb(group->group_id_,
                                                    GroupStreamStatus::CONFIGURED_BY_USER);
           return;
@@ -3034,7 +3037,7 @@ private:
       log::debug("device: {}, ase_id: {}, cis_id: {}, ase state: {}", leAudioDevice->address_,
                  ase->id, ase->cis_id, ToString(ase->state));
       conf.ase_id = ase->id;
-      conf.metadata = ase->metadata;
+      conf.metadata = ase->metadata.RawPacket();
       confs.push_back(conf);
 
       /* Below is just for log history */
@@ -3276,7 +3279,7 @@ private:
       auto directional_audio_context = context_types.get(ase->direction) &
                                        leAudioDevice->GetAvailableContexts(ase->direction);
 
-      std::vector<uint8_t> new_metadata;
+      bluetooth::le_audio::types::LeAudioLtvMap new_metadata;
       if (directional_audio_context.any()) {
         new_metadata = leAudioDevice->GetMetadata(directional_audio_context,
                                                   ccid_lists.get(ase->direction));
@@ -3295,7 +3298,7 @@ private:
       struct bluetooth::le_audio::client_parser::ascs::ctp_update_metadata conf;
 
       conf.ase_id = ase->id;
-      conf.metadata = ase->metadata;
+      conf.metadata = ase->metadata.RawPacket();
       confs.push_back(conf);
       conn_handles.push_back(ase->cis_conn_hdl);
       ctx_type = directional_audio_context;
@@ -3509,8 +3512,10 @@ private:
         /* Cache current set up metadata values for for further possible
          * reconfiguration
          */
-        if (!rsp.metadata.empty()) {
-          ase->metadata = rsp.metadata;
+        if (!rsp.metadata.empty() &&
+            !ase->metadata.Parse(rsp.metadata.data(), rsp.metadata.size())) {
+          log::error("Error while parsing metadata: {}",
+                     bluetooth::common::ToHexString(rsp.metadata));
         }
 
         break;
