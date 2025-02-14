@@ -79,6 +79,7 @@ static constexpr uint8_t kInvalidConfigId = 0xFF;
 static constexpr uint8_t kMinConfigId = 0;
 static constexpr uint8_t kMaxConfigId = 3;
 static constexpr uint16_t kDefaultIntervalMs = 1000;  // 1s
+static constexpr uint32_t kMaxIntervalMs = INT_MAX;  // INT_MAX
 static constexpr uint8_t kMaxRetryCounterForCreateConfig = 0x03;
 static constexpr uint8_t kMaxRetryCounterForCsEnable = 0x03;
 static constexpr uint16_t kInvalidConnInterval = 0;  // valid value is from 0x0006 to 0x0C80
