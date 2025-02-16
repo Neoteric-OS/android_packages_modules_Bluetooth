@@ -302,6 +302,10 @@ public class ScanNativeInterface {
             Log.e(TAG, "Scan helper is null!");
             return;
         }
+
+        //Since JNI is sending original address as Empty addr.
+        //So assigning original addr to actual address
+        originalAddress = address;
         mScanController.onScanResult(
                 eventType,
                 addressType,
