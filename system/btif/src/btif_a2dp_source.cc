@@ -405,6 +405,11 @@ class A2dpStreamCallbacks : public bluetooth::audio::a2dp::StreamCallbacks {
     btif_av_set_low_latency(low_latency);
     return Status::SUCCESS;
   }
+
+  Status UpdateSourceMetadata(bool is_gaming_mode) const override {
+    btif_av_update_source_metadata(is_gaming_mode);
+    return Status::SUCCESS;
+  }
 };
 
 static const A2dpStreamCallbacks a2dp_stream_callbacks;
