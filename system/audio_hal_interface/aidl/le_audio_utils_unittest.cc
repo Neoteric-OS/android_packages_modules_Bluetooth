@@ -222,7 +222,7 @@ PrepareReferenceLeAudioDataPathConfigurationLc3() {
 
 std::pair<::aidl::android::hardware::bluetooth::audio::IBluetoothAudioProvider::
                   LeAudioAseQosConfiguration,
-          bluetooth::le_audio::types::QosConfigSetting>
+          bluetooth::le_audio::set_configurations::QosConfigSetting>
 PrepareReferenceQosConfiguration(bool is_low_latency) {
   ::aidl::android::hardware::bluetooth::audio::IBluetoothAudioProvider::LeAudioAseQosConfiguration
           aidl_ase_config = ::aidl::android::hardware::bluetooth::audio::IBluetoothAudioProvider::
@@ -235,7 +235,7 @@ PrepareReferenceQosConfiguration(bool is_low_latency) {
                           .maxSdu = 120,
                           .retransmissionNum = 2,
                   };
-  bluetooth::le_audio::types::QosConfigSetting stack_ase_config = {
+  bluetooth::le_audio::set_configurations::QosConfigSetting stack_ase_config = {
           .target_latency =
                   is_low_latency
                           ? bluetooth::le_audio::types::kTargetLatencyLower
@@ -302,14 +302,14 @@ PrepareReferenceCodecSpecificConfigurationLc3(bool is_low_latency, bool is_left,
 
 std::pair<::aidl::android::hardware::bluetooth::audio::IBluetoothAudioProvider::
                   LeAudioAseConfigurationSetting::AseDirectionConfiguration,
-          ::bluetooth::le_audio::types::AseConfiguration>
+          ::bluetooth::le_audio::set_configurations::AseConfiguration>
 PrepareReferenceAseDirectionConfigLc3(bool is_left, bool is_right, bool is_low_latency,
                                       bool has_qos = true, bool has_datapath = true) {
   ::aidl::android::hardware::bluetooth::audio::IBluetoothAudioProvider::
           LeAudioAseConfigurationSetting::AseDirectionConfiguration aidl_ase_config;
 
-  ::bluetooth::le_audio::types::CodecConfigSetting stack_codec;
-  ::bluetooth::le_audio::types::AseConfiguration stack_ase_config(stack_codec);
+  ::bluetooth::le_audio::set_configurations::CodecConfigSetting stack_codec;
+  ::bluetooth::le_audio::set_configurations::AseConfiguration stack_ase_config(stack_codec);
 
   aidl_ase_config.aseConfiguration.targetLatency =
           is_low_latency ? ::aidl::android::hardware::bluetooth::audio::LeAudioAseConfiguration::
@@ -368,7 +368,7 @@ PrepareReferenceAseDirectionConfigLc3(bool is_left, bool is_right, bool is_low_l
 
 std::pair<::aidl::android::hardware::bluetooth::audio::IBluetoothAudioProvider::
                   LeAudioAseConfigurationSetting,
-          ::bluetooth::le_audio::types::AudioSetConfiguration>
+          ::bluetooth::le_audio::set_configurations::AudioSetConfiguration>
 PrepareReferenceAseConfigurationSetting(
         ::bluetooth::le_audio::types::LeAudioContextType ctx_type,
         std::optional<uint32_t> source_locations =
@@ -377,7 +377,7 @@ PrepareReferenceAseConfigurationSetting(
   // Prepare the AIDL format config
   ::aidl::android::hardware::bluetooth::audio::IBluetoothAudioProvider::
           LeAudioAseConfigurationSetting aidl_audio_set_config;
-  ::bluetooth::le_audio::types::AudioSetConfiguration stack_audio_set_config;
+  ::bluetooth::le_audio::set_configurations::AudioSetConfiguration stack_audio_set_config;
 
   aidl_audio_set_config.audioContext.bitmask = (uint16_t)ctx_type;
 
@@ -866,9 +866,10 @@ TEST(BluetoothAudioClientInterfaceAidlTest, testGetAidlLeAudioDeviceCapabilities
     bool matched_streamingAudioContexts = false;
     bool matched_vendorSpecific = false;
     for (auto const& meta : *aidl_pac->metadata) {
-      verifyMetadata(meta, stack_record.metadata.GetAsLeAudioMetadata(),
-                     matched_preferredAudioContexts, matched_streamingAudioContexts,
-                     matched_vendorSpecific);
+      ::bluetooth::le_audio::types::LeAudioLtvMap stack_meta;
+      ASSERT_TRUE(stack_meta.Parse(stack_record.metadata.data(), stack_record.metadata.size()));
+      verifyMetadata(meta, stack_meta.GetAsLeAudioMetadata(), matched_preferredAudioContexts,
+                     matched_streamingAudioContexts, matched_vendorSpecific);
     }
 
     ASSERT_TRUE(matched_preferredAudioContexts);

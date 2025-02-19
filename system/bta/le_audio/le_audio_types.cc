@@ -55,13 +55,13 @@ namespace bluetooth::le_audio {
 using types::acs_ac_record;
 using types::LeAudioContextType;
 
-namespace types {
-using types::CodecConfigSetting;
+namespace set_configurations {
+using set_configurations::CodecConfigSetting;
 using types::kLeAudioCodingFormatLC3;
 using types::LeAudioCoreCodecConfig;
 
 void get_cis_count(LeAudioContextType context_type,
-                   std::shared_ptr<const types::AudioSetConfiguration> conf,
+                   std::shared_ptr<const set_configurations::AudioSetConfiguration> conf,
                    uint8_t expected_remote_direction, int expected_device_cnt, types::LeAudioConfigurationStrategy strategy,
                    int avail_group_ase_snk_cnt, int avail_group_ase_src_count,
                    uint8_t& out_cis_count_bidir, uint8_t& out_cis_count_unidir_sink,
@@ -81,7 +81,7 @@ void get_cis_count(LeAudioContextType context_type,
   bool is_leX_codec = false;
 
   if (conf->confs.sink.size() > 0) {
-    if (conf->confs.sink[0].codec.id == types::LeAudioCodecIdAptxLeX) {
+    if (conf->confs.sink[0].codec.id == set_configurations::LeAudioCodecIdAptxLeX) {
       is_leX_codec = true;
     }
   }
@@ -356,6 +356,9 @@ std::ostream& operator<<(std::ostream& os, const CodecConfigSetting& config) {
   return os;
 }
 
+}  // namespace set_configurations
+
+namespace types {
 /* Helper map for matching various frequency notations */
 const std::map<uint8_t, uint32_t> LeAudioCoreCodecConfig::sampling_freq_map = {
         {codec_spec_conf::kLeAudioSamplingFreq8000Hz, LeAudioCodecConfiguration::kSampleRate8000},

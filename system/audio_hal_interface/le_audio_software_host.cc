@@ -187,8 +187,8 @@ void SinkMetadataChanged(const sink_metadata_v7_t& metadata) {
 }
 
 OffloadCapabilities get_offload_capabilities() {
-  return {std::vector<bluetooth::le_audio::types::AudioSetConfiguration>(0),
-          std::vector<bluetooth::le_audio::types::AudioSetConfiguration>(0)};
+  return {std::vector<bluetooth::le_audio::set_configurations::AudioSetConfiguration>(0),
+          std::vector<bluetooth::le_audio::set_configurations::AudioSetConfiguration>(0)};
 }
 
 void LeAudioClientInterface::Sink::Cleanup() {
@@ -310,7 +310,7 @@ void LeAudioClientInterface::Sink::CancelStreamingRequest() {
 }
 
 void LeAudioClientInterface::Sink::UpdateAudioConfigToHal(
-        const ::le_audio::stream_config& /*offload_config*/) {}
+        const ::le_audio::offload_config& /*offload_config*/) {}
 
 void LeAudioClientInterface::Sink::UpdateBroadcastAudioConfigToHal(
         ::le_audio::broadcast_offload_config const& /*config*/) {}
@@ -336,7 +336,7 @@ void LeAudioClientInterface::Sink::UpdateMetadataChanged(::bluetooth::le_audio::
      state, int cig_id, int cis_id, const std::vector<uint8_t>& data) {
 }
 
-std::optional<::bluetooth::le_audio::types::AudioSetConfiguration>
+std::optional<::bluetooth::le_audio::set_configurations::AudioSetConfiguration>
 LeAudioClientInterface::Sink::GetUnicastConfig(
         const ::bluetooth::le_audio::CodecManager::
                 UnicastConfigurationRequirements& /*requirements*/) const {
@@ -483,7 +483,7 @@ void LeAudioClientInterface::Source::CancelStreamingRequest() {
 }
 
 void LeAudioClientInterface::Source::UpdateAudioConfigToHal(
-        const ::le_audio::stream_config& /*offload_config*/) {}
+        const ::le_audio::offload_config& /*offload_config*/) {}
 
 void LeAudioClientInterface::Source::SuspendedForReconfiguration() {
   log::info("");

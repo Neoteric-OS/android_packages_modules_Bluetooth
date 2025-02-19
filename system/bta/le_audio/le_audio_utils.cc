@@ -335,7 +335,7 @@ bluetooth::le_audio::btle_audio_frame_duration_index_t translateToBtLeAudioCodec
 }
 
 void fillStreamParamsToBtLeAudioCodecConfig(
-        const std::vector<struct types::AseConfiguration>& confs,
+        const std::vector<struct set_configurations::AseConfiguration>& confs,
         bluetooth::le_audio::btle_audio_codec_config_t& out_config) {
   if (confs.size() == 0) {
     log::warn("Stream params are null");
@@ -450,9 +450,9 @@ std::vector<bluetooth::le_audio::btle_audio_codec_config_t> GetRemoteBtLeAudioCo
 }
 
 bool IsCodecUsingLtvFormat(const types::LeAudioCodecId& codec_id) {
-  if (codec_id == types::LeAudioCodecIdLc3 ||
-      codec_id == types::LeAudioCodecIdAptxLe ||
-      codec_id == types::LeAudioCodecIdAptxLeX) {
+  if (codec_id == set_configurations::LeAudioCodecIdLc3 ||
+      codec_id == set_configurations::LeAudioCodecIdAptxLe ||
+      codec_id == set_configurations::LeAudioCodecIdAptxLeX) {
     return true;
   }
   return false;
@@ -460,7 +460,7 @@ bool IsCodecUsingLtvFormat(const types::LeAudioCodecId& codec_id) {
 
 ::bluetooth::le_audio::LeAudioCodecConfiguration
 GetAudioSessionCodecConfigFromAudioSetConfiguration(
-        const bluetooth::le_audio::types::AudioSetConfiguration& audio_set_conf,
+        const bluetooth::le_audio::set_configurations::AudioSetConfiguration& audio_set_conf,
         uint8_t remote_direction) {
   /* Note: For now we expect that each ASE in a particular direction needs
    *       exactly the same audio codec parameters.
@@ -507,7 +507,8 @@ GetAudioSessionCodecConfigFromAudioSetConfiguration(
 }
 
 types::LeAudioConfigurationStrategy GetStrategyForAseConfig(
-        const std::vector<le_audio::types::AseConfiguration>& cfgs, uint8_t device_cnt) {
+        const std::vector<le_audio::set_configurations::AseConfiguration>& cfgs,
+        uint8_t device_cnt) {
   if (cfgs.size() == 0) {
     return types::LeAudioConfigurationStrategy::RFU;
   }
@@ -545,7 +546,7 @@ static bool IsCodecConfigSupported(
         const types::LeAudioCodecId codec, const types::LeAudioLtvMap& pacs,
         const types::LeAudioLtvMap& reqs, uint8_t channel_cnt_per_ase,
         const types::LeAudioLtvMap& pacs_metadata,
-        std::optional<::bluetooth::le_audio::types::CodecMetadataSetting> vendor_metadata,
+        std::optional<set_configurations::CodecMetadataSetting> vendor_metadata,
         LeAudioContextType context_type) {
   log::info("codec.coding_format: {}, codec.vendor_company_id: {}, codec.vendor_codec_id: {}",
             codec.coding_format, codec.vendor_company_id, codec.vendor_codec_id);
@@ -868,8 +869,8 @@ static bool IsCodecConfigSupported(
 
 static bool IsCodecConfigSettingSupported(
         const types::acs_ac_record& pac,
-        const types::CodecConfigSetting& codec_config_setting,
-        std::optional<::bluetooth::le_audio::types::CodecMetadataSetting> vendor_metadata,
+        const set_configurations::CodecConfigSetting& codec_config_setting,
+        std::optional<set_configurations::CodecMetadataSetting> vendor_metadata,
         LeAudioContextType context_type) {
   const auto& codec_id = codec_config_setting.id;
   if (codec_id != pac.codec_id) {
@@ -892,8 +893,8 @@ static bool IsCodecConfigSettingSupported(
 
 const struct types::acs_ac_record* GetConfigurationSupportedPac(
         const types::PublishedAudioCapabilities& pacs,
-        const types::CodecConfigSetting& codec_config_setting,
-        std::optional<const ::bluetooth::le_audio::types::CodecMetadataSetting> vendor_metadata,
+        const set_configurations::CodecConfigSetting& codec_config_setting,
+        std::optional<set_configurations::CodecMetadataSetting> vendor_metadata,
         LeAudioContextType context_type) {
   for (const auto& pac_tuple : pacs) {
     for (const auto& pac : std::get<1>(pac_tuple)) {
@@ -912,7 +913,7 @@ const struct types::acs_ac_record* GetConfigurationSupportedPac(
 }
 
 bool IsAseConfigMatchedWithPreferredRequirements(
-        const std::vector<struct types::AseConfiguration>& ase_confs,
+        const std::vector<struct set_configurations::AseConfiguration>& ase_confs,
         const std::vector<
                 CodecManager::UnicastConfigurationRequirements::DeviceDirectionRequirements>& reqs,
         uint8_t channel_cnt_per_ase) {

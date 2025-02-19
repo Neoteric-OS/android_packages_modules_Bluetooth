@@ -100,12 +100,13 @@ public:
   MOCK_METHOD((void), StopSession, (), (override));
   MOCK_METHOD((void), ConfirmStreamingRequest, (bool force), (override));
   MOCK_METHOD((void), CancelStreamingRequest, (), (override));
-  MOCK_METHOD((void), UpdateAudioConfigToHal, (const ::bluetooth::le_audio::stream_config&));
+  MOCK_METHOD((void), UpdateAudioConfigToHal, (const ::bluetooth::le_audio::offload_config&));
   MOCK_METHOD((std::optional<::le_audio::broadcaster::BroadcastConfiguration>), GetBroadcastConfig,
               ((const std::vector<std::pair<::le_audio::types::LeAudioContextType, uint8_t>>&),
                (const std::optional<std::vector<::bluetooth::le_audio::types::acs_ac_record>>&)),
               (const));
-  MOCK_METHOD((std::optional<::le_audio::types::AudioSetConfiguration>), GetUnicastConfig,
+  MOCK_METHOD((std::optional<::le_audio::set_configurations::AudioSetConfiguration>),
+              GetUnicastConfig,
               (const ::bluetooth::le_audio::CodecManager::UnicastConfigurationRequirements&),
               (const));
   MOCK_METHOD((::bluetooth::le_audio::types::VendorDataPathConfiguration),
@@ -130,7 +131,7 @@ public:
   MOCK_METHOD((void), StopSession, (), (override));
   MOCK_METHOD((void), ConfirmStreamingRequest, (bool force), (override));
   MOCK_METHOD((void), CancelStreamingRequest, (), (override));
-  MOCK_METHOD((void), UpdateAudioConfigToHal, (const ::bluetooth::le_audio::stream_config&));
+  MOCK_METHOD((void), UpdateAudioConfigToHal, (const ::bluetooth::le_audio::offload_config&));
   MOCK_METHOD((size_t), Write, (const uint8_t* p_buf, uint32_t len));
   MOCK_METHOD((void), UpdateMetadataChanged, (::bluetooth::le_audio::types::AseState& state,
                int cig_id, int cis_id, const std::vector<uint8_t>& data));
@@ -190,7 +191,7 @@ void LeAudioClientInterface::Sink::ConfirmSuspendRequest() {}
 void LeAudioClientInterface::Sink::ConfirmStreamingRequest(bool force) {}
 void LeAudioClientInterface::Sink::CancelStreamingRequest() {}
 void LeAudioClientInterface::Sink::UpdateAudioConfigToHal(
-        const ::bluetooth::le_audio::stream_config& /*config*/) {}
+        const ::bluetooth::le_audio::offload_config& /*config*/) {}
 void LeAudioClientInterface::Sink::UpdateBroadcastAudioConfigToHal(
         const ::bluetooth::le_audio::broadcast_offload_config& /*config*/) {}
 std::optional<::le_audio::broadcaster::BroadcastConfiguration>
@@ -199,7 +200,7 @@ LeAudioClientInterface::Sink::GetBroadcastConfig(
         const std::optional<std::vector<::bluetooth::le_audio::types::acs_ac_record>>& pacs) const {
   return sink_mock->GetBroadcastConfig(quality, pacs);
 }
-std::optional<::le_audio::types::AudioSetConfiguration>
+std::optional<::le_audio::set_configurations::AudioSetConfiguration>
 LeAudioClientInterface::Sink::GetUnicastConfig(
         const ::bluetooth::le_audio::CodecManager::UnicastConfigurationRequirements& requirements)
         const {
@@ -232,7 +233,7 @@ void LeAudioClientInterface::Source::ConfirmSuspendRequest() {}
 void LeAudioClientInterface::Source::ConfirmStreamingRequest(bool force) {}
 void LeAudioClientInterface::Source::CancelStreamingRequest() {}
 void LeAudioClientInterface::Source::UpdateAudioConfigToHal(
-        const ::bluetooth::le_audio::stream_config& /*config*/) {}
+        const ::bluetooth::le_audio::offload_config& /*config*/) {}
 void LeAudioClientInterface::Source::SuspendedForReconfiguration() {}
 void LeAudioClientInterface::Source::ReconfigurationComplete() {}
 

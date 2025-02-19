@@ -80,12 +80,12 @@ public:
   void ConfirmStreamingRequest(bool force) override;
   void CancelStreamingRequest() override;
   void UpdateRemoteDelay(uint16_t remote_delay_ms) override;
-  void UpdateAudioConfigToHal(const ::bluetooth::le_audio::stream_config& config) override;
+  void UpdateAudioConfigToHal(const ::bluetooth::le_audio::offload_config& config) override;
   std::optional<broadcaster::BroadcastConfiguration> GetBroadcastConfig(
           const std::vector<std::pair<types::LeAudioContextType, uint8_t>>& subgroup_quality,
           const std::optional<std::vector<::bluetooth::le_audio::types::acs_ac_record>>& pacs)
           const override;
-  std::optional<::bluetooth::le_audio::types::AudioSetConfiguration> GetUnicastConfig(
+  std::optional<::bluetooth::le_audio::set_configurations::AudioSetConfiguration> GetUnicastConfig(
           const CodecManager::UnicastConfigurationRequirements& requirements) const override;
   ::bluetooth::le_audio::types::VendorDataPathConfiguration GetVendorConfigureDataPathPayload(
                std::vector<uint16_t> conn_handles,
@@ -468,7 +468,7 @@ void SourceImpl::UpdateRemoteDelay(uint16_t remote_delay_ms) {
   halSinkInterface_->SetRemoteDelay(remote_delay_ms);
 }
 
-void SourceImpl::UpdateAudioConfigToHal(const ::bluetooth::le_audio::stream_config& config) {
+void SourceImpl::UpdateAudioConfigToHal(const ::bluetooth::le_audio::offload_config& config) {
   if ((halSinkInterface_ == nullptr) || (le_audio_sink_hal_state_ != HAL_STARTED)) {
     log::error("Audio HAL Audio sink was not started!");
     return;
@@ -501,7 +501,8 @@ void SourceImpl::UpdateMetadataChanged(::bluetooth::le_audio::types::AseState& s
   halSinkInterface_->UpdateMetadataChanged(state, cig_id, cis_id, data);
 }
 
-std::optional<::bluetooth::le_audio::types::AudioSetConfiguration> SourceImpl::GetUnicastConfig(
+std::optional<::bluetooth::le_audio::set_configurations::AudioSetConfiguration>
+SourceImpl::GetUnicastConfig(
         const CodecManager::UnicastConfigurationRequirements& requirements) const {
   if (halSinkInterface_ == nullptr) {
     log::error("Audio HAL Audio sink is null!");

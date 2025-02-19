@@ -30,14 +30,14 @@ public:
   static void Initialize(types::CodecLocation location);
   static void DebugDump(int fd);
   static void Cleanup();
-  virtual const types::AudioSetConfigurations* GetConfigurations(
+  virtual const set_configurations::AudioSetConfigurations* GetConfigurations(
           ::bluetooth::le_audio::types::LeAudioContextType content_type) const;
   virtual bool CheckEnhancedGamingConfig(
-          const types::AudioSetConfiguration& set_configuration) const;
+          const set_configurations::AudioSetConfiguration& set_configuration) const;
   virtual bool CheckConfigurationIsBiDirSwb(
-          const types::AudioSetConfiguration& set_configuration) const;
+          const set_configurations::AudioSetConfiguration& set_configuration) const;
   virtual bool CheckConfigurationIsDualBiDirSwb(
-          const types::AudioSetConfiguration& set_configuration) const;
+          const set_configurations::AudioSetConfiguration& set_configuration) const;
 
 private:
   struct impl;

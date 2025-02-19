@@ -544,7 +544,7 @@ TEST(LeAudioClientParserTest, testParsePacsMultipleRecords) {
   ASSERT_EQ(record0.codec_id.vendor_company_id, 0x0203u);
   ASSERT_EQ(record0.codec_id.vendor_codec_id, 0x0405u);
   ASSERT_EQ(record0.codec_spec_caps_raw.size(), 0u);
-  ASSERT_EQ(record0.metadata.Size(), 0u);
+  ASSERT_EQ(record0.metadata.Values().size(), 0u);
 
   // Verify 2nd record
   auto& record1 = pac_recs[1];

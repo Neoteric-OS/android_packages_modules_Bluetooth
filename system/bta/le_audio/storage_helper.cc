@@ -129,11 +129,10 @@ bool serializePacs(const bluetooth::le_audio::types::PublishedAudioCapabilities&
       }
 
       /* Metadata */
-      auto raw_metadata = pac.metadata.RawPacket();
-      log::verbose("Metadata size {}", static_cast<int>(raw_metadata.size()));
-      UINT8_TO_STREAM(ptr, raw_metadata.size());
-      if (raw_metadata.size() > 0) {
-        ARRAY_TO_STREAM(ptr, raw_metadata.data(), (int)raw_metadata.size());
+      log::verbose("Metadata size {}", static_cast<int>(pac.metadata.RawPacketSize()));
+      UINT8_TO_STREAM(ptr, pac.metadata.RawPacketSize());
+      if (pac.metadata.RawPacketSize() > 0) {
+        ARRAY_TO_STREAM(ptr, pac.metadata.RawPacket().data(), (int)pac.metadata.RawPacketSize());
       }
     }
   }
