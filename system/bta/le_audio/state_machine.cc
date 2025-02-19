@@ -572,6 +572,9 @@ public:
           group->PrintDebugState();
           StopStream(group);
           return false;
+        } else {
+          // Even stream is already configured for the context, update the metadata.
+          group->SetMetadataContexts(metadata_context_types);
         }
 
         /* All ASEs should aim to achieve target state */
@@ -588,6 +591,8 @@ public:
         if (!group->IsMetadataChanged(metadata_context_types, ccid_lists)) {
           return true;
         }
+
+        group->SetMetadataContexts(metadata_context_types);
 
         LeAudioDevice* leAudioDevice = group->GetFirstActiveDevice();
         if (!leAudioDevice) {
@@ -2325,8 +2330,8 @@ private:
   }
 
   void SetAseState(LeAudioDevice* leAudioDevice, struct ase* ase, AseState state) {
-    log::info("{} ({}), ase_id: {}, {} -> {}", leAudioDevice->address_, leAudioDevice->group_id_, ase->id, ToString(ase->state),
-              ToString(state));
+    log::info("{} ({}), ase_id: {}, {} -> {}", leAudioDevice->address_, leAudioDevice->group_id_,
+              ase->id, ToString(ase->state), ToString(state));
 
     log_history_->AddLogHistory(kLogStateMachineTag, leAudioDevice->group_id_,
                                 leAudioDevice->address_,

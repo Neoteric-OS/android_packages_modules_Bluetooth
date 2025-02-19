@@ -814,6 +814,12 @@ tBTM_STATUS BTM_SecBond(const RawAddress& bd_addr, tBLE_ADDR_TYPE addr_type,
       (transport == BT_TRANSPORT_BR_EDR && (dev_type & BT_DEVICE_TYPE_BREDR) == 0)) {
     log::warn("Requested transport and supported transport don't match");
   }
+
+  bluetooth::os::LogMetricBluetoothEvent(
+          ToGdAddress(bd_addr), android::bluetooth::EventType::TRANSPORT,
+          transport == BT_TRANSPORT_LE ? android::bluetooth::State::LE
+                                       : android::bluetooth::State::CLASSIC);
+
   return btm_sec_bond_by_transport(bd_addr, addr_type, transport);
 }
 
@@ -3553,8 +3559,13 @@ void btm_sec_encryption_change_evt(uint16_t handle, tHCI_STATUS status, uint8_t 
   if (com::android::bluetooth::flags::disconnect_on_encryption_failure()) {
     if (status != HCI_SUCCESS && encr_enable == 0) {
       log::error("Encryption failure {}, disconnecting {}", status, handle);
-      btm_sec_disconnect(handle, HCI_ERR_AUTH_FAILURE,
-                         "stack::btu::btu_hcif::encryption_change_evt Encryption Failure");
+      if (!com::android::bluetooth::flags::disconnect_reason_for_encryption_failure()) {
+        btm_sec_disconnect(handle, HCI_ERR_AUTH_FAILURE,
+                           "stack::btu::btu_hcif::encryption_change_evt Encryption Failure");
+      } else {
+        btm_sec_disconnect(handle, status,
+                           "stack::btu::btu_hcif::encryption_change_evt Encryption Failure");
+      }
     }
   }
   btm_acl_encrypt_change(handle, static_cast<tHCI_STATUS>(status), encr_enable);
