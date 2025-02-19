@@ -14,6 +14,12 @@
  * limitations under the License.
  */
 
+/*
+ * Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
+ * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
+ */
+
 package com.android.bluetooth.gatt;
 
 import static android.content.pm.PackageManager.FEATURE_BLUETOOTH_LE_CHANNEL_SOUNDING;
@@ -87,6 +93,7 @@ public class DistanceMeasurementManager {
         } else {
             mHasChannelSoundingFeature = true;
         }
+        if(mHasChannelSoundingFeature) {}
     }
 
     void cleanup() {
@@ -118,7 +125,8 @@ public class DistanceMeasurementManager {
                 new DistanceMeasurementMethod.Builder(
                                 DistanceMeasurementMethod.DISTANCE_MEASUREMENT_METHOD_RSSI)
                         .build());
-        if (mHasChannelSoundingFeature && mAdapterService.isLeChannelSoundingSupported()) {
+        
+        if (mAdapterService.isLeChannelSoundingSupported()) {
             methods.add(
                     new DistanceMeasurementMethod.Builder(
                                     DistanceMeasurementMethod
@@ -165,7 +173,7 @@ public class DistanceMeasurementManager {
         }
 
         DistanceMeasurementTracker tracker =
-                new DistanceMeasurementTracker(this, params, address, uuid, interval, callback);
+                new DistanceMeasurementTracker(this, params, address, uuid, interval, params.getFrequency(), callback);
 
         switch (params.getMethodId()) {
             case DistanceMeasurementMethod.DISTANCE_MEASUREMENT_METHOD_AUTO:
@@ -173,9 +181,16 @@ public class DistanceMeasurementManager {
                 startRssiTracker(tracker);
                 break;
             case DistanceMeasurementMethod.DISTANCE_MEASUREMENT_METHOD_CHANNEL_SOUNDING:
-                if (!mHasChannelSoundingFeature
-                        || !mAdapterService.isLeChannelSoundingSupported()) {
+                if (!mAdapterService.isLeChannelSoundingSupported()) {
                     Log.e(TAG, "Channel Sounding is not supported.");
+                    invokeStartFail(
+                            callback,
+                            params.getDevice(),
+                            BluetoothStatusCodes.FEATURE_NOT_SUPPORTED);
+                    return;
+                }
+                if (!mAdapterService.isConnected(params.getDevice())) {
+                    Log.e(TAG, "Device " + params.getDevice() + " is not connected");
                     invokeStartFail(
                             callback,
                             params.getDevice(),
@@ -221,6 +236,22 @@ public class DistanceMeasurementManager {
             Log.w(TAG, "Already registered");
             return;
         }
+	ChannelSoundingParams params = tracker.getChannelSoundingParams();
+	Log.i(TAG,
+                "startCsTracker device:"
+                        + tracker.mIdentityAddress
+                        + ", mSightType: "
+                        + params.getSightType()
+                        + " mLocationType "
+                        + params.getLocationType()
+			+ "mCsSecurityLevel"
+			+ params.getCsSecurityLevel()
+			+ "mFrequency" + tracker.mFrequency);
+	mDistanceMeasurementNativeInterface.setCsParams(tracker.mIdentityAddress,
+			params.getSightType(),
+			params.getLocationType(),
+			params.getCsSecurityLevel(),
+			tracker.mFrequency,tracker.mInterval);
         mDistanceMeasurementNativeInterface.startDistanceMeasurement(
                 tracker.mIdentityAddress,
                 tracker.mInterval,
@@ -257,14 +288,14 @@ public class DistanceMeasurementManager {
     }
 
     int getChannelSoundingMaxSupportedSecurityLevel(BluetoothDevice remoteDevice) {
-        if (mHasChannelSoundingFeature && mAdapterService.isLeChannelSoundingSupported()) {
+        if (mAdapterService.isLeChannelSoundingSupported()) {
             return ChannelSoundingParams.CS_SECURITY_LEVEL_ONE;
         }
         return ChannelSoundingParams.CS_SECURITY_LEVEL_UNKNOWN;
     }
 
     int getLocalChannelSoundingMaxSupportedSecurityLevel() {
-        if (mHasChannelSoundingFeature && mAdapterService.isLeChannelSoundingSupported()) {
+        if (mAdapterService.isLeChannelSoundingSupported()) {
             return ChannelSoundingParams.CS_SECURITY_LEVEL_ONE;
         }
         return ChannelSoundingParams.CS_SECURITY_LEVEL_UNKNOWN;
@@ -272,7 +303,7 @@ public class DistanceMeasurementManager {
 
     Set<Integer> getChannelSoundingSupportedSecurityLevels() {
         // TODO(b/378685103): get it from the HAL when level 4 is supported and HAL v2 is available.
-        if (mHasChannelSoundingFeature && mAdapterService.isLeChannelSoundingSupported()) {
+        if (mAdapterService.isLeChannelSoundingSupported()) {
             return Set.of(ChannelSoundingParams.CS_SECURITY_LEVEL_ONE);
         }
         throw new UnsupportedOperationException("Channel Sounding is not supported.");

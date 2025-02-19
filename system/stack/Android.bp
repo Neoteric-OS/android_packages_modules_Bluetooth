@@ -784,7 +784,7 @@ cc_test {
         "vendor.qti.hardware.bluetooth.audio-V1-ndk",
 	"vendor.qti.hardware.bluetooth_audio@2.1",
         "vendor.qti.hardware.bluetooth_audio@2.0",
-
+        "libxml2",
     ],
     static_libs: [
         "android.hardware.audio.common@5.0",
@@ -1763,6 +1763,7 @@ cc_test {
         "libcrypto",
         "libcutils",
         "server_configurable_flags",
+        "libxml2",
     ],
     sanitize: {
         address: true,
@@ -1813,6 +1814,7 @@ cc_test {
     ],
     shared_libs: [
         "libcrypto",
+        "libxml2",
     ],
     sanitize: {
         address: true,
@@ -1958,6 +1960,7 @@ cc_test {
         "libbinder",
         "libbinder_ndk",
         "libcrypto",
+        "libxml2",
     ],
     sanitize: {
         address: true,
@@ -2057,6 +2060,7 @@ cc_test {
         "libcrypto",
         "libcutils",
         "server_configurable_flags",
+        "libxml2",
     ],
     target: {
         android: {
@@ -2150,6 +2154,7 @@ cc_test {
         "libcrypto",
         "libcutils",
         "server_configurable_flags",
+        "libxml2",
     ],
     target: {
         android: {
@@ -2245,6 +2250,7 @@ cc_test {
         "libbinder_ndk",
         "libcrypto",
         "server_configurable_flags",
+        "libxml2",
     ],
     target: {
         android: {

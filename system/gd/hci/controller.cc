@@ -12,6 +12,10 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
+ * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
 #include "hci/controller.h"
@@ -97,10 +101,9 @@ struct Controller::impl {
                                 std::move(features_promise)));
     features_future.wait();
 
-    if (com::android::bluetooth::flags::channel_sounding_in_stack() &&
-        module_.SupportsBleChannelSounding()) {
-      le_set_event_mask(MaskLeEventMask(local_version_information_.hci_version_,
-                                        kDefaultLeEventMask | kLeCSEventMask));
+    if (com::android::bluetooth::flags::channel_sounding_in_stack() && module_.SupportsBleChannelSounding()) {
+      le_set_event_mask(MaskLeEventMask(
+          local_version_information_.hci_version_, kDefaultLeEventMask | kLeCSEventMask));
     } else {
       le_set_event_mask(
               MaskLeEventMask(local_version_information_.hci_version_, kDefaultLeEventMask));
@@ -231,8 +234,7 @@ struct Controller::impl {
               handler->BindOnceOn(this, &Controller::impl::le_set_host_feature_handler));
     }
 
-    if (com::android::bluetooth::flags::channel_sounding_in_stack() &&
-        module_.SupportsBleChannelSounding()) {
+    if (com::android::bluetooth::flags::channel_sounding_in_stack() && module_.SupportsBleChannelSounding()) {
       hci_->EnqueueCommand(
               LeSetHostFeatureBuilder::Create(LeHostFeatureBits::CHANNEL_SOUNDING_HOST_SUPPORT,
                                               Enable::ENABLED),

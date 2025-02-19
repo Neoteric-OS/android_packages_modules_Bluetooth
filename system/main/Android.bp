@@ -207,6 +207,7 @@ cc_test {
         "libbinder_ndk",
         "libcrypto",
         "server_configurable_flags",
+        "libxml2",
     ],
     sanitize: {
         address: true,
@@ -220,4 +221,5 @@ cc_test {
     },
     min_sdk_version: "Tiramisu",
     header_libs: ["libbluetooth_headers"],
+    cflags: ["-Wno-unused-parameter"],
 }
