@@ -1010,14 +1010,18 @@ public:
                                               kLogAfSuspendForReconfig + "LocalSource",
                                               "r_state: " + ToString(audio_receiver_state_) +
                                                       "s_state: " + ToString(audio_sender_state_));
-      le_audio_source_hal_client_->SuspendedForReconfiguration();
+      if(le_audio_source_hal_client_) {
+        le_audio_source_hal_client_->SuspendedForReconfiguration();
+      }
     }
     if (audio_receiver_state_ > AudioState::IDLE) {
       LeAudioLogHistory::Get()->AddLogHistory(kLogBtCallAf, active_group_id_, RawAddress::kEmpty,
                                               kLogAfSuspendForReconfig + "LocalSink",
                                               "r_state: " + ToString(audio_receiver_state_) +
                                                       "s_state: " + ToString(audio_sender_state_));
-      le_audio_sink_hal_client_->SuspendedForReconfiguration();
+      if(le_audio_sink_hal_client_) {
+        le_audio_sink_hal_client_->SuspendedForReconfiguration();
+      }
     }
     StartReconfigurationTimeout(active_group_id_);
   }
@@ -1028,21 +1032,25 @@ public:
                                               kLogAfReconfigComplete + "LocalSource",
                                               "r_state: " + ToString(audio_receiver_state_) +
                                                       "s_state: " + ToString(audio_sender_state_));
-
-      le_audio_source_hal_client_->ReconfigurationComplete();
+      if(le_audio_source_hal_client_) {
+        le_audio_source_hal_client_->ReconfigurationComplete();
+      }
     }
     if (directions & bluetooth::le_audio::types::kLeAudioDirectionSource) {
       LeAudioLogHistory::Get()->AddLogHistory(kLogBtCallAf, active_group_id_, RawAddress::kEmpty,
                                               kLogAfReconfigComplete + "LocalSink",
                                               "r_state: " + ToString(audio_receiver_state_) +
                                                       "s_state: " + ToString(audio_sender_state_));
-
-      le_audio_sink_hal_client_->ReconfigurationComplete();
+      if(le_audio_sink_hal_client_) {
+        le_audio_sink_hal_client_->ReconfigurationComplete();
+      }
     }
   }
 
   void CancelLocalAudioSourceStreamingRequest() {
-    le_audio_source_hal_client_->CancelStreamingRequest();
+    if(le_audio_source_hal_client_) {
+      le_audio_source_hal_client_->CancelStreamingRequest();
+    }
 
     LeAudioLogHistory::Get()->AddLogHistory(kLogBtCallAf, active_group_id_, RawAddress::kEmpty,
                                             kLogAfCancel + "LocalSource",
@@ -1052,7 +1060,9 @@ public:
   }
 
   void CancelLocalAudioSinkStreamingRequest() {
-    le_audio_sink_hal_client_->CancelStreamingRequest();
+    if(le_audio_sink_hal_client_) {
+      le_audio_sink_hal_client_->CancelStreamingRequest();
+    }
 
     LeAudioLogHistory::Get()->AddLogHistory(kLogBtCallAf, active_group_id_, RawAddress::kEmpty,
                                             kLogAfCancel + "LocalSink",
@@ -2671,6 +2681,7 @@ public:
 
       /* Guard consistency of PAC records structure */
       if (!bluetooth::le_audio::client_parser::pacs::ParsePacs(pac_recs, len, value)) {
+        log::error("Sink PACs corrupted");
         return;
       }
 
@@ -2699,6 +2710,7 @@ public:
 
       /* Guard consistency of PAC records structure */
       if (!bluetooth::le_audio::client_parser::pacs::ParsePacs(pac_recs, len, value)) {
+        log::error("Source PACs corrupted");
         return;
       }
 
@@ -3981,7 +3993,10 @@ public:
     auto group_metadata_contexts = get_bidirectional(group->GetMetadataContexts());
     auto device_available_contexts = leAudioDevice->GetAvailableContexts();
     if (!group_metadata_contexts.test_any(device_available_contexts)) {
-      log::info("{} does is not have required context type", leAudioDevice->address_);
+      log::info(
+              "{} does not have required context type. Group Context type: {}, device available {}",
+              leAudioDevice->address_, common::ToString(group_metadata_contexts),
+              common::ToString(device_available_contexts));
       return;
     }
 
@@ -4507,7 +4522,9 @@ public:
   }
 
   void ConfirmLocalAudioSourceStreamingRequest(bool force) {
-    le_audio_source_hal_client_->ConfirmStreamingRequest(force);
+    if(le_audio_source_hal_client_) {
+      le_audio_source_hal_client_->ConfirmStreamingRequest(force);
+    }
 
     LeAudioLogHistory::Get()->AddLogHistory(
             kLogBtCallAf, active_group_id_, RawAddress::kEmpty, kLogAfResumeConfirm + "LocalSource",
@@ -4517,7 +4534,9 @@ public:
   }
 
   void ConfirmLocalAudioSinkStreamingRequest(bool force) {
-    le_audio_sink_hal_client_->ConfirmStreamingRequest(force);
+    if(le_audio_sink_hal_client_) {
+      le_audio_sink_hal_client_->ConfirmStreamingRequest(force);
+    }
 
     LeAudioLogHistory::Get()->AddLogHistory(
             kLogBtCallAf, active_group_id_, RawAddress::kEmpty, kLogAfResumeConfirm + "LocalSink",
@@ -6353,9 +6372,9 @@ public:
       index++;
     }
 
-    if (handles.num_attr - 1 != index) {
+    if (handles.num_attr != index) {
       log::warn("Attempted to read {} handles, but received just {} values", +handles.num_attr,
-                index + 1);
+                index);
     }
   }
 
