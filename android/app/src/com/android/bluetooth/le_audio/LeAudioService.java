@@ -2755,12 +2755,6 @@ public class LeAudioService extends ProfileService {
                 return false;
             }
             headsetService.setActiveDevice(null);
-
-            A2dpService a2dpservice = mServiceFactory.getA2dpService();
-            if (a2dpservice != null) {
-                Log.d(TAG, "a2dp setActiveDevice -> null");
-                a2dpservice.setActiveDevice(null);
-            }
         }
 
         return setActiveGroupWithDevice(device, false);
