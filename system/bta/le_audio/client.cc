@@ -2030,7 +2030,7 @@ public:
                                            bluetooth::le_audio::types::kLeAudioDirectionSource);
 
       // Below to ensure CIS termination before updating to app about inactive.
-      if (group->GetState() != AseState::BTA_LE_AUDIO_ASE_STATE_IDLE) {
+      if (!group->IsReleasingOrIdle()) {
         defer_notify_inactive_until_stop_ = true;
         // Race condition between Reconfigure(due to, MetadataUpdate)
         // and groupsetactive to null
@@ -2151,7 +2151,7 @@ public:
       active_group_id_ = group_id;
       LeAudioDeviceGroup* prev_group = aseGroups_.FindById(previous_active_group);
       log::info("switch group A to group B");
-      if (prev_group && prev_group->GetState() != AseState::BTA_LE_AUDIO_ASE_STATE_IDLE) {
+      if (prev_group && !prev_group->IsReleasingOrIdle()) {
         log::info("Previous group current state {}", ToString(prev_group->GetState()));
         defer_notify_inactive_until_stop_ = true;
         defer_notify_active_until_stop_ = true;
@@ -7043,7 +7043,7 @@ public:
            */
           log::error("Internal state machine error for group {}", group_id);
           group->PrintDebugState();
-          if (group->GetState() != AseState::BTA_LE_AUDIO_ASE_STATE_IDLE) {
+          if (!group->IsReleasingOrIdle()) {
             defer_notify_inactive_until_stop_ = true;
           }
           groupSetAndNotifyInactive();
