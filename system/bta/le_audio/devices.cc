@@ -427,33 +427,35 @@ bool LeAudioDevice::ConfigureAses(const types::AudioSetConfiguration* audio_set_
 
       uint32_t audio_location =
               PickAudioLocation(strategy, audio_locations, group_audio_locations_memo);
-      if (ase->codec_config.id.coding_format == types::kLeAudioCodingFormatLC3) {
-        /* Let's choose audio channel allocation if not set */
-        ase->codec_config.params.Add(codec_spec_conf::kLeAudioLtvTypeAudioChannelAllocation,
-                              audio_location);
+      if (!CodecManager::GetInstance()->IsUsingCodecExtensibility()) {
+        if (ase->codec_config.id.coding_format == types::kLeAudioCodingFormatLC3) {
+          /* Let's choose audio channel allocation if not set */
+          ase->codec_config.params.Add(codec_spec_conf::kLeAudioLtvTypeAudioChannelAllocation,
+                                audio_location);
 
-        /* Get default value if no requirement for specific frame blocks per sdu
-         */
-        if (!ase->codec_config.params.Find(codec_spec_conf::kLeAudioLtvTypeCodecFrameBlocksPerSdu)) {
-          ase->codec_config.params.Add(
-                  codec_spec_conf::kLeAudioLtvTypeCodecFrameBlocksPerSdu,
-                  GetMaxCodecFramesPerSduFromPac(utils::GetConfigurationSupportedPac(
-                          pacs, ase_cfg.codec, ase_cfg.vendor_metadata, context_type)));
+          /* Get default value if no requirement for specific frame blocks per sdu
+           */
+          if (!ase->codec_config.params.Find(codec_spec_conf::kLeAudioLtvTypeCodecFrameBlocksPerSdu)) {
+            ase->codec_config.params.Add(
+                    codec_spec_conf::kLeAudioLtvTypeCodecFrameBlocksPerSdu,
+                    GetMaxCodecFramesPerSduFromPac(utils::GetConfigurationSupportedPac(
+                            pacs, ase_cfg.codec, ase_cfg.vendor_metadata, context_type)));
+          }
+        } else if (ase->codec_config.id.coding_format == types::kLeAudioCodingFormatVendorSpecific &&
+                   (ase->codec_config.id.vendor_codec_id == types::kLeAudioCodingFormatAptxLe ||
+                    ase->codec_config.id.vendor_codec_id == types::kLeAudioCodingFormatAptxLeX)) {
+          /* Let's choose audio channel allocation if not set */
+          ase->codec_config.params.Add(codec_spec_conf::qcom_codec_spec_conf::
+                                        kLeAudioCodecAptxLeTypeAudioChannelAllocation,
+                                audio_location);
+          uint8_t len = sizeof(audio_location) + 1;
+          uint8_t type = codec_spec_conf::qcom_codec_spec_conf::
+                  kLeAudioCodecAptxLeTypeAudioChannelAllocation;
+          ase->codec_config.vendor_params.insert(ase->codec_config.vendor_params.end(), &len, &len + 1);
+          ase->codec_config.vendor_params.insert(ase->codec_config.vendor_params.end(), &type, &type + 1);
+          ase->codec_config.vendor_params.insert(ase->codec_config.vendor_params.end(), ((uint8_t*)&audio_location),
+                                          ((uint8_t*)&audio_location) + sizeof(uint32_t));
         }
-      } else if (ase->codec_config.id.coding_format == types::kLeAudioCodingFormatVendorSpecific &&
-                 (ase->codec_config.id.vendor_codec_id == types::kLeAudioCodingFormatAptxLe ||
-                  ase->codec_config.id.vendor_codec_id == types::kLeAudioCodingFormatAptxLeX)) {
-        /* Let's choose audio channel allocation if not set */
-        ase->codec_config.params.Add(codec_spec_conf::qcom_codec_spec_conf::
-                                      kLeAudioCodecAptxLeTypeAudioChannelAllocation,
-                              audio_location);
-        uint8_t len = sizeof(audio_location) + 1;
-        uint8_t type = codec_spec_conf::qcom_codec_spec_conf::
-                kLeAudioCodecAptxLeTypeAudioChannelAllocation;
-        ase->codec_config.vendor_params.insert(ase->codec_config.vendor_params.end(), &len, &len + 1);
-        ase->codec_config.vendor_params.insert(ase->codec_config.vendor_params.end(), &type, &type + 1);
-        ase->codec_config.vendor_params.insert(ase->codec_config.vendor_params.end(), ((uint8_t*)&audio_location),
-                                        ((uint8_t*)&audio_location) + sizeof(uint32_t));
       }
 
       ase->qos_config.sdu_interval = ase_cfg.qos.sduIntervalUs;
