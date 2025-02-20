@@ -96,13 +96,6 @@ static void abort_after_time_out(OpCode op_code) {
   kill(getpid(), SIGKILL);
 }
 
-struct monitor_command {
-  unsigned int lapsed_timeout;
-  unsigned int no_packets_rx;
-  unsigned int prev_no_packets;
-  bool is_monitor_enabled;
-};
-
 class CommandQueueEntry {
 public:
   enum class WaitingFor { STATUS, COMPLETE, STATUS_OR_COMPLETE };
@@ -310,10 +303,11 @@ struct HciLayer::impl {
       {
         log::warn("Stop monitoring events!");
         std::unique_lock<std::mutex> lock(module_.monitor_cmd_stats);
-        module_.cmd_stats->no_packets_rx = 0;
-        module_.cmd_stats->prev_no_packets = 0;
-        module_.cmd_stats->lapsed_timeout = 0;
-        module_.cmd_stats->is_monitor_enabled = false;
+        memset(&module_.cmd_stats, 0, sizeof(struct monitor_command));
+        module_.cmd_stats.no_packets_rx = 0;
+        module_.cmd_stats.prev_no_packets = 0;
+        module_.cmd_stats.lapsed_timeout = 0;
+        module_.cmd_stats.is_monitor_enabled = false;
       }
       send_next_command();
     }
@@ -336,17 +330,17 @@ struct HciLayer::impl {
     // Dynamically increase timeout if applicable.
     {
       std::unique_lock<std::mutex> lock(module_.monitor_cmd_stats);
-      if (module_.cmd_stats && module_.cmd_stats->is_monitor_enabled && module_.cmd_stats->no_packets_rx > 0 &&
-          module_.cmd_stats->no_packets_rx > module_.cmd_stats->prev_no_packets &&
-          module_.cmd_stats->lapsed_timeout < MAX_CMD_TIMEOUT && hci_timeout_alarm_ != nullptr){
-        unsigned int curr_no_packets = module_.cmd_stats->no_packets_rx - module_.cmd_stats->prev_no_packets;
-        module_.cmd_stats->prev_no_packets = module_.cmd_stats->no_packets_rx;
-        unsigned int remaining_time = MAX_CMD_TIMEOUT - module_.cmd_stats->lapsed_timeout;
+      if (module_.cmd_stats.is_monitor_enabled && module_.cmd_stats.no_packets_rx > 0 &&
+          module_.cmd_stats.no_packets_rx > module_.cmd_stats.prev_no_packets &&
+          module_.cmd_stats.lapsed_timeout < MAX_CMD_TIMEOUT && hci_timeout_alarm_ != nullptr){
+        unsigned int curr_no_packets = module_.cmd_stats.no_packets_rx - module_.cmd_stats.prev_no_packets;
+        module_.cmd_stats.prev_no_packets = module_.cmd_stats.no_packets_rx;
+        unsigned int remaining_time = MAX_CMD_TIMEOUT - module_.cmd_stats.lapsed_timeout;
         unsigned int timeout = (unsigned int) (curr_no_packets * INC_TIMEOUT_THRESHOLD);
         timeout = timeout > remaining_time ? remaining_time : timeout;
         log::warn("Waiting commands : {}, total no of packet rx: {}, lapsed timeout: {}, new timeout: {}",
-            command_queue_.size(), module_.cmd_stats->no_packets_rx, module_.cmd_stats->lapsed_timeout, timeout);
-        module_.cmd_stats->lapsed_timeout += timeout;
+            command_queue_.size(), module_.cmd_stats.no_packets_rx, module_.cmd_stats.lapsed_timeout, timeout);
+        module_.cmd_stats.lapsed_timeout += timeout;
         std::chrono::milliseconds new_timeout = std::chrono::milliseconds(timeout);
         hci_timeout_alarm_->Schedule(BindOnce(&impl::on_hci_timeout, common::Unretained(this), op_code), new_timeout);
         return;
@@ -405,15 +399,16 @@ struct HciLayer::impl {
     waiting_command_ = op_code;
     command_credits_ = 0;  // Only allow one outstanding command
     if (hci_timeout_alarm_ != nullptr) {
-      hci_timeout_alarm_->Schedule(BindOnce(&impl::on_hci_timeout, common::Unretained(this), op_code), kHciTimeoutMs);
+      hci_timeout_alarm_->Schedule(BindOnce(&impl::on_hci_timeout, common::Unretained(this), op_code), getHciTimeoutMs());
       // Start monitoring incoming events.
       {
+        log::warn("Start monitoring events!");
         std::unique_lock<std::mutex> lock(module_.monitor_cmd_stats);
-        module_.cmd_stats = new monitor_command;
-        module_.cmd_stats->no_packets_rx = 0;
-        module_.cmd_stats->prev_no_packets = 0;
-        module_.cmd_stats->lapsed_timeout = COMMAND_PENDING_TIMEOUT;
-        module_.cmd_stats->is_monitor_enabled = true;
+        memset(&module_.cmd_stats, 0, sizeof(struct monitor_command));
+        module_.cmd_stats.no_packets_rx = 0;
+        module_.cmd_stats.prev_no_packets = 0;
+        module_.cmd_stats.lapsed_timeout = COMMAND_PENDING_TIMEOUT;
+        module_.cmd_stats.is_monitor_enabled = true;
       }
     } else {
       log::warn("{} sent without an hci-timeout timer", OpCodeText(op_code));
@@ -698,8 +693,8 @@ struct HciLayer::hal_callbacks : public hal::HciHalCallbacks {
 
   void inc_rx_packet_counter() {
     std::unique_lock<std::mutex> lock(module_.monitor_cmd_stats);
-    if (module_.cmd_stats && module_.cmd_stats->is_monitor_enabled) {
-      module_.cmd_stats->no_packets_rx++;
+    if (module_.cmd_stats.is_monitor_enabled) {
+      module_.cmd_stats.no_packets_rx++;
     }
   }
 
@@ -1019,6 +1014,7 @@ void HciLayer::Start() {
   life_cycle_stopped = false;
 
   Handler* handler = GetHandler();
+  memset(&cmd_stats, 0, sizeof(struct monitor_command));
   impl_->acl_queue_.GetDownEnd()->RegisterDequeue(handler,
                                                   BindOn(impl_, &impl::on_outbound_acl_ready));
   impl_->sco_queue_.GetDownEnd()->RegisterDequeue(handler,
