@@ -919,8 +919,10 @@ void Device::RejectNotification() {
 void Device::GetPlayStatusResponse(uint8_t label, PlayStatus status) {
   log::verbose("position={} duration={} state={}", status.position, status.duration, status.state);
   if(fast_forwarding_) {
+    log::verbose("fast forwarding");
     status.state = PlayState::FWD_SEEK;
   } else if(fast_rewinding_) {
+    log::verbose("fast rewinding");
     status.state = PlayState::REV_SEEK;
   }
   auto response = GetPlayStatusResponseBuilder::MakeBuilder(
@@ -1924,6 +1926,7 @@ void Device::PlayerSettingChangedNotificationResponse(uint8_t label, bool interi
 void Device::HandleNowPlayingNotificationResponse(uint8_t label, bool interim,
                                                   std::string /*curr_song_id*/,
                                                   std::vector<SongInfo> song_list) {
+  log::verbose("");
   if (interim) {
     now_playing_changed_ = Notification(true, label);
   } else if (!now_playing_changed_.first) {
