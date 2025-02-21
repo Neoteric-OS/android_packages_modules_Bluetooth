@@ -627,6 +627,8 @@ int ParseSinglePac(std::vector<struct acs_ac_record>& pac_recs, uint16_t len,
   TestLeXPacRecords(const_cast<uint8_t*>(value), rec.codec_id.vendor_codec_id);
 
   if (!rec.metadata.Parse(value, metadata_len)) {
+    log::error("PAC record contains corrupted LTV formatted metadata: {}",
+               base::HexEncode(value, metadata_len));
     return -1;
   }
   value += metadata_len;
