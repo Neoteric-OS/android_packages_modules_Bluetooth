@@ -1139,7 +1139,7 @@ class BluetoothManagerService {
             bleOnToOff();
             return;
         }
-        if (isBluetoothPersistedStateOnBluetooth() || !isBleAppPresent()) {
+        if (isBluetoothPersistedStateOn() || !isBleAppPresent()) {
             Log.i(TAG, "continueFromBleOnState: Starting br edr");
             // This triggers transition to STATE_ON
             bleOnToOn();
