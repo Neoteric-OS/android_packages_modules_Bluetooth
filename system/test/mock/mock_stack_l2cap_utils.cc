@@ -18,7 +18,7 @@
  * Generated mock file from original source file
  *   Functions generated:72
  */
-
+#ifndef MOCK_CERT_TEST
 #include <cstdint>
 
 #include "stack/include/bt_hdr.h"
@@ -240,3 +240,6 @@ void l2cu_set_non_flushable_pbf(bool /* is_supported */) { inc_func_call_count(_
 void l2cu_update_lcb_4_bonding(const RawAddress& /* p_bd_addr */, bool /* is_bonding */) {
   inc_func_call_count(__func__);
 }
+
+
+#endif
