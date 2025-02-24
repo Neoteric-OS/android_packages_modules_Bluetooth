@@ -188,6 +188,7 @@ GetAidlCodecSpecificConfigurationFromStack(
 }
 
 std::optional<std::vector<std::optional<::aidl::android::hardware::bluetooth::audio::MetadataLtv>>>
+
 GetAidlMetadataFromStackFormat(const ::bluetooth::le_audio::types::LeAudioLtvMap& ltvs) {
   if (ltvs.Size() == 0) {
     return std::nullopt;
@@ -295,6 +296,24 @@ GetAidlLeAudioDeviceCapabilitiesFromStackFormat(
                       : std::optional<std::vector<std::optional<
                                 ::aidl::android::hardware::bluetooth::audio::
                                         IBluetoothAudioProvider::LeAudioDeviceCapabilities>>>(caps);
+}
+
+::aidl::android::hardware::bluetooth::audio::LeAudioAseConfiguration
+GetAidlLeAudioAseConfigurationFromStackFormat(
+        const ::bluetooth::le_audio::types::CodecConfigSetting& codec_config,
+        uint8_t target_latency, uint8_t target_phy,
+        const ::bluetooth::le_audio::types::LeAudioLtvMap& metadata) {
+  ::aidl::android::hardware::bluetooth::audio::LeAudioAseConfiguration ase_config;
+
+  ase_config.targetLatency =
+          ::aidl::android::hardware::bluetooth::audio::LeAudioAseConfiguration::TargetLatency(
+                  target_latency);
+  ase_config.targetPhy = static_cast<::aidl::android::hardware::bluetooth::audio::Phy>(target_phy);
+  ase_config.codecId = GetAidlCodecIdFromStackFormat(codec_config.id);
+  ase_config.codecConfiguration = GetAidlCodecSpecificConfigurationFromStack(codec_config.params);
+  ase_config.vendorCodecConfiguration = codec_config.vendor_params;
+  ase_config.metadata = GetAidlMetadataFromStackFormat(metadata);
+  return ase_config;
 }
 
 ::bluetooth::le_audio::types::LeAudioLtvMap GetStackLeAudioLtvMapFromAidlFormat(
@@ -570,6 +589,42 @@ static ::bluetooth::le_audio::types::CodecConfigSetting GetCodecConfigSettingFro
   return stack_config;
 }
 
+static ::bluetooth::le_audio::types::CodecMetadataSetting GetCodecMetadataSettingFromAidl(
+        const std::optional<::aidl::android::hardware::bluetooth::audio::LeAudioAseConfiguration>&
+                ase_config) {
+  auto metadata_config = ::bluetooth::le_audio::types::CodecMetadataSetting();
+
+  if (ase_config.has_value()) {
+    if (ase_config.value().metadata.has_value()) {
+      auto chosen_codec_config_metadata = ase_config.value().metadata.value();
+      log::debug(": chosen_codec_config_metadata size: {}", chosen_codec_config_metadata.size());
+      for (auto &metadata : chosen_codec_config_metadata) {
+        if (metadata.value().getTag() ==
+                       ::aidl::android::hardware::bluetooth::audio::MetadataLtv::vendorSpecific) {
+           auto cfg_vendor_metadata = metadata.value().get<
+                      ::aidl::android::hardware::bluetooth::audio::MetadataLtv::vendorSpecific>();
+          log::debug(": cfg_vendor_metadata.companyId: {}", cfg_vendor_metadata.companyId);
+
+          if (cfg_vendor_metadata.companyId != 0) {
+            //No need to go for next vendorSpecific metadataLtv,
+            //as it has  config name only to debug
+            log::debug(": valid vendor codec specific Metadata exist.");
+            metadata_config.vendor_company_id = cfg_vendor_metadata.companyId;
+            metadata_config.vendor_metadata_type = cfg_vendor_metadata.opaqueValue[0];
+            int len =
+              sizeof(cfg_vendor_metadata.opaqueValue) / sizeof(cfg_vendor_metadata.opaqueValue[0]);
+            metadata_config.vs_metadata.insert(metadata_config.vs_metadata.begin(),
+                                                  cfg_vendor_metadata.opaqueValue.begin() + 1,
+                                                  cfg_vendor_metadata.opaqueValue.end());
+            break;
+          }
+        }
+      }
+    }
+  }
+  return metadata_config;
+}
+
 ::bluetooth::le_audio::types::DataPathConfiguration GetStackDataPathFromAidlFormat(
         const ::aidl::android::hardware::bluetooth::audio::IBluetoothAudioProvider::
                 LeAudioDataPathConfiguration& dp) {
@@ -623,6 +678,9 @@ static ::bluetooth::le_audio::types::AseConfiguration GetStackAseConfigurationFr
                                       stack_qos);
   if (source.dataPathConfiguration.has_value()) {
     config.data_path_configuration = GetStackDataPathFromAidlFormat(*source.dataPathConfiguration);
+  }
+  if (source.aseConfiguration.metadata.has_value()) {
+    config.metadata = GetStackMetadataFromAidlFormat(*source.aseConfiguration.metadata);
   }
   return config;
 }

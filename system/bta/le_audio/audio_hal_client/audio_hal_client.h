@@ -123,6 +123,7 @@ public:
   virtual std::optional<::bluetooth::le_audio::types::AudioSetConfiguration> GetUnicastConfig(
           const CodecManager::UnicastConfigurationRequirements& requirements) const = 0;
 
+
   virtual ::bluetooth::le_audio::types::VendorDataPathConfiguration
   GetVendorConfigureDataPathPayload(std::vector<uint16_t> conn_handles,
              ::bluetooth::le_audio::types::LeAudioContextType context_type,

@@ -128,9 +128,9 @@ public:
                     subgroup_quality,
             const std::optional<std::vector<::bluetooth::le_audio::types::acs_ac_record>>& pacs)
             const;
-    std::optional<::bluetooth::le_audio::types::AudioSetConfiguration> GetUnicastConfig(
-            const ::bluetooth::le_audio::CodecManager::UnicastConfigurationRequirements&
-                    requirements) const;
+    std::optional<::bluetooth::le_audio::types::AudioSetConfiguration>
+    GetUnicastConfig(const ::bluetooth::le_audio::CodecManager::UnicastConfigurationRequirements&
+                             requirements) const;
     ::bluetooth::le_audio::types::VendorDataPathConfiguration
            GetVendorConfigureDataPathPayload(
                     std::vector<uint16_t> conn_handles,

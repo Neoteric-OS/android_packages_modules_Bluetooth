@@ -1597,8 +1597,7 @@ bool CheckIfStrategySupported(types::LeAudioConfigurationStrategy strategy,
  */
 bool LeAudioDeviceGroup::IsAudioSetConfigurationSupported(
         const CodecManager::UnicastConfigurationRequirements& requirements,
-        const types::AudioSetConfiguration* audio_set_conf,
-        bool use_preference) const {
+        const types::AudioSetConfiguration* audio_set_conf, bool use_preference) const {
   if (requirements.audio_context_type == LeAudioContextType::LIVE) {
     if (audio_set_conf->confs.get(types::kLeAudioDirectionSink).size() &&
         audio_set_conf->confs.get(types::kLeAudioDirectionSource).size()) {
@@ -1911,8 +1910,8 @@ bool LeAudioDeviceGroup::ConfigureAses(
   return true;
 }
 
-std::shared_ptr<const types::AudioSetConfiguration> LeAudioDeviceGroup::GetCachedConfiguration(
-        LeAudioContextType context_type) const {
+std::shared_ptr<const types::AudioSetConfiguration>
+LeAudioDeviceGroup::GetCachedConfiguration(LeAudioContextType context_type) const {
   log::info("context_type: {}", ToHexString(context_type));
   if (context_to_configuration_cache_map_.count(context_type) != 0) {
     return context_to_configuration_cache_map_.at(context_type).second;
@@ -1942,8 +1941,8 @@ void LeAudioDeviceGroup::DisableLeXCodec(bool status) {
   lex_codec_disabled.second = true;
 }
 
-std::shared_ptr<const types::AudioSetConfiguration> LeAudioDeviceGroup::GetConfiguration(
-        LeAudioContextType context_type) const {
+std::shared_ptr<const types::AudioSetConfiguration>
+LeAudioDeviceGroup::GetConfiguration(LeAudioContextType context_type) const {
   log::info("context_type: {}", ToHexString(context_type));
   if (context_type == LeAudioContextType::UNINITIALIZED) {
     return nullptr;
