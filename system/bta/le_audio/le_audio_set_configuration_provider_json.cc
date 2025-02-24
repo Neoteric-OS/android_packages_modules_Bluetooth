@@ -208,7 +208,7 @@ private:
   void SetConfigurationFromFlatSubconfig(
           const fbs::le_audio::AudioSetSubConfiguration* flat_subconfig, QosConfigSetting qos,
           std::vector<AseConfiguration>& subconfigs, types::CodecLocation location,
-          CodecMetadataSetting metadata) {
+          types::CodecMetadataSetting metadata) {
     auto codec_config = CodecConfigSettingFromFlat(
             flat_subconfig->codec_id(), flat_subconfig->max_sdu(), flat_subconfig->iso_interval(),
             flat_subconfig->codec_configuration());
