@@ -2230,9 +2230,6 @@ public class LeAudioServiceTest {
     /** Test volume setting for broadcast sink devices */
     @Test
     public void testSetVolumeForBroadcastSinks() {
-        mSetFlagsRule.enableFlags(Flags.FLAG_LEAUDIO_BROADCAST_VOLUME_CONTROL_WITH_SET_VOLUME);
-        mSetFlagsRule.enableFlags(Flags.FLAG_LEAUDIO_BROADCAST_VOLUME_CONTROL_PRIMARY_GROUP_ONLY);
-
         int groupId = 1;
         int groupId2 = 2;
         int volume = 100;
