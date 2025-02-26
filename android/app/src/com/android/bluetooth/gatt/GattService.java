@@ -398,7 +398,6 @@ public class GattService extends ProfileService {
                     service, null, "GattService startService")) {
                 return;
             }
-            service.start();
         }
 
         @Override
