@@ -23,6 +23,8 @@ package android.bluetooth.le;
 import static android.Manifest.permission.BLUETOOTH_ADVERTISE;
 import static android.Manifest.permission.BLUETOOTH_PRIVILEGED;
 
+import static java.util.Objects.requireNonNull;
+
 import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.annotation.RequiresNoPermission;
@@ -47,7 +49,6 @@ import android.util.Log;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 
 /**
  * This class provides a way to perform Bluetooth LE advertise operations, such as starting and
@@ -91,7 +92,7 @@ public final class BluetoothLeAdvertiser {
      * @hide
      */
     public BluetoothLeAdvertiser(BluetoothAdapter bluetoothAdapter) {
-        mBluetoothAdapter = Objects.requireNonNull(bluetoothAdapter);
+        mBluetoothAdapter = requireNonNull(bluetoothAdapter);
         mAttributionSource = mBluetoothAdapter.getAttributionSource();
         mHandler = new Handler(Looper.getMainLooper());
     }

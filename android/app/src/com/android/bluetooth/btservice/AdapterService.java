@@ -709,16 +709,12 @@ public class AdapterService extends Service {
         mBluetoothKeystoreService.initJni();
 
         mBluetoothQualityReportNativeInterface =
-                requireNonNull(
-                        BluetoothQualityReportNativeInterface.getInstance(),
-                        "BluetoothQualityReportNativeInterface cannot be null when BQR starts");
+                requireNonNull(BluetoothQualityReportNativeInterface.getInstance());
         mBluetoothQualityReportNativeInterface.init();
 
         if (Flags.hciVendorSpecificExtension()) {
             mBluetoothHciVendorSpecificNativeInterface =
-                    requireNonNull(
-                            mBluetoothHciVendorSpecificNativeInterface.getInstance(),
-                            "mBluetoothHciVendorSpecificNativeInterface cannot be null");
+                    requireNonNull(mBluetoothHciVendorSpecificNativeInterface.getInstance());
             mBluetoothHciVendorSpecificNativeInterface.init(mBluetoothHciVendorSpecificDispatcher);
         }
 
@@ -1607,7 +1603,6 @@ public class AdapterService extends Service {
             Log.d(TAG, logHdr + " stopping profile");
             profileService.setAvailable(false);
             onProfileServiceStateChanged(profileService, BluetoothAdapter.STATE_OFF);
-            profileService.stop();
             removeProfile(profileService);
             profileService.cleanup();
             if (profileService.getBinder() != null) {
@@ -6113,9 +6108,6 @@ public class AdapterService extends Service {
     }
 
     void logUserBondResponse(BluetoothDevice device, boolean accepted, AttributionSource source) {
-        if (accepted) {
-            return;
-        }
         final long token = Binder.clearCallingIdentity();
         try {
             MetricsLogger.getInstance()
@@ -6123,7 +6115,11 @@ public class AdapterService extends Service {
                             device,
                             BluetoothStatsLog
                                     .BLUETOOTH_CROSS_LAYER_EVENT_REPORTED__EVENT_TYPE__USER_CONF_REQUEST,
-                            BluetoothStatsLog.BLUETOOTH_CROSS_LAYER_EVENT_REPORTED__STATE__FAIL,
+                            accepted
+                                    ? BluetoothStatsLog
+                                            .BLUETOOTH_CROSS_LAYER_EVENT_REPORTED__STATE__SUCCESS
+                                    : BluetoothStatsLog
+                                            .BLUETOOTH_CROSS_LAYER_EVENT_REPORTED__STATE__FAIL,
                             source.getUid());
         } finally {
             Binder.restoreCallingIdentity(token);

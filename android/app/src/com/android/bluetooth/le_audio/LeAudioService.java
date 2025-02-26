@@ -3686,7 +3686,7 @@ public class LeAudioService extends ProfileService {
             int groupId = stackEvent.valueInt1;
             int nodeStatus = stackEvent.valueInt2;
 
-            Objects.requireNonNull(stackEvent.device);
+            requireNonNull(stackEvent.device);
 
             switch (nodeStatus) {
                 case LeAudioStackEvent.GROUP_NODE_ADDED:
@@ -3852,7 +3852,7 @@ public class LeAudioService extends ProfileService {
                 mGroupReadLock.unlock();
             }
         } else if (stackEvent.type == LeAudioStackEvent.EVENT_TYPE_SINK_AUDIO_LOCATION_AVAILABLE) {
-            Objects.requireNonNull(stackEvent.device);
+            requireNonNull(stackEvent.device);
 
             int sink_audio_location = stackEvent.valueInt1;
 
@@ -6032,29 +6032,16 @@ public class LeAudioService extends ProfileService {
                     return;
                 }
 
-                if (Flags.leaudioBroadcastDestroyAfterTimeout()) {
-                    LeAudioBroadcastSessionStats sessionStats =
-                            mBroadcastSessionStats.get(mBroadcastId);
-                    if (sessionStats != null) {
-                        sessionStats.updateSessionStatus(
-                                BluetoothStatsLog
-                                        .BROADCAST_AUDIO_SESSION_REPORTED__SESSION_SETUP_STATUS__SETUP_STATUS_STREAMING_FAILED);
-                        // log once destroyed
-                    }
-                    transitionFromBroadcastToUnicast();
-                    destroyBroadcast(mBroadcastId);
-                } else {
-                    if (mActiveBroadcastAudioDevice != null) {
-                        updateBroadcastActiveDevice(null, mActiveBroadcastAudioDevice, false);
-                    }
-
-                    mHandler.post(
-                            () -> notifyBroadcastStartFailed(BluetoothStatusCodes.ERROR_TIMEOUT));
-                    logBroadcastSessionStatsWithStatus(
-                            mBroadcastId,
+                LeAudioBroadcastSessionStats sessionStats =
+                        mBroadcastSessionStats.get(mBroadcastId);
+                if (sessionStats != null) {
+                    sessionStats.updateSessionStatus(
                             BluetoothStatsLog
                                     .BROADCAST_AUDIO_SESSION_REPORTED__SESSION_SETUP_STATUS__SETUP_STATUS_STREAMING_FAILED);
+                    // log once destroyed
                 }
+                transitionFromBroadcastToUnicast();
+                destroyBroadcast(mBroadcastId);
             }
         }
     }
@@ -6098,7 +6085,7 @@ public class LeAudioService extends ProfileService {
 
         @RequiresPermission(BLUETOOTH_CONNECT)
         private LeAudioService getServiceAndEnforceConnect(AttributionSource source) {
-            Objects.requireNonNull(source);
+            requireNonNull(source);
             // Cache mService because it can change while getService is called
             LeAudioService service = mService;
 
@@ -6131,8 +6118,8 @@ public class LeAudioService extends ProfileService {
 
         @Override
         public boolean connect(BluetoothDevice device, AttributionSource source) {
-            Objects.requireNonNull(device, "device cannot be null");
-            Objects.requireNonNull(source, "source cannot be null");
+            requireNonNull(device);
+            requireNonNull(source);
 
             LeAudioService service = getServiceAndEnforceConnect(source);
             if (service == null) {
@@ -6144,8 +6131,8 @@ public class LeAudioService extends ProfileService {
 
         @Override
         public boolean disconnect(BluetoothDevice device, AttributionSource source) {
-            Objects.requireNonNull(device, "device cannot be null");
-            Objects.requireNonNull(source, "source cannot be null");
+            requireNonNull(device);
+            requireNonNull(source);
 
             LeAudioService service = getServiceAndEnforceConnect(source);
             if (service == null) {
@@ -6157,7 +6144,7 @@ public class LeAudioService extends ProfileService {
 
         @Override
         public List<BluetoothDevice> getConnectedDevices(AttributionSource source) {
-            Objects.requireNonNull(source, "source cannot be null");
+            requireNonNull(source);
 
             LeAudioService service = getServiceAndEnforceConnect(source);
             if (service == null) {
@@ -6169,7 +6156,7 @@ public class LeAudioService extends ProfileService {
 
         @Override
         public BluetoothDevice getConnectedGroupLeadDevice(int groupId, AttributionSource source) {
-            Objects.requireNonNull(source, "source cannot be null");
+            requireNonNull(source);
 
             LeAudioService service = getServiceAndEnforceConnect(source);
             if (service == null) {
@@ -6182,7 +6169,7 @@ public class LeAudioService extends ProfileService {
         @Override
         public List<BluetoothDevice> getDevicesMatchingConnectionStates(
                 int[] states, AttributionSource source) {
-            Objects.requireNonNull(source, "source cannot be null");
+            requireNonNull(source);
 
             LeAudioService service = getServiceAndEnforceConnect(source);
             if (service == null) {
@@ -6194,8 +6181,8 @@ public class LeAudioService extends ProfileService {
 
         @Override
         public int getConnectionState(BluetoothDevice device, AttributionSource source) {
-            Objects.requireNonNull(device, "device cannot be null");
-            Objects.requireNonNull(source, "source cannot be null");
+            requireNonNull(device);
+            requireNonNull(source);
 
             LeAudioService service = getServiceAndEnforceConnect(source);
             if (service == null) {
@@ -6207,7 +6194,7 @@ public class LeAudioService extends ProfileService {
 
         @Override
         public boolean setActiveDevice(BluetoothDevice device, AttributionSource source) {
-            Objects.requireNonNull(source, "source cannot be null");
+            requireNonNull(source);
 
             LeAudioService service = getServiceAndEnforceConnect(source);
             if (service == null) {
@@ -6223,7 +6210,7 @@ public class LeAudioService extends ProfileService {
 
         @Override
         public List<BluetoothDevice> getActiveDevices(AttributionSource source) {
-            Objects.requireNonNull(source, "source cannot be null");
+            requireNonNull(source);
 
             LeAudioService service = getServiceAndEnforceConnect(source);
             if (service == null) {
@@ -6235,8 +6222,8 @@ public class LeAudioService extends ProfileService {
 
         @Override
         public int getAudioLocation(BluetoothDevice device, AttributionSource source) {
-            Objects.requireNonNull(device, "device cannot be null");
-            Objects.requireNonNull(source, "source cannot be null");
+            requireNonNull(device);
+            requireNonNull(source);
 
             LeAudioService service = getServiceAndEnforceConnect(source);
             if (service == null) {
@@ -6249,7 +6236,7 @@ public class LeAudioService extends ProfileService {
 
         @Override
         public boolean isInbandRingtoneEnabled(AttributionSource source, int groupId) {
-            Objects.requireNonNull(source, "source cannot be null");
+            requireNonNull(source);
 
             LeAudioService service = getServiceAndEnforceConnect(source);
             if (service == null) {
@@ -6263,8 +6250,8 @@ public class LeAudioService extends ProfileService {
         @Override
         public boolean setConnectionPolicy(
                 BluetoothDevice device, int connectionPolicy, AttributionSource source) {
-            Objects.requireNonNull(device, "device cannot be null");
-            Objects.requireNonNull(source, "source cannot be null");
+            requireNonNull(device);
+            requireNonNull(source);
 
             LeAudioService service = getServiceAndEnforceConnect(source);
             if (service == null) {
@@ -6277,8 +6264,8 @@ public class LeAudioService extends ProfileService {
 
         @Override
         public int getConnectionPolicy(BluetoothDevice device, AttributionSource source) {
-            Objects.requireNonNull(device, "device cannot be null");
-            Objects.requireNonNull(source, "source cannot be null");
+            requireNonNull(device);
+            requireNonNull(source);
 
             LeAudioService service = getServiceAndEnforceConnect(source);
             if (service == null) {
@@ -6292,8 +6279,8 @@ public class LeAudioService extends ProfileService {
         @Override
         public void setCcidInformation(
                 ParcelUuid userUuid, int ccid, int contextType, AttributionSource source) {
-            Objects.requireNonNull(userUuid, "userUuid cannot be null");
-            Objects.requireNonNull(source, "source cannot be null");
+            requireNonNull(userUuid);
+            requireNonNull(source);
 
             LeAudioService service = getServiceAndEnforceConnect(source);
             if (service == null) {
@@ -6306,8 +6293,8 @@ public class LeAudioService extends ProfileService {
 
         @Override
         public int getGroupId(BluetoothDevice device, AttributionSource source) {
-            Objects.requireNonNull(device, "device cannot be null");
-            Objects.requireNonNull(source, "source cannot be null");
+            requireNonNull(device);
+            requireNonNull(source);
 
             LeAudioService service = getServiceAndEnforceConnect(source);
             if (service == null) {
@@ -6319,8 +6306,8 @@ public class LeAudioService extends ProfileService {
 
         @Override
         public boolean groupAddNode(int groupId, BluetoothDevice device, AttributionSource source) {
-            Objects.requireNonNull(device, "device cannot be null");
-            Objects.requireNonNull(source, "source cannot be null");
+            requireNonNull(device);
+            requireNonNull(source);
 
             LeAudioService service = getServiceAndEnforceConnect(source);
             if (service == null) {
@@ -6333,7 +6320,7 @@ public class LeAudioService extends ProfileService {
 
         @Override
         public void setInCall(boolean inCall, AttributionSource source) {
-            Objects.requireNonNull(source, "source cannot be null");
+            requireNonNull(source);
 
             LeAudioService service = getServiceAndEnforceConnect(source);
             if (service == null) {
@@ -6347,7 +6334,7 @@ public class LeAudioService extends ProfileService {
         @Override
         public void setInactiveForHfpHandover(
                 BluetoothDevice hfpHandoverDevice, AttributionSource source) {
-            Objects.requireNonNull(source, "source cannot be null");
+            requireNonNull(source);
 
             LeAudioService service = getServiceAndEnforceConnect(source);
             if (service == null) {
@@ -6361,8 +6348,8 @@ public class LeAudioService extends ProfileService {
         @Override
         public boolean groupRemoveNode(
                 int groupId, BluetoothDevice device, AttributionSource source) {
-            Objects.requireNonNull(device, "device cannot be null");
-            Objects.requireNonNull(source, "source cannot be null");
+            requireNonNull(device);
+            requireNonNull(source);
 
             LeAudioService service = getServiceAndEnforceConnect(source);
             if (service == null) {
@@ -6375,7 +6362,7 @@ public class LeAudioService extends ProfileService {
 
         @Override
         public void setVolume(int volume, AttributionSource source) {
-            Objects.requireNonNull(source, "source cannot be null");
+            requireNonNull(source);
 
             LeAudioService service = getServiceAndEnforceConnect(source);
             if (service == null) {
@@ -6388,8 +6375,8 @@ public class LeAudioService extends ProfileService {
 
         @Override
         public void registerCallback(IBluetoothLeAudioCallback callback, AttributionSource source) {
-            Objects.requireNonNull(callback, "callback cannot be null");
-            Objects.requireNonNull(source, "source cannot be null");
+            requireNonNull(callback);
+            requireNonNull(source);
 
             LeAudioService service = getServiceAndEnforceConnect(source);
             if (service == null) {
@@ -6404,8 +6391,8 @@ public class LeAudioService extends ProfileService {
         @Override
         public void unregisterCallback(
                 IBluetoothLeAudioCallback callback, AttributionSource source) {
-            Objects.requireNonNull(callback, "callback cannot be null");
-            Objects.requireNonNull(source, "source cannot be null");
+            requireNonNull(callback);
+            requireNonNull(source);
 
             LeAudioService service = getServiceAndEnforceConnect(source);
             if (service == null) {
@@ -6420,8 +6407,8 @@ public class LeAudioService extends ProfileService {
         @Override
         public void registerLeBroadcastCallback(
                 IBluetoothLeBroadcastCallback callback, AttributionSource source) {
-            Objects.requireNonNull(callback, "callback cannot be null");
-            Objects.requireNonNull(source, "source cannot be null");
+            requireNonNull(callback);
+            requireNonNull(source);
 
             LeAudioService service = getServiceAndEnforceConnect(source);
             if (service == null) {
@@ -6435,8 +6422,8 @@ public class LeAudioService extends ProfileService {
         @Override
         public void unregisterLeBroadcastCallback(
                 IBluetoothLeBroadcastCallback callback, AttributionSource source) {
-            Objects.requireNonNull(callback, "callback cannot be null");
-            Objects.requireNonNull(source, "source cannot be null");
+            requireNonNull(callback);
+            requireNonNull(source);
 
             LeAudioService service = getServiceAndEnforceConnect(source);
             if (service == null) {
