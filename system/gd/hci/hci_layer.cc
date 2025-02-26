@@ -29,6 +29,7 @@
 #include "hci/class_of_device.h"
 #include "hci/hci_metrics_logging.h"
 #include "hci/inquiry_interface.h"
+#include "main/shim/entry.h"
 #include "os/alarm.h"
 #include "os/metrics.h"
 #include "os/queue.h"
@@ -522,10 +523,9 @@ struct HciLayer::impl {
         }
       }
       std::unique_ptr<CommandView> no_waiting_command{nullptr};
-      log_hci_event(no_waiting_command, event, module_.GetDependency<storage::StorageModule>());
+      log_hci_event(no_waiting_command, event, shim::GetStorage());
     } else {
-      log_hci_event(command_queue_.front().command_view, event,
-                    module_.GetDependency<storage::StorageModule>());
+      log_hci_event(command_queue_.front().command_view, event, shim::GetStorage());
     }
     power_telemetry::GetInstance().LogHciEvtDetail();
     EventCode event_code = event.GetEventCode();
@@ -1001,10 +1001,7 @@ std::unique_ptr<InquiryInterface> HciLayer::GetInquiryInterface(
 
 const ModuleFactory HciLayer::Factory = ModuleFactory([]() { return new HciLayer(); });
 
-void HciLayer::ListDependencies(ModuleList* list) const {
-  list->add<hal::HciHal>();
-  list->add<storage::StorageModule>();
-}
+void HciLayer::ListDependencies(ModuleList* list) const { list->add<hal::HciHal>(); }
 
 void HciLayer::Start() {
   std::unique_lock<std::recursive_mutex> lock(life_cycle_guard);

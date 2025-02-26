@@ -211,6 +211,11 @@ public class InitiatorFragment extends Fragment {
         mDmMethodArrayAdapter.addAll(mInitiatorViewModel.getSupportedDmMethods());
         mFreqArrayAdapter.addAll(mInitiatorViewModel.getMeasurementFreqs());
         mDurationArrayAdapter.addAll(mInitiatorViewModel.getMeasurementDurations());
+        int position = mDmMethodArrayAdapter.getPosition("Channel Sounding");
+        if (position != -1) {
+            printLog("Found method Channel Sounding");
+            mSpinnerDmMethod.setSelection(position);
+        }
 
         mButtonCs.setOnClickListener(v -> {
         if(!mBleConnectionViewModel.isconnected()) {

@@ -38,6 +38,7 @@
 #include "hci/hci_layer.h"
 #include "hci/hci_packets.h"
 #include "hci/le_advertising_interface.h"
+#include "main/shim/entry.h"
 #include "le_rand_callback.h"
 #include "module.h"
 #include "os/handler.h"
@@ -2691,18 +2692,17 @@ void LeAdvertisingManager::ListDependencies(ModuleList* list) const {
   list->add<hci::HciLayer>();
   list->add<hci::Controller>();
   list->add<hci::AclManager>();
-  list->add<storage::StorageModule>();
 }
 
 void LeAdvertisingManager::Start() {
   pimpl_->start(GetHandler(), GetDependency<hci::HciLayer>(), GetDependency<hci::Controller>(),
-                GetDependency<AclManager>(), GetDependency<storage::StorageModule>());
+                GetDependency<AclManager>(), shim::GetStorage());
 }
 
 void LeAdvertisingManager::Stop() { pimpl_.reset(); }
 
 void LeAdvertisingManager::GetEncKeyMaterial() {
-  pimpl_->get_enc_key_material(GetDependency<storage::StorageModule>(),
+  pimpl_->get_enc_key_material(shim::GetStorage(),
                                GetDependency<hci::HciLayer>(), GetHandler());
 }
 

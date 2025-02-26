@@ -1264,6 +1264,17 @@ public class A2dpService extends ProfileService {
         mNativeInterface.setStreamMode(isGamingEnabled, isLowLatencyEnabled);
     }
 
+    // TODO: b/395691070 delete this method
+    @VisibleForTesting
+    void bondStateChangedFromTest(BluetoothDevice device, int bondState) {
+        Log.d(
+                TAG,
+                ("bondStateChangedFromTest(" + device + ", " + bondState + "): ")
+                        + "called while A2DP_CLEANUP_ON_REMOVE_DEVICE is set to "
+                        + Flags.a2dpCleanupOnRemoveDevice());
+        bondStateChanged(device, bondState);
+    }
+
     /**
      * Process a change in the bonding state for a device.
      *

@@ -188,9 +188,10 @@ public class BassClientService extends ProfileService {
     private final AdapterService mAdapterService;
     private final DatabaseManager mDatabaseManager;
     private final BluetoothAdapter mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
-
     private final HandlerThread mStateMachinesThread;
     private final HandlerThread mCallbackHandlerThread;
+    private final Callbacks mCallbacks;
+
     private BluetoothLeScannerWrapper mBluetoothLeScannerWrapper = null;
     private DialingOutTimeoutEvent mDialingOutTimeoutEvent = null;
 
@@ -208,7 +209,6 @@ public class BassClientService extends ProfileService {
     private final Map<BluetoothDevice, HashMap<Integer, PeriodicAdvertisementResult>>
             mPeriodicAdvertisementResultMap = new HashMap<>();
     private ScanCallback mSearchScanCallback = null;
-    private Callbacks mCallbacks;
     private boolean mIsAssistantActive = false;
     private boolean mIsAllowedContextOfActiveGroupModified = false;
     Optional<Integer> mUnicastSourceStreamStatus = Optional.empty();
@@ -760,10 +760,6 @@ public class BassClientService extends ProfileService {
                     "Should never be executed with"
                             + " leaudioBroadcastExtractPeriodicScannerFromStateMachine flag");
         }
-        if (mActiveSourceMap == null) {
-            Log.e(TAG, "removeActiveSyncedSource: mActiveSourceMap is null");
-            return;
-        }
 
         log(
                 "removeActiveSyncedSource, scanDelegator: "
@@ -796,10 +792,6 @@ public class BassClientService extends ProfileService {
                     "Should never be executed with"
                             + " leaudioBroadcastExtractPeriodicScannerFromStateMachine flag");
         }
-        if (mActiveSourceMap == null) {
-            Log.e(TAG, "addActiveSyncedSource: mActiveSourceMap is null");
-            return;
-        }
 
         log(
                 "addActiveSyncedSource, scanDelegator: "
@@ -825,10 +817,6 @@ public class BassClientService extends ProfileService {
             throw new RuntimeException(
                     "Should never be executed with"
                             + " leaudioBroadcastExtractPeriodicScannerFromStateMachine flag");
-        }
-        if (mActiveSourceMap == null) {
-            Log.e(TAG, "getActiveSyncedSources: mActiveSourceMap is null");
-            return null;
         }
 
         List<Integer> currentSources = mActiveSourceMap.get(scanDelegator);
@@ -931,23 +919,13 @@ public class BassClientService extends ProfileService {
         if (!leaudioBroadcastExtractPeriodicScannerFromStateMachine()) {
             mSyncHandleToDeviceMap.clear();
             mPeriodicAdvertisementResultMap.clear();
-            if (mActiveSourceMap != null) {
-                mActiveSourceMap.clear();
-            }
-            if (mLocalBroadcastReceivers != null) {
-                mLocalBroadcastReceivers.clear();
-            }
+            mActiveSourceMap.clear();
+            mLocalBroadcastReceivers.clear();
             synchronized (mPendingGroupOp) {
-                if (mPendingGroupOp != null) {
-                    mPendingGroupOp.clear();
-                }
+                mPendingGroupOp.clear();
             }
-            if (mCachedBroadcasts != null) {
-                mCachedBroadcasts.clear();
-            }
-            if (mBroadcastMetadataMap != null) {
-                mBroadcastMetadataMap.clear();
-            }
+            mCachedBroadcasts.clear();
+            mBroadcastMetadataMap.clear();
             mSyncHandleToBroadcastIdMap.clear();
             mSyncHandleToBaseDataMap.clear();
         } else {
@@ -3824,11 +3802,6 @@ public class BassClientService extends ProfileService {
 
     /** Return true if there is any non primary device receiving broadcast */
     private boolean isAudioSharingModeOn(Integer broadcastId) {
-        if (mLocalBroadcastReceivers == null) {
-            Log.w(TAG, "isAudioSharingModeOn: Local Broadcaster Receivers is not initialized");
-            return false;
-        }
-
         HashSet<BluetoothDevice> devices = mLocalBroadcastReceivers.get(broadcastId);
         if (devices == null) {
             Log.w(TAG, "isAudioSharingModeOn: No receivers receiving broadcast: " + broadcastId);
@@ -4452,7 +4425,7 @@ public class BassClientService extends ProfileService {
                         device ->
                                 getAllSources(device).stream()
                                         .anyMatch(rs -> rs.getBroadcastId() == broadcastId))
-                .toList();
+                .collect(Collectors.toUnmodifiableList());
     }
 
     private boolean isSyncedToBroadcastStream(Long syncState) {
@@ -4464,11 +4437,6 @@ public class BassClientService extends ProfileService {
     public void notifyBroadcastStateChanged(int state, int broadcastId) {
         switch (state) {
             case BROADCAST_STATE_STOPPED:
-                if (mLocalBroadcastReceivers == null) {
-                    Log.e(TAG, "notifyBroadcastStateChanged: mLocalBroadcastReceivers is invalid");
-                    break;
-                }
-
                 if (mLocalBroadcastReceivers.remove(broadcastId) != null) {
                     sEventLogger.logd(TAG, "Broadcast ID: " + broadcastId + ", stopped");
                 }
