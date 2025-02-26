@@ -1105,6 +1105,7 @@ private:
         case BroadcastStateMachine::State::CONFIGURED:
           if (com::android::bluetooth::flags::leaudio_big_depends_on_audio_state()) {
             instance->UpdateAudioActiveStateInPublicAnnouncement();
+            instance->le_audio_source_hal_client_->ConfirmSuspendRequest();
           }
           break;
         case BroadcastStateMachine::State::ENABLING:
@@ -1391,11 +1392,12 @@ private:
       }
 
       instance->audio_state_ = AudioState::SUSPENDED;
-      instance->le_audio_source_hal_client_->ConfirmSuspendRequest();
 
       if (com::android::bluetooth::flags::leaudio_big_depends_on_audio_state()) {
         instance->UpdateAudioActiveStateInPublicAnnouncement();
         instance->setBroadcastTimers();
+      } else {
+        instance->le_audio_source_hal_client_->ConfirmSuspendRequest();
       }
     }
 
@@ -1496,7 +1498,7 @@ private:
   // Flag to track iso state
   bool is_iso_running_ = false;
 
-  static constexpr uint64_t kBigTerminateTimeoutMs = 10 * 1000;
+  static constexpr uint64_t kBigTerminateTimeoutMs = 0;
   static constexpr uint64_t kBroadcastStopTimeoutMs = 30 * 60 * 1000;
   alarm_t* big_terminate_timer_;
   alarm_t* broadcast_stop_timer_;
