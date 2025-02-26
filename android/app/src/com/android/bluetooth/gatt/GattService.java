@@ -243,10 +243,11 @@ public class GattService extends ProfileService {
     }
 
     @Override
-    public void stop() {
-        Log.d(TAG, "stop()");
+    public void cleanup() {
+        Log.i(TAG, "Cleanup Gatt Service");
+
         if (Flags.scanManagerRefactor() && sGattService == null) {
-            Log.w(TAG, "stop() called before start()");
+            Log.w(TAG, "cleanup() called before initialization");
             return;
         }
         if (Flags.scanManagerRefactor()) {
@@ -260,11 +261,7 @@ public class GattService extends ProfileService {
         mServerMap.clear();
         mHandleMap.clear();
         mReliableQueue.clear();
-    }
 
-    @Override
-    public void cleanup() {
-        Log.d(TAG, "cleanup()");
         mNativeInterface.cleanup();
         mAdvertiseManager.cleanup();
         mDistanceMeasurementManager.cleanup();
@@ -411,7 +408,7 @@ public class GattService extends ProfileService {
                     service, null, "GattService stopService")) {
                 return;
             }
-            service.stop();
+            service.cleanup();
         }
 
         public List<BluetoothDevice> getDevicesMatchingConnectionStates(

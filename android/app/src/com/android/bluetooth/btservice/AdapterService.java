@@ -1125,7 +1125,6 @@ public class AdapterService extends Service {
         if (mGattService != null) {
             mGattService.setAvailable(false);
             onProfileServiceStateChanged(mGattService, BluetoothAdapter.STATE_OFF);
-            mGattService.stop();
             removeProfile(mGattService);
             mGattService.cleanup();
             mGattService.getBinder().cleanup();
