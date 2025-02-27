@@ -19,7 +19,11 @@ package com.android.bluetooth.bass_client;
 import static android.Manifest.permission.BLUETOOTH_CONNECT;
 import static android.Manifest.permission.BLUETOOTH_PRIVILEGED;
 import static android.Manifest.permission.BLUETOOTH_SCAN;
+import static android.bluetooth.BluetoothProfile.CONNECTION_POLICY_ALLOWED;
+import static android.bluetooth.BluetoothProfile.CONNECTION_POLICY_FORBIDDEN;
+import static android.bluetooth.BluetoothProfile.CONNECTION_POLICY_UNKNOWN;
 import static android.bluetooth.BluetoothProfile.STATE_CONNECTED;
+import static android.bluetooth.BluetoothProfile.STATE_DISCONNECTED;
 import static android.bluetooth.IBluetoothLeAudio.LE_AUDIO_GROUP_ID_INVALID;
 
 import static com.android.bluetooth.flags.Flags.leaudioBassScanWithInternalScanController;
@@ -490,7 +494,7 @@ public class BassClientService extends ProfileService {
         }
 
         @SuppressLint("NewApi") // Api is protected by flag check and the lint is wrong
-        private boolean hasAnyMessagesOrCallbacks(Handler handler) {
+        private static boolean hasAnyMessagesOrCallbacks(Handler handler) {
             if (android.os.Flags.mainlineVcnPlatformApi()) {
                 return handler.hasMessagesOrCallbacks();
             } else {
@@ -881,7 +885,7 @@ public class BassClientService extends ProfileService {
                 });
     }
 
-    private boolean isSuccess(int status) {
+    private static boolean isSuccess(int status) {
         boolean ret = false;
         switch (status) {
             case BluetoothStatusCodes.REASON_LOCAL_APP_REQUEST:
@@ -975,13 +979,13 @@ public class BassClientService extends ProfileService {
         }
     }
 
-    private boolean removeMatchingOperation(
+    private static boolean removeMatchingOperation(
             List<Pair<Integer, Object>> operations, int reqMsg, Object obj) {
         return operations.removeIf(
                 m -> m.first.equals(reqMsg) && isMatchingOperation(m.second, obj));
     }
 
-    private boolean isMatchingOperation(Object operationData, Object obj) {
+    private static boolean isMatchingOperation(Object operationData, Object obj) {
         if (obj instanceof BluetoothLeBroadcastReceiveState) {
             return ((BluetoothLeBroadcastMetadata) operationData).getBroadcastId()
                     == ((BluetoothLeBroadcastReceiveState) obj).getBroadcastId();
@@ -1004,7 +1008,7 @@ public class BassClientService extends ProfileService {
                 && (leAudioService.getActiveDevices().contains(device));
     }
 
-    private boolean isEmptyBluetoothDevice(BluetoothDevice device) {
+    private static boolean isEmptyBluetoothDevice(BluetoothDevice device) {
         if (device == null) {
             Log.e(TAG, "Device is null!");
             return true;
@@ -1614,7 +1618,7 @@ public class BassClientService extends ProfileService {
                         + BluetoothProfile.getConnectionStateName(toState));
 
         // Check if the device is disconnected - if unbond, remove the state machine
-        if (toState == BluetoothProfile.STATE_DISCONNECTED) {
+        if (toState == STATE_DISCONNECTED) {
             mPendingGroupOp.remove(device);
             mPausedBroadcastSinks.remove(device);
             synchronized (mSinksWaitingForPast) {
@@ -1674,7 +1678,7 @@ public class BassClientService extends ProfileService {
             if (sm == null) {
                 return;
             }
-            if (sm.getConnectionState() != BluetoothProfile.STATE_DISCONNECTED) {
+            if (sm.getConnectionState() != STATE_DISCONNECTED) {
                 Log.i(TAG, "Disconnecting device because it was unbonded.");
                 disconnect(device);
                 return;
@@ -1695,7 +1699,7 @@ public class BassClientService extends ProfileService {
             Log.e(TAG, "connect: device is null");
             return false;
         }
-        if (getConnectionPolicy(device) == BluetoothProfile.CONNECTION_POLICY_FORBIDDEN) {
+        if (getConnectionPolicy(device) == CONNECTION_POLICY_FORBIDDEN) {
             Log.e(TAG, "connect: connection policy set to forbidden");
             return false;
         }
@@ -1757,8 +1761,8 @@ public class BassClientService extends ProfileService {
         if (bondState != BluetoothDevice.BOND_BONDED) {
             Log.w(TAG, "okToConnect: return false, bondState=" + bondState);
             return false;
-        } else if (connectionPolicy != BluetoothProfile.CONNECTION_POLICY_UNKNOWN
-                && connectionPolicy != BluetoothProfile.CONNECTION_POLICY_ALLOWED) {
+        } else if (connectionPolicy != CONNECTION_POLICY_UNKNOWN
+                && connectionPolicy != CONNECTION_POLICY_ALLOWED) {
             // Otherwise, reject the connection if connectionPolicy is not valid.
             Log.w(TAG, "okToConnect: return false, connectionPolicy=" + connectionPolicy);
             return false;
@@ -1777,7 +1781,7 @@ public class BassClientService extends ProfileService {
             BassClientStateMachine sm = getOrCreateStateMachine(sink);
             if (sm == null) {
                 log("getConnectionState returns STATE_DISC");
-                return BluetoothProfile.STATE_DISCONNECTED;
+                return STATE_DISCONNECTED;
             }
             return sm.getConnectionState();
         }
@@ -1804,7 +1808,7 @@ public class BassClientService extends ProfileService {
                 if (!Utils.arrayContains(featureUuids, BluetoothUuid.BASS)) {
                     continue;
                 }
-                int connectionState = BluetoothProfile.STATE_DISCONNECTED;
+                int connectionState = STATE_DISCONNECTED;
                 BassClientStateMachine sm = getOrCreateStateMachine(device);
                 if (sm != null) {
                     connectionState = sm.getConnectionState();
@@ -1854,10 +1858,9 @@ public class BassClientService extends ProfileService {
         boolean setSuccessfully =
                 mDatabaseManager.setProfileConnectionPolicy(
                         device, BluetoothProfile.LE_AUDIO_BROADCAST_ASSISTANT, connectionPolicy);
-        if (setSuccessfully && connectionPolicy == BluetoothProfile.CONNECTION_POLICY_ALLOWED) {
+        if (setSuccessfully && connectionPolicy == CONNECTION_POLICY_ALLOWED) {
             connect(device);
-        } else if (setSuccessfully
-                && connectionPolicy == BluetoothProfile.CONNECTION_POLICY_FORBIDDEN) {
+        } else if (setSuccessfully && connectionPolicy == CONNECTION_POLICY_FORBIDDEN) {
             disconnect(device);
         }
         return setSuccessfully;
@@ -4332,7 +4335,7 @@ public class BassClientService extends ProfileService {
         return false;
     }
 
-    private boolean isReceiverActive(BluetoothLeBroadcastReceiveState receiveState) {
+    private static boolean isReceiverActive(BluetoothLeBroadcastReceiveState receiveState) {
         if (receiveState.getPaSyncState()
                 == BluetoothLeBroadcastReceiveState.PA_SYNC_STATE_SYNCHRONIZED) {
             return true;
@@ -4388,7 +4391,9 @@ public class BassClientService extends ProfileService {
                         .anyMatch(
                                 receiveState ->
                                         (receiveState.getBisSyncState().stream()
-                                                .anyMatch(this::isSyncedToBroadcastStream)))) {
+                                                .anyMatch(
+                                                        BassClientService
+                                                                ::isSyncedToBroadcastStream)))) {
                     activeSinks.add(device);
                 }
             }
@@ -4406,7 +4411,7 @@ public class BassClientService extends ProfileService {
                 .collect(Collectors.toUnmodifiableList());
     }
 
-    private boolean isSyncedToBroadcastStream(Long syncState) {
+    private static boolean isSyncedToBroadcastStream(Long syncState) {
         return syncState != BassConstants.BCAST_RCVR_STATE_BIS_SYNC_NOT_SYNC_TO_BIS
                 && syncState != BassConstants.BCAST_RCVR_STATE_BIS_SYNC_FAILED_SYNC_TO_BIG;
     }
@@ -4518,7 +4523,7 @@ public class BassClientService extends ProfileService {
             }
         }
 
-        private void checkForPendingGroupOpRequest(Message msg) {
+        private static void checkForPendingGroupOpRequest(Message msg) {
             if (sService == null) {
                 Log.e(TAG, "Service is null");
                 return;
@@ -4549,7 +4554,7 @@ public class BassClientService extends ProfileService {
             }
         }
 
-        private boolean handleServiceInternalMessage(Message msg) {
+        private static boolean handleServiceInternalMessage(Message msg) {
             boolean isMsgHandled = false;
             if (sService == null) {
                 Log.e(TAG, "Service is null");
@@ -4608,7 +4613,8 @@ public class BassClientService extends ProfileService {
             }
         }
 
-        private void invokeCallback(IBluetoothLeBroadcastAssistantCallback callback, Message msg)
+        private static void invokeCallback(
+                IBluetoothLeBroadcastAssistantCallback callback, Message msg)
                 throws RemoteException {
             final int reason = msg.arg1;
             final int sourceId = msg.arg2;
@@ -4861,7 +4867,7 @@ public class BassClientService extends ProfileService {
         /* Dump first connected state machines */
         for (Map.Entry<BluetoothDevice, BassClientStateMachine> entry : mStateMachines.entrySet()) {
             BassClientStateMachine sm = entry.getValue();
-            if (sm.getConnectionState() == BluetoothProfile.STATE_CONNECTED) {
+            if (sm.getConnectionState() == STATE_CONNECTED) {
                 sm.dump(sb);
                 sb.append("\n\n");
             }
@@ -4870,7 +4876,7 @@ public class BassClientService extends ProfileService {
         /* Dump at least all other than connected state machines */
         for (Map.Entry<BluetoothDevice, BassClientStateMachine> entry : mStateMachines.entrySet()) {
             BassClientStateMachine sm = entry.getValue();
-            if (sm.getConnectionState() != BluetoothProfile.STATE_CONNECTED) {
+            if (sm.getConnectionState() != STATE_CONNECTED) {
                 sm.dump(sb);
             }
         }
@@ -4940,7 +4946,7 @@ public class BassClientService extends ProfileService {
             BassClientService service = getServiceAndEnforceConnect(source);
             if (service == null) {
                 Log.e(TAG, "Service is null");
-                return BluetoothProfile.STATE_DISCONNECTED;
+                return STATE_DISCONNECTED;
             }
             return service.getConnectionState(sink);
         }
@@ -4982,7 +4988,7 @@ public class BassClientService extends ProfileService {
             BassClientService service = getServiceAndEnforceConnect(source);
             if (service == null) {
                 Log.e(TAG, "Service is null");
-                return BluetoothProfile.CONNECTION_POLICY_FORBIDDEN;
+                return CONNECTION_POLICY_FORBIDDEN;
             }
             return service.getConnectionPolicy(device);
         }
