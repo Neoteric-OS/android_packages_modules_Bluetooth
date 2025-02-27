@@ -2343,6 +2343,11 @@ public class LeAudioService extends ProfileService {
                 if (deviceInfo.getType() == AudioDeviceInfo.TYPE_BLE_BROADCAST) {
                     Log.i(TAG, "Broadcast Audio device is removed");
                     releaseLeAudioStream();
+                    if (leaudioBigDependsOnAudioState()) {
+                        if (mExposedActiveDevice != null) {
+                            notifyVolumeControlServiceAboutActiveGroup(mExposedActiveDevice);
+                        }
+                    }
                     continue;
                 }
 
