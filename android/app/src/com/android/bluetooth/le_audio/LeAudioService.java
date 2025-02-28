@@ -2249,6 +2249,7 @@ public class LeAudioService extends ProfileService {
         }
 
         notifyActiveDeviceChanged(device);
+        mAudioManager.setA2dpSuspended(false);
         return true;
     }
 
