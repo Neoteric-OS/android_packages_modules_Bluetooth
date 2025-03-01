@@ -9246,6 +9246,12 @@
       "max_transport_latency": 95
     },
     {
+      "name": "QoS_Config_48_1_1",
+      "target_latency": "LOW",
+      "retransmission_number": 5,
+      "max_transport_latency": 15
+    },
+    {
       "name": "QoS_Config_48_1_2",
       "retransmission_number": 13,
       "max_transport_latency": 75

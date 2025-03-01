@@ -92,6 +92,7 @@ import com.android.bluetooth.btservice.storage.DatabaseManager;
 import com.android.bluetooth.csip.CsipSetCoordinatorService;
 import com.android.bluetooth.flags.Flags;
 import com.android.bluetooth.hap.HapClientService;
+import com.android.bluetooth.hearingaid.HearingAidService;
 import com.android.bluetooth.hfp.HeadsetService;
 import com.android.bluetooth.mcp.McpService;
 import com.android.bluetooth.tbs.TbsGatt;
@@ -105,6 +106,7 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.concurrent.locks.ReentrantLock;
@@ -1715,6 +1717,31 @@ public class LeAudioService extends ProfileService {
                 && groupId == mUnicastGroupIdDeactivatedForBroadcastTransition;
     }
 
+    /** Get local broadcast receiving devices */
+    public Set<BluetoothDevice> getLocalBroadcastReceivers() {
+        if (mBroadcastDescriptors == null) {
+            Log.e(TAG, "getLocalBroadcastReceivers: Invalid Broadcast Descriptors");
+            return Collections.emptySet();
+        }
+
+        BassClientService bassClientService = getBassClientService();
+        if (bassClientService == null) {
+            Log.e(TAG, "getLocalBroadcastReceivers: Bass service not available");
+            return Collections.emptySet();
+        }
+
+        Set<BluetoothDevice> deviceList = new HashSet<>();
+        for (Map.Entry<Integer, LeAudioBroadcastDescriptor> entry :
+                mBroadcastDescriptors.entrySet()) {
+            if (!entry.getValue().mState.equals(LeAudioStackEvent.BROADCAST_STATE_STOPPED)) {
+                List<BluetoothDevice> devices =
+                        bassClientService.getSyncedBroadcastSinks(entry.getKey());
+                deviceList.addAll(devices);
+            }
+        }
+        return deviceList;
+    }
+
     private boolean areBroadcastsAllStopped() {
         if (mBroadcastDescriptors == null) {
             Log.e(TAG, "areBroadcastsAllStopped: Invalid Broadcast Descriptors");
@@ -2913,17 +2940,52 @@ public class LeAudioService extends ProfileService {
         }
     }
 
-    private void handleGroupHealthAction(int groupId, int action) {
-        Log.d(
+    private void disableLeAudioAndFallbackToLegacyAudioProfiles(int groupId) {
+        Log.i(
                 TAG,
-                "handleGroupHealthAction: groupId: "
+                "Disabling LE Audio for group: "
                         + groupId
-                        + " action: "
-                        + action
-                        + ", not implemented");
+                        + " and falling back to legacy profiles");
+        A2dpService a2dpService = mServiceFactory.getA2dpService();
+        HeadsetService hsService = mServiceFactory.getHeadsetService();
+        HearingAidService hearingAidService = mServiceFactory.getHearingAidService();
+        boolean isDualMode = Utils.isDualModeAudioEnabled();
+
+        List<BluetoothDevice> leAudioActiveGroupDevices = getGroupDevices(groupId);
+
+        for (BluetoothDevice activeGroupDevice : leAudioActiveGroupDevices) {
+            Log.d(TAG, "Disable LE_AUDIO for the device: " + activeGroupDevice);
+            final ParcelUuid[] uuids = mAdapterService.getRemoteUuids(activeGroupDevice);
+
+            setConnectionPolicy(activeGroupDevice, BluetoothProfile.CONNECTION_POLICY_FORBIDDEN);
+            if (hsService != null && !isDualMode && Utils.arrayContains(uuids, BluetoothUuid.HFP)) {
+                Log.d(TAG, "Enable HFP for the device: " + activeGroupDevice);
+                hsService.setConnectionPolicy(
+                        activeGroupDevice, BluetoothProfile.CONNECTION_POLICY_ALLOWED);
+            }
+            if (a2dpService != null
+                    && !isDualMode
+                    && (Utils.arrayContains(uuids, BluetoothUuid.A2DP_SINK)
+                            || Utils.arrayContains(uuids, BluetoothUuid.ADV_AUDIO_DIST))) {
+                Log.d(TAG, "Enable A2DP for the device: " + activeGroupDevice);
+                a2dpService.setConnectionPolicy(
+                        activeGroupDevice, BluetoothProfile.CONNECTION_POLICY_ALLOWED);
+            }
+            if (hearingAidService != null
+                    && Utils.arrayContains(uuids, BluetoothUuid.HEARING_AID)) {
+                Log.d(TAG, "Enable ASHA for the device: " + activeGroupDevice);
+                hearingAidService.setConnectionPolicy(
+                        activeGroupDevice, BluetoothProfile.CONNECTION_POLICY_ALLOWED);
+            }
+        }
+    }
+
+    private void handleGroupHealthAction(int groupId, int action) {
+        Log.d(TAG, "handleGroupHealthAction: groupId: " + groupId + " action: " + action);
         BluetoothDevice device = getLeadDeviceForTheGroup(groupId);
         switch (action) {
-            case LeAudioStackEvent.HEALTH_RECOMMENDATION_ACTION_DISABLE:
+            case com.android.bluetooth.le_audio.LeAudioStackEvent
+                    .HEALTH_RECOMMENDATION_ACTION_DISABLE:
                 MetricsLogger.getInstance()
                         .count(
                                 mAdapterService.isLeAudioAllowed(device)
@@ -2932,6 +2994,7 @@ public class LeAudioService extends ProfileService {
                                         : BluetoothProtoEnums
                                                 .LE_AUDIO_NONALLOWLIST_GROUP_HEALTH_STATUS_BAD,
                                 1);
+                disableLeAudioAndFallbackToLegacyAudioProfiles(groupId);
                 break;
             case LeAudioStackEvent.HEALTH_RECOMMENDATION_ACTION_CONSIDER_DISABLING:
                 MetricsLogger.getInstance()

@@ -86,6 +86,7 @@ import android.content.pm.PackageManager.PackageInfoFlags;
 import android.content.res.Resources;
 import android.os.Binder;
 import android.os.Build;
+import android.os.HandlerThread;
 import android.os.IBinder;
 import android.os.ParcelUuid;
 import android.os.RemoteException;
@@ -155,7 +156,11 @@ public class GattService extends ProfileService {
             Map.of("com.teslamotors", GATT_MTU_MAX);
 
     private static final Map<String, String> GATT_CLIENTS_NOTIFY_TO_ADAPTER_PACKAGES =
-            Map.of("com.google.android.gms", "com.google.android.gms.findmydevice");
+            Map.of(
+                    "com.google.android.gms",
+                    "com.google.android.gms.findmydevice",
+                    "com.google.android.apps.adm",
+                    "");
 
     @VisibleForTesting static final int GATT_CLIENT_LIMIT_PER_APP = 32;
 
@@ -191,6 +196,7 @@ public class GattService extends ProfileService {
     private final DistanceMeasurementManager mDistanceMeasurementManager;
     private final ActivityManager mActivityManager;
     private final PackageManager mPackageManager;
+    private final HandlerThread mHandlerThread;
 
     public GattService(AdapterService adapterService) {
         super(requireNonNull(adapterService));
@@ -204,7 +210,12 @@ public class GattService extends ProfileService {
 
         mNativeInterface = GattObjectsFactory.getInstance().getNativeInterface();
         mNativeInterface.init(this);
-        mAdvertiseManager = new AdvertiseManager(this);
+
+        // Create a thread to handle LE operations
+        mHandlerThread = new HandlerThread("Bluetooth LE");
+        mHandlerThread.start();
+
+        mAdvertiseManager = new AdvertiseManager(mAdapterService, mHandlerThread.getLooper());
 
         if (!Flags.scanManagerRefactor()) {
             mScanController = new ScanController(adapterService);
@@ -244,14 +255,11 @@ public class GattService extends ProfileService {
         if (mScanController != null) {
             mScanController.stop();
         }
-
-        mAdvertiseManager.clear();
         mClientMap.clear();
         mRestrictedHandles.clear();
         mServerMap.clear();
         mHandleMap.clear();
         mReliableQueue.clear();
-        cleanup();
     }
 
     @Override
@@ -260,6 +268,7 @@ public class GattService extends ProfileService {
         mNativeInterface.cleanup();
         mAdvertiseManager.cleanup();
         mDistanceMeasurementManager.cleanup();
+        mHandlerThread.quit();
     }
 
     /** This is only used when Flags.scanManagerRefactor() is true. */
@@ -1718,11 +1727,13 @@ public class GattService extends ProfileService {
 
         if (transport != BluetoothDevice.TRANSPORT_BREDR && isDirect && !opportunistic) {
             String attributionTag = getLastAttributionTag(attributionSource);
-            if (packageName != null && attributionTag != null) {
+            if (packageName != null) {
                 for (Map.Entry<String, String> entry :
                         GATT_CLIENTS_NOTIFY_TO_ADAPTER_PACKAGES.entrySet()) {
                     if (packageName.contains(entry.getKey())
-                            && attributionTag.contains(entry.getValue())) {
+                            && ((attributionTag != null
+                                            && attributionTag.contains(entry.getValue()))
+                                    || entry.getValue().isEmpty())) {
                         mAdapterService.notifyDirectLeGattClientConnect(
                                 clientIf, getDevice(address));
                         break;
@@ -2199,7 +2210,16 @@ public class GattService extends ProfileService {
             return;
         }
 
-        mNativeInterface.gattClientRegisterForNotifications(clientIf, address, handle, enable);
+        int state = BluetoothAdapter.STATE_OFF;
+        if (mAdapterService != null) {
+            state = mAdapterService.getState();
+        }
+
+        if (state == BluetoothAdapter.STATE_ON || state == BluetoothAdapter.STATE_BLE_ON) {
+            mNativeInterface.gattClientRegisterForNotifications(clientIf, address, handle, enable);
+        } else {
+            Log.w(TAG, "registerForNotification() -  Disallowed in BT state: " + state);
+        }
     }
 
     @RequiresPermission(BLUETOOTH_CONNECT)
@@ -2814,7 +2834,16 @@ public class GattService extends ProfileService {
                         + ", connId="
                         + connId);
 
-        mNativeInterface.gattServerDisconnect(serverIf, address, connId != null ? connId : 0);
+        int state = BluetoothAdapter.STATE_OFF;
+        if (mAdapterService != null) {
+            state = mAdapterService.getState();
+        }
+
+        if(state == BluetoothAdapter.STATE_ON || state == BluetoothAdapter.STATE_BLE_ON) {
+           mNativeInterface.gattServerDisconnect(serverIf, address, connId != null ? connId : 0);
+        } else {
+            Log.w(TAG, "serverDisconnect() - Disallowed in BT state: " + state);
+        }
     }
 
     @RequiresPermission(BLUETOOTH_CONNECT)

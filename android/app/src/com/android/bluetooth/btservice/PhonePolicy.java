@@ -303,6 +303,27 @@ public class PhonePolicy implements AdapterService.BluetoothStateCallback {
                 && hap.getConnectionPolicy(device) != CONNECTION_POLICY_FORBIDDEN;
     }
 
+    private boolean shouldBlockBroadcastForHapDevice(BluetoothDevice device, ParcelUuid[] uuids) {
+        if (!Flags.leaudioDisableBroadcastForHapDevice()) {
+            Log.i(TAG, "disableBroadcastForHapDevice: Flag is disabled");
+            return false;
+        }
+
+        HapClientService hap = mFactory.getHapClientService();
+        if (hap == null) {
+            Log.e(TAG, "shouldBlockBroadcastForHapDevice: No HapClientService");
+            return false;
+        }
+
+        if (!SystemProperties.getBoolean(SYSPROP_HAP_ENABLED, true)) {
+            Log.i(TAG, "shouldBlockBroadcastForHapDevice: SystemProperty is overridden to false");
+            return false;
+        }
+
+        return Utils.arrayContains(uuids, BluetoothUuid.HAS)
+                && hap.getConnectionPolicy(device) == CONNECTION_POLICY_ALLOWED;
+    }
+
     // Policy implementation, all functions MUST be private
     private void processInitProfilePriorities(BluetoothDevice device, ParcelUuid[] uuids) {
         String log = "processInitProfilePriorities(" + device + "): ";
@@ -547,7 +568,7 @@ public class PhonePolicy implements AdapterService.BluetoothStateCallback {
         if ((bcService != null)
                 && Utils.arrayContains(uuids, BluetoothUuid.BASS)
                 && (bcService.getConnectionPolicy(device) == CONNECTION_POLICY_UNKNOWN)) {
-            if (isLeAudioProfileAllowed) {
+            if (isLeAudioProfileAllowed && !shouldBlockBroadcastForHapDevice(device, uuids)) {
                 Log.d(TAG, log + "Setting BASS priority");
                 if (mAutoConnectProfilesSupported) {
                     bcService.setConnectionPolicy(device, CONNECTION_POLICY_ALLOWED);
@@ -560,7 +581,7 @@ public class PhonePolicy implements AdapterService.BluetoothStateCallback {
                                     CONNECTION_POLICY_ALLOWED);
                 }
             } else {
-                Log.d(TAG, log + "LE_AUDIO is not allowed: Clear BASS priority");
+                Log.d(TAG, log + "LE_AUDIO Broadcast is not allowed: Clear BASS priority");
                 mAdapterService
                         .getDatabase()
                         .setProfileConnectionPolicy(
@@ -1078,7 +1099,7 @@ public class PhonePolicy implements AdapterService.BluetoothStateCallback {
             return;
         }
         int bondState = mAdapterService.getBondState(device);
-        if (!Flags.unbondedProfileForbidFix() || bondState != BluetoothDevice.BOND_NONE) {
+        if (bondState != BluetoothDevice.BOND_NONE) {
             Log.d(TAG, log + "Services discovered. bondState=" + bondStateToString(bondState));
             processInitProfilePriorities(device, uuids);
         } else {

@@ -37,6 +37,7 @@
 #include "stack/include/bt_uuid16.h"
 #include "stack/include/sdp_status.h"
 #include "types/raw_address.h"
+#include "bta/av/bta_av_int.h"
 
 // TODO(b/369381361) Enfore -Wmissing-prototypes
 #pragma GCC diagnostic ignored "-Wmissing-prototypes"
@@ -254,7 +255,7 @@ void ConnectionHandler::InitiatorControlCb(uint8_t handle, uint8_t event, uint16
   switch (event) {
     case AVRC_OPEN_IND_EVT: {
       log::info("Connection Opened Event");
-
+      BTA_AvCancelAVRCAlarm(*peer_addr, handle);
       const auto& feature_iter = feature_map_.find(*peer_addr);
       if (feature_iter == feature_map_.end()) {
         log::error(
@@ -347,6 +348,7 @@ void ConnectionHandler::AcceptorControlCb(uint8_t handle, uint8_t event, uint16_
       if (peer_addr == NULL) {
         return;
       }
+      BTA_AvCancelAVRCAlarm(*peer_addr, handle);
       if (btif_av_src_sink_coexist_enabled() && btif_av_peer_is_connected_source(*peer_addr)) {
         log::warn("peer is src, close new avrcp cback");
         if (device_map_.find(handle) != device_map_.end()) {
