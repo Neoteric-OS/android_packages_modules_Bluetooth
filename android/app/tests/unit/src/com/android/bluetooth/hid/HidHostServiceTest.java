@@ -22,20 +22,21 @@ import static android.bluetooth.BluetoothProfile.CONNECTION_POLICY_ALLOWED;
 import static android.bluetooth.BluetoothProfile.CONNECTION_POLICY_FORBIDDEN;
 import static android.bluetooth.BluetoothProfile.CONNECTION_POLICY_UNKNOWN;
 
+import static com.android.bluetooth.TestUtils.MockitoRule;
+import static com.android.bluetooth.TestUtils.getTestDevice;
+
 import static com.google.common.truth.Truth.assertThat;
 
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.anyInt;
 import static org.mockito.Mockito.doReturn;
 
-import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.os.Looper;
 
 import androidx.test.filters.MediumTest;
 import androidx.test.runner.AndroidJUnit4;
 
-import com.android.bluetooth.TestUtils;
 import com.android.bluetooth.btservice.AdapterService;
 import com.android.bluetooth.btservice.storage.DatabaseManager;
 import com.android.bluetooth.flags.Flags;
@@ -46,22 +47,19 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
 
 import java.util.List;
 
 @MediumTest
 @RunWith(AndroidJUnit4.class)
 public class HidHostServiceTest {
-    @Rule public MockitoRule mockitoRule = MockitoJUnit.rule();
+    @Rule public final MockitoRule mMockitoRule = new MockitoRule();
 
     @Mock private AdapterService mAdapterService;
     @Mock private DatabaseManager mDatabaseManager;
     @Mock private HidHostNativeInterface mNativeInterface;
 
-    private final BluetoothAdapter mAdapter = BluetoothAdapter.getDefaultAdapter();
-    private final BluetoothDevice mDevice = TestUtils.getTestDevice(mAdapter, 0);
+    private final BluetoothDevice mDevice = getTestDevice(0);
 
     private HidHostService mService;
 
@@ -80,7 +78,6 @@ public class HidHostServiceTest {
 
     @After
     public void tearDown() throws Exception {
-        mService.stop();
         mService.cleanup();
         HidHostNativeInterface.setInstance(null);
         mService = HidHostService.getHidHostService();

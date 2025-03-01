@@ -350,6 +350,7 @@ cc_test {
         "mts_defaults",
     ],
     test_suites: ["general-tests"],
+    host_supported: true,
     srcs: [
         ":LegacyStackSdp",
         ":TestCommonMockFunctions",
@@ -400,6 +401,7 @@ cc_test {
         "mts_defaults",
     ],
     test_suites: ["general-tests"],
+    host_supported: true,
     srcs: [
         ":TestCommonMockFunctions",
         ":TestMockBtif",
@@ -414,6 +416,7 @@ cc_test {
         "libbase",
         "libcrypto",
         "libcutils",
+        "libevent",
         "liblog",
         "libprotobuf-cpp-lite",
         "libstatssocket",

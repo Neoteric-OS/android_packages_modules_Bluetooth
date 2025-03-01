@@ -16,6 +16,8 @@
 
 package com.android.bluetooth.audio_util;
 
+import static com.android.bluetooth.TestUtils.MockitoRule;
+
 import static com.google.common.truth.Truth.assertThat;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -28,7 +30,7 @@ import android.content.Context;
 import android.content.pm.ResolveInfo;
 import android.content.pm.ServiceInfo;
 
-import androidx.test.InstrumentationRegistry;
+import androidx.test.platform.app.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
 
 import com.android.bluetooth.TestLooper;
@@ -38,8 +40,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -54,14 +54,14 @@ public final class BrowsablePlayerConnectorTest {
     Context mContext;
     TestLooper mTestLooper;
     List<ResolveInfo> mPlayerList;
-    @Rule public MockitoRule mockitoRule = MockitoJUnit.rule();
+    @Rule public final MockitoRule mMockitoRule = new MockitoRule();
 
     @Mock MediaBrowser mMediaBrowser;
     MediaBrowser.ConnectionCallback mConnectionCallback;
 
     @Before
     public void setUp() {
-        mContext = InstrumentationRegistry.getTargetContext();
+        mContext = InstrumentationRegistry.getInstrumentation().getTargetContext();
         mTestLooper = new TestLooper();
 
         doAnswer(

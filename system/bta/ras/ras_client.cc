@@ -74,7 +74,7 @@ static constexpr uint16_t kRangingDataReadyTimeoutMs = 5000;
 class RasClientImpl : public bluetooth::ras::RasClient {
   static constexpr uint16_t kCachedDataSize = 10;
   static constexpr uint16_t kInvalidGattHandle = 0x0000;
-  static constexpr uint16_t kFirstSegmentRangingDataTimeoutMs = 5000;
+  static constexpr uint16_t kFirstSegmentRangingDataTimeoutMs = 10000;
   static constexpr uint16_t kFollowingSegmentTimeoutMs = 1000;
   static constexpr uint16_t kRangingDataReadyTimeoutMs = 5000;
   static constexpr uint16_t kInvalidConnInterval = 0;  // valid value is from 0x0006 to 0x0C0

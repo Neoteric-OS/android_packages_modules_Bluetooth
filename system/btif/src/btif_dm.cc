@@ -601,6 +601,13 @@ static bool check_sdp_bl(const RawAddress* remote_bdaddr) {
   return false;
 }
 
+static void wipe_le_audio_metadata_cache_for_pairing_device() {
+  if (!pairing_cb.static_bdaddr.IsEmpty()) {
+    metadata_cb.le_audio_cache.extract(pairing_cb.static_bdaddr);
+  }
+  metadata_cb.le_audio_cache.extract(pairing_cb.bd_addr);
+}
+
 static void bond_state_changed(bt_status_t status, const RawAddress& bd_addr,
                                bt_bond_state_t state) {
   btif_stats_add_bond_event(bd_addr, BTIF_DM_FUNC_BOND_STATE_CHANGED, state);
@@ -656,6 +663,7 @@ static void bond_state_changed(bt_status_t status, const RawAddress& bd_addr,
     pairing_cb.bd_addr = bd_addr;
   } else {
     log::debug("clearing btif pairing_cb");
+    wipe_le_audio_metadata_cache_for_pairing_device();
     pairing_cb = {};
   }
 }
@@ -1633,6 +1641,7 @@ static bt_status_t btif_get_existing_uuids(RawAddress* bd_addr, Uuid* existing_u
   return btif_storage_get_remote_device_property(bd_addr, &tmp_prop);
 }
 
+
 static bool btif_should_ignore_uuid(const Uuid& uuid) { return uuid.IsEmpty() || uuid.IsBase(); }
 
 static bool btif_is_gatt_service_discovery_post_pairing(const RawAddress bd_addr) {
@@ -1640,17 +1649,11 @@ static bool btif_is_gatt_service_discovery_post_pairing(const RawAddress bd_addr
          (pairing_cb.gatt_over_le == btif_dm_pairing_cb_t::ServiceDiscoveryState::SCHEDULED);
 }
 
-static void btif_merge_existing_uuids(RawAddress& addr, std::set<Uuid>* uuids,
-                                      bt_property_type_t property_type = BT_PROPERTY_UUIDS) {
-  Uuid existing_uuids[BT_MAX_NUM_UUIDS] = {};
-  bt_status_t lookup_result = btif_get_existing_uuids(&addr, existing_uuids, property_type);
+static void btif_merge_existing_uuids(const RawAddress& addr, std::set<Uuid>* uuids,
+                                      tBT_TRANSPORT transport = BT_TRANSPORT_BR_EDR) {
+  std::vector<Uuid> existing_uuids = btif_storage_get_services(addr, transport);
 
-  if (lookup_result == BT_STATUS_FAIL) {
-    return;
-  }
-
-  for (int i = 0; i < BT_MAX_NUM_UUIDS; i++) {
-    Uuid uuid = existing_uuids[i];
+  for (const auto& uuid : existing_uuids) {
     if (btif_should_ignore_uuid(uuid)) {
       continue;
     }
@@ -1730,10 +1733,10 @@ static void btif_on_service_discovery_results(RawAddress bd_addr,
 
       std::set<Uuid> le_uuids;
       if (results_for_bonding_device) {
-        btif_merge_existing_uuids(pairing_cb.static_bdaddr, &le_uuids, BT_PROPERTY_UUIDS_LE);
-        btif_merge_existing_uuids(pairing_cb.bd_addr, &le_uuids, BT_PROPERTY_UUIDS_LE);
+        btif_merge_existing_uuids(pairing_cb.static_bdaddr, &le_uuids, BT_TRANSPORT_LE);
+        btif_merge_existing_uuids(pairing_cb.bd_addr, &le_uuids, BT_TRANSPORT_LE);
       } else {
-        btif_merge_existing_uuids(bd_addr, &le_uuids, BT_PROPERTY_UUIDS_LE);
+        btif_merge_existing_uuids(bd_addr, &le_uuids, BT_TRANSPORT_LE);
       }
 
       for (auto& uuid : le_uuids) {
@@ -1813,6 +1816,7 @@ static void btif_on_service_discovery_results(RawAddress bd_addr,
     if (!skip_reporting_wait_for_le) {
       // Both SDP and bonding are done, clear pairing control block in case
       // it is not already cleared
+      wipe_le_audio_metadata_cache_for_pairing_device();
       pairing_cb = {};
       log::debug("clearing btif pairing_cb");
     }
@@ -1862,6 +1866,7 @@ static void btif_on_gatt_results(RawAddress bd_addr, std::vector<bluetooth::Uuid
         // Both SDP and bonding are either done, or not scheduled,
         // we are safe to clear the service discovery part of CB.
         log::debug("clearing pairing_cb");
+        wipe_le_audio_metadata_cache_for_pairing_device();
         pairing_cb = {};
       }
 
@@ -2106,6 +2111,7 @@ void BTIF_dm_enable() {
     }
   }
   /* clear control blocks */
+  wipe_le_audio_metadata_cache_for_pairing_device();
   pairing_cb = {};
   pairing_cb.bond_type = BOND_TYPE_PERSISTENT;
 

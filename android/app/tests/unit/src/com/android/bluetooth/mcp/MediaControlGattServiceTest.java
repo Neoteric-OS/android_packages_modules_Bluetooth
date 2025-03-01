@@ -17,11 +17,13 @@
 
 package com.android.bluetooth.mcp;
 
+import static com.android.bluetooth.TestUtils.MockitoRule;
+import static com.android.bluetooth.TestUtils.getTestDevice;
+
 import static com.google.common.truth.Truth.assertThat;
 
 import static org.mockito.Mockito.*;
 
-import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothGatt;
 import android.bluetooth.BluetoothGattCharacteristic;
@@ -46,8 +48,6 @@ import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -61,7 +61,7 @@ import java.util.UUID;
 @RunWith(AndroidJUnit4.class)
 public class MediaControlGattServiceTest {
     @Rule public final SetFlagsRule mSetFlagsRule = new SetFlagsRule();
-    @Rule public MockitoRule mockitoRule = MockitoJUnit.rule();
+    @Rule public final MockitoRule mMockitoRule = new MockitoRule();
 
     @Mock private AdapterService mAdapterService;
     @Mock private MediaControlGattService.BluetoothGattServerProxy mGattServer;
@@ -71,7 +71,6 @@ public class MediaControlGattServiceTest {
 
     @Captor private ArgumentCaptor<BluetoothGattService> mGattServiceCaptor;
 
-    private BluetoothAdapter mAdapter;
     private BluetoothDevice mCurrentDevice;
 
     private static final UUID UUID_GMCS = UUID.fromString("00001849-0000-1000-8000-00805f9b34fb");
@@ -87,7 +86,6 @@ public class MediaControlGattServiceTest {
         }
 
         TestUtils.setAdapterService(mAdapterService);
-        mAdapter = BluetoothAdapter.getDefaultAdapter();
 
         doReturn(true).when(mGattServer).addService(any(BluetoothGattService.class));
         doReturn(new BluetoothDevice[0]).when(mAdapterService).getBondedDevices();
@@ -106,7 +104,7 @@ public class MediaControlGattServiceTest {
 
     private void prepareConnectedDevice() {
         if (mCurrentDevice == null) {
-            mCurrentDevice = TestUtils.getTestDevice(mAdapter, 0);
+            mCurrentDevice = getTestDevice(0);
             List<BluetoothDevice> devices = new ArrayList<BluetoothDevice>();
             devices.add(mCurrentDevice);
             doReturn(devices).when(mGattServer).getConnectedDevices();
@@ -1187,6 +1185,76 @@ public class MediaControlGattServiceTest {
                         eq(BluetoothGatt.GATT_INSUFFICIENT_AUTHORIZATION),
                         eq(0),
                         any());
+    }
+
+    @Test
+    public void testCharacteristic_longReadAuthorized() {
+        BluetoothGattService service = initAllFeaturesGattService();
+
+        /* Twenty three octects long title */
+        String title = "01234567890123456789012";
+        BluetoothGattCharacteristic characteristic =
+                service.getCharacteristic(MediaControlGattService.UUID_TRACK_TITLE);
+        characteristic.setValue(title);
+
+        prepareConnectedDevice();
+        doReturn(BluetoothDevice.ACCESS_ALLOWED)
+                .when(mMcpService)
+                .getDeviceAuthorization(any(BluetoothDevice.class));
+
+        int offset = 0;
+        mMediaControlGattService.mServerCallback.onCharacteristicReadRequest(
+                mCurrentDevice, 1, offset, characteristic);
+
+        verify(mGattServer)
+                .sendResponse(
+                        eq(mCurrentDevice),
+                        eq(1),
+                        eq(BluetoothGatt.GATT_SUCCESS),
+                        eq(offset),
+                        eq(title.getBytes()));
+
+        offset = characteristic.getValue().length;
+        mMediaControlGattService.mServerCallback.onCharacteristicReadRequest(
+                mCurrentDevice, 2, offset, characteristic);
+
+        byte[] empty = new byte[] {};
+        verify(mGattServer)
+                .sendResponse(
+                        eq(mCurrentDevice),
+                        eq(2),
+                        eq(BluetoothGatt.GATT_SUCCESS),
+                        eq(offset),
+                        eq(empty));
+    }
+
+    @Test
+    public void testCharacteristic_longReadOutsideLenAuthorized() {
+        BluetoothGattService service = initAllFeaturesGattService();
+
+        /* Twenty three octects long title */
+        String title = "01234567890123456789012";
+        BluetoothGattCharacteristic characteristic =
+                service.getCharacteristic(MediaControlGattService.UUID_TRACK_TITLE);
+        characteristic.setValue(title);
+
+        prepareConnectedDevice();
+        doReturn(BluetoothDevice.ACCESS_ALLOWED)
+                .when(mMcpService)
+                .getDeviceAuthorization(any(BluetoothDevice.class));
+
+        int offset = characteristic.getValue().length + 1;
+        mMediaControlGattService.mServerCallback.onCharacteristicReadRequest(
+                mCurrentDevice, 1, offset, characteristic);
+
+        byte[] empty = new byte[] {};
+        verify(mGattServer)
+                .sendResponse(
+                        eq(mCurrentDevice),
+                        eq(1),
+                        eq(BluetoothGatt.GATT_INVALID_OFFSET),
+                        eq(offset),
+                        eq(empty));
     }
 
     @Test

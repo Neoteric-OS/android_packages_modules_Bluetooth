@@ -16,13 +16,15 @@
 
 package com.android.bluetooth.hfpclient;
 
+import static com.android.bluetooth.TestUtils.MockitoRule;
+import static com.android.bluetooth.TestUtils.getTestDevice;
+
 import static com.google.common.truth.Truth.assertThat;
 
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.content.Context;
 import android.net.Uri;
@@ -39,39 +41,35 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoJUnitRunner;
-import org.mockito.junit.MockitoRule;
 
 import java.util.Set;
 
 @MediumTest
 @RunWith(MockitoJUnitRunner.class)
 public class HfpClientConnectionTest {
-    @Rule public MockitoRule rule = MockitoJUnit.rule();
+    @Rule public final MockitoRule mMockitoRule = new MockitoRule();
+
+    @Mock private HeadsetClientServiceInterface mMockServiceInterface;
+    @Mock private Context mContext;
+    @Mock private HfpClientConnectionService mHfpClientConnectionService;
 
     private static final String EVENT_SCO_CONNECT = "com.android.bluetooth.hfpclient.SCO_CONNECT";
     private static final String EVENT_SCO_DISCONNECT =
             "com.android.bluetooth.hfpclient.SCO_DISCONNECT";
     private static final String TEST_NUMBER = "000-111-2222";
     private static final String TEST_NUMBER_2 = "444-555-6666";
-    private static final String TEST_DEVICE_ADDRESS = "00:11:22:33:44:55";
+
+    private final BluetoothDevice mDevice = getTestDevice(33);
 
     private HfpClientConnection mHfpClientConnection;
-    private BluetoothDevice mBluetoothDevice;
     private HfpClientCall mCall;
-
-    @Mock private HeadsetClientServiceInterface mMockServiceInterface;
-    @Mock private Context mContext;
-    @Mock private HfpClientConnectionService mHfpClientConnectionService;
 
     @Before
     public void setUp() {
-        mBluetoothDevice =
-                BluetoothAdapter.getDefaultAdapter().getRemoteDevice(TEST_DEVICE_ADDRESS);
         mCall =
                 new HfpClientCall(
-                        mBluetoothDevice,
+                        mDevice,
                         /* id= */ 0,
                         HfpClientCall.CALL_STATE_ACTIVE,
                         TEST_NUMBER,
@@ -85,7 +83,7 @@ public class HfpClientConnectionTest {
         mHfpClientConnection = createHfpClientConnectionWithExistingCall().build();
 
         assertThat(mHfpClientConnection.getCall()).isEqualTo(mCall);
-        assertThat(mHfpClientConnection.getDevice()).isEqualTo(mBluetoothDevice);
+        assertThat(mHfpClientConnection.getDevice()).isEqualTo(mDevice);
         assertThat(mHfpClientConnection.getUUID()).isEqualTo(mCall.getUUID());
         assertThat(mHfpClientConnection.getState()).isEqualTo(Connection.STATE_ACTIVE);
         assertThat(mHfpClientConnection.getAudioModeIsVoip()).isFalse();
@@ -105,12 +103,12 @@ public class HfpClientConnectionTest {
 
     @Test
     public void constructorWithNumber() {
-        when(mMockServiceInterface.dial(mBluetoothDevice, TEST_NUMBER)).thenReturn(mCall);
+        when(mMockServiceInterface.dial(mDevice, TEST_NUMBER)).thenReturn(mCall);
 
         mHfpClientConnection = initiateHfpClientConnectionWithNumber().build();
 
         assertThat(mHfpClientConnection.getCall()).isEqualTo(mCall);
-        assertThat(mHfpClientConnection.getDevice()).isEqualTo(mBluetoothDevice);
+        assertThat(mHfpClientConnection.getDevice()).isEqualTo(mDevice);
         assertThat(mHfpClientConnection.getUUID()).isEqualTo(mCall.getUUID());
         assertThat(mHfpClientConnection.getExtras()).isNull();
         assertThat(mHfpClientConnection.getState()).isEqualTo(Connection.STATE_DIALING);
@@ -146,7 +144,7 @@ public class HfpClientConnectionTest {
                 createHfpClientConnectionWithExistingCall()
                         .setCall(
                                 new HfpClientCall(
-                                        mBluetoothDevice,
+                                        mDevice,
                                         /* id= */ 0,
                                         HfpClientCall.CALL_STATE_ACTIVE,
                                         "444-555-6666",
@@ -173,7 +171,7 @@ public class HfpClientConnectionTest {
                 createHfpClientConnectionWithExistingCall()
                         .setCall(
                                 new HfpClientCall(
-                                        mBluetoothDevice,
+                                        mDevice,
                                         /* id= */ 0,
                                         HfpClientCall.CALL_STATE_ACTIVE,
                                         "444-555-6666",
@@ -191,7 +189,7 @@ public class HfpClientConnectionTest {
                 createHfpClientConnectionWithExistingCall()
                         .setCall(
                                 new HfpClientCall(
-                                        mBluetoothDevice,
+                                        mDevice,
                                         /* id= */ 0,
                                         HfpClientCall.CALL_STATE_ACTIVE,
                                         "444-555-6666",
@@ -210,7 +208,7 @@ public class HfpClientConnectionTest {
         mHfpClientConnection = createHfpClientConnectionWithExistingCall().build();
 
         mHfpClientConnection.enterPrivateMode();
-        verify(mMockServiceInterface).enterPrivateMode(mBluetoothDevice, mCall.getId());
+        verify(mMockServiceInterface).enterPrivateMode(mDevice, mCall.getId());
         assertThat(mHfpClientConnection.getState()).isEqualTo(Connection.STATE_ACTIVE);
     }
 
@@ -221,7 +219,7 @@ public class HfpClientConnectionTest {
 
         HfpClientCall newCall =
                 new HfpClientCall(
-                        mBluetoothDevice,
+                        mDevice,
                         /* id= */ 0,
                         HfpClientCall.CALL_STATE_ACTIVE,
                         TEST_NUMBER_2,
@@ -394,7 +392,7 @@ public class HfpClientConnectionTest {
 
         mHfpClientConnection.onPlayDtmfTone('a');
 
-        verify(mMockServiceInterface).sendDTMF(mBluetoothDevice, (byte) 'a');
+        verify(mMockServiceInterface).sendDTMF(mDevice, (byte) 'a');
     }
 
     @Test
@@ -403,7 +401,7 @@ public class HfpClientConnectionTest {
 
         mHfpClientConnection.onDisconnect();
 
-        verify(mMockServiceInterface).terminateCall(mBluetoothDevice, mCall);
+        verify(mMockServiceInterface).terminateCall(mDevice, mCall);
         assertThat(mHfpClientConnection.isClosing()).isTrue();
     }
 
@@ -413,7 +411,7 @@ public class HfpClientConnectionTest {
 
         mHfpClientConnection.onAbort();
 
-        verify(mMockServiceInterface).terminateCall(mBluetoothDevice, mCall);
+        verify(mMockServiceInterface).terminateCall(mDevice, mCall);
         assertThat(mHfpClientConnection.isClosing()).isTrue();
     }
 
@@ -423,7 +421,7 @@ public class HfpClientConnectionTest {
 
         mHfpClientConnection.onHold();
 
-        verify(mMockServiceInterface).holdCall(mBluetoothDevice);
+        verify(mMockServiceInterface).holdCall(mDevice);
     }
 
     @Test
@@ -436,7 +434,7 @@ public class HfpClientConnectionTest {
         mHfpClientConnection.onUnhold();
 
         verify(mMockServiceInterface)
-                .acceptCall(mBluetoothDevice, HeadsetClientServiceInterface.CALL_ACCEPT_HOLD);
+                .acceptCall(mDevice, HeadsetClientServiceInterface.CALL_ACCEPT_HOLD);
     }
 
     @Test
@@ -447,7 +445,7 @@ public class HfpClientConnectionTest {
                 createHfpClientConnectionWithExistingCall()
                         .setCall(
                                 new HfpClientCall(
-                                        mBluetoothDevice,
+                                        mDevice,
                                         /* id= */ 0,
                                         HfpClientCall.CALL_STATE_ACTIVE,
                                         "444-555-6666",
@@ -461,7 +459,7 @@ public class HfpClientConnectionTest {
         mHfpClientConnection.onUnhold();
 
         verify(mMockServiceInterface, never())
-                .acceptCall(mBluetoothDevice, HeadsetClientServiceInterface.CALL_ACCEPT_HOLD);
+                .acceptCall(mDevice, HeadsetClientServiceInterface.CALL_ACCEPT_HOLD);
     }
 
     @Test
@@ -471,7 +469,7 @@ public class HfpClientConnectionTest {
         mHfpClientConnection.onAnswer();
 
         verify(mMockServiceInterface)
-                .acceptCall(mBluetoothDevice, HeadsetClientServiceInterface.CALL_ACCEPT_NONE);
+                .acceptCall(mDevice, HeadsetClientServiceInterface.CALL_ACCEPT_NONE);
     }
 
     @Test
@@ -480,7 +478,7 @@ public class HfpClientConnectionTest {
 
         mHfpClientConnection.onReject();
 
-        verify(mMockServiceInterface).rejectCall(mBluetoothDevice);
+        verify(mMockServiceInterface).rejectCall(mDevice);
     }
 
     @Test
@@ -488,7 +486,7 @@ public class HfpClientConnectionTest {
         mHfpClientConnection = createHfpClientConnectionWithExistingCall().build();
         mHfpClientConnection.onCallEvent(EVENT_SCO_CONNECT, /* extras= */ null);
 
-        verify(mMockServiceInterface).connectAudio(mBluetoothDevice);
+        verify(mMockServiceInterface).connectAudio(mDevice);
     }
 
     @Test
@@ -496,7 +494,7 @@ public class HfpClientConnectionTest {
         mHfpClientConnection = createHfpClientConnectionWithExistingCall().build();
         mHfpClientConnection.onCallEvent(EVENT_SCO_DISCONNECT, /* extras= */ null);
 
-        verify(mMockServiceInterface).disconnectAudio(mBluetoothDevice);
+        verify(mMockServiceInterface).disconnectAudio(mDevice);
     }
 
     @Test
@@ -504,8 +502,8 @@ public class HfpClientConnectionTest {
         mHfpClientConnection = createHfpClientConnectionWithExistingCall().build();
         mHfpClientConnection.onCallEvent("UNHANDLED_ACTION", /* extras= */ null);
 
-        verify(mMockServiceInterface, never()).connectAudio(mBluetoothDevice);
-        verify(mMockServiceInterface, never()).disconnectAudio(mBluetoothDevice);
+        verify(mMockServiceInterface, never()).connectAudio(mDevice);
+        verify(mMockServiceInterface, never()).disconnectAudio(mDevice);
     }
 
     private HfpClientConnectionBuilderFromExistingCall createHfpClientConnectionWithExistingCall() {
@@ -518,7 +516,7 @@ public class HfpClientConnectionTest {
 
     public abstract class HfpClientConnectionBuilder {
         protected Context mContext = HfpClientConnectionTest.this.mContext;
-        protected BluetoothDevice mBluetoothDevice = HfpClientConnectionTest.this.mBluetoothDevice;
+        protected BluetoothDevice mDevice = HfpClientConnectionTest.this.mDevice;
         protected HeadsetClientServiceInterface mServiceInterface =
                 HfpClientConnectionTest.this.mMockServiceInterface;
 
@@ -542,7 +540,7 @@ public class HfpClientConnectionTest {
         @Override
         public HfpClientConnection build() {
             return new HfpClientConnection(
-                    mBluetoothDevice, mCall, mHfpClientConnectionService, mMockServiceInterface);
+                    mDevice, mCall, mHfpClientConnectionService, mMockServiceInterface);
         }
     }
 
@@ -557,7 +555,7 @@ public class HfpClientConnectionTest {
         @Override
         public HfpClientConnection build() {
             return new HfpClientConnection(
-                    mBluetoothDevice,
+                    mDevice,
                     Uri.parse(mNumber),
                     mHfpClientConnectionService,
                     mMockServiceInterface);

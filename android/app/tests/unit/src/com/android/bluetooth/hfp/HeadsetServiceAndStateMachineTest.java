@@ -20,6 +20,9 @@ import static androidx.test.espresso.intent.matcher.IntentMatchers.hasAction;
 import static androidx.test.espresso.intent.matcher.IntentMatchers.hasData;
 import static androidx.test.espresso.intent.matcher.IntentMatchers.hasExtra;
 
+import static com.android.bluetooth.TestUtils.MockitoRule;
+import static com.android.bluetooth.TestUtils.getTestDevice;
+
 import static com.google.common.truth.Truth.assertThat;
 
 import static org.hamcrest.Matchers.*;
@@ -29,7 +32,6 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
-import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothHeadset;
 import android.bluetooth.BluetoothProfile;
@@ -47,12 +49,11 @@ import android.platform.test.flag.junit.SetFlagsRule;
 import android.telecom.PhoneAccount;
 import android.util.Log;
 
-import androidx.test.InstrumentationRegistry;
 import androidx.test.filters.MediumTest;
+import androidx.test.platform.app.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
 
 import com.android.bluetooth.TestLooper;
-import com.android.bluetooth.TestUtils;
 import com.android.bluetooth.Utils;
 import com.android.bluetooth.btservice.ActiveDeviceManager;
 import com.android.bluetooth.btservice.AdapterService;
@@ -76,8 +77,6 @@ import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.hamcrest.MockitoHamcrest;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -89,7 +88,7 @@ import java.util.Set;
 public class HeadsetServiceAndStateMachineTest {
     @Rule public final SetFlagsRule mSetFlagsRule = new SetFlagsRule();
 
-    @Rule public MockitoRule mockitoRule = MockitoJUnit.rule();
+    @Rule public final MockitoRule mMockitoRule = new MockitoRule();
 
     @Spy private HeadsetObjectsFactory mObjectsFactory = HeadsetObjectsFactory.getInstance();
 
@@ -112,8 +111,8 @@ public class HeadsetServiceAndStateMachineTest {
     private static final String TEST_PHONE_NUMBER = "1234567890";
     private static final String TEST_CALLER_ID = "Test Name";
 
-    private final BluetoothAdapter mAdapter = BluetoothAdapter.getDefaultAdapter();
-    private final Context mTargetContext = InstrumentationRegistry.getTargetContext();
+    private final Context mTargetContext =
+            InstrumentationRegistry.getInstrumentation().getTargetContext();
     private final Set<BluetoothDevice> mBondedDevices = new HashSet<>();
 
     private PowerManager.WakeLock mVoiceRecognitionWakeLock;
@@ -181,7 +180,6 @@ public class HeadsetServiceAndStateMachineTest {
 
         mHeadsetService =
                 new HeadsetService(mAdapterService, mNativeInterface, mTestLooper.getLooper());
-        mHeadsetService.start();
         mHeadsetService.setAvailable(true);
 
         verify(mObjectsFactory).makeSystemInterface(mHeadsetService);
@@ -201,7 +199,7 @@ public class HeadsetServiceAndStateMachineTest {
     public void tearDown() {
         SystemProperties.mProperties = null;
         mTestLooper.dispatchAll();
-        mHeadsetService.stop();
+        mHeadsetService.cleanup();
         mHeadsetService = HeadsetService.getHeadsetService();
         assertThat(mHeadsetService).isNull();
         // Clear classes that is spied on and has static life time
@@ -214,7 +212,7 @@ public class HeadsetServiceAndStateMachineTest {
     public void testGetHeadsetService() {
         assertThat(HeadsetService.getHeadsetService()).isEqualTo(mHeadsetService);
         // Verify default connection and audio states
-        BluetoothDevice device = TestUtils.getTestDevice(mAdapter, 0);
+        BluetoothDevice device = getTestDevice(0);
         assertThat(mHeadsetService.getConnectionState(device))
                 .isEqualTo(BluetoothProfile.STATE_DISCONNECTED);
         assertThat(mHeadsetService.getAudioState(device))
@@ -227,7 +225,7 @@ public class HeadsetServiceAndStateMachineTest {
      */
     @Test
     public void testConnectFromApi() {
-        BluetoothDevice device = TestUtils.getTestDevice(mAdapter, 0);
+        BluetoothDevice device = getTestDevice(0);
         doReturn(BluetoothProfile.CONNECTION_POLICY_UNKNOWN)
                 .when(mDatabaseManager)
                 .getProfileConnectionPolicy(device, BluetoothProfile.HEADSET);
@@ -276,7 +274,7 @@ public class HeadsetServiceAndStateMachineTest {
      */
     @Test
     public void testUnbondDevice_disconnectBeforeUnbond() {
-        BluetoothDevice device = TestUtils.getTestDevice(mAdapter, 0);
+        BluetoothDevice device = getTestDevice(0);
         doReturn(BluetoothProfile.CONNECTION_POLICY_UNKNOWN)
                 .when(mDatabaseManager)
                 .getProfileConnectionPolicy(device, BluetoothProfile.HEADSET);
@@ -322,7 +320,7 @@ public class HeadsetServiceAndStateMachineTest {
      */
     @Test
     public void testUnbondDevice_disconnectAfterUnbond() {
-        BluetoothDevice device = TestUtils.getTestDevice(mAdapter, 0);
+        BluetoothDevice device = getTestDevice(0);
         doReturn(BluetoothProfile.CONNECTION_POLICY_UNKNOWN)
                 .when(mDatabaseManager)
                 .getProfileConnectionPolicy(device, BluetoothProfile.HEADSET);
@@ -386,7 +384,7 @@ public class HeadsetServiceAndStateMachineTest {
     @Test
     public void testVirtualCall_normalStartStop() throws RemoteException {
         for (int i = 0; i < MAX_HEADSET_CONNECTIONS; ++i) {
-            BluetoothDevice device = TestUtils.getTestDevice(mAdapter, i);
+            BluetoothDevice device = getTestDevice(i);
             connectTestDevice(device);
             assertThat(mHeadsetService.getConnectedDevices())
                     .containsExactlyElementsIn(mBondedDevices);
@@ -425,7 +423,7 @@ public class HeadsetServiceAndStateMachineTest {
     @Test
     public void testVirtualCall_preemptedByTelecomCall() throws RemoteException {
         for (int i = 0; i < MAX_HEADSET_CONNECTIONS; ++i) {
-            BluetoothDevice device = TestUtils.getTestDevice(mAdapter, i);
+            BluetoothDevice device = getTestDevice(i);
             connectTestDevice(device);
             assertThat(mHeadsetService.getConnectedDevices())
                     .containsExactlyElementsIn(mBondedDevices);
@@ -469,7 +467,7 @@ public class HeadsetServiceAndStateMachineTest {
     @Test
     public void testVirtualCall_rejectedWhenThereIsTelecomCall() throws RemoteException {
         for (int i = 0; i < MAX_HEADSET_CONNECTIONS; ++i) {
-            BluetoothDevice device = TestUtils.getTestDevice(mAdapter, i);
+            BluetoothDevice device = getTestDevice(i);
             connectTestDevice(device);
             assertThat(mHeadsetService.getConnectedDevices())
                     .containsExactlyElementsIn(mBondedDevices);
@@ -498,7 +496,7 @@ public class HeadsetServiceAndStateMachineTest {
     @Test
     public void testIsInbandRingingEnabled_SwitchActiveDevice() {
         mSetFlagsRule.enableFlags(Flags.FLAG_UPDATE_ACTIVE_DEVICE_IN_BAND_RINGTONE);
-        BluetoothDevice device = TestUtils.getTestDevice(mAdapter, 0);
+        BluetoothDevice device = getTestDevice(0);
         connectTestDevice(device);
 
         assertThat(mHeadsetService.setActiveDevice(device)).isTrue();
@@ -520,7 +518,7 @@ public class HeadsetServiceAndStateMachineTest {
     @Test
     public void testDialingOutCall_NormalDialingOut() throws RemoteException {
         for (int i = 0; i < MAX_HEADSET_CONNECTIONS; ++i) {
-            BluetoothDevice device = TestUtils.getTestDevice(mAdapter, i);
+            BluetoothDevice device = getTestDevice(i);
             connectTestDevice(device);
             assertThat(mHeadsetService.getConnectedDevices())
                     .containsExactlyElementsIn(mBondedDevices);
@@ -614,7 +612,7 @@ public class HeadsetServiceAndStateMachineTest {
     @Test
     public void testDialingOutCall_DialingOutPreemptVirtualCall() throws RemoteException {
         for (int i = 0; i < MAX_HEADSET_CONNECTIONS; ++i) {
-            BluetoothDevice device = TestUtils.getTestDevice(mAdapter, i);
+            BluetoothDevice device = getTestDevice(i);
             connectTestDevice(device);
             assertThat(mHeadsetService.getConnectedDevices())
                     .containsExactlyElementsIn(mBondedDevices);
@@ -673,7 +671,7 @@ public class HeadsetServiceAndStateMachineTest {
     @Test
     public void testVoiceRecognition_SingleHfInitiatedSuccess() {
         // Connect HF
-        BluetoothDevice device = TestUtils.getTestDevice(mAdapter, 0);
+        BluetoothDevice device = getTestDevice(0);
         connectTestDevice(device);
         // Make device active
         assertThat(mHeadsetService.setActiveDevice(device)).isTrue();
@@ -696,7 +694,7 @@ public class HeadsetServiceAndStateMachineTest {
         Utils.setIsScoManagedByAudioEnabled(true);
 
         // Connect HF
-        BluetoothDevice device = TestUtils.getTestDevice(mAdapter, 0);
+        BluetoothDevice device = getTestDevice(0);
         connectTestDevice(device);
         // Make device active
         assertThat(mHeadsetService.setActiveDevice(device)).isTrue();
@@ -720,7 +718,7 @@ public class HeadsetServiceAndStateMachineTest {
     @Test
     public void testVoiceRecognition_SingleHfStopSuccess() {
         // Connect HF
-        BluetoothDevice device = TestUtils.getTestDevice(mAdapter, 0);
+        BluetoothDevice device = getTestDevice(0);
         connectTestDevice(device);
         // Make device active
         assertThat(mHeadsetService.setActiveDevice(device)).isTrue();
@@ -763,7 +761,7 @@ public class HeadsetServiceAndStateMachineTest {
     public void testVoiceRecognition_SingleHfInitiatedFailedToActivate() {
         doReturn(false).when(mSystemInterface).activateVoiceRecognition();
         // Connect HF
-        BluetoothDevice device = TestUtils.getTestDevice(mAdapter, 0);
+        BluetoothDevice device = getTestDevice(0);
         connectTestDevice(device);
         // Make device active
         assertThat(mHeadsetService.setActiveDevice(device)).isTrue();
@@ -795,7 +793,7 @@ public class HeadsetServiceAndStateMachineTest {
     @Test
     public void testVoiceRecognition_SingleHfInitiatedTimeout() {
         // Connect HF
-        BluetoothDevice device = TestUtils.getTestDevice(mAdapter, 0);
+        BluetoothDevice device = getTestDevice(0);
         connectTestDevice(device);
         // Make device active
         assertThat(mHeadsetService.setActiveDevice(device)).isTrue();
@@ -837,7 +835,7 @@ public class HeadsetServiceAndStateMachineTest {
     @Test
     public void testVoiceRecognition_SingleAgInitiatedSuccess() {
         // Connect HF
-        BluetoothDevice device = TestUtils.getTestDevice(mAdapter, 0);
+        BluetoothDevice device = getTestDevice(0);
         connectTestDevice(device);
         // Make device active
         assertThat(mHeadsetService.setActiveDevice(device)).isTrue();
@@ -860,7 +858,7 @@ public class HeadsetServiceAndStateMachineTest {
         Utils.setIsScoManagedByAudioEnabled(true);
 
         // Connect HF
-        BluetoothDevice device = TestUtils.getTestDevice(mAdapter, 0);
+        BluetoothDevice device = getTestDevice(0);
         connectTestDevice(device);
         // Make device active
         assertThat(mHeadsetService.setActiveDevice(device)).isTrue();
@@ -885,7 +883,7 @@ public class HeadsetServiceAndStateMachineTest {
     @Test
     public void testVoiceRecognition_SingleAgStopSuccess() {
         // Connect HF
-        BluetoothDevice device = TestUtils.getTestDevice(mAdapter, 0);
+        BluetoothDevice device = getTestDevice(0);
         connectTestDevice(device);
         // Make device active
         assertThat(mHeadsetService.setActiveDevice(device)).isTrue();
@@ -919,7 +917,7 @@ public class HeadsetServiceAndStateMachineTest {
     @Test
     public void testVoiceRecognition_SingleAgInitiatedDeviceNotConnected() {
         // Start voice recognition
-        BluetoothDevice disconnectedDevice = TestUtils.getTestDevice(mAdapter, 0);
+        BluetoothDevice disconnectedDevice = getTestDevice(0);
         assertThat(mHeadsetService.startVoiceRecognition(disconnectedDevice)).isFalse();
         mTestLooper.dispatchAll();
         verifyNoMoreInteractions(mNativeInterface);
@@ -938,9 +936,9 @@ public class HeadsetServiceAndStateMachineTest {
     @Test
     public void testVoiceRecognition_MultiHfInitiatedSwitchActiveDeviceSuccess() {
         // Connect two devices
-        BluetoothDevice deviceA = TestUtils.getTestDevice(mAdapter, 0);
+        BluetoothDevice deviceA = getTestDevice(0);
         connectTestDevice(deviceA);
-        BluetoothDevice deviceB = TestUtils.getTestDevice(mAdapter, 1);
+        BluetoothDevice deviceB = getTestDevice(1);
         connectTestDevice(deviceB);
         InOrder inOrder = inOrder(mNativeInterface);
         if (!Flags.updateActiveDeviceInBandRingtone()) {
@@ -1006,9 +1004,9 @@ public class HeadsetServiceAndStateMachineTest {
     public void testVoiceRecognition_MultiHfInitiatedSwitchActiveDeviceReplyWrongHfSuccess() {
         // Connect two devices
         InOrder inOrder = inOrder(mNativeInterface);
-        BluetoothDevice deviceA = TestUtils.getTestDevice(mAdapter, 0);
+        BluetoothDevice deviceA = getTestDevice(0);
         connectTestDevice(deviceA);
-        BluetoothDevice deviceB = TestUtils.getTestDevice(mAdapter, 1);
+        BluetoothDevice deviceB = getTestDevice(1);
         connectTestDevice(deviceB);
         if (!Flags.updateActiveDeviceInBandRingtone()) {
             inOrder.verify(mNativeInterface).sendBsir(eq(deviceA), eq(true));
@@ -1072,9 +1070,9 @@ public class HeadsetServiceAndStateMachineTest {
     @Test
     public void testVoiceRecognition_MultiAgInitiatedSuccess() {
         // Connect two devices
-        BluetoothDevice deviceA = TestUtils.getTestDevice(mAdapter, 0);
+        BluetoothDevice deviceA = getTestDevice(0);
         connectTestDevice(deviceA);
-        BluetoothDevice deviceB = TestUtils.getTestDevice(mAdapter, 1);
+        BluetoothDevice deviceB = getTestDevice(1);
         connectTestDevice(deviceB);
         InOrder inOrder = inOrder(mNativeInterface);
         if (!Flags.updateActiveDeviceInBandRingtone()) {
@@ -1124,9 +1122,9 @@ public class HeadsetServiceAndStateMachineTest {
     @Test
     public void testVoiceRecognition_MultiAgInitiatedDeviceNotActive() {
         // Connect two devices
-        BluetoothDevice deviceA = TestUtils.getTestDevice(mAdapter, 0);
+        BluetoothDevice deviceA = getTestDevice(0);
         connectTestDevice(deviceA);
-        BluetoothDevice deviceB = TestUtils.getTestDevice(mAdapter, 1);
+        BluetoothDevice deviceB = getTestDevice(1);
         connectTestDevice(deviceB);
         InOrder inOrder = inOrder(mNativeInterface);
         if (!Flags.updateActiveDeviceInBandRingtone()) {
@@ -1181,7 +1179,7 @@ public class HeadsetServiceAndStateMachineTest {
     public void testPhoneStateChangedWithIncomingCallState() throws RemoteException {
         // Connect HF
         for (int i = 0; i < MAX_HEADSET_CONNECTIONS; ++i) {
-            BluetoothDevice device = TestUtils.getTestDevice(mAdapter, i);
+            BluetoothDevice device = getTestDevice(i);
             connectTestDevice(device);
             assertThat(mHeadsetService.getConnectedDevices())
                     .containsExactlyElementsIn(mBondedDevices);
@@ -1222,7 +1220,7 @@ public class HeadsetServiceAndStateMachineTest {
     public void testIncomingCall_NonHdNonVoipCall_AptXDisabled() {
         configureHeadsetServiceForAptxVoice(true);
 
-        BluetoothDevice device = TestUtils.getTestDevice(mAdapter, 0);
+        BluetoothDevice device = getTestDevice(0);
 
         doReturn(true)
                 .when(mNativeInterface)
@@ -1305,7 +1303,7 @@ public class HeadsetServiceAndStateMachineTest {
     @Test
     public void testIncomingCall_HdNonVoipCall_AptXEnabled() {
         configureHeadsetServiceForAptxVoice(true);
-        BluetoothDevice device = TestUtils.getTestDevice(mAdapter, 0);
+        BluetoothDevice device = getTestDevice(0);
 
         doReturn(true)
                 .when(mNativeInterface)
@@ -1389,7 +1387,7 @@ public class HeadsetServiceAndStateMachineTest {
     public void testSetAudioParametersWithAptxVoice_Lc3SwbEnabled() {
         configureHeadsetServiceForAptxVoice(true);
         // Connect HF
-        BluetoothDevice device = TestUtils.getTestDevice(mAdapter, 0);
+        BluetoothDevice device = getTestDevice(0);
         connectTestDevice(device);
         // Make device active
         assertThat(mHeadsetService.setActiveDevice(device)).isTrue();
@@ -1420,7 +1418,7 @@ public class HeadsetServiceAndStateMachineTest {
     public void testSetAudioParametersWithoutAptxVoice_Lc3SwbEnabled() {
         configureHeadsetServiceForAptxVoice(false);
         // Connect HF
-        BluetoothDevice device = TestUtils.getTestDevice(mAdapter, 0);
+        BluetoothDevice device = getTestDevice(0);
         connectTestDevice(device);
         // Make device active
         assertThat(mHeadsetService.setActiveDevice(device)).isTrue();
@@ -1450,7 +1448,7 @@ public class HeadsetServiceAndStateMachineTest {
     public void testSetAudioParametersWithAptxVoice_AptXSwbEnabled() {
         configureHeadsetServiceForAptxVoice(true);
         // Connect HF
-        BluetoothDevice device = TestUtils.getTestDevice(mAdapter, 0);
+        BluetoothDevice device = getTestDevice(0);
         connectTestDevice(device);
         // Make device active
         assertThat(mHeadsetService.setActiveDevice(device)).isTrue();
@@ -1481,7 +1479,7 @@ public class HeadsetServiceAndStateMachineTest {
     public void testSetAudioParametersWithAptxVoice_SwbDisabled() {
         configureHeadsetServiceForAptxVoice(true);
         // Connect HF
-        BluetoothDevice device = TestUtils.getTestDevice(mAdapter, 0);
+        BluetoothDevice device = getTestDevice(0);
         connectTestDevice(device);
         // Make device active
         assertThat(mHeadsetService.setActiveDevice(device)).isTrue();
@@ -1510,7 +1508,7 @@ public class HeadsetServiceAndStateMachineTest {
     public void testSetAudioParametersWithoutAptxVoice_SwbDisabled() {
         configureHeadsetServiceForAptxVoice(false);
         // Connect HF
-        BluetoothDevice device = TestUtils.getTestDevice(mAdapter, 0);
+        BluetoothDevice device = getTestDevice(0);
         connectTestDevice(device);
         // Make device active
         assertThat(mHeadsetService.setActiveDevice(device)).isTrue();
@@ -1538,7 +1536,7 @@ public class HeadsetServiceAndStateMachineTest {
     @Test
     public void testVoiceRecognition_AptXSwbEnabled() {
         configureHeadsetServiceForAptxVoice(true);
-        BluetoothDevice device = TestUtils.getTestDevice(mAdapter, 0);
+        BluetoothDevice device = getTestDevice(0);
 
         // Connect HF
         connectTestDevice(device);
@@ -1559,7 +1557,7 @@ public class HeadsetServiceAndStateMachineTest {
 
     @Test
     public void testHfpOnlyHandoverToLeAudioAfterScoDisconnect() {
-        BluetoothDevice device = TestUtils.getTestDevice(mAdapter, 0);
+        BluetoothDevice device = getTestDevice(0);
 
         assertThat(mHeadsetService.mFactory).isNotNull();
         mHeadsetService.mFactory = mServiceFactory;
@@ -1752,15 +1750,15 @@ public class HeadsetServiceAndStateMachineTest {
         mSetFlagsRule.enableFlags(Flags.FLAG_IS_SCO_MANAGED_BY_AUDIO);
         Utils.setIsScoManagedByAudioEnabled(true);
 
-        BluetoothDevice device = TestUtils.getTestDevice(mAdapter, 0);
+        BluetoothDevice device = getTestDevice(0);
         assertThat(device).isNotNull();
         connectTestDevice(device);
 
-        BluetoothDevice device2 = TestUtils.getTestDevice(mAdapter, 1);
+        BluetoothDevice device2 = getTestDevice(1);
         assertThat(device2).isNotNull();
         connectTestDevice(device2);
 
-        BluetoothDevice device3 = TestUtils.getTestDevice(mAdapter, 2);
+        BluetoothDevice device3 = getTestDevice(2);
         assertThat(device3).isNotNull();
         connectTestDevice(device3);
 

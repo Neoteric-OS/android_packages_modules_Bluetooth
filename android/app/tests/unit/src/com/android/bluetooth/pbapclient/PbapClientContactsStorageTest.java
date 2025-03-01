@@ -16,6 +16,9 @@
 
 package com.android.bluetooth.pbapclient;
 
+import static com.android.bluetooth.TestUtils.MockitoRule;
+import static com.android.bluetooth.TestUtils.getTestDevice;
+
 import static com.google.common.truth.Truth.assertThat;
 
 import static org.mockito.Mockito.any;
@@ -28,6 +31,7 @@ import static org.mockito.Mockito.verify;
 import android.accounts.Account;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothManager;
 import android.content.ContentProviderOperation;
 import android.content.Context;
 import android.content.OperationApplicationException;
@@ -38,9 +42,9 @@ import android.test.mock.MockContentResolver;
 import android.util.SparseArray;
 
 import androidx.test.filters.MediumTest;
+import androidx.test.platform.app.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
 
-import com.android.bluetooth.TestUtils;
 import com.android.vcard.VCardConfig;
 import com.android.vcard.VCardConstants;
 import com.android.vcard.VCardEntry;
@@ -53,8 +57,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
 
 import java.io.File;
 import java.time.Instant;
@@ -68,7 +70,7 @@ import java.util.List;
 @MediumTest
 @RunWith(AndroidJUnit4.class)
 public class PbapClientContactsStorageTest {
-    @Rule public MockitoRule mockitoRule = MockitoJUnit.rule();
+    @Rule public final MockitoRule mMockitoRule = new MockitoRule();
 
     private static final String ACCOUNT_TYPE = "com.android.bluetooth.pbapclient.account";
 
@@ -92,7 +94,11 @@ public class PbapClientContactsStorageTest {
 
     @Before
     public void setUp() throws Exception {
-        mAdapter = BluetoothAdapter.getDefaultAdapter();
+        mAdapter =
+                InstrumentationRegistry.getInstrumentation()
+                        .getTargetContext()
+                        .getSystemService(BluetoothManager.class)
+                        .getAdapter();
         assertThat(mAdapter).isNotNull();
 
         // Mock PbapClientAccountManager to add/remove from a locally managed list
@@ -171,9 +177,9 @@ public class PbapClientContactsStorageTest {
 
     @Test
     public void testStartStorage_withExistingAccounts_accountsCleanedUp() {
-        BluetoothDevice device1 = TestUtils.getTestDevice(mAdapter, 1);
+        BluetoothDevice device1 = getTestDevice(1);
         Account account1 = getAccountForDevice(device1);
-        BluetoothDevice device2 = TestUtils.getTestDevice(mAdapter, 2);
+        BluetoothDevice device2 = getTestDevice(2);
         Account account2 = getAccountForDevice(device2);
         List<Account> existingAccounts = Arrays.asList(new Account[] {account1, account2});
 
@@ -193,7 +199,7 @@ public class PbapClientContactsStorageTest {
 
     @Test
     public void testGetStorageAccountForDevice() {
-        BluetoothDevice device = TestUtils.getTestDevice(mAdapter, 1);
+        BluetoothDevice device = getTestDevice(1);
         Account expected = getAccountForDevice(device);
 
         assertThat(mStorage.getStorageAccountForDevice(device)).isEqualTo(expected);
@@ -201,8 +207,8 @@ public class PbapClientContactsStorageTest {
 
     @Test
     public void testGetStorageAccounts_accountsExist_accountsReturned() {
-        mMockedAccounts.add(getAccountForDevice(TestUtils.getTestDevice(mAdapter, 1)));
-        mMockedAccounts.add(getAccountForDevice(TestUtils.getTestDevice(mAdapter, 2)));
+        mMockedAccounts.add(getAccountForDevice(getTestDevice(1)));
+        mMockedAccounts.add(getAccountForDevice(getTestDevice(2)));
 
         assertThat(mStorage.getStorageAccounts()).isEqualTo(mMockedAccounts);
     }
@@ -214,7 +220,7 @@ public class PbapClientContactsStorageTest {
 
     @Test
     public void testAddAccount_accountAddedAndInAccountsList() {
-        BluetoothDevice device = TestUtils.getTestDevice(mAdapter, 1);
+        BluetoothDevice device = getTestDevice(1);
         Account account = mStorage.getStorageAccountForDevice(device);
         mStorage.addAccount(account);
         assertThat(mStorage.getStorageAccounts()).contains(account);
@@ -222,7 +228,7 @@ public class PbapClientContactsStorageTest {
 
     @Test
     public void testRemoveAccount_accountRemovedAndNotInAccountsList() {
-        BluetoothDevice device = TestUtils.getTestDevice(mAdapter, 1);
+        BluetoothDevice device = getTestDevice(1);
         Account account = mStorage.getStorageAccountForDevice(device);
 
         mMockedAccounts.add(account);
@@ -234,10 +240,10 @@ public class PbapClientContactsStorageTest {
 
     @Test
     public void testRemoveAccount_accountDoesNotExist_accountsUnchanged() {
-        BluetoothDevice device1 = TestUtils.getTestDevice(mAdapter, 1);
+        BluetoothDevice device1 = getTestDevice(1);
         Account account1 = mStorage.getStorageAccountForDevice(device1);
 
-        BluetoothDevice device2 = TestUtils.getTestDevice(mAdapter, 2);
+        BluetoothDevice device2 = getTestDevice(2);
         Account account2 = mStorage.getStorageAccountForDevice(device2);
 
         mMockedAccounts.add(account1);
@@ -259,7 +265,7 @@ public class PbapClientContactsStorageTest {
     public void testInsertFavorites_validFavoritesList_contactsInserted()
             throws RemoteException, OperationApplicationException, NumberFormatException {
         testStartStorage_withoutExistingAccounts_storageReadyWithNoAccounts();
-        BluetoothDevice device = TestUtils.getTestDevice(mAdapter, 1);
+        BluetoothDevice device = getTestDevice(1);
         Account account = mStorage.getStorageAccountForDevice(device);
         mStorage.addAccount(account);
 
@@ -275,7 +281,7 @@ public class PbapClientContactsStorageTest {
     public void testInsertLocalContacts()
             throws RemoteException, OperationApplicationException, NumberFormatException {
         testStartStorage_withoutExistingAccounts_storageReadyWithNoAccounts();
-        BluetoothDevice device = TestUtils.getTestDevice(mAdapter, 1);
+        BluetoothDevice device = getTestDevice(1);
         Account account = mStorage.getStorageAccountForDevice(device);
         mStorage.addAccount(account);
 
@@ -292,7 +298,7 @@ public class PbapClientContactsStorageTest {
     public void testInsertSimContacts()
             throws RemoteException, OperationApplicationException, NumberFormatException {
         testStartStorage_withoutExistingAccounts_storageReadyWithNoAccounts();
-        BluetoothDevice device = TestUtils.getTestDevice(mAdapter, 1);
+        BluetoothDevice device = getTestDevice(1);
         Account account = mStorage.getStorageAccountForDevice(device);
         mStorage.addAccount(account);
 
@@ -311,7 +317,7 @@ public class PbapClientContactsStorageTest {
     public void testInsertIncomingCallHistory_validHistory_historyInserted()
             throws RemoteException, OperationApplicationException {
         testStartStorage_withoutExistingAccounts_storageReadyWithNoAccounts();
-        BluetoothDevice device = TestUtils.getTestDevice(mAdapter, 1);
+        BluetoothDevice device = getTestDevice(1);
         Account account = mStorage.getStorageAccountForDevice(device);
         mStorage.addAccount(account);
 
@@ -332,7 +338,7 @@ public class PbapClientContactsStorageTest {
     public void testInsertOutgoingCallHistory_validHistory_historyInserted()
             throws RemoteException, OperationApplicationException {
         testStartStorage_withoutExistingAccounts_storageReadyWithNoAccounts();
-        BluetoothDevice device = TestUtils.getTestDevice(mAdapter, 1);
+        BluetoothDevice device = getTestDevice(1);
         Account account = mStorage.getStorageAccountForDevice(device);
         mStorage.addAccount(account);
 
@@ -353,7 +359,7 @@ public class PbapClientContactsStorageTest {
     public void testInsertMissedCallHistory_validHistory_historyInserted()
             throws RemoteException, OperationApplicationException {
         testStartStorage_withoutExistingAccounts_storageReadyWithNoAccounts();
-        BluetoothDevice device = TestUtils.getTestDevice(mAdapter, 1);
+        BluetoothDevice device = getTestDevice(1);
         Account account = mStorage.getStorageAccountForDevice(device);
         mStorage.addAccount(account);
 
@@ -374,7 +380,7 @@ public class PbapClientContactsStorageTest {
     @Test
     public void testRemoveAllContacts_allContactsRemovedForAccount() {
         testStartStorage_withoutExistingAccounts_storageReadyWithNoAccounts();
-        BluetoothDevice device = TestUtils.getTestDevice(mAdapter, 1);
+        BluetoothDevice device = getTestDevice(1);
         Account account = mStorage.getStorageAccountForDevice(device);
         mStorage.addAccount(account);
 
@@ -397,7 +403,7 @@ public class PbapClientContactsStorageTest {
     @Test
     public void testRemoveAllCallHistory_callHistoryRemoved() {
         testStartStorage_withoutExistingAccounts_storageReadyWithNoAccounts();
-        BluetoothDevice device = TestUtils.getTestDevice(mAdapter, 1);
+        BluetoothDevice device = getTestDevice(1);
         Account account = mStorage.getStorageAccountForDevice(device);
         mStorage.addAccount(account);
 
@@ -413,7 +419,7 @@ public class PbapClientContactsStorageTest {
 
     @Test
     public void testInsertContacts_storageNotReady_insertFails() {
-        BluetoothDevice device = TestUtils.getTestDevice(mAdapter, 1);
+        BluetoothDevice device = getTestDevice(1);
         Account account = mStorage.getStorageAccountForDevice(device);
 
         assertThat(mStorage.insertFavorites(account, getMockContacts(TEST_CONTACTS_SIZE)))
@@ -430,7 +436,7 @@ public class PbapClientContactsStorageTest {
     @Test
     public void testInsertContacts_contactsNull_insertFails() {
         testStartStorage_withoutExistingAccounts_storageReadyWithNoAccounts();
-        BluetoothDevice device = TestUtils.getTestDevice(mAdapter, 1);
+        BluetoothDevice device = getTestDevice(1);
         Account account = mStorage.getStorageAccountForDevice(device);
         mStorage.addAccount(account);
 
@@ -440,7 +446,7 @@ public class PbapClientContactsStorageTest {
     @Test
     public void testInsertContacts_contactsEmpty_insertFails() {
         testStartStorage_withoutExistingAccounts_storageReadyWithNoAccounts();
-        BluetoothDevice device = TestUtils.getTestDevice(mAdapter, 1);
+        BluetoothDevice device = getTestDevice(1);
         Account account = mStorage.getStorageAccountForDevice(device);
         mStorage.addAccount(account);
 
@@ -450,7 +456,7 @@ public class PbapClientContactsStorageTest {
     @Test
     public void testRemoveAllContacts_accountNull_removeFails() {
         testStartStorage_withoutExistingAccounts_storageReadyWithNoAccounts();
-        BluetoothDevice device = TestUtils.getTestDevice(mAdapter, 1);
+        BluetoothDevice device = getTestDevice(1);
         Account account = mStorage.getStorageAccountForDevice(device);
         mStorage.addAccount(account);
 
@@ -461,7 +467,7 @@ public class PbapClientContactsStorageTest {
 
     @Test
     public void testInsertCallHistory_storageNotReady_insertFails() {
-        BluetoothDevice device = TestUtils.getTestDevice(mAdapter, 1);
+        BluetoothDevice device = getTestDevice(1);
         Account account = mStorage.getStorageAccountForDevice(device);
 
         assertThat(
@@ -487,7 +493,7 @@ public class PbapClientContactsStorageTest {
     @Test
     public void testInsertCallHistory_historyNull_insertFails() {
         testStartStorage_withoutExistingAccounts_storageReadyWithNoAccounts();
-        BluetoothDevice device = TestUtils.getTestDevice(mAdapter, 1);
+        BluetoothDevice device = getTestDevice(1);
         Account account = mStorage.getStorageAccountForDevice(device);
         mStorage.addAccount(account);
 
@@ -497,7 +503,7 @@ public class PbapClientContactsStorageTest {
     @Test
     public void testInsertCallHistory_historyEmpty_insertFails() {
         testStartStorage_withoutExistingAccounts_storageReadyWithNoAccounts();
-        BluetoothDevice device = TestUtils.getTestDevice(mAdapter, 1);
+        BluetoothDevice device = getTestDevice(1);
         Account account = mStorage.getStorageAccountForDevice(device);
         mStorage.addAccount(account);
 
@@ -508,7 +514,7 @@ public class PbapClientContactsStorageTest {
     @Test
     public void testRemoveCallHistory_accountNull_removeFails() {
         testStartStorage_withoutExistingAccounts_storageReadyWithNoAccounts();
-        BluetoothDevice device = TestUtils.getTestDevice(mAdapter, 1);
+        BluetoothDevice device = getTestDevice(1);
         Account account = mStorage.getStorageAccountForDevice(device);
         mStorage.addAccount(account);
 

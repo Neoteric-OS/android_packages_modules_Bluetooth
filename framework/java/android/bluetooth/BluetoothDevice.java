@@ -1034,7 +1034,6 @@ public final class BluetoothDevice implements Parcelable, Attributable {
      *
      * @hide
      */
-    @FlaggedApi(Flags.FLAG_SUPPORT_EXCLUSIVE_MANAGER)
     @SystemApi
     public static final int METADATA_EXCLUSIVE_MANAGER = 29;
 

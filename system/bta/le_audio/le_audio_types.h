@@ -1257,11 +1257,6 @@ struct CodecConfigSetting {
   bool operator!=(const CodecConfigSetting& other) const { return !(*this == other); }
 };
 
-struct CodecMetadataSetting {
-  uint16_t vendor_company_id;
-  int8_t vendor_metadata_type;
-  std::vector<uint8_t> vs_metadata;
-};
 std::ostream& operator<<(std::ostream& os, const CodecConfigSetting& config);
 
 struct ase {
@@ -1342,6 +1337,13 @@ std::ostream& operator<<(std::ostream& os, const DataPathState& state);
 std::ostream& operator<<(std::ostream& os, const CisState& state);
 std::ostream& operator<<(std::ostream& os, const AudioContexts& contexts);
 
+struct CodecMetadataSetting {
+  uint16_t vendor_company_id;
+  int8_t vendor_metadata_type;
+  std::vector<uint8_t> vs_metadata;
+};
+std::ostream& operator<<(std::ostream& os, const CodecConfigSetting& config);
+
 struct QosConfigSetting {
   uint8_t target_latency;
   uint8_t retransmission_number;
@@ -1374,12 +1376,13 @@ struct AseConfiguration {
   types::DataPathConfiguration data_path_configuration;
   CodecConfigSetting codec;
   QosConfigSetting qos;
+  types::LeAudioLtvMap metadata;
 
   bool operator!=(const AseConfiguration& other) { return !(*this == other); }
 
   bool operator==(const AseConfiguration& other) const {
     return (data_path_configuration == other.data_path_configuration) && (codec == other.codec) &&
-           (qos == other.qos);
+           (qos == other.qos) && (metadata == other.metadata);
   }
 
   std::optional<CodecMetadataSetting> vendor_metadata;
@@ -1439,12 +1442,23 @@ struct stream_map_info {
   uint16_t stream_handle;
   uint32_t audio_channel_allocation;
   bool is_stream_active;
+
+  /* The non-legacy codec extensibility feature of a stream map allows us to update the stream
+   * parameters more granularly for each CIS handle
+   */
+  types::CodecConfigSetting codec_config;
+  uint8_t target_latency;
+  uint8_t target_phy;
+  types::LeAudioLtvMap metadata;
+  RawAddress address;
+  uint8_t address_type;
 };
 
 struct stream_config {
   std::vector<stream_map_info> stream_map;
   types::LeAudioCodecId codec_id;
   /* For now we have always same frequency for all the channels */
+  /* For a legacy reason we have always same frequency for all the channels */
   uint8_t bits_per_sample;
   uint32_t sampling_frequency_hz;
   uint32_t frame_duration_us;
@@ -1452,7 +1466,8 @@ struct stream_config {
   uint8_t codec_frames_blocks_per_sdu;
   uint16_t peer_delay_ms;
   uint8_t mode;
-  std::vector<uint8_t> codec_metadata;
+  uint16_t delay;
+  std::vector<uint8_t> codec_spec_metadata;
 
   void clear() {
     stream_map.clear();
@@ -1474,10 +1489,6 @@ struct stream_parameters {
   /* Total number of channels we request from the audio framework */
   uint8_t num_of_channels;
   int num_of_devices;
-  uint8_t mode;
-  uint16_t delay;
-  std::vector<uint8_t> codec_spec_metadata;
-
   void clear() {
     num_of_channels = 0;
     num_of_devices = 0;

@@ -29,6 +29,9 @@ import static androidx.test.espresso.intent.matcher.IntentMatchers.hasAction;
 import static androidx.test.espresso.intent.matcher.IntentMatchers.hasExtra;
 import static androidx.test.espresso.intent.matcher.IntentMatchers.hasPackage;
 
+import static com.android.bluetooth.TestUtils.MockitoRule;
+import static com.android.bluetooth.TestUtils.getTestDevice;
+
 import static com.google.common.truth.Truth.assertThat;
 
 import static org.hamcrest.Matchers.nullValue;
@@ -39,7 +42,6 @@ import static org.mockito.Mockito.inOrder;
 import android.app.Activity;
 import android.app.BroadcastOptions;
 import android.app.PendingIntent;
-import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothMapClient;
 import android.bluetooth.SdpMasRecord;
@@ -60,8 +62,8 @@ import android.test.mock.MockContentProvider;
 import android.test.mock.MockContentResolver;
 import android.util.Log;
 
-import androidx.test.InstrumentationRegistry;
 import androidx.test.filters.MediumTest;
+import androidx.test.platform.app.InstrumentationRegistry;
 import androidx.test.rule.ServiceTestRule;
 
 import com.android.bluetooth.ObexAppParameters;
@@ -87,8 +89,6 @@ import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.hamcrest.MockitoHamcrest;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
 
 import platform.test.runner.parameterized.ParameterizedAndroidJunit4;
 import platform.test.runner.parameterized.Parameters;
@@ -105,7 +105,7 @@ import java.util.concurrent.TimeUnit;
 @RunWith(ParameterizedAndroidJunit4.class)
 public class MapClientStateMachineTest {
     @Rule public final SetFlagsRule mSetFlagsRule;
-    @Rule public MockitoRule mockitoRule = MockitoJUnit.rule();
+    @Rule public final MockitoRule mMockitoRule = new MockitoRule();
     @Rule public final ServiceTestRule mServiceRule = new ServiceTestRule();
 
     @Mock private AdapterService mAdapterService;
@@ -140,9 +140,9 @@ public class MapClientStateMachineTest {
     private static final String ACTION_MESSAGE_DELIVERED =
             "com.android.bluetooth.mapclient.MapClientStateMachineTest.action.MESSAGE_DELIVERED";
 
-    private final BluetoothAdapter mAdapter = BluetoothAdapter.getDefaultAdapter();
-    private final BluetoothDevice mDevice = mAdapter.getRemoteDevice("00:01:02:03:04:05");
-    private final Context mTargetContext = InstrumentationRegistry.getTargetContext();
+    private final BluetoothDevice mDevice = getTestDevice(74);
+    private final Context mTargetContext =
+            InstrumentationRegistry.getInstrumentation().getTargetContext();
     private final String mTestMessageSmsHandle = "0001";
     private final String mTestMessageMmsHandle = "0002";
     private final String mTestMessageUnknownHandle = "0003";

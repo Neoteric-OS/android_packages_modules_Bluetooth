@@ -36,6 +36,8 @@ import static android.permission.PermissionManager.PERMISSION_HARD_DENIED;
 
 import static com.android.modules.utils.build.SdkLevel.isAtLeastV;
 
+import static java.util.Objects.requireNonNull;
+
 import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.annotation.PermissionMethod;
@@ -585,7 +587,7 @@ public final class Utils {
         // attributionSource.enforceCallingUid();
         AttributionSource currentAttribution =
                 new AttributionSource.Builder(context.getAttributionSource())
-                        .setNext(Objects.requireNonNull(attributionSource))
+                        .setNext(requireNonNull(attributionSource))
                         .build();
         PermissionManager pm = context.getSystemService(PermissionManager.class);
         if (pm == null) {
@@ -866,7 +868,7 @@ public final class Utils {
         }
         AttributionSource currentAttribution =
                 new AttributionSource.Builder(context.getAttributionSource())
-                        .setNext(Objects.requireNonNull(attributionSource))
+                        .setNext(requireNonNull(attributionSource))
                         .build();
         // STOPSHIP(b/188391719): enable this security enforcement
         // attributionSource.enforceCallingUid();
@@ -899,7 +901,7 @@ public final class Utils {
 
         final AttributionSource currentAttribution =
                 new AttributionSource.Builder(context.getAttributionSource())
-                        .setNext(Objects.requireNonNull(attributionSource))
+                        .setNext(requireNonNull(attributionSource))
                         .build();
         // STOPSHIP(b/188391719): enable this security enforcement
         // attributionSource.enforceCallingUid();
@@ -938,7 +940,7 @@ public final class Utils {
 
         AttributionSource currentAttribution =
                 new AttributionSource.Builder(context.getAttributionSource())
-                        .setNext(Objects.requireNonNull(attributionSource))
+                        .setNext(requireNonNull(attributionSource))
                         .build();
         // STOPSHIP(b/188391719): enable this security enforcement
         // attributionSource.enforceCallingUid();

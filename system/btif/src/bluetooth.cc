@@ -179,8 +179,6 @@ bool is_local_device_atv = false;
 extern const btsock_interface_t* btif_sock_get_interface();
 /* gatt */
 extern const btgatt_interface_t* btif_gatt_get_interface();
-/* avrc target */
-extern const btrc_interface_t* btif_rc_get_interface();
 /* avrc controller */
 extern const btrc_ctrl_interface_t* btif_rc_ctrl_get_interface();
 /*SDP search client*/
@@ -515,10 +513,7 @@ static void start_rust_module(void) {
   std::promise<void> rust_up_promise;
   auto rust_up_future = rust_up_promise.get_future();
   stack_manager_get_interface()->start_up_rust_module_async(std::move(rust_up_promise));
-  auto status = rust_up_future.wait_for(std::chrono::milliseconds(1000));
-  if (status != std::future_status::ready) {
-    log::error("Failed to wait for rust initialization in time. May lead to unpredictable crash");
-  }
+  rust_up_future.wait();
 }
 
 static void stop_rust_module(void) { stack_manager_get_interface()->shut_down_rust_module_async(); }
@@ -990,10 +985,6 @@ static const void* get_profile_interface(const char* profile_id) {
 
   if (is_profile(profile_id, BT_PROFILE_GATT_ID)) {
     return btif_gatt_get_interface();
-  }
-
-  if (is_profile(profile_id, BT_PROFILE_AV_RC_ID)) {
-    return btif_rc_get_interface();
   }
 
   if (is_profile(profile_id, BT_PROFILE_AV_RC_CTRL_ID)) {

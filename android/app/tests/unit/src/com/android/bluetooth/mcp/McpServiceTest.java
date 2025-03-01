@@ -17,19 +17,19 @@
 
 package com.android.bluetooth.mcp;
 
+import static com.android.bluetooth.TestUtils.MockitoRule;
+import static com.android.bluetooth.TestUtils.getTestDevice;
+
 import static com.google.common.truth.Truth.assertThat;
 
 import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.verify;
 
-import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.content.Context;
 
 import androidx.test.filters.MediumTest;
 import androidx.test.runner.AndroidJUnit4;
-
-import com.android.bluetooth.TestUtils;
 
 import org.junit.After;
 import org.junit.Before;
@@ -37,18 +37,14 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
 
 @MediumTest
 @RunWith(AndroidJUnit4.class)
 public class McpServiceTest {
-    @Rule public MockitoRule mockitoRule = MockitoJUnit.rule();
+    @Rule public final MockitoRule mMockitoRule = new MockitoRule();
 
     @Mock private MediaControlProfile mMediaControlProfile;
     @Mock private Context mContext;
-
-    private final BluetoothAdapter mAdapter = BluetoothAdapter.getDefaultAdapter();
 
     private McpService mMcpService;
 
@@ -60,7 +56,7 @@ public class McpServiceTest {
 
     @After
     public void tearDown() {
-        mMcpService.stop();
+        mMcpService.cleanup();
         assertThat(McpService.getMcpService()).isNull();
     }
 
@@ -73,8 +69,8 @@ public class McpServiceTest {
 
     @Test
     public void testAuthorization() {
-        BluetoothDevice device0 = TestUtils.getTestDevice(mAdapter, 0);
-        BluetoothDevice device1 = TestUtils.getTestDevice(mAdapter, 1);
+        BluetoothDevice device0 = getTestDevice(0);
+        BluetoothDevice device1 = getTestDevice(1);
 
         mMcpService.setDeviceAuthorized(device0, true);
         verify(mMediaControlProfile).onDeviceAuthorizationSet(eq(device0));

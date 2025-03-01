@@ -146,6 +146,7 @@ cc_test {
         "libbase",
         "libbinder",
         "server_configurable_flags",
+        "libxml2",
     ],
     target: {
         android: {

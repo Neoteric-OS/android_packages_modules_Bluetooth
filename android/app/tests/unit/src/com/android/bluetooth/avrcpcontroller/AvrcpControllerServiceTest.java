@@ -15,6 +15,7 @@
  */
 package com.android.bluetooth.avrcpcontroller;
 
+import static com.android.bluetooth.TestUtils.MockitoRule;
 import static com.android.bluetooth.TestUtils.getTestDevice;
 import static com.android.bluetooth.TestUtils.mockGetSystemService;
 
@@ -29,7 +30,6 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothProfile;
 import android.content.Context;
@@ -38,8 +38,8 @@ import android.media.AudioManager;
 import android.platform.test.flag.junit.SetFlagsRule;
 import android.support.v4.media.session.PlaybackStateCompat;
 
-import androidx.test.InstrumentationRegistry;
 import androidx.test.filters.MediumTest;
+import androidx.test.platform.app.InstrumentationRegistry;
 import androidx.test.rule.ServiceTestRule;
 import androidx.test.runner.AndroidJUnit4;
 
@@ -55,8 +55,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -70,7 +68,7 @@ public class AvrcpControllerServiceTest {
     @Rule
     public final ServiceTestRule mBluetoothBrowserMediaServiceTestRule = new ServiceTestRule();
 
-    @Rule public MockitoRule mockitoRule = MockitoJUnit.rule();
+    @Rule public final MockitoRule mMockitoRule = new MockitoRule();
 
     @Mock private A2dpSinkService mA2dpSinkService;
     @Mock private AdapterService mAdapterService;
@@ -78,10 +76,10 @@ public class AvrcpControllerServiceTest {
     @Mock private AvrcpControllerStateMachine mStateMachine2;
     @Mock private AvrcpControllerNativeInterface mNativeInterface;
 
-    private final BluetoothAdapter mAdapter = BluetoothAdapter.getDefaultAdapter();
-    private final BluetoothDevice mDevice = getTestDevice(mAdapter, 89);
-    private final BluetoothDevice mDevice2 = getTestDevice(mAdapter, 41);
-    private final Context mTargetContext = InstrumentationRegistry.getTargetContext();
+    private final BluetoothDevice mDevice = getTestDevice(89);
+    private final BluetoothDevice mDevice2 = getTestDevice(41);
+    private final Context mTargetContext =
+            InstrumentationRegistry.getInstrumentation().getTargetContext();
 
     private AvrcpControllerService mService = null;
 
@@ -110,7 +108,7 @@ public class AvrcpControllerServiceTest {
 
     @After
     public void tearDown() throws Exception {
-        mService.stop();
+        mService.cleanup();
         A2dpSinkService.setA2dpSinkService(null);
         mService = AvrcpControllerService.getAvrcpControllerService();
         assertThat(mService).isNull();
