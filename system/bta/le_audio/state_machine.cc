@@ -1056,7 +1056,7 @@ public:
       return;
     }
 
-    AddCisToStreamConfiguration(group, ase);
+    AddCisToStreamConfiguration(group, leAudioDevice, ase);
 
     if (group->GetState() == AseState::BTA_LE_AUDIO_ASE_STATE_STREAMING &&
         !group->GetFirstActiveDeviceByCisAndDataPathState(CisState::CONNECTED,
@@ -1741,8 +1741,12 @@ private:
                                 "WATCHDOG STARTED");
   }
 
-  void AddCisToStreamConfiguration(LeAudioDeviceGroup* group, const struct ase* ase) {
+  void AddCisToStreamConfiguration(LeAudioDeviceGroup* group, LeAudioDevice* leAudioDevice,
+                                   const struct ase* ase) {
     group->stream_conf.codec_id = ase->codec_config.id;
+
+    log::debug( ": coding_format = {}, vendor_codec_id = {}",
+                ase->codec_config.id.coding_format, ase->codec_config.id.vendor_codec_id);
 
     auto cis_conn_hdl = ase->cis_conn_hdl;
     auto& params = group->stream_conf.stream_params.get(ase->direction);
@@ -1762,9 +1766,21 @@ private:
 
     auto ase_audio_channel_allocation = ase->codec_config.GetAudioChannelAllocation();
     params.audio_channel_allocation |= ase_audio_channel_allocation;
-    params.stream_config.stream_map.emplace_back(ase->cis_conn_hdl, ase_audio_channel_allocation,
-                                                 true);
 
+    params.stream_config.bits_per_sample = ase->codec_config.GetBitsPerSample();
+
+    auto address_with_type = leAudioDevice->GetAddressWithType();
+    auto info = ::bluetooth::le_audio::stream_map_info(ase->cis_conn_hdl,
+                                                       ase_audio_channel_allocation, true);
+    info.codec_config = ase->codec_config;
+    info.target_latency = ase->target_latency;
+    info.target_phy = ase->qos_config.phy;
+    info.metadata = ase->metadata;
+    info.address = address_with_type.bda;
+    info.address_type = address_with_type.type;
+    params.stream_config.stream_map.push_back(info);
+
+    // Note that for the vendor codec some of the parameters will be missing
     auto core_config = ase->codec_config.params.GetAsCoreCodecConfig();
     if (params.stream_config.sampling_frequency_hz == 0) {
       params.stream_config.sampling_frequency_hz = core_config.GetSamplingFrequencyHz();
@@ -1802,7 +1818,8 @@ private:
                        core_config.GetFrameDurationUs());
     }
 
-    params.codec_spec_metadata = group->GetCodecVendorMetadata(ase->direction, context_type);
+
+    params.stream_config.codec_spec_metadata = group->GetCodecVendorMetadata(ase->direction, context_type);
 
     params.stream_config.peer_delay_ms = group->GetRemoteDelay(ase->direction);
 

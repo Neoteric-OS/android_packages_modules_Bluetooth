@@ -183,10 +183,11 @@ public class A2dpService extends ProfileService {
     }
 
     @Override
-    public void stop() {
-        Log.i(TAG, "stop()");
+    public void cleanup() {
+        Log.i(TAG, "Cleanup A2dp Service");
+
         if (sA2dpService == null) {
-            Log.w(TAG, "stop() called before start()");
+            Log.w(TAG, "cleanup() called before initialization");
             return;
         }
 
@@ -1262,6 +1263,17 @@ public class A2dpService extends ProfileService {
         Log.d(TAG, "setStreamMode: isGamingEnabled: " + isGamingEnabled +
                     "isLowLatencyEnabled: " + isLowLatencyEnabled);
         mNativeInterface.setStreamMode(isGamingEnabled, isLowLatencyEnabled);
+    }
+
+    // TODO: b/395691070 delete this method
+    @VisibleForTesting
+    void bondStateChangedFromTest(BluetoothDevice device, int bondState) {
+        Log.d(
+                TAG,
+                ("bondStateChangedFromTest(" + device + ", " + bondState + "): ")
+                        + "called while A2DP_CLEANUP_ON_REMOVE_DEVICE is set to "
+                        + Flags.a2dpCleanupOnRemoveDevice());
+        bondStateChanged(device, bondState);
     }
 
     /**

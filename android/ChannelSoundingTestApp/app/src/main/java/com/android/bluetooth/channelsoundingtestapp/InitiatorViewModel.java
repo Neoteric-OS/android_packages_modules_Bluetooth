@@ -31,9 +31,12 @@ import com.android.bluetooth.channelsoundingtestapp.DistanceMeasurementInitiator
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.List;
+import android.util.Log;
 
 /** ViewModel for the Initiator. */
 public class InitiatorViewModel extends AndroidViewModel {
+    private static final String TAG = "AndroidViewModel";
+    public int distance_count = 0;
     private final MutableLiveData<String> mLogText = new MutableLiveData<>();
     private final MutableLiveData<Boolean> mCsStarted = new MutableLiveData<>(false);
 
@@ -95,6 +98,7 @@ public class InitiatorViewModel extends AndroidViewModel {
           }
         }
       }
+    }
 
     List<String> getMeasurementFreqs() {
         return mDistanceMeasurementInitiator.getMeasurementFreqs();
@@ -105,12 +109,21 @@ public class InitiatorViewModel extends AndroidViewModel {
     }
 
     // TODO freq2 parameter now unused
+    void logMarker() {
+         Log.d(TAG, "BCS LOG MARKER Count : " + distance_count);
+         distance_count++;
+    }
+    void actualDistance(String distance) {
+         Log.d(TAG, "BCS Actual distance : " + distance);
+    }
+
     void toggleCsStartStop(
-        String distanceMeasurementMethodName, String freq, String security_mode, String freq2, String duration) {
+        String distanceMeasurementMethodName, String freq, String security_mode, String freq2, int duration) {
       if (!mCsStarted.getValue()) {
         mDistanceMeasurementInitiator.startDistanceMeasurement(
             distanceMeasurementMethodName, freq, security_mode, freq2, duration);
       } else {
+        distance_count = 0;
         mDistanceMeasurementInitiator.stopDistanceMeasurement();
       }
     }

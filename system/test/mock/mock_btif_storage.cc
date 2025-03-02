@@ -79,6 +79,7 @@ struct btif_storage_set_gatt_cl_supp_feat btif_storage_set_gatt_cl_supp_feat;
 struct btif_storage_set_gatt_sr_supp_feat btif_storage_set_gatt_sr_supp_feat;
 struct btif_storage_set_remote_addr_type btif_storage_set_remote_addr_type;
 struct btif_storage_set_remote_device_property btif_storage_set_remote_device_property;
+struct btif_storage_get_services btif_storage_get_services;
 struct btif_storage_get_enc_key_material_length btif_storage_get_enc_key_material_length;
 struct btif_storage_get_enc_key_material btif_storage_get_enc_key_material;
 
@@ -117,6 +118,8 @@ bt_status_t btif_storage_remove_ble_bonding_keys::return_value = BT_STATUS_SUCCE
 bt_status_t btif_storage_remove_bonded_device::return_value = BT_STATUS_SUCCESS;
 bt_status_t btif_storage_set_adapter_property::return_value = BT_STATUS_SUCCESS;
 bt_status_t btif_storage_set_remote_device_property::return_value = BT_STATUS_SUCCESS;
+std::vector<bluetooth::Uuid> btif_storage_get_services::return_value =
+        std::vector<bluetooth::Uuid>();
 size_t btif_storage_get_enc_key_material_length::return_value = 24;
 bt_status_t btif_storage_get_enc_key_material::return_value = BT_STATUS_SUCCESS;
 
@@ -284,6 +287,11 @@ bt_status_t btif_storage_set_remote_device_property(const RawAddress* remote_bd_
   inc_func_call_count(__func__);
   return test::mock::btif_storage::btif_storage_set_remote_device_property(remote_bd_addr,
                                                                            property);
+}
+std::vector<bluetooth::Uuid> btif_storage_get_services(const RawAddress& bd_addr,
+                                                       tBT_TRANSPORT transport) {
+  inc_func_call_count(__func__);
+  return test::mock::btif_storage::btif_storage_get_services(bd_addr, transport);
 }
 
 size_t btif_storage_get_enc_key_material_length(const RawAddress* remote_bd_addr) {

@@ -88,7 +88,7 @@ GetAudioSessionCodecConfigFromAudioSetConfiguration(
 const struct types::acs_ac_record* GetConfigurationSupportedPac(
         const ::bluetooth::le_audio::types::PublishedAudioCapabilities& pacs,
         const ::bluetooth::le_audio::types::CodecConfigSetting& codec_config_setting,
-        std::optional<const ::bluetooth::le_audio::types::CodecMetadataSetting> vendor_metadata,
+        std::optional<types::CodecMetadataSetting> vendor_metadata,
         types::LeAudioContextType);
 bool IsAseConfigMatchedWithPreferredRequirements(
         const std::vector<struct types::AseConfiguration>& ase_confs,

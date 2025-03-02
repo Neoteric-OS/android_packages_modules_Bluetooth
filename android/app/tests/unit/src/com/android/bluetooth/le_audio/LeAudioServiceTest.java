@@ -30,6 +30,8 @@ import static android.bluetooth.IBluetoothLeAudio.LE_AUDIO_GROUP_ID_INVALID;
 import static androidx.test.espresso.intent.matcher.IntentMatchers.hasAction;
 import static androidx.test.espresso.intent.matcher.IntentMatchers.hasExtra;
 
+import static com.android.bluetooth.TestUtils.MockitoRule;
+import static com.android.bluetooth.TestUtils.getTestDevice;
 import static com.android.bluetooth.TestUtils.mockGetSystemService;
 
 import static com.google.common.truth.Truth.assertThat;
@@ -49,7 +51,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import android.annotation.Nullable;
-import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothLeAudio;
 import android.bluetooth.BluetoothLeAudioCodecConfig;
@@ -57,7 +58,6 @@ import android.bluetooth.BluetoothLeAudioCodecStatus;
 import android.bluetooth.BluetoothLeAudioContentMetadata;
 import android.bluetooth.BluetoothLeBroadcastSettings;
 import android.bluetooth.BluetoothLeBroadcastSubgroupSettings;
-import android.bluetooth.BluetoothManager;
 import android.bluetooth.BluetoothProfile;
 import android.bluetooth.BluetoothUuid;
 import android.bluetooth.IBluetoothLeAudioCallback;
@@ -110,8 +110,6 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.Spy;
 import org.mockito.hamcrest.MockitoHamcrest;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -122,7 +120,7 @@ import java.util.Objects;
 @RunWith(AndroidJUnit4.class)
 public class LeAudioServiceTest {
     @Rule public final SetFlagsRule mSetFlagsRule = new SetFlagsRule();
-    @Rule public MockitoRule mockitoRule = MockitoJUnit.rule();
+    @Rule public final MockitoRule mMockitoRule = new MockitoRule();
 
     @Mock private AdapterService mAdapterService;
     @Mock private GattService mGattService;
@@ -150,12 +148,10 @@ public class LeAudioServiceTest {
     private final HashSet<BluetoothDevice> mBondedDevices = new HashSet<>();
     private final Context mTargetContext =
             InstrumentationRegistry.getInstrumentation().getTargetContext();
-    private final BluetoothAdapter mAdapter =
-            mTargetContext.getSystemService(BluetoothManager.class).getAdapter();
-    private final BluetoothDevice mLeftDevice = TestUtils.getTestDevice(mAdapter, 0);
-    private final BluetoothDevice mRightDevice = TestUtils.getTestDevice(mAdapter, 1);
-    private final BluetoothDevice mSingleDevice = TestUtils.getTestDevice(mAdapter, 2);
-    private final BluetoothDevice mSingleDevice_2 = TestUtils.getTestDevice(mAdapter, 3);
+    private final BluetoothDevice mLeftDevice = getTestDevice(0);
+    private final BluetoothDevice mRightDevice = getTestDevice(1);
+    private final BluetoothDevice mSingleDevice = getTestDevice(2);
+    private final BluetoothDevice mSingleDevice_2 = getTestDevice(3);
 
     private LeAudioService mService;
     private int testGroupId = 1;
@@ -277,12 +273,10 @@ public class LeAudioServiceTest {
             return;
         }
 
-
         mBondedDevices.clear();
-        mService.stop();
+        mService.cleanup();
         assertThat(LeAudioService.getLeAudioService()).isNull();
     }
-
 
     /** Test getting LeAudio Service: getLeAudioService() */
     @Test
@@ -315,10 +309,9 @@ public class LeAudioServiceTest {
     public void testStopLeAudioService() {
         // Prepare: connect
         connectDevice(mLeftDevice);
-        mService.stop();
+        mService.cleanup();
     }
 
-    /** Test get/set priority for BluetoothDevice */
     @Test
     public void testGetSetPriority() {
         when(mDatabaseManager.getProfileConnectionPolicy(mLeftDevice, BluetoothProfile.LE_AUDIO))
@@ -1127,6 +1120,8 @@ public class LeAudioServiceTest {
         int direction = 1;
         int availableContexts = 5 + BluetoothLeAudio.CONTEXT_TYPE_RINGTONE;
 
+        InOrder tbsOrder = inOrder(mTbsService);
+
         // Not connected device
         assertThat(mService.setActiveDevice(mSingleDevice)).isFalse();
 
@@ -1151,7 +1146,9 @@ public class LeAudioServiceTest {
         groupStatusChangedEvent.valueInt2 = LeAudioStackEvent.GROUP_STATUS_ACTIVE;
         mService.messageFromNative(groupStatusChangedEvent);
 
-        verify(mTbsService).setInbandRingtoneSupport(mSingleDevice);
+        tbsOrder.verify(mTbsService).setInbandRingtoneSupport(mSingleDevice);
+        tbsOrder.verify(mTbsService, never()).setInbandRingtoneSupport(mSingleDevice_2);
+        tbsOrder.verify(mTbsService, never()).clearInbandRingtoneSupport(any());
 
         ArgumentCaptor<BluetoothProfileConnectionInfo> connectionInfoArgumentCaptor =
                 ArgumentCaptor.forClass(BluetoothProfileConnectionInfo.class);
@@ -1179,6 +1176,10 @@ public class LeAudioServiceTest {
         activeGroupState.valueInt2 = LeAudioStackEvent.GROUP_STATUS_ACTIVE;
         activeGroupState.valueInt3 = groupId_1;
         mService.messageFromNative(activeGroupState);
+
+        tbsOrder.verify(mTbsService).setInbandRingtoneSupport(mSingleDevice_2);
+        tbsOrder.verify(mTbsService).clearInbandRingtoneSupport(mSingleDevice);
+        tbsOrder.verify(mTbsService, never()).setInbandRingtoneSupport(mSingleDevice);
 
         verify(mAudioManager)
                 .handleBluetoothActiveDeviceChanged(
@@ -2348,7 +2349,7 @@ public class LeAudioServiceTest {
 
     @Test
     public void testHandleGroupIdleDuringCall() {
-        BluetoothDevice headsetDevice = TestUtils.getTestDevice(mAdapter, 5);
+        BluetoothDevice headsetDevice = getTestDevice(5);
         HeadsetService headsetService = Mockito.mock(HeadsetService.class);
         when(mServiceFactory.getHeadsetService()).thenReturn(headsetService);
 

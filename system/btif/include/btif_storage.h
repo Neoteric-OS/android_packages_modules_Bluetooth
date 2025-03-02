@@ -34,6 +34,7 @@
 #include "stack/include/btm_sec_api_types.h"
 #include "types/ble_address_with_type.h"
 #include "types/raw_address.h"
+#include "types/bt_transport.h"
 
 /*******************************************************************************
  *  Constants & Macros
@@ -479,7 +480,8 @@ bt_status_t btif_storage_get_hid_connection_policy(const tAclLinkSpec& link_spec
  * Returns          vector of UUIDs
  *
  ******************************************************************************/
-std::vector<bluetooth::Uuid> btif_storage_get_services(const RawAddress& bd_addr);
+std::vector<bluetooth::Uuid> btif_storage_get_services(const RawAddress& bd_addr,
+                                                       tBT_TRANSPORT transport = BT_TRANSPORT_AUTO);
 
 void btif_storage_migrate_services();
 /******************************************************************************

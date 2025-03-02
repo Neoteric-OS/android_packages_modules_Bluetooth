@@ -28,7 +28,6 @@ namespace bluetooth::le_audio {
 
 class LeAudioSinkAudioHalClient;
 class LeAudioSourceAudioHalClient;
-
 struct broadcast_offload_config {
   std::vector<std::pair<uint16_t, uint32_t>> stream_map;
   uint8_t bits_per_sample;

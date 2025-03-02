@@ -17,7 +17,6 @@
 #include "hci/controller.h"
 
 #include <gtest/gtest.h>
-
 namespace bluetooth {
 namespace hci {
 

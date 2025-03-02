@@ -1597,8 +1597,7 @@ bool CheckIfStrategySupported(types::LeAudioConfigurationStrategy strategy,
  */
 bool LeAudioDeviceGroup::IsAudioSetConfigurationSupported(
         const CodecManager::UnicastConfigurationRequirements& requirements,
-        const types::AudioSetConfiguration* audio_set_conf,
-        bool use_preference) const {
+        const types::AudioSetConfiguration* audio_set_conf, bool use_preference) const {
   if (requirements.audio_context_type == LeAudioContextType::LIVE) {
     if (audio_set_conf->confs.get(types::kLeAudioDirectionSink).size() &&
         audio_set_conf->confs.get(types::kLeAudioDirectionSource).size()) {
@@ -1856,7 +1855,15 @@ bool LeAudioDeviceGroup::ConfigureAses(
     log::debug("Maximum {} device(s) required for {}", max_required_device_cnt, direction_str);
 
     uint8_t active_ase_cnt = 0;
-    auto configuration_closure = [&](LeAudioDevice* dev) -> void {
+
+    log::debug("Required device count: {}", required_device_cnt);
+    if (required_device_cnt == 0) {
+      return false;
+    }
+
+    std::vector<LeAudioDevice*> configuredDevices;
+
+    auto configuration_closure = [&](LeAudioDevice* dev, LeAudioContextType context_type) -> bool {
       /* For the moment, we configure only connected devices and when it is
        * ready to stream i.e. All ASEs are discovered and dev is reported as
        * connected
@@ -1864,43 +1871,64 @@ bool LeAudioDeviceGroup::ConfigureAses(
       if (dev->GetConnectionState() != DeviceConnectState::CONNECTED) {
         log::warn("Device {}, in the state {}", dev->address_,
                   bluetooth::common::ToString(dev->GetConnectionState()));
-        return;
+        return false;
       }
 
-      if (!dev->ConfigureAses(audio_set_conf, max_required_device_cnt, direction, context_type,
-                              &active_ase_cnt, group_audio_locations_memo.get(direction),
-                              metadata_context_types.get(direction), ccid_lists.get(direction),
-                              reuse_cis_id)) {
-        return;
+      if (!dev->GetAvailableContexts().test(context_type)) {
+        log::debug("Device {} not available for context {}", dev->address_,
+                   bluetooth::common::ToString(context_type));
+        return false;
       }
 
-      required_device_cnt--;
+      return dev->ConfigureAses(audio_set_conf, max_required_device_cnt, direction, context_type,
+                                &active_ase_cnt, group_audio_locations_memo.get(direction),
+                                metadata_context_types.get(direction), ccid_lists.get(direction),
+                                reuse_cis_id);
+    };
+
+    auto group_configuration_closure = [&](LeAudioContextType context_type) -> void {
+      for (const auto& dev_iter : leAudioDevices_) {
+        auto dev = dev_iter.lock();
+        if (dev == nullptr) {
+          continue;
+        }
+
+        if (std::find(configuredDevices.begin(), configuredDevices.end(), dev.get()) !=
+            configuredDevices.end()) {
+          continue;
+        }
+
+        if (configuration_closure(dev.get(), context_type)) {
+          configuredDevices.push_back(dev.get());
+          required_device_cnt--;
+        }
+
+        if (required_device_cnt == 0) {
+          break;
+        }
+      }
     };
 
     log::info("required_device_cnt: {}", required_device_cnt);
 
     // First use the devices claiming proper support
-    for (auto* device = GetFirstDeviceWithAvailableContext(context_type);
-         device != nullptr && required_device_cnt > 0;
-         device = GetNextDeviceWithAvailableContext(device, context_type)) {
-      configuration_closure(device);
+    if (required_device_cnt > 0) {
+      group_configuration_closure(context_type);
     }
     // In case some devices do not support this scenario - us them anyway if
     // they are required for the scenario - we will not put this context into
     // their metadata anyway
     if (required_device_cnt > 0) {
-      for (auto* device = GetFirstDevice(); device != nullptr && required_device_cnt > 0;
-           device = GetNextDevice(device)) {
-        configuration_closure(device);
-      }
+      group_configuration_closure(LeAudioContextType::UNSPECIFIED);
     }
 
-    if (required_device_cnt > 0) {
-      /* Don't left any active devices if requirements are not met */
-      log::error("could not configure all the devices");
+    if (configuredDevices.empty()) {
+      log::error("could not configure any device");
       Deactivate();
       return false;
     }
+
+    log::info("Configured {}/{}", configuredDevices.size(), max_required_device_cnt);
   }
 
   log::info("Choosed ASE Configuration for group: {}, configuration: {}", group_id_,
@@ -1911,8 +1939,8 @@ bool LeAudioDeviceGroup::ConfigureAses(
   return true;
 }
 
-std::shared_ptr<const types::AudioSetConfiguration> LeAudioDeviceGroup::GetCachedConfiguration(
-        LeAudioContextType context_type) const {
+std::shared_ptr<const types::AudioSetConfiguration>
+LeAudioDeviceGroup::GetCachedConfiguration(LeAudioContextType context_type) const {
   log::info("context_type: {}", ToHexString(context_type));
   if (context_to_configuration_cache_map_.count(context_type) != 0) {
     return context_to_configuration_cache_map_.at(context_type).second;
@@ -1942,8 +1970,8 @@ void LeAudioDeviceGroup::DisableLeXCodec(bool status) {
   lex_codec_disabled.second = true;
 }
 
-std::shared_ptr<const types::AudioSetConfiguration> LeAudioDeviceGroup::GetConfiguration(
-        LeAudioContextType context_type) const {
+std::shared_ptr<const types::AudioSetConfiguration>
+LeAudioDeviceGroup::GetConfiguration(LeAudioContextType context_type) const {
   log::info("context_type: {}", ToHexString(context_type));
   if (context_type == LeAudioContextType::UNINITIALIZED) {
     return nullptr;

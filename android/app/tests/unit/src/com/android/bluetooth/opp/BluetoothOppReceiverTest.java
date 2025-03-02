@@ -16,11 +16,8 @@
 
 package com.android.bluetooth.opp;
 
-import static androidx.test.espresso.intent.Intents.intended;
-import static androidx.test.espresso.intent.Intents.intending;
-import static androidx.test.espresso.intent.matcher.IntentMatchers.anyIntent;
-import static androidx.test.espresso.intent.matcher.IntentMatchers.hasComponent;
-import static androidx.test.espresso.intent.matcher.IntentMatchers.hasExtra;
+import static com.android.bluetooth.TestUtils.MockitoRule;
+import static com.android.bluetooth.TestUtils.getTestDevice;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
@@ -32,11 +29,8 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 
-import android.app.Activity;
-import android.app.Instrumentation;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothDevicePicker;
-import android.bluetooth.BluetoothManager;
 import android.content.Context;
 import android.content.ContextWrapper;
 import android.content.Intent;
@@ -60,8 +54,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -71,7 +63,7 @@ public class BluetoothOppReceiverTest {
 
     Context mContext;
 
-    @Rule public MockitoRule mockitoRule = MockitoJUnit.rule();
+    @Rule public final MockitoRule mMockitoRule = new MockitoRule();
 
     @Mock BluetoothMethodProxy mBluetoothMethodProxy;
     BluetoothOppReceiver mReceiver;
@@ -106,11 +98,7 @@ public class BluetoothOppReceiverTest {
 
         BluetoothOppManager bluetoothOppManager = spy(BluetoothOppManager.getInstance(mContext));
         BluetoothOppManager.setInstance(bluetoothOppManager);
-        String address = "AA:BB:CC:DD:EE:FF";
-        BluetoothDevice device =
-                mContext.getSystemService(BluetoothManager.class)
-                        .getAdapter()
-                        .getRemoteDevice(address);
+        BluetoothDevice device = getTestDevice(43);
         Intent intent = new Intent();
         intent.setAction(BluetoothDevicePicker.ACTION_DEVICE_SELECTED);
         intent.putExtra(BluetoothDevice.EXTRA_DEVICE, device);

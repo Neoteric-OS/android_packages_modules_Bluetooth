@@ -16,6 +16,12 @@
  *
  ******************************************************************************/
 
+/*
+ * Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
+ * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
+ */
+
 #define LOG_TAG "bt_stack_manager"
 
 #include <bluetooth/log.h>
@@ -48,6 +54,7 @@
 #include "stack/include/l2cap_module.h"
 #include "stack/include/port_api.h"
 #include "stack/sdp/sdpint.h"
+#include "osi/include/properties.h"
 #if (BNEP_INCLUDED == TRUE)
 #include "stack/include/bnep_api.h"
 #endif
@@ -66,6 +73,7 @@
 #include "stack/btm/btm_ble_int.h"
 #include "stack/include/ais_api.h"
 #include "stack/include/smp_api.h"
+#include "device/include/csconfig.h"
 
 // Validate or respond to various conditional compilation flags
 
@@ -200,6 +208,7 @@ extern const module_t osi_module;
 extern const module_t rust_module;
 extern const module_t stack_config_module;
 extern const module_t device_iot_config_module;
+extern const module_t cs_config_module;
 
 struct module_lookup {
   const char* name;
@@ -207,14 +216,15 @@ struct module_lookup {
 };
 
 const struct module_lookup module_table[] = {
-        {BTIF_CONFIG_MODULE, &btif_config_module},
-        {GD_SHIM_MODULE, &gd_shim_module},
-        {INTEROP_MODULE, &interop_module},
-        {OSI_MODULE, &osi_module},
-        {RUST_MODULE, &rust_module},
-        {STACK_CONFIG_MODULE, &stack_config_module},
-        {DEVICE_IOT_CONFIG_MODULE, &device_iot_config_module},
-        {NULL, NULL},
+    {BTIF_CONFIG_MODULE, &btif_config_module},
+    {GD_SHIM_MODULE, &gd_shim_module},
+    {INTEROP_MODULE, &interop_module},
+    {OSI_MODULE, &osi_module},
+    {RUST_MODULE, &rust_module},
+    {STACK_CONFIG_MODULE, &stack_config_module},
+    {DEVICE_IOT_CONFIG_MODULE, &device_iot_config_module},
+    {CS_CONFIG_MODULE, &cs_config_module},
+    {NULL, NULL},
 };
 
 inline const module_t* get_local_module(const char* name) {
@@ -233,7 +243,6 @@ inline const module_t* get_local_module(const char* name) {
 static void init_stack_internal(bluetooth::core::CoreInterface* interface) {
   // all callbacks out of libbluetooth-core happen via this interface
   interfaceToProfiles = interface;
-
   module_management_start();
 
   main_thread_start_up();
@@ -327,10 +336,11 @@ static void event_start_up_stack(bluetooth::core::CoreInterface* interface,
   if (!com::android::bluetooth::flags::scan_manager_refactor()) {
     info("Starting rust module");
     module_start_up(get_local_module(RUST_MODULE));
-    if (com::android::bluetooth::flags::channel_sounding_in_stack()) {
-      bluetooth::ras::GetRasServer()->Initialize();
-      bluetooth::ras::GetRasClient()->Initialize();
-    }
+  }
+  if (com::android::bluetooth::flags::channel_sounding_in_stack()) {
+    bluetooth::ras::GetRasServer()->Initialize();
+    bluetooth::ras::GetRasClient()->Initialize();
+    module_init(get_local_module(CS_CONFIG_MODULE));
   }
 
   stack_is_running = true;
@@ -439,7 +449,9 @@ static void event_clean_up_stack(std::promise<void> promise, ProfileStopCallback
   info("Gd shim module disabled");
   module_shut_down(get_local_module(GD_SHIM_MODULE));
 
-  module_clean_up(get_local_module(OSI_MODULE));
+  if (com::android::bluetooth::flags::channel_sounding_in_stack()) {
+    module_clean_up(get_local_module(CS_CONFIG_MODULE));
+  }
 
   module_management_stop();
   info("finished");

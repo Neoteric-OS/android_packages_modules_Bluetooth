@@ -35,6 +35,7 @@
 #include "hci/le_scanning_decrypter.h"
 #include "hci/le_scanning_interface.h"
 #include "hci/le_scanning_reassembler.h"
+#include "main/shim/entry.h"
 #include "module.h"
 #include "os/handler.h"
 #include "os/system_properties.h"
@@ -365,17 +366,10 @@ struct LeScanningManager::impl : public LeAddressManagerCallback {
           extended_event_type = transform_to_extended_event_type({.legacy = true});
           break;
         case AdvertisingEventType::SCAN_RESPONSE:
-          if (com::android::bluetooth::flags::fix_nonconnectable_scannable_advertisement()) {
-            // We don't know if the initial advertising report was connectable or not.
-            // LeScanningReassembler fixes the connectable field.
-            extended_event_type = transform_to_extended_event_type(
-                    {.scannable = true, .scan_response = true, .legacy = true});
-          } else {
-            extended_event_type = transform_to_extended_event_type({.connectable = true,
-                                                                    .scannable = true,
-                                                                    .scan_response = true,
-                                                                    .legacy = true});
-          }
+          // We don't know if the initial advertising report was connectable or not.
+          // LeScanningReassembler fixes the connectable field.
+          extended_event_type = transform_to_extended_event_type(
+                  {.scannable = true, .scan_response = true, .legacy = true});
           break;
         default:
           log::warn("Unsupported event type:{}", (uint16_t)report.event_type_);
@@ -489,15 +483,10 @@ struct LeScanningManager::impl : public LeAddressManagerCallback {
           break;
       }
 
-      const uint16_t result_event_type =
-              com::android::bluetooth::flags::fix_nonconnectable_scannable_advertisement()
-                      ? processed_report->extended_event_type
-                      : event_type;
-
       scanning_callbacks_->OnScanResult(
-              result_event_type, address_type, address, primary_phy, secondary_phy, advertising_sid,
-              tx_power, get_rssi_after_calibration(rssi), periodic_advertising_interval,
-              std::move(processed_report->data));
+              processed_report->extended_event_type, address_type, address, primary_phy,
+              secondary_phy, advertising_sid, tx_power, get_rssi_after_calibration(rssi),
+              periodic_advertising_interval, std::move(processed_report->data));
     }
   }
 
@@ -1727,12 +1716,11 @@ void LeScanningManager::ListDependencies(ModuleList* list) const {
   list->add<HciLayer>();
   list->add<Controller>();
   list->add<AclManager>();
-  list->add<storage::StorageModule>();
 }
 
 void LeScanningManager::Start() {
   pimpl_->start(GetHandler(), GetDependency<HciLayer>(), GetDependency<Controller>(),
-                GetDependency<AclManager>(), GetDependency<storage::StorageModule>());
+                GetDependency<AclManager>(), shim::GetStorage());
 }
 
 void LeScanningManager::Stop() {

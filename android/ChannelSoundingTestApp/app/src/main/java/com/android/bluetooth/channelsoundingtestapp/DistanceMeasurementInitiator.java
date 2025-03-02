@@ -47,7 +47,6 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
 class DistanceMeasurementInitiator {
-
     enum Freq {
         HIGH(DistanceMeasurementParams.REPORT_FREQUENCY_HIGH),
         MEDIUM(DistanceMeasurementParams.REPORT_FREQUENCY_MEDIUM),
@@ -75,7 +74,6 @@ class DistanceMeasurementInitiator {
             }
         }
     }
-
     private int mode_int = 0;
     private int duration_int = 0;
     private int freq_int = 0;
