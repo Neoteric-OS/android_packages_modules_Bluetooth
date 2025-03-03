@@ -219,6 +219,10 @@ typedef void(tL2CA_CREDIT_BASED_RECONFIG_COMPLETED_CB)(const RawAddress& bdaddr,
 
 typedef void(tL2CA_ECHO_RSP_CB)(uint16_t);
 
+/* Callback function prototype to pass broadcom specific echo response  */
+/* to the upper layer                                                   */
+typedef void(tL2CA_ECHO_DATA_CB)(const RawAddress&, uint16_t, uint8_t*);
+
 /*****************************************************************************
  *  External Function Declarations
  ****************************************************************************/
@@ -780,6 +784,19 @@ void L2CA_SetMediaStreamChannel(uint16_t local_media_cid, bool status);
 **
 *******************************************************************************/
 [[nodiscard]] bool L2CA_isMediaChannel(uint16_t handle, uint16_t channel_id, bool is_local_cid);
+
+/*******************************************************************************
+ *
+ * Function         L2CA_Echo
+ *
+ * Description      Higher layers call this function to send an echo request
+ *                  with application-specific data.
+ *
+ * Returns          true if echo request sent, else false.
+ *
+ ******************************************************************************/
+extern bool L2CA_Echo(const RawAddress& p_bd_addr, BT_HDR* p_data,
+                      tL2CA_ECHO_DATA_CB* p_callback);
 
 /*******************************************************************************
 **

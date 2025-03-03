@@ -86,6 +86,7 @@ static bool L2cap_DisconnectReq(uint16_t cid);
 static bool L2cap_DisconnectRsp(uint16_t cid);
 static uint8_t L2cap_DataWrite(uint16_t cid, char* p_data, uint32_t len);
 static bool L2cap_Ping(RawAddress p_bd_addr, tL2CA_ECHO_RSP_CB* p_cb);
+static bool L2cap_Echo(RawAddress p_bd_addr, BT_HDR *p_data, tL2CA_ECHO_DATA_CB *p_callback);
 static bool L2cap_SetIdleTimeout(uint16_t cid, uint16_t timeout,
                                  bool is_global);
 static bool L2cap_SetIdleTimeoutByBdAddr(RawAddress bd_addr, uint16_t timeout);
@@ -150,6 +151,7 @@ static const btl2cap_interface_t btl2capInterface = {
     L2cap_DisconnectRsp,
     L2cap_DataWrite,
     L2cap_Ping,
+    L2cap_Echo,
     L2cap_SetIdleTimeout,
     L2cap_SetIdleTimeoutByBdAddr,
     L2cap_SetDesireRole,
@@ -451,6 +453,12 @@ static bool L2cap_Ping(RawAddress p_bd_addr, tL2CA_ECHO_RSP_CB* p_cb) {
   log::debug("L2cap_Ping:: - not supported");
   //return L2CA_Ping(p_bd_addr, p_cb);
   return false;
+}
+
+static bool L2cap_Echo(RawAddress p_bd_addr, BT_HDR *p_data, tL2CA_ECHO_DATA_CB *p_callback)
+{
+  log::debug("L2cap_Echo:: Invoked");
+  return L2CA_Echo(p_bd_addr, p_data, p_callback);
 }
 
 static bool L2cap_SetIdleTimeout(uint16_t cid, uint16_t timeout,

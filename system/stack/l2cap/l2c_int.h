@@ -64,6 +64,7 @@ constexpr uint16_t L2CAP_CREDIT_BASED_MIN_MPS = 64;
 #define L2CAP_LINK_ROLE_SWITCH_TIMEOUT_MS (10 * 1000)  /* 10 seconds */
 #define L2CAP_LINK_CONNECT_TIMEOUT_MS (20 * 1000)      /* 20 seconds */
 #define L2CAP_LINK_CONNECT_EXT_TIMEOUT_MS (120 * 1000) /* 120 seconds */
+#define L2CAP_ECHO_RSP_TIMEOUT_MS (30 * 1000)          /* 30 seconds */
 #define L2CAP_LINK_FLOW_CONTROL_TIMEOUT_MS (2 * 1000)  /* 2 seconds */
 #define L2CAP_LINK_DISCONNECT_TIMEOUT_MS (30 * 1000)   /* 30 seconds */
 #define L2CAP_CHNL_CONNECT_TIMEOUT_MS (20 * 1000)      /* 20 seconds */
@@ -644,6 +645,8 @@ struct tL2C_CB {
   bool ble_check_round_robin;                   /* Do a round robin check */
   tL2C_RCB ble_rcb_pool[BLE_MAX_L2CAP_CLIENTS]; /* Registration info pool */
 
+  tL2CA_ECHO_DATA_CB* p_echo_data_cb; /* Echo data callback */
+
   uint16_t le_dyn_psm;                            /* Next LE dynamic PSM value to try to assign */
   bool le_dyn_psm_assigned[LE_DYNAMIC_PSM_RANGE]; /* Table of assigned LE PSM */
 };
@@ -692,6 +695,7 @@ extern tL2C_CB l2cb;
  ***********************************
  */
 
+void l2cu_adj_id(tL2C_LCB* p_lcb);
 void l2cu_send_peer_echo_req(tL2C_LCB* p_lcb, uint8_t* p_data,
                              uint16_t data_len);
 

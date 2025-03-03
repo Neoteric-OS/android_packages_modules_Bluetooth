@@ -48,6 +48,7 @@
 #include "packet/raw_builder.h"
 #include "stack/include/bt_uuid16.h"
 #include "stack/include/main_thread.h"
+#include "stack/l2cap/internal/l2c_api.h"
 #include "test/common/core_interface.h"
 #include "test/fake/fake_osi.h"
 #include "test/mock/mock_main_shim_entry.h"
@@ -118,6 +119,8 @@ module_t osi_module;
 module_t rust_module;
 
 bool bta_ag_is_call_present(const RawAddress* peer_addr) { return true; }
+bool L2CA_Echo(const RawAddress& p_bd_addr, BT_HDR* p_data,
+               tL2CA_ECHO_DATA_CB* p_callback) { return true; }
 
 namespace {
 

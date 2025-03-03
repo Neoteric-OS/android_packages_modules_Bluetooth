@@ -36,6 +36,7 @@ extern tL2C_CB l2cb;
 
 void l2c_link_send_to_lower_br_edr(tL2C_LCB* p_lcb, BT_HDR* p_buf);
 void l2c_link_send_to_lower_ble(tL2C_LCB* p_lcb, BT_HDR* p_buf);
+bool BTM_IsDeviceUp(void) { return true; }
 
 using testing::Return;
 
