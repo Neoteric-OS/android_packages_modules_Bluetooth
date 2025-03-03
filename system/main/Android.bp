@@ -215,6 +215,7 @@ cc_test {
             static_libs: [
                 "android.system.suspend-V1-ndk",
                 "android.system.suspend.control-V1-ndk",
+                "libperfetto_client_experimental",
             ],
             shared_libs: [
                 "libstatssocket",

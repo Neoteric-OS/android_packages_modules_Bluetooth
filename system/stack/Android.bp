@@ -838,6 +838,7 @@ cc_test {
                 "android.hardware.bluetooth@1.0",
                 "android.hardware.bluetooth@1.1",
                 "libexpresslog",
+                "libperfetto_client_experimental",
                 "libstatslog_express",
                 "libtextclassifier_hash_static",
             ],
@@ -930,6 +931,9 @@ cc_test {
         android: {
             shared_libs: [
                 "libstatssocket",
+            ],
+            static_libs: [
+                "libperfetto_client_experimental",
             ],
         },
     },
@@ -1766,6 +1770,9 @@ cc_test {
             shared_libs: [
                 "libstatssocket",
             ],
+            static_libs: [
+                "libperfetto_client_experimental",
+            ],
         },
     },
     sanitize: {
@@ -2165,6 +2172,9 @@ cc_test {
                 "libPlatformProperties",
                 "libstatssocket",
             ],
+            static_libs: [
+                "libperfetto_client_experimental",
+            ],
         },
     },
     sanitize: {
@@ -2361,6 +2371,13 @@ cc_test {
         scs: true,
         diag: {
             undefined: true,
+        },
+    },
+    target: {
+        android: {
+            static_libs: [
+                "libperfetto_client_experimental",
+            ],
         },
     },
     header_libs: ["libbluetooth_headers"],

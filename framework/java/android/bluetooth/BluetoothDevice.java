@@ -128,6 +128,7 @@ import java.util.UUID;
  */
 public final class BluetoothDevice implements Parcelable, Attributable {
     private static final String TAG = "BluetoothDevice";
+
     private static final boolean DBG = false;
 
     /**
