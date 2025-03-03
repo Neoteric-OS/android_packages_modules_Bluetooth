@@ -115,6 +115,7 @@ enum {
   PAIR,
   PING,
   CONNECT,
+  ECHO,
 };
 
 static unsigned char* buf;
@@ -307,6 +308,24 @@ static void l2test_l2c_tx_complete_cb(uint16_t lcid, uint16_t NoOfSDU) {
 
 static void l2c_echo_rsp_cb(uint16_t p) { printf("Ping Response "); }
 
+static void l2c_echo_data_cb(const RawAddress& addr, uint16_t p, uint8_t* p_data) {
+  printf("Echo cb, received data=%s\n", p_data);
+}
+
+static BT_HDR* create_pbuf() {
+  BT_HDR* p_buf = (BT_HDR*)malloc(L2CAP_CMD_BUF_SIZE);
+  uint8_t* p;
+
+  p_buf->offset = 0;
+  p_buf->len = 10;
+  p = (uint8_t*)(p_buf + 1) + p_buf->offset;
+
+  char* sendStr = "0123456789";
+  memcpy(p, sendStr, 10);
+
+  return p_buf;
+}
+
 /* L2CAP callback function structure */
 static tL2CAP_APPL_INFO l2test_l2c_appl = {l2test_l2c_connect_ind_cb,
                                            l2test_l2c_connect_cfm_cb,
@@ -430,7 +449,7 @@ static int create_cmdjob(char *cmd)
  ** Load stack lib
  *******************************************************************************/
 #define BLUETOOTH_LIBRARY_NAME \
-  "/apex/com.android.btservices/lib64/libbluetooth_jni.so"
+  "/apex/com.android.bt/lib64/libbluetooth_jni.so"
 int load_bt_lib(const bt_interface_t** interface) {
   const char* sym = BLUETOOTH_INTERFACE_STRING;
   bt_interface_t* itf = nullptr;
@@ -753,6 +772,20 @@ bool do_l2cap_ping(char* p) {
   return TRUE;
 }
 
+bool do_l2cap_echo(char* p) {
+  RawAddress bd_addr;
+  RawAddress::FromString(p, bd_addr);
+  BT_HDR* p_buf = nullptr;
+  if (bd_addr != RawAddress::kAny) {
+    p_buf = create_pbuf();
+  }
+  if (FALSE == sL2capInterface->Echo(bd_addr, p_buf, l2c_echo_data_cb)) {
+    printf("Failed to send Echo Request \n");
+    return FALSE;
+  }
+  return TRUE;
+}
+
 bool do_l2cap_disconnect(char* p) {
   return sL2capInterface->DisconnectReq(g_lcid);
 }
@@ -764,6 +797,7 @@ uint8_t do_l2cap_DataWrite(char* p, uint32_t len) {
 void do_l2cap_SetSecConnOnlyMode(bool secvalue) {
   sL2capInterface->SetSecConnOnlyMode(secvalue);
 }
+
 static int WaitForCompletion(int Cmd, int Timeout) {
   int Status = 0xFF;
   int* pState = NULL;
@@ -923,6 +957,11 @@ static void l2c_ping(char* svr) {
   do_l2cap_ping(svr);
 }
 
+static void l2c_echo(char* svr) {
+  printf("In l2c_echo - %s \n", svr);
+  do_l2cap_echo(svr);
+}
+
 static void l2c_disconnect(char* p) {
   printf("In l2c_disconnect\n");
   do_l2cap_disconnect(p);
@@ -963,11 +1002,15 @@ int main(int argc, char* argv[]) {
   char temp[3] = {0};
 
   while ((opt = getopt(argc, argv,
-                       "arswcpb:i:P:K:O:H:F:N:L:C:D:X:Q:I:W:Z:UGATMES")) !=
+                       "aerswcpb:i:P:K:O:H:F:N:L:C:D:X:Q:I:W:Z:UGATMES")) !=
          EOF) {
     switch (opt) {
       case 'a':
         mode = PING;
+        addr_required = 1;
+        break;
+      case 'e':
+        mode = ECHO;
         addr_required = 1;
         break;
       case 'r':
@@ -1168,6 +1211,18 @@ int main(int argc, char* argv[]) {
 
     case PING:
       l2c_ping(argv[optind]);
+      printf("before sleep \n");
+      sleep(3);
+      printf("after sleep \n");
+      l2c_ping(argv[optind]);
+      break;
+
+    case ECHO:
+      l2c_ping(argv[optind]);
+      printf("before sleep \n");
+      sleep(3);
+      printf("after sleep \n");
+      l2c_echo(argv[optind]);
       break;
 
     case PAIR:
