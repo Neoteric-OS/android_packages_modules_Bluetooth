@@ -102,6 +102,7 @@ struct btm_client_interface_t btm_client_interface = {
                         .BTM_SetEScoMode = ::BTM_SetEScoMode,
                         .BTM_GetScoDebugDump = ::BTM_GetScoDebugDump,
                         .BTM_IsScoActiveByBdaddr = ::BTM_IsScoActiveByBdaddr,
+                        .BTM_ReadScoBdAddrByHandle = ::BTM_ReadScoBdAddrByHandle,
                 },
 
         .local =

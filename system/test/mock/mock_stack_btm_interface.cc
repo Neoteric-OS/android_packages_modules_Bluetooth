@@ -222,6 +222,9 @@ struct btm_client_interface_t default_btm_client_interface = {
                 .BTM_IsScoActiveByBdaddr = [](const RawAddress& /* remote_bda */) -> bool {
                   return false;
                 },
+                .BTM_ReadScoBdAddrByHandle = [](uint16_t /* hci_handle */) -> const RawAddress* {
+                  return nullptr;
+                },
         },
         .local = {
                 .BTM_ReadLocalDeviceName = [](const char** /* p_name */) -> tBTM_STATUS {
