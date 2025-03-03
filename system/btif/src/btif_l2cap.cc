@@ -450,9 +450,9 @@ static uint8_t L2cap_DataWrite(uint16_t cid, char* p_data, uint32_t len) {
 }
 
 static bool L2cap_Ping(RawAddress p_bd_addr, tL2CA_ECHO_RSP_CB* p_cb) {
-  log::debug("L2cap_Ping:: - not supported");
-  //return L2CA_Ping(p_bd_addr, p_cb);
-  return false;
+  log::debug("L2cap_Ping:: - Invoked");
+  return L2CA_Ping(p_bd_addr, p_cb);
+  //return false;
 }
 
 static bool L2cap_Echo(RawAddress p_bd_addr, BT_HDR *p_data, tL2CA_ECHO_DATA_CB *p_callback)

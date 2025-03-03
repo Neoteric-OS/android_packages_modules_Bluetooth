@@ -1913,6 +1913,52 @@ bool L2CA_GetLocalMtu(uint16_t lcid, uint16_t* local_mtu) {
   return true;
 }
 
+/*******************************************************************************
+ *
+ * Function         L2CA_Ping
+ *
+ * Description      Higher layers call this function to send an echo request.
+ *
+ * Returns          true if echo request sent, else false.
+ *
+ ******************************************************************************/
+bool L2CA_Ping(const RawAddress& p_bd_addr, tL2CA_ECHO_RSP_CB* p_callback) {
+  tL2C_LCB* p_lcb;
+
+  /* Fail if we have not established communications with the controller */
+  if (!get_btm_client_interface().local.BTM_IsDeviceUp()) return (false);
+
+  /* First, see if we already have a link to the remote */
+  p_lcb = l2cu_find_lcb_by_bd_addr(p_bd_addr, BT_TRANSPORT_BR_EDR);
+  if (p_lcb == NULL) {
+    /* No link. Get an LCB and start link establishment */
+    p_lcb = l2cu_allocate_lcb(p_bd_addr, false, BT_TRANSPORT_BR_EDR);
+    if (p_lcb == NULL) {
+      log::error("L2CAP - no LCB for L2CA_ping");
+      return (false);
+    }
+    l2cu_create_conn_br_edr(p_lcb);
+
+    return (true);
+  }
+
+  /* Have a link control block. If link is disconnecting, tell user to retry
+   * later */
+  if (p_lcb->link_state == LST_DISCONNECTING) {
+    log::error("L2CAP - L2CA_ping rejected - link disconnecting");
+    return (false);
+  }
+
+  if (p_lcb->link_state == LST_CONNECTED) {
+    l2cu_adj_id(p_lcb);
+    l2cu_send_peer_echo_req(p_lcb, NULL, 0);
+    alarm_set_on_mloop(p_lcb->l2c_lcb_timer, L2CAP_ECHO_RSP_TIMEOUT_MS,
+                       l2c_lcb_timer_timeout, p_lcb);
+  }
+
+  return (true);
+}
+
 using namespace bluetooth;
 
 #define DUMPSYS_TAG "shim::legacy::l2cap"

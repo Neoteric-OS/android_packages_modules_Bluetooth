@@ -121,6 +121,8 @@ module_t rust_module;
 bool bta_ag_is_call_present(const RawAddress* peer_addr) { return true; }
 bool L2CA_Echo(const RawAddress& p_bd_addr, BT_HDR* p_data,
                tL2CA_ECHO_DATA_CB* p_callback) { return true; }
+bool L2CA_Ping(const RawAddress& p_bd_addr,
+               tL2CA_ECHO_RSP_CB* p_callback) { return true; }
 
 namespace {
 

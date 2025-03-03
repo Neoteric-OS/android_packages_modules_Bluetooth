@@ -787,6 +787,17 @@ void L2CA_SetMediaStreamChannel(uint16_t local_media_cid, bool status);
 
 /*******************************************************************************
  *
+ * Function         L2CA_Ping
+ *
+ * Description      Higher layers call this function to send an echo request.
+ *
+ * Returns          true if echo request sent, else false.
+ *
+ ******************************************************************************/
+bool L2CA_Ping(const RawAddress& p_bd_addr, tL2CA_ECHO_RSP_CB* p_callback);
+
+/*******************************************************************************
+ *
  * Function         L2CA_Echo
  *
  * Description      Higher layers call this function to send an echo request
