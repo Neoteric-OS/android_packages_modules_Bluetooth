@@ -121,6 +121,7 @@ struct btm_client_interface_t {
     [[nodiscard]] tBTM_STATUS (*BTM_SetEScoMode)(enh_esco_params_t* p_parms);
     [[nodiscard]] tBTM_SCO_DEBUG_DUMP (*BTM_GetScoDebugDump)(void);
     [[nodiscard]] bool (*BTM_IsScoActiveByBdaddr)(const RawAddress& remote_bda);
+    [[nodiscard]] const RawAddress* (*BTM_ReadScoBdAddrByHandle)(uint16_t hci_handle);
   } sco;
 
   struct {
