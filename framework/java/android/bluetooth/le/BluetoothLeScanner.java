@@ -59,8 +59,8 @@ import java.util.Map;
  * @see ScanFilter
  */
 public final class BluetoothLeScanner {
-
     private static final String TAG = "BluetoothLeScanner";
+
     private static final boolean DBG = true;
     private static final boolean VDBG = false;
 

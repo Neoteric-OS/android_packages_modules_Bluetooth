@@ -565,8 +565,7 @@ public class A2dpService extends ProfileService {
      */
     public boolean setActiveDevice(@NonNull BluetoothDevice device) {
         if (device == null) {
-            Log.e(TAG, "setactivedevice to null");
-            removeActiveDevice(true);
+            Log.e(TAG, "device should not be null!");
             return false;
         }
 
