@@ -4232,9 +4232,8 @@ public class LeAudioService extends ProfileService {
             /* Broadcast creation procedure were initiated and some unicast group are still
              * active.
              */
+            /* skip removing unicast active device
             if (mAwaitingBroadcastCreateResponse && !areAllGroupsInNotActiveState()) {
-                /* Broadcast would be created once unicast group became inactive */
-                /*
                 Log.i(TAG, "Unicast group is active, deactivate due to pending broadcast");
 
                 if (!leaudioUseAudioRecordingListener()) {
@@ -4243,13 +4242,13 @@ public class LeAudioService extends ProfileService {
                 }
 
                 removeActiveDevice(true);
-                */
+            }
+            */
 
-                /* Notify Broadcast device active while broadcast audio session created*/
-                Log.i(TAG, "Notify Broadcast device active to Audio framework");
-                if (!device.equals(mActiveBroadcastAudioDevice)) {
-                   updateBroadcastActiveDevice(device, mActiveBroadcastAudioDevice, true);
-                }
+            /* Notify Broadcast device active while broadcast audio session created*/
+            Log.i(TAG, "Notify Broadcast device active to Audio framework");
+            if (!device.equals(mActiveBroadcastAudioDevice)) {
+               updateBroadcastActiveDevice(device, mActiveBroadcastAudioDevice, true);
             }
         } else if (stackEvent.type == LeAudioStackEvent.EVENT_TYPE_NATIVE_INITIALIZED) {
             mLeAudioNativeIsInitialized = true;
