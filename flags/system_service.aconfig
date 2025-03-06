@@ -12,16 +12,6 @@ flag {
 }
 
 flag {
-    name: "get_state_from_system_server"
-    namespace: "bluetooth"
-    description: "Get Bluetooth state from system server instead of from Bluetooth app"
-    metadata {
-        purpose: PURPOSE_BUGFIX
-    }
-    bug: "362569584"
-}
-
-flag {
     name: "get_name_and_address_as_callback"
     namespace: "bluetooth"
     description: "Getting the name and address is a non-oneway call. Instead inform the system server with callback"
