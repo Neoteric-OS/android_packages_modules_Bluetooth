@@ -510,24 +510,7 @@ class BluetoothManagerService {
                 @Override
                 public void onReceive(Context context, Intent intent) {
                     String action = intent.getAction();
-                    if (!Flags.getNameAndAddressAsCallback()
-                            && BluetoothAdapter.ACTION_LOCAL_NAME_CHANGED.equals(action)) {
-                        String newName = intent.getStringExtra(BluetoothAdapter.EXTRA_LOCAL_NAME);
-                        if (newName != null) {
-                            Log.d(TAG, "Local name changed to: " + newName);
-                            storeNameAndAddress(newName, null);
-                        }
-                    } else if (!Flags.getNameAndAddressAsCallback()
-                            && BluetoothAdapter.ACTION_BLUETOOTH_ADDRESS_CHANGED.equals(action)) {
-                        String newAddress =
-                                intent.getStringExtra(BluetoothAdapter.EXTRA_BLUETOOTH_ADDRESS);
-                        if (newAddress != null) {
-                            Log.d(TAG, "Local address changed to: " + logAddress(newAddress));
-                            storeNameAndAddress(null, newAddress);
-                        } else {
-                            Log.e(TAG, "No Bluetooth Adapter address parameter found");
-                        }
-                    } else if (Intent.ACTION_SETTING_RESTORED.equals(action)) {
+                    if (Intent.ACTION_SETTING_RESTORED.equals(action)) {
                         final String name = intent.getStringExtra(Intent.EXTRA_SETTING_NAME);
                         if (Settings.Global.BLUETOOTH_ON.equals(name)) {
                             // The Bluetooth On state may be changed during system restore.
@@ -602,10 +585,6 @@ class BluetoothManagerService {
         }
 
         IntentFilter filter = new IntentFilter();
-        if (!Flags.getNameAndAddressAsCallback()) {
-            filter.addAction(BluetoothAdapter.ACTION_LOCAL_NAME_CHANGED);
-            filter.addAction(BluetoothAdapter.ACTION_BLUETOOTH_ADDRESS_CHANGED);
-        }
         filter.addAction(Intent.ACTION_SETTING_RESTORED);
         filter.addAction(Intent.ACTION_SHUTDOWN);
         filter.setPriority(IntentFilter.SYSTEM_HIGH_PRIORITY);
@@ -640,20 +619,15 @@ class BluetoothManagerService {
                 null,
                 mHandler);
 
-        if (Flags.getNameAndAddressAsCallback()) {
-            mName =
-                    BluetoothServerProxy.getInstance()
-                            .settingsSecureGetString(
-                                    mContentResolver, Settings.Secure.BLUETOOTH_NAME);
-            mAddress =
-                    BluetoothServerProxy.getInstance()
-                            .settingsSecureGetString(
-                                    mContentResolver, Settings.Secure.BLUETOOTH_ADDRESS);
+        mName =
+                BluetoothServerProxy.getInstance()
+                        .settingsSecureGetString(mContentResolver, Settings.Secure.BLUETOOTH_NAME);
+        mAddress =
+                BluetoothServerProxy.getInstance()
+                        .settingsSecureGetString(
+                                mContentResolver, Settings.Secure.BLUETOOTH_ADDRESS);
 
-            Log.d(TAG, "Local adapter: Name=" + mName + ", Address=" + logAddress(mAddress));
-        } else {
-            loadStoredNameAndAddress();
-        }
+        Log.d(TAG, "Local adapter: Name=" + mName + ", Address=" + logAddress(mAddress));
 
         if (isBluetoothPersistedStateOn()) {
             Log.i(TAG, "Startup: Bluetooth persisted state is ON.");
@@ -723,25 +697,6 @@ class BluetoothManagerService {
         BluetoothServerProxy.getInstance().setBluetoothPersistedState(mContentResolver, state);
     }
 
-    private void loadStoredNameAndAddress() {
-        if (BluetoothProperties.isAdapterAddressValidationEnabled().orElse(false)
-                && Settings.Secure.getInt(mContentResolver, Settings.Secure.BLUETOOTH_ADDR_VALID, 0)
-                        == 0) {
-            // if the valid flag is not set, don't load the address and name
-            Log.w(TAG, "There is no valid bluetooth name and address stored");
-            return;
-        }
-        mName =
-                BluetoothServerProxy.getInstance()
-                        .settingsSecureGetString(mContentResolver, Settings.Secure.BLUETOOTH_NAME);
-        mAddress =
-                BluetoothServerProxy.getInstance()
-                        .settingsSecureGetString(
-                                mContentResolver, Settings.Secure.BLUETOOTH_ADDRESS);
-
-        Log.d(TAG, "loadStoredNameAndAddress: Name=" + mName + ", Address=" + logAddress(mAddress));
-    }
-
     private static String logAddress(String address) {
         if (address == null) {
             return "[address is null]";
@@ -750,35 +705,6 @@ class BluetoothManagerService {
             return "[address invalid]";
         }
         return "XX:XX:XX:XX:" + address.substring(address.length() - 5);
-    }
-
-    /**
-     * Save the Bluetooth name and address in the persistent store. Only non-null values will be
-     * saved.
-     */
-    private void storeNameAndAddress(String name, String address) {
-        final String logHeader = "storeNameAndAddress(" + name + ", " + logAddress(address) + "): ";
-        if (name != null) {
-            if (Settings.Secure.putString(mContentResolver, Settings.Secure.BLUETOOTH_NAME, name)) {
-                mName = name;
-            } else {
-                Log.e(TAG, logHeader + "Failed. Name is still " + mName);
-            }
-        }
-
-        if (address != null) {
-            if (Settings.Secure.putString(
-                    mContentResolver, Settings.Secure.BLUETOOTH_ADDRESS, address)) {
-                mAddress = address;
-            } else {
-                Log.e(TAG, logHeader + "Failed. Address is still " + logAddress(mAddress));
-            }
-        }
-
-        if ((mName != null) && (mAddress != null)) {
-            Settings.Secure.putInt(mContentResolver, Settings.Secure.BLUETOOTH_ADDR_VALID, 1);
-        }
-        Log.d(TAG, logHeader + "Completed successfully");
     }
 
     // Called from unsafe binder thread
@@ -1273,43 +1199,11 @@ class BluetoothManagerService {
 
     // Called from unsafe binder thread
     String getAddress() {
-        if (Flags.getNameAndAddressAsCallback()) {
-            return mAddress;
-        }
-        // Copy to local variable to avoid race condition when checking for null
-        AdapterBinder adapter = mAdapter;
-        if (adapter != null) {
-            try {
-                return adapter.getAddress(mContext.getAttributionSource());
-            } catch (RemoteException e) {
-                Log.e(TAG, "getAddress(): Returning cached address", e);
-            }
-        }
-
-        // mAddress is accessed from outside.
-        // It is alright without a lock. Here, bluetooth is off, no other thread is
-        // changing mAddress
         return mAddress;
     }
 
     // Called from unsafe binder thread
     String getName() {
-        if (Flags.getNameAndAddressAsCallback()) {
-            return mName;
-        }
-        // Copy to local variable to avoid race condition when checking for null
-        AdapterBinder adapter = mAdapter;
-        if (adapter != null) {
-            try {
-                return adapter.getName(mContext.getAttributionSource());
-            } catch (RemoteException e) {
-                Log.e(TAG, "getName(): Returning cached name", e);
-            }
-        }
-
-        // mName is accessed from outside.
-        // It alright without a lock. Here, bluetooth is off, no other thread is
-        // changing mName
         return mName;
     }
 
