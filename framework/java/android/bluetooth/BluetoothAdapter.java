@@ -913,11 +913,7 @@ public final class BluetoothAdapter {
             Log.d(TAG, getProfileName(mProfile) + " connected");
             mConnected = true;
             proxy.onServiceConnected(binder);
-            if (Flags.getProfileUseLock()) {
-                executeFromBinder(mExecutor, () -> mListener.onServiceConnected(mProfile, proxy));
-            } else {
-                mListener.onServiceConnected(mProfile, proxy);
-            }
+            executeFromBinder(mExecutor, () -> mListener.onServiceConnected(mProfile, proxy));
         }
 
         @GuardedBy("BluetoothAdapter.sProfileLock")
@@ -925,11 +921,7 @@ public final class BluetoothAdapter {
             Log.d(TAG, getProfileName(mProfile) + " disconnected");
             mConnected = false;
             proxy.onServiceDisconnected();
-            if (Flags.getProfileUseLock()) {
-                executeFromBinder(mExecutor, () -> mListener.onServiceDisconnected(mProfile));
-            } else {
-                mListener.onServiceDisconnected(mProfile);
-            }
+            executeFromBinder(mExecutor, () -> mListener.onServiceDisconnected(mProfile));
         }
     }
 
@@ -3476,24 +3468,16 @@ public final class BluetoothAdapter {
             return false;
         }
 
-        Runnable connectAction =
-                () -> {
-                    synchronized (sProfileLock) {
-                        // Synchronize with the binder callback to prevent performing the
-                        // ProfileConnection.connect concurrently
-                        mProfileConnections.put(profileProxy, connection);
+        synchronized (sProfileLock) {
+            // Synchronize with the binder callback to prevent performing the
+            // ProfileConnection.connect concurrently
+            mProfileConnections.put(profileProxy, connection);
 
-                        IBinder binder = getProfile(profile);
-                        if (binder != null) {
-                            connection.connect(profileProxy, binder);
-                        }
-                    }
-                };
-        if (Flags.getProfileUseLock()) {
-            connectAction.run();
-            return true;
+            IBinder binder = getProfile(profile);
+            if (binder != null) {
+                connection.connect(profileProxy, binder);
+            }
         }
-        executor.execute(connectAction);
         return true;
     }
 
@@ -3561,7 +3545,12 @@ public final class BluetoothAdapter {
 
     private static final IBluetoothManagerCallback sManagerCallback =
             new IBluetoothManagerCallback.Stub() {
-                private void onBluetoothServiceUpFlagged(IBinder bluetoothService) {
+                @RequiresNoPermission
+                public void onBluetoothServiceUp(IBinder bluetoothService) {
+                    if (DBG) {
+                        Log.d(TAG, "onBluetoothServiceUp: " + bluetoothService);
+                    }
+
                     sServiceLock.writeLock().lock();
                     try {
                         sService = IBluetooth.Stub.asInterface(bluetoothService);
@@ -3578,32 +3567,11 @@ public final class BluetoothAdapter {
                 }
 
                 @RequiresNoPermission
-                public void onBluetoothServiceUp(IBinder bluetoothService) {
+                public void onBluetoothServiceDown() {
                     if (DBG) {
-                        Log.d(TAG, "onBluetoothServiceUp: " + bluetoothService);
+                        Log.d(TAG, "onBluetoothServiceDown");
                     }
 
-                    if (Flags.getProfileUseLock()) {
-                        onBluetoothServiceUpFlagged(bluetoothService);
-                        return;
-                    }
-                    synchronized (sServiceLock) {
-                        sService = IBluetooth.Stub.asInterface(bluetoothService);
-                        for (IBluetoothManagerCallback cb : sProxyServiceStateCallbacks.keySet()) {
-                            try {
-                                if (cb != null) {
-                                    cb.onBluetoothServiceUp(bluetoothService);
-                                } else {
-                                    Log.d(TAG, "onBluetoothServiceUp: cb is null!");
-                                }
-                            } catch (Exception e) {
-                                Log.e(TAG, "", e);
-                            }
-                        }
-                    }
-                }
-
-                private void onBluetoothServiceDownFlagged() {
                     sServiceLock.writeLock().lock();
                     try {
                         sService = null;
@@ -3620,33 +3588,11 @@ public final class BluetoothAdapter {
                 }
 
                 @RequiresNoPermission
-                public void onBluetoothServiceDown() {
+                public void onBluetoothOn() {
                     if (DBG) {
-                        Log.d(TAG, "onBluetoothServiceDown");
+                        Log.d(TAG, "onBluetoothOn");
                     }
 
-                    if (Flags.getProfileUseLock()) {
-                        onBluetoothServiceDownFlagged();
-                        return;
-                    }
-
-                    synchronized (sServiceLock) {
-                        sService = null;
-                        for (IBluetoothManagerCallback cb : sProxyServiceStateCallbacks.keySet()) {
-                            try {
-                                if (cb != null) {
-                                    cb.onBluetoothServiceDown();
-                                } else {
-                                    Log.d(TAG, "onBluetoothServiceDown: cb is null!");
-                                }
-                            } catch (Exception e) {
-                                Log.e(TAG, "", e);
-                            }
-                        }
-                    }
-                }
-
-                private void onBluetoothOnFlagged() {
                     sServiceLock.readLock().lock();
                     try {
                         for (IBluetoothManagerCallback cb : sProxyServiceStateCallbacks.keySet()) {
@@ -3662,31 +3608,11 @@ public final class BluetoothAdapter {
                 }
 
                 @RequiresNoPermission
-                public void onBluetoothOn() {
+                public void onBluetoothOff() {
                     if (DBG) {
-                        Log.d(TAG, "onBluetoothOn");
+                        Log.d(TAG, "onBluetoothOff");
                     }
 
-                    if (Flags.getProfileUseLock()) {
-                        onBluetoothOnFlagged();
-                        return;
-                    }
-                    synchronized (sServiceLock) {
-                        for (IBluetoothManagerCallback cb : sProxyServiceStateCallbacks.keySet()) {
-                            try {
-                                if (cb != null) {
-                                    cb.onBluetoothOn();
-                                } else {
-                                    Log.d(TAG, "onBluetoothOn: cb is null!");
-                                }
-                            } catch (Exception e) {
-                                Log.e(TAG, "", e);
-                            }
-                        }
-                    }
-                }
-
-                private void onBluetoothOffFlagged() {
                     sServiceLock.readLock().lock();
                     try {
                         for (IBluetoothManagerCallback cb : sProxyServiceStateCallbacks.keySet()) {
@@ -3698,31 +3624,6 @@ public final class BluetoothAdapter {
                         }
                     } finally {
                         sServiceLock.readLock().unlock();
-                    }
-                }
-
-                @RequiresNoPermission
-                public void onBluetoothOff() {
-                    if (DBG) {
-                        Log.d(TAG, "onBluetoothOff");
-                    }
-
-                    if (Flags.getProfileUseLock()) {
-                        onBluetoothOffFlagged();
-                        return;
-                    }
-                    synchronized (sServiceLock) {
-                        for (IBluetoothManagerCallback cb : sProxyServiceStateCallbacks.keySet()) {
-                            try {
-                                if (cb != null) {
-                                    cb.onBluetoothOff();
-                                } else {
-                                    Log.d(TAG, "onBluetoothOff: cb is null!");
-                                }
-                            } catch (Exception e) {
-                                Log.e(TAG, "", e);
-                            }
-                        }
                     }
                 }
             };
@@ -3812,37 +3713,21 @@ public final class BluetoothAdapter {
 
                 @RequiresNoPermission
                 public void onBluetoothOn() {
-                    Runnable btOnAction =
-                            () -> {
-                                synchronized (sProfileLock) {
-                                    connectAllProfileProxyLocked();
-                                }
-                            };
-                    if (Flags.getProfileUseLock()) {
-                        btOnAction.run();
-                        return;
+                    synchronized (sProfileLock) {
+                        connectAllProfileProxyLocked();
                     }
-                    mMainHandler.post(btOnAction);
                 }
 
                 @RequiresNoPermission
                 public void onBluetoothOff() {
-                    Runnable btOffAction =
-                            () -> {
-                                synchronized (sProfileLock) {
-                                    mProfileConnections.forEach(
-                                            (proxy, connection) -> {
-                                                if (connection.mConnected) {
-                                                    connection.disconnect(proxy);
-                                                }
-                                            });
-                                }
-                            };
-                    if (Flags.getProfileUseLock()) {
-                        btOffAction.run();
-                        return;
+                    synchronized (sProfileLock) {
+                        mProfileConnections.forEach(
+                                (proxy, connection) -> {
+                                    if (connection.mConnected) {
+                                        connection.disconnect(proxy);
+                                    }
+                                });
                     }
-                    mMainHandler.post(btOffAction);
                 }
             };
 
@@ -4072,36 +3957,24 @@ public final class BluetoothAdapter {
             new WeakHashMap<>();
 
     /*package*/ IBluetooth getBluetoothService() {
-        if (Flags.getProfileUseLock()) {
-            sServiceLock.readLock().lock();
-            try {
-                return sService;
-            } finally {
-                sServiceLock.readLock().unlock();
-            }
-        }
-        synchronized (sServiceLock) {
+        sServiceLock.readLock().lock();
+        try {
             return sService;
+        } finally {
+            sServiceLock.readLock().unlock();
         }
     }
 
     /** Registers a IBluetoothManagerCallback and returns the cached service proxy object. */
     IBluetooth registerBluetoothManagerCallback(IBluetoothManagerCallback cb) {
         requireNonNull(cb);
-        if (Flags.getProfileUseLock()) {
-            sServiceLock.writeLock().lock();
-            try {
-                sProxyServiceStateCallbacks.put(cb, null);
-                registerOrUnregisterAdapterLocked();
-                return sService;
-            } finally {
-                sServiceLock.writeLock().unlock();
-            }
-        }
-        synchronized (sServiceLock) {
+        sServiceLock.writeLock().lock();
+        try {
             sProxyServiceStateCallbacks.put(cb, null);
             registerOrUnregisterAdapterLocked();
             return sService;
+        } finally {
+            sServiceLock.writeLock().unlock();
         }
     }
 
@@ -4202,19 +4075,12 @@ public final class BluetoothAdapter {
 
     void removeServiceStateCallback(IBluetoothManagerCallback cb) {
         requireNonNull(cb);
-        if (Flags.getProfileUseLock()) {
-            sServiceLock.writeLock().lock();
-            try {
-                sProxyServiceStateCallbacks.remove(cb);
-                registerOrUnregisterAdapterLocked();
-            } finally {
-                sServiceLock.writeLock().unlock();
-            }
-            return;
-        }
-        synchronized (sServiceLock) {
+        sServiceLock.writeLock().lock();
+        try {
             sProxyServiceStateCallbacks.remove(cb);
             registerOrUnregisterAdapterLocked();
+        } finally {
+            sServiceLock.writeLock().unlock();
         }
     }
 
