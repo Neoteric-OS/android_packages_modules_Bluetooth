@@ -273,7 +273,10 @@ void BTA_dm_on_hw_on() {
   get_btm_client_interface().link_policy.BTM_WritePageTimeout(
           osi_property_get_int32(PROPERTY_PAGE_TIMEOUT, p_bta_dm_cfg->page_timeout));
 
-  get_btm_client_interface().vendor.BTM_ReadVendorAddOnFeatures();
+  if (!osi_property_get_bool("persist.vendor.qcom.bluetooth.vsc_enabled", false)) {
+    get_btm_client_interface().vendor.BTM_ReadVendorAddOnFeatures();
+  }
+
   if (ble_vnd_is_included()) {
     get_btm_client_interface().ble.BTM_BleReadControllerFeatures(
             bta_dm_ctrl_features_rd_cmpl_cback);

@@ -4564,35 +4564,37 @@ public:
                         std::placeholders::_1, std::placeholders::_2));
     }
 
-    if ((configuration_context_type_ == LeAudioContextType::MEDIA) ||
-        (configuration_context_type_ == LeAudioContextType::GAME)) {
-      // Send vendor specific command for codec mode
-      uint8_t update_value =
-          (configuration_context_type_ == LeAudioContextType::MEDIA) ? 0x01 : 0x02;
+    if (!osi_property_get_bool("persist.vendor.qcom.bluetooth.vsc_enabled", false)) {
+      if ((configuration_context_type_ == LeAudioContextType::MEDIA) ||
+          (configuration_context_type_ == LeAudioContextType::GAME)) {
+        // Send vendor specific command for codec mode
+        uint8_t update_value =
+            (configuration_context_type_ == LeAudioContextType::MEDIA) ? 0x01 : 0x02;
 
-      log::warn("Send VSC Cmd for Encoder Limits for group {}, mode value {}",
-              group_id, update_value);
-      uint8_t param_arr[7];
-      uint8_t *p = param_arr;
+        log::warn("Send VSC Cmd for Encoder Limits for group {}, mode value {}",
+                group_id, update_value);
+        uint8_t param_arr[7];
+        uint8_t *p = param_arr;
 
-      UINT8_TO_STREAM(p, 0x24); //sub-opcode
-      UINT8_TO_STREAM(p, group_id);
-      UINT8_TO_STREAM(p, group->cig.cises[0].id);
-      UINT8_TO_STREAM(p, 1); //numlimits
+        UINT8_TO_STREAM(p, 0x24); //sub-opcode
+        UINT8_TO_STREAM(p, group_id);
+        UINT8_TO_STREAM(p, group->cig.cises[0].id);
+        UINT8_TO_STREAM(p, 1); //numlimits
 
-      UINT8_TO_STREAM(p, 0x3);
-      UINT8_TO_STREAM(p, 0x1);
-      UINT8_TO_STREAM(p, update_value);
+        UINT8_TO_STREAM(p, 0x3);
+        UINT8_TO_STREAM(p, 0x1);
+        UINT8_TO_STREAM(p, update_value);
 
-      bluetooth::legacy::hci::GetInterface().SendVendorSpecificCmd(
-          HCI_VS_QBCE_OCF, 7, param_arr, NULL);
-    }
+        bluetooth::legacy::hci::GetInterface().SendVendorSpecificCmd(
+            HCI_VS_QBCE_OCF, 7, param_arr, NULL);
+      }
 
-    if (device->GetFirstActiveAse()->is_vsmetadata_available) {
-      for (struct bluetooth::le_audio::types::cis& cis : group->cig.cises) {
-        UpdateEncoderParams(group_id, cis.id,
-            device->GetFirstActiveAse()->vs_metadata);
-        device->GetFirstActiveAse()->is_vsmetadata_available = false;
+      if (device->GetFirstActiveAse()->is_vsmetadata_available) {
+        for (struct bluetooth::le_audio::types::cis& cis : group->cig.cises) {
+          UpdateEncoderParams(group_id, cis.id,
+              device->GetFirstActiveAse()->vs_metadata);
+          device->GetFirstActiveAse()->is_vsmetadata_available = false;
+        }
       }
     }
   }
@@ -4842,6 +4844,10 @@ public:
   }
 
   bool isLeXtransportAvailable(LeAudioDeviceGroup* group) {
+     if (osi_property_get_bool("persist.vendor.qcom.bluetooth.vsc_enabled", false)) {
+       log::info("hci_vendor_specific_extension enabled");
+       return true;
+     }
      LeAudioDevice* leAudioDevice = group->GetFirstDevice();
      if (!leAudioDevice) return false;
      do {

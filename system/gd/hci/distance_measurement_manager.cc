@@ -725,14 +725,7 @@ struct DistanceMeasurementManager::impl : bluetooth::hal::RangingHalCallback {
     it->second.state = CsTrackerState::RAS_CONNECTED;
     it->second.address = identity_address;
     it->second.local_hci_role = local_hci_role;
-    char value[92];
-    if (property_get("persist.vendor.service.bt.config.role", value, "false")) {
-      if (strncmp(value, "true", 92) == 0) {
-          it->second.local_start = true;
-      } else {
-          it->second.local_start = false;
-      }
-    }
+    it->second.local_start = false;
   }
 
   void handle_mtu_changed(uint16_t connection_handle, uint16_t mtu) {
@@ -907,6 +900,7 @@ struct DistanceMeasurementManager::impl : bluetooth::hal::RangingHalCallback {
           config_settings.config_id = config_settings.config_id - 1;
       }
       cs_requester_trackers_[connection_handle].used_config_id = config_settings.config_id;
+      cs_requester_trackers_[connection_handle].requesting_config_id = config_settings.config_id;
       hci_layer_->EnqueueCommand(
             LeCsCreateConfigBuilder::Create(
             connection_handle,
@@ -1324,7 +1318,7 @@ struct DistanceMeasurementManager::impl : bluetooth::hal::RangingHalCallback {
 
 
 
-    if (live_tracker->local_hci_role == hci::Role::CENTRAL) {
+    if (live_tracker->local_start == true) {
       // send the cmd from the BLE central only.
       send_le_cs_security_enable(connection_handle, live_tracker->local_start);
     } else {
