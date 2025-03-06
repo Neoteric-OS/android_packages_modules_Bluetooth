@@ -852,7 +852,7 @@ AvdtpScb* avdt_scb_alloc(uint8_t peer_id, const AvdtpStreamConfig& avdtp_stream_
       p_scb->Allocate(&avdtp_cb.ccb[peer_id], avdtp_stream_config);
       log::verbose("allocated (handle={}, psc_mask:0x{:x})", p_scb->ScbHandle(),
                    avdtp_stream_config.cfg.psc_mask);
-      p_scb->delay_report_timer = alarm_new("avdt_scb.delay_report_timer");
+      p_scb->init_delay_report_timer = alarm_new("avdt_scb.delay_report_timer");
       return p_scb;
     }
   }
@@ -867,6 +867,7 @@ void AvdtpScb::Allocate(AvdtpCcb* p_avdtp_ccb, const AvdtpStreamConfig& avdtp_st
   p_ccb = p_avdtp_ccb;
   stream_config = avdtp_stream_config;
   transport_channel_timer = alarm_new("avdtp_scb.transport_channel_timer");
+  init_delay_report_timer = alarm_new("avdtp_scb.init_delay_report_timer");
   allocated = true;
 }
 
@@ -882,7 +883,6 @@ void AvdtpScb::Allocate(AvdtpCcb* p_avdtp_ccb, const AvdtpStreamConfig& avdtp_st
  ******************************************************************************/
 void avdt_scb_dealloc(AvdtpScb* p_scb, tAVDT_SCB_EVT* /* p_data */) {
   log::verbose("hdl={}", avdt_scb_to_hdl(p_scb));
-  alarm_free(p_scb->delay_report_timer);
   p_scb->Recycle();
 }
 

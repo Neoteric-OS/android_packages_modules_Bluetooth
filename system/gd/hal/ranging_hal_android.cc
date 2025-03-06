@@ -121,7 +121,13 @@ public:
     if (hal_ver_ == V_2) {
       ranging_result.elapsed_timestamp_nanos_ = in_result.timestampNanos;
     }
-    ranging_hal_callback_->OnResult(connection_handle_, ranging_result);
+    log::info("confidence_level_ {} ", in_result.confidenceLevel);
+    if(in_result.confidenceLevel != -1) {
+        ranging_hal_callback_->OnResult(connection_handle_, ranging_result);
+    } else {
+        log::info("confidence Level is -1 Distance ignored");
+    }
+
     return ::ndk::ScopedAStatus::ok();
   }
 
@@ -510,9 +516,8 @@ public:
               procedure_data.remote_subevent_data_, hci::CsRole::INITIATOR);
       channel_sounding_procedure_data.reflectorSubeventResultData =
               get_subevent_result_data(procedure_data.local_subevent_data_, hci::CsRole::REFLECTOR);
-
-      session_it->second->GetSession()->writeProcedureData(channel_sounding_procedure_data);
     }
+    session_it->second->GetSession()->writeProcedureData(channel_sounding_procedure_data);
   }
 
   static std::vector<SubeventResultData> get_subevent_result_data(

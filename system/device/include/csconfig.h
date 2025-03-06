@@ -18,7 +18,7 @@
 #define CS_CONFIG_PATH "/var/lib/bluetooth/cs_configs.xml"
 #elif defined(__ANDROID__)
 #define CS_CONFIG_PATH \
-  "/apex/com.android.btservices/etc/bluetooth/cs_configs.xml"
+  "/apex/com.android.bt/etc/bluetooth/cs_configs.xml"
 #else  // !defined(__ANDROID__)
 #define CS_CONFIG_PATH "cs_configs.xml"
 #endif  // defined(__ANDROID__)

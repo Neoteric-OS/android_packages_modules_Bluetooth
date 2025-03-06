@@ -83,6 +83,7 @@ import java.util.UUID;
  */
 public final class BluetoothGattServer implements BluetoothProfile {
     private static final String TAG = "BluetoothGattServer";
+
     private static final boolean DBG = true;
     private static final boolean VDBG = false;
 

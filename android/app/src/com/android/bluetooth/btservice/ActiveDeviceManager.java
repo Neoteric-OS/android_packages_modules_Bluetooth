@@ -117,11 +117,13 @@ import java.util.Map;
  */
 public class ActiveDeviceManager implements AdapterService.BluetoothStateCallback {
     private static final String TAG = ActiveDeviceManager.class.getSimpleName();
+
     @VisibleForTesting
     static final int A2DP_HFP_SYNC_CONNECTION_TIMEOUT_MS = 5_000;
     private static final String DUAL_MODE_BREDR_LE_MODES_ENABLED_PROPERTY =
         "bluetooth.dual_mode_bredr_le_modes_enabled";
     Bundle contextBundleUpdate = new Bundle();
+
     private final AdapterService mAdapterService;
     private DatabaseManager mDbManager;
     private final ServiceFactory mFactory;

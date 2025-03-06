@@ -317,7 +317,9 @@ void parseVSMetadata(uint8_t total_len, std::vector<uint8_t> metadata,
           processed_len += static_cast<int> (sizeof(vs_meta_data));
           if (ase->state == AseState::BTA_LE_AUDIO_ASE_STATE_STREAMING) {
             LOG(INFO) << __func__ << ": straight away call UpdateEncoderParams ";
-            UpdateEncoderParams(cig_id, cis_id, vs_meta_data, 0xFF);
+            if (!osi_property_get_bool("persist.vendor.qcom.bluetooth.vsc_enabled", false)) {
+              UpdateEncoderParams(cig_id, cis_id, vs_meta_data, 0xFF);
+            }
           } else {
             LOG(INFO) << __func__ << ": Cache it untill encoder is up ";
             ase->vs_metadata = vs_meta_data;
@@ -947,8 +949,10 @@ public:
         }
       }
     }
-    send_vs_cmd(static_cast<uint16_t>(group->GetConfigurationContextType()),
+    if (!osi_property_get_bool("persist.vendor.qcom.bluetooth.vsc_enabled", false)) {
+      send_vs_cmd(static_cast<uint16_t>(group->GetConfigurationContextType()),
         cig_id, group->cig.cises.size(), conn_handles, group->IsLeXDevice());
+    }
     PrepareAndSendQoSToTheGroup(group);
   }
 
@@ -3334,9 +3338,10 @@ private:
       bluetooth::le_audio::client_parser::ascs::PrepareAseCtpUpdateMetadata(confs, value);
       WriteToControlPoint(leAudioDevice, value);
 
-      send_vs_cmd(static_cast<uint16_t>(ctx_type.value()),
+      if (!osi_property_get_bool("persist.vendor.qcom.bluetooth.vsc_enabled", false)) {
+        send_vs_cmd(static_cast<uint16_t>(ctx_type.value()),
          leAudioDevice->group_id_, conn_handles.size(), conn_handles, leAudioDevice->isLeXDevice());
-
+      }
       log::info("group_id: {}, {}", leAudioDevice->group_id_, leAudioDevice->address_);
 
       log_history_->AddLogHistory(kLogControlPointCmd, leAudioDevice->group_id_,

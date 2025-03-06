@@ -725,14 +725,7 @@ struct DistanceMeasurementManager::impl : bluetooth::hal::RangingHalCallback {
     it->second.state = CsTrackerState::RAS_CONNECTED;
     it->second.address = identity_address;
     it->second.local_hci_role = local_hci_role;
-    char value[92];
-    if (property_get("persist.vendor.service.bt.config.role", value, "false")) {
-      if (strncmp(value, "true", 92) == 0) {
-          it->second.local_start = true;
-      } else {
-          it->second.local_start = false;
-      }
-    }
+    it->second.local_start = false;
   }
 
   void handle_mtu_changed(uint16_t connection_handle, uint16_t mtu) {
@@ -907,6 +900,7 @@ struct DistanceMeasurementManager::impl : bluetooth::hal::RangingHalCallback {
           config_settings.config_id = config_settings.config_id - 1;
       }
       cs_requester_trackers_[connection_handle].used_config_id = config_settings.config_id;
+      cs_requester_trackers_[connection_handle].requesting_config_id = config_settings.config_id;
       hci_layer_->EnqueueCommand(
             LeCsCreateConfigBuilder::Create(
             connection_handle,
@@ -1324,7 +1318,7 @@ struct DistanceMeasurementManager::impl : bluetooth::hal::RangingHalCallback {
 
 
 
-    if (live_tracker->local_hci_role == hci::Role::CENTRAL) {
+    if (live_tracker->local_start == true) {
       // send the cmd from the BLE central only.
       send_le_cs_security_enable(connection_handle, live_tracker->local_start);
     } else {
@@ -2411,6 +2405,16 @@ struct DistanceMeasurementManager::impl : bluetooth::hal::RangingHalCallback {
         raw_data.vendor_specific_cs_single_side_data.push_back(live_tracker->n_procedure_count & 0xFF);
         raw_data.vendor_specific_cs_single_side_data.push_back((live_tracker->max_procedure_len >> 8) & 0xFF);
         raw_data.vendor_specific_cs_single_side_data.push_back(live_tracker->max_procedure_len & 0xFF);
+        raw_data.vendor_specific_cs_single_side_data.push_back((live_tracker->conn_interval_ >> 8) & 0xFF);
+        raw_data.vendor_specific_cs_single_side_data.push_back(live_tracker->conn_interval_ & 0xFF);
+        uint32_t num_AntPIs = procedure_data->antenna_permutation_index_initiator.size();
+        raw_data.vendor_specific_cs_single_side_data.push_back((num_AntPIs >> 24) & 0xFF);
+        raw_data.vendor_specific_cs_single_side_data.push_back((num_AntPIs >> 16) & 0xFF);
+        raw_data.vendor_specific_cs_single_side_data.push_back((num_AntPIs >> 8) & 0xFF);
+        raw_data.vendor_specific_cs_single_side_data.push_back(num_AntPIs & 0xFF);
+        for (uint32_t i=0;i<num_AntPIs;i++) {
+          raw_data.vendor_specific_cs_single_side_data.push_back(procedure_data->antenna_permutation_index_initiator[i]);
+        }
         
         
         struct timeval tv;
@@ -2505,7 +2509,7 @@ struct DistanceMeasurementManager::impl : bluetooth::hal::RangingHalCallback {
             }
             log::verbose("step_data: {}", tone_data_view.ToString());
             procedure_data.measured_freq_offset.push_back(tone_data_view.measured_freq_offset_);
-            if (is_hal_v2()) {
+            if (is_hal_v2() && local_subevent_data) {
               local_subevent_data->step_data_.emplace_back(step_channel, mode,
                                                            hal::Mode0Data(tone_data_view));
             }
@@ -2522,7 +2526,7 @@ struct DistanceMeasurementManager::impl : bluetooth::hal::RangingHalCallback {
               continue;
             }
             log::verbose("step_data: {}", tone_data_view.ToString());
-            if (is_hal_v2()) {
+            if (is_hal_v2() && local_subevent_data) {
               local_subevent_data->step_data_.emplace_back(step_channel, mode,
                                                            hal::Mode0Data(tone_data_view));
             }
