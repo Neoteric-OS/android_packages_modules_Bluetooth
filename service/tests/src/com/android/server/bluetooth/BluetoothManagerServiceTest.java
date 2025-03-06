@@ -97,8 +97,7 @@ public class BluetoothManagerServiceTest {
     public static List<FlagsParameterization> getParams() {
         return FlagsParameterization.allCombinationsOf(
                 Flags.FLAG_GET_NAME_AND_ADDRESS_AS_CALLBACK,
-                Flags.FLAG_ENFORCE_RESOLVE_SYSTEM_SERVICE_BEHAVIOR,
-                Flags.FLAG_REMOVE_ONE_TIME_GET_NAME_AND_ADDRESS);
+                Flags.FLAG_ENFORCE_RESOLVE_SYSTEM_SERVICE_BEHAVIOR);
     }
 
     public BluetoothManagerServiceTest(FlagsParameterization flags) {

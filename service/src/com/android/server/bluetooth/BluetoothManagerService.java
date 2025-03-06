@@ -151,8 +151,6 @@ class BluetoothManagerService {
     @VisibleForTesting static final int MESSAGE_RESTART_BLUETOOTH_SERVICE = 42;
     @VisibleForTesting static final int MESSAGE_BLUETOOTH_STATE_CHANGE = 60;
     @VisibleForTesting static final int MESSAGE_TIMEOUT_BIND = 100;
-    // TODO: b/368120237 delete MESSAGE_GET_NAME_AND_ADDRESS
-    @VisibleForTesting static final int MESSAGE_GET_NAME_AND_ADDRESS = 200;
     @VisibleForTesting static final int MESSAGE_USER_SWITCHED = 300;
     @VisibleForTesting static final int MESSAGE_USER_UNLOCKED = 301;
     @VisibleForTesting static final int MESSAGE_RESTORE_USER_SETTING_OFF = 501;
@@ -726,11 +724,6 @@ class BluetoothManagerService {
         BluetoothServerProxy.getInstance().setBluetoothPersistedState(mContentResolver, state);
     }
 
-    /** Returns true if the Bluetooth Adapter's name and address is locally cached */
-    private boolean isNameAndAddressSet() {
-        return mName != null && mAddress != null && mName.length() > 0 && mAddress.length() > 0;
-    }
-
     private void loadStoredNameAndAddress() {
         if (BluetoothProperties.isAdapterAddressValidationEnabled().orElse(false)
                 && Settings.Secure.getInt(mContentResolver, Settings.Secure.BLUETOOTH_ADDR_VALID, 0)
@@ -1223,9 +1216,6 @@ class BluetoothManagerService {
         if (mEnableExternal && isBluetoothPersistedStateOnBluetooth() && !isSafeMode) {
             Log.i(TAG, "internalHandleOnBootPhase: Auto-enabling Bluetooth.");
             sendEnableMsg(mQuietEnableExternal, ENABLE_DISABLE_REASON_SYSTEM_BOOT);
-        } else if (!Flags.removeOneTimeGetNameAndAddress() && !isNameAndAddressSet()) {
-            Log.i(TAG, "internalHandleOnBootPhase: Getting adapter name and address");
-            mHandler.sendEmptyMessage(MESSAGE_GET_NAME_AND_ADDRESS);
         } else {
             autoOnSetupTimer();
         }
@@ -1362,9 +1352,6 @@ class BluetoothManagerService {
 
     @VisibleForTesting
     class BluetoothHandler extends Handler {
-        // TODO: b/368120237 delete mGetNameAddressOnly
-        boolean mGetNameAddressOnly = false;
-
         BluetoothHandler(Looper looper) {
             super(looper);
         }
@@ -1372,33 +1359,6 @@ class BluetoothManagerService {
         @Override
         public void handleMessage(Message msg) {
             switch (msg.what) {
-                case MESSAGE_GET_NAME_AND_ADDRESS:
-                    if (Flags.removeOneTimeGetNameAndAddress()) {
-                        Log.e(TAG, "MESSAGE_GET_NAME_AND_ADDRESS is not supported anymore");
-                        break;
-                    }
-                    Log.d(TAG, "MESSAGE_GET_NAME_AND_ADDRESS");
-                    if (mAdapter == null && !isBinding()) {
-                        Log.d(TAG, "Binding to service to get name and address");
-                        mGetNameAddressOnly = true;
-                        bindToAdapter();
-                    } else if (mAdapter != null) {
-                        if (!Flags.getNameAndAddressAsCallback()) {
-                            try {
-                                storeNameAndAddress(
-                                        mAdapter.getName(mContext.getAttributionSource()),
-                                        mAdapter.getAddress(mContext.getAttributionSource()));
-                            } catch (RemoteException e) {
-                                Log.e(TAG, "Unable to grab name or address", e);
-                            }
-                        }
-                        if (mGetNameAddressOnly && !mEnable) {
-                            unbindAndFinish();
-                        }
-                        mGetNameAddressOnly = false;
-                    }
-                    break;
-
                 case MESSAGE_ENABLE:
                     int quietEnable = msg.arg1;
                     int isBle = msg.arg2;
@@ -1515,15 +1475,6 @@ class BluetoothManagerService {
                     mAdapter = BluetoothServerProxy.getInstance().createAdapterBinder(service);
 
                     propagateForegroundUserId(ActivityManager.getCurrentUser());
-
-                    if (!Flags.removeOneTimeGetNameAndAddress()) {
-                        if (!isNameAndAddressSet()) {
-                            mHandler.sendEmptyMessage(MESSAGE_GET_NAME_AND_ADDRESS);
-                            if (mGetNameAddressOnly) {
-                                return;
-                            }
-                        }
-                    }
 
                     try {
                         mAdapter.registerCallback(

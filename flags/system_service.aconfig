@@ -32,16 +32,6 @@ flag {
 }
 
 flag {
-    name: "remove_one_time_get_name_and_address"
-    namespace: "bluetooth"
-    description: "We don't need to start bluetooth the first time to get name & address. We can wait for a proper start"
-    metadata {
-        purpose: PURPOSE_BUGFIX
-    }
-    bug: "368120237"
-}
-
-flag {
     name: "system_server_messenger"
     namespace: "bluetooth"
     description: "Replace binder call to the system server with a Messenger to enforce thread safety"
