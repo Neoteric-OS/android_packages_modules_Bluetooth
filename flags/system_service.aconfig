@@ -2,16 +2,6 @@ package: "com.android.bluetooth.flags"
 container: "com.android.bt"
 
 flag {
-    name: "enforce_resolve_system_service_behavior"
-    namespace: "bluetooth"
-    description: "Loudly crash when it is not possible to find a service to start bluetooth"
-    metadata {
-        purpose: PURPOSE_BUGFIX
-    }
-    bug: "366273182"
-}
-
-flag {
     name: "get_name_and_address_as_callback"
     namespace: "bluetooth"
     description: "Getting the name and address is a non-oneway call. Instead inform the system server with callback"

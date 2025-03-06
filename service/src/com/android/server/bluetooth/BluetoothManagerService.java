@@ -61,7 +61,6 @@ import android.content.ServiceConnection;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
-import android.content.pm.ResolveInfo;
 import android.os.Binder;
 import android.os.Build;
 import android.os.Bundle;
@@ -1766,12 +1765,7 @@ class BluetoothManagerService {
         UserHandle user = UserHandle.CURRENT;
         int flags = Context.BIND_AUTO_CREATE | Context.BIND_IMPORTANT;
         Intent intent = new Intent(IBluetooth.class.getName());
-        ComponentName comp = resolveSystemService(intent);
-        if (comp == null && !Flags.enforceResolveSystemServiceBehavior()) {
-            Log.e(TAG, "No ComponentName found for intent=" + intent);
-            return;
-        }
-        intent.setComponent(comp);
+        intent.setComponent(resolveSystemService(intent));
 
         mHandler.sendEmptyMessageDelayed(MESSAGE_TIMEOUT_BIND, TIMEOUT_BIND_MS);
         Log.d(TAG, "Start binding to the Bluetooth service with intent=" + intent);
@@ -2240,38 +2234,7 @@ class BluetoothManagerService {
         return bOptions.toBundle();
     }
 
-    private ComponentName legacyresolveSystemService(@NonNull Intent intent) {
-        List<ResolveInfo> results = mContext.getPackageManager().queryIntentServices(intent, 0);
-        if (results == null) {
-            return null;
-        }
-        ComponentName comp = null;
-        for (int i = 0; i < results.size(); i++) {
-            ResolveInfo ri = results.get(i);
-            if ((ri.serviceInfo.applicationInfo.flags & ApplicationInfo.FLAG_SYSTEM) == 0) {
-                continue;
-            }
-            ComponentName foundComp =
-                    new ComponentName(
-                            ri.serviceInfo.applicationInfo.packageName, ri.serviceInfo.name);
-            if (comp != null) {
-                throw new IllegalStateException(
-                        "Multiple system services handle "
-                                + intent
-                                + ": "
-                                + comp
-                                + ", "
-                                + foundComp);
-            }
-            comp = foundComp;
-        }
-        return comp;
-    }
-
     private ComponentName resolveSystemService(@NonNull Intent intent) {
-        if (!Flags.enforceResolveSystemServiceBehavior()) {
-            return legacyresolveSystemService(intent);
-        }
         List<ComponentName> results =
                 mContext.getPackageManager().queryIntentServices(intent, 0).stream()
                         .filter(
