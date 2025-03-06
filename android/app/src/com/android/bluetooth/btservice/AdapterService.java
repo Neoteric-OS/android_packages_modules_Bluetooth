@@ -1142,11 +1142,7 @@ public class AdapterService extends Service {
     }
 
     void updateAdapterName(String name) {
-        if (Flags.adapterPropertiesLooper()) {
-            updateAdapterNameInternal(name);
-        } else {
-            mHandler.post(() -> updateAdapterNameInternal(name));
-        }
+        updateAdapterNameInternal(name);
     }
 
     private void updateAdapterNameInternal(String name) {
@@ -1163,11 +1159,7 @@ public class AdapterService extends Service {
     }
 
     void updateAdapterAddress(String address) {
-        if (Flags.adapterPropertiesLooper()) {
-            updateAdapterAddressInternal(address);
-        } else {
-            mHandler.post(() -> updateAdapterAddressInternal(address));
-        }
+        updateAdapterAddressInternal(address);
     }
 
     private void updateAdapterAddressInternal(String address) {

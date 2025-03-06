@@ -812,11 +812,7 @@ class AdapterProperties {
     }
 
     void adapterPropertyChangedCallback(int[] types, byte[][] values) {
-        if (Flags.adapterPropertiesLooper()) {
-            mHandler.post(() -> adapterPropertyChangedCallbackInternal(types, values));
-        } else {
-            adapterPropertyChangedCallbackInternal(types, values);
-        }
+        mHandler.post(() -> adapterPropertyChangedCallbackInternal(types, values));
     }
 
     private void adapterPropertyChangedCallbackInternal(int[] types, byte[][] values) {
