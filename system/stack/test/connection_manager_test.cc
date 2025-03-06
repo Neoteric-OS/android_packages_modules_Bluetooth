@@ -73,7 +73,7 @@ class BleConnectionManager : public testing::Test {
     /* extern */ test::mock_acl_manager_ =
             std::make_unique<bluetooth::hci::testing::MockAclManager>();
     /* extern */ test::mock_controller_ =
-            new testing::NiceMock<bluetooth::hci::testing::MockControllerInterface>();
+            std::make_unique<testing::NiceMock<bluetooth::hci::testing::MockControllerInterface>>();
     ON_CALL(*test::mock_controller_, GetLeFilterAcceptListSize()).WillByDefault(Return(16));
 
     auto alarm_mock = AlarmMock::Get();
@@ -93,7 +93,7 @@ class BleConnectionManager : public testing::Test {
   void TearDown() override {
     connection_manager::reset(true);
     AlarmMock::Reset();
-    delete test::mock_controller_;
+    test::mock_controller_.reset();
     test::mock_acl_manager_.reset();
     localConnTimeoutMock.reset();
   }

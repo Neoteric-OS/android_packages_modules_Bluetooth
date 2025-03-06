@@ -207,7 +207,8 @@ class BtifCoreTest : public ::testing::Test {
 protected:
   void SetUp() override {
     callback_map_.clear();
-    bluetooth::hci::testing::mock_controller_ = &controller_;
+    bluetooth::hci::testing::mock_controller_ =
+            std::make_unique<bluetooth::hci::testing::MockControllerInterface>();
     bluetooth::testing::set_hal_cbacks(&callbacks);
     auto promise = std::promise<void>();
     auto future = promise.get_future();
@@ -223,17 +224,17 @@ protected:
     callback_map_["callback_thread_event"] = [&promise]() { promise.set_value(); };
     CleanCoreInterface();
     ASSERT_EQ(std::future_status::ready, future.wait_for(timeout_time));
-    bluetooth::hci::testing::mock_controller_ = nullptr;
+    bluetooth::hci::testing::mock_controller_.reset();
     callback_map_.erase("callback_thread_event");
   }
-  bluetooth::hci::testing::MockControllerInterface controller_;
 };
 
 class BtifCoreWithControllerTest : public BtifCoreTest {
 protected:
   void SetUp() override {
     BtifCoreTest::SetUp();
-    ON_CALL(controller_, SupportsSniffSubrating).WillByDefault(Return(true));
+    ON_CALL(*bluetooth::hci::testing::mock_controller_, SupportsSniffSubrating)
+            .WillByDefault(Return(true));
   }
 
   void TearDown() override { BtifCoreTest::TearDown(); }

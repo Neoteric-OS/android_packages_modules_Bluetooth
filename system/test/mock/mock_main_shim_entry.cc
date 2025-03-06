@@ -39,7 +39,7 @@ namespace hci {
 namespace testing {
 
 std::unique_ptr<MockAclManager> mock_acl_manager_;
-MockControllerInterface* mock_controller_{nullptr};
+std::unique_ptr<MockControllerInterface> mock_controller_;
 HciInterface* mock_hci_layer_{nullptr};
 os::Handler* mock_gd_shim_handler_{nullptr};
 MockLeAdvertisingManager* mock_le_advertising_manager_{nullptr};
@@ -59,7 +59,7 @@ class Dumpsys;
 namespace shim {
 
 hci::AclManager* GetAclManager() { return hci::testing::mock_acl_manager_.get(); }
-hci::ControllerInterface* GetController() { return hci::testing::mock_controller_; }
+hci::ControllerInterface* GetController() { return hci::testing::mock_controller_.get(); }
 hci::HciInterface* GetHciLayer() { return hci::testing::mock_hci_layer_; }
 hci::LeAdvertisingManager* GetAdvertising() { return hci::testing::mock_le_advertising_manager_; }
 hci::LeScanningManager* GetScanning() { return hci::testing::mock_le_scanning_manager_; }

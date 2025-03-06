@@ -30,7 +30,7 @@ namespace hci {
 namespace testing {
 
 extern std::unique_ptr<MockAclManager> mock_acl_manager_;
-extern MockControllerInterface* mock_controller_;
+extern std::unique_ptr<MockControllerInterface> mock_controller_;
 extern HciInterface* mock_hci_layer_;
 extern os::Handler* mock_gd_shim_handler_;
 extern MockLeAdvertisingManager* mock_le_advertising_manager_;

@@ -63,13 +63,13 @@ public:
 protected:
   void SetUp() override {
     BtmWithMocksTest::SetUp();
-    bluetooth::hci::testing::mock_controller_ = &controller_;
+    bluetooth::hci::testing::mock_controller_ =
+            std::make_unique<bluetooth::hci::testing::MockControllerInterface>();
   }
   void TearDown() override {
-    bluetooth::hci::testing::mock_controller_ = nullptr;
+    bluetooth::hci::testing::mock_controller_.reset();
     BtmWithMocksTest::TearDown();
   }
-  bluetooth::hci::testing::MockControllerInterface controller_;
 };
 
 class StackBtmWithQueuesTest : public StackBtmTest {
