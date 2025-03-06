@@ -333,7 +333,8 @@ protected:
     handler_ = new os::Handler(thread_);
 
     /* extern */ test::mock_controller_ = new bluetooth::hci::testing::MockControllerInterface();
-    /* extern */ test::mock_acl_manager_ = new bluetooth::hci::testing::MockAclManager();
+    /* extern */ test::mock_acl_manager_ =
+            std::make_unique<bluetooth::hci::testing::MockAclManager>();
     /* extern */ test::mock_le_scanning_manager_ =
             new bluetooth::hci::testing::MockLeScanningManager();
     /* extern */ test::mock_le_advertising_manager_ =
@@ -344,8 +345,7 @@ protected:
   void TearDown() override {
     delete test::mock_controller_;
     test::mock_controller_ = nullptr;
-    delete test::mock_acl_manager_;
-    test::mock_acl_manager_ = nullptr;
+    test::mock_acl_manager_.release();
     delete test::mock_le_advertising_manager_;
     test::mock_le_advertising_manager_ = nullptr;
     delete test::mock_le_scanning_manager_;

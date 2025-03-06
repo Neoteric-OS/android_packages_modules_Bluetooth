@@ -15,6 +15,7 @@
  */
 
 #include <functional>
+#include <memory>
 
 #include "hci/acl_manager_mock.h"
 #include "hci/controller_interface_mock.h"
@@ -28,7 +29,7 @@ namespace bluetooth {
 namespace hci {
 namespace testing {
 
-extern MockAclManager* mock_acl_manager_;
+extern std::unique_ptr<MockAclManager> mock_acl_manager_;
 extern MockControllerInterface* mock_controller_;
 extern HciInterface* mock_hci_layer_;
 extern os::Handler* mock_gd_shim_handler_;

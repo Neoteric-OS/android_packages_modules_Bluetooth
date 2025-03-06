@@ -38,7 +38,7 @@ namespace bluetooth {
 namespace hci {
 namespace testing {
 
-MockAclManager* mock_acl_manager_{nullptr};
+std::unique_ptr<MockAclManager> mock_acl_manager_;
 MockControllerInterface* mock_controller_{nullptr};
 HciInterface* mock_hci_layer_{nullptr};
 os::Handler* mock_gd_shim_handler_{nullptr};
@@ -58,7 +58,7 @@ class Dumpsys;
 
 namespace shim {
 
-hci::AclManager* GetAclManager() { return hci::testing::mock_acl_manager_; }
+hci::AclManager* GetAclManager() { return hci::testing::mock_acl_manager_.get(); }
 hci::ControllerInterface* GetController() { return hci::testing::mock_controller_; }
 hci::HciInterface* GetHciLayer() { return hci::testing::mock_hci_layer_; }
 hci::LeAdvertisingManager* GetAdvertising() { return hci::testing::mock_le_advertising_manager_; }
