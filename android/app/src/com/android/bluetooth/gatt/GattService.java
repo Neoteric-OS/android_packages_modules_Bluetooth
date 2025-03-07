@@ -61,7 +61,6 @@ import android.provider.Settings;
 import android.sysprop.BluetoothProperties;
 import android.util.Log;
 
-import com.android.bluetooth.BluetoothMetricsProto;
 import com.android.bluetooth.BluetoothStatsLog;
 import com.android.bluetooth.R;
 import com.android.bluetooth.Utils;
@@ -3124,13 +3123,6 @@ public class GattService extends ProfileService {
                         + connectionState
                         + ", connection status="
                         + connectionStatus);
-    }
-
-    @Override
-    public void dumpProto(BluetoothMetricsProto.BluetoothLog.Builder builder) {
-        if (mScanController != null) {
-            mScanController.dumpProto(builder);
-        }
     }
 
     private BluetoothDevice getDevice(String address) {
