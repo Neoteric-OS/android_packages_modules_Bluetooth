@@ -6697,12 +6697,6 @@ public class AdapterService extends Service {
             return;
         }
 
-        Log.v(TAG, "dumpsys arguments, check for protobuf output: " + TextUtils.join(" ", args));
-        if (args[0].equals("--proto-bin")) {
-            dumpMetrics(fd);
-            return;
-        }
-
         writer.println();
         mAdapterProperties.dump(fd, writer, args);
 
@@ -6761,39 +6755,6 @@ public class AdapterService extends Service {
         } else {
             writer.flush();
             mNativeInterface.dump(fd, args);
-        }
-    }
-
-    private void dumpMetrics(FileDescriptor fd) {
-        BluetoothMetricsProto.BluetoothLog.Builder metricsBuilder =
-                BluetoothMetricsProto.BluetoothLog.newBuilder();
-        byte[] nativeMetricsBytes = mNativeInterface.dumpMetrics();
-        Log.d(TAG, "dumpMetrics: native metrics size is " + nativeMetricsBytes.length);
-        if (nativeMetricsBytes.length > 0) {
-            try {
-                metricsBuilder.mergeFrom(nativeMetricsBytes);
-            } catch (InvalidProtocolBufferException ex) {
-                Log.w(TAG, "dumpMetrics: problem parsing metrics protobuf, " + ex.getMessage());
-                return;
-            }
-        }
-        metricsBuilder.setNumBondedDevices(getBondedDevices().length);
-        MetricsLogger.dumpProto(metricsBuilder);
-        for (ProfileService profile : mRegisteredProfiles) {
-            profile.dumpProto(metricsBuilder);
-        }
-        if (Flags.onlyStartScanDuringBleOn()) {
-            ScanController scanController = mScanController;
-            if (scanController != null) {
-                scanController.dumpProto(metricsBuilder);
-            }
-        }
-        byte[] metricsBytes = Base64.encode(metricsBuilder.build().toByteArray(), Base64.DEFAULT);
-        Log.d(TAG, "dumpMetrics: combined metrics size is " + metricsBytes.length);
-        try (FileOutputStream protoOut = new FileOutputStream(fd)) {
-            protoOut.write(metricsBytes);
-        } catch (IOException e) {
-            Log.e(TAG, "dumpMetrics: error writing combined protobuf to fd, " + e.getMessage());
         }
     }
 
