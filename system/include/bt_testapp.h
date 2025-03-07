@@ -99,6 +99,7 @@ typedef struct {
   bool (*DisconnectRsp)(uint16_t cid);
   uint8_t (*DataWrite)(uint16_t cid, char* p_data, uint32_t len);
   bool (*Ping)(RawAddress p_bd_addr, tL2CA_ECHO_RSP_CB* p_cb);
+  bool (*Echo)(RawAddress p_bd_addr, BT_HDR *p_data, tL2CA_ECHO_DATA_CB *p_callback);
   bool (*SetIdleTimeout)(uint16_t cid, uint16_t timeout, bool is_global);
   bool (*SetIdleTimeoutByBdAddr)(RawAddress bd_addr, uint16_t timeout);
   uint8_t (*SetDesireRole)(uint8_t new_role);

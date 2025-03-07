@@ -359,7 +359,7 @@ static BT_HDR* l2cu_build_header(tL2C_LCB* p_lcb, uint16_t len, uint8_t cmd, uin
  * Returns          void
  *
  ******************************************************************************/
-static void l2cu_adj_id(tL2C_LCB* p_lcb) {
+void l2cu_adj_id(tL2C_LCB* p_lcb) {
   if (p_lcb->signal_id == 0) {
     p_lcb->signal_id++;
   }
