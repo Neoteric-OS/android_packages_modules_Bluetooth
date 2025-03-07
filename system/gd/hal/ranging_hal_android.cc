@@ -365,7 +365,8 @@ public:
     hal_raw_data.initiatorData.packetNadm = packetNadmInitiator_;
     hal_raw_data.reflectorData.packetNadm = packetNadmReflector_;
     hal_raw_data.timestampMs = raw_data.timestampMs_;
-    log::verbose("initiator reference power: {}, reflector reference power: {}", raw_data.initiator_reference_power_level, raw_data.reflector_reference_power_level);
+    log::verbose("initiator reference power: {}, reflector reference power: {}",
+                  raw_data.initiator_reference_power_level, raw_data.reflector_reference_power_level);
     hal_raw_data.initiatorData.referencePowerDbm = raw_data.initiator_reference_power_level;
     hal_raw_data.reflectorData.referencePowerDbm = raw_data.reflector_reference_power_level;
     hal_raw_data.initiatorData.vendorSpecificCsSingleSidedata = raw_data.vendor_specific_cs_single_side_data;

@@ -2418,16 +2418,18 @@ struct DistanceMeasurementManager::impl : bluetooth::hal::RangingHalCallback {
         
         
         struct timeval tv;
-	    gettimeofday(&tv, NULL);
-	    curr_proc_complete_timestampMs  = tv.tv_sec*1e6*1ll + tv.tv_usec*1ll;
+        gettimeofday(&tv, NULL);
+        curr_proc_complete_timestampMs  = tv.tv_sec*1e6*1ll + tv.tv_usec*1ll;
         raw_data.timestampMs_ = (long)(curr_proc_complete_timestampMs - proc_start_timestampMs);
-		log::info("timestampMs_: {} current_proc : {} proc start :{}",
-		            raw_data.timestampMs_, curr_proc_complete_timestampMs,
-		            proc_start_timestampMs);
+        log::verbose("timestampMs_: {} current_proc : {} proc start :{}",
+                    raw_data.timestampMs_, curr_proc_complete_timestampMs,
+                    proc_start_timestampMs);
 
-        for (size_t i=0;i<raw_data.vendor_specific_cs_single_side_data.size();i++) {
-          log::verbose("Vendor Specific data : {}", raw_data.vendor_specific_cs_single_side_data[i]);
+        std::string vendorDataString;
+        for (const auto& data : raw_data.vendor_specific_cs_single_side_data) {
+          vendorDataString += std::to_string(data) + " ";
         }
+        log::verbose("Vendor Specific data: {}", vendorDataString);
         ranging_hal_->WriteRawData(connection_handle, raw_data); 
       }
     }
