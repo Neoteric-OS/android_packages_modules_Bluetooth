@@ -1978,6 +1978,10 @@ public:
         return;
       }
 
+      if (CodecManager::GetInstance()->IsUsingCodecExtensibility()) {
+        group->InvalidateCachedConfigurations();
+      }
+
       log::info("current state {}", ToString(group->GetState()));
       group->ClearReconfigStartPendingDirs(bluetooth::le_audio::types::kLeAudioDirectionSink |
                                            bluetooth::le_audio::types::kLeAudioDirectionSource);
@@ -2015,6 +2019,17 @@ public:
         callbacks_->OnGroupStatus(active_group_id_, GroupStatus::ACTIVE);
         return;
       }
+
+      if (CodecManager::GetInstance()->IsUsingCodecExtensibility()) {
+        LeAudioDeviceGroup* current_active_group = aseGroups_.FindById(active_group_id_);
+        if (!current_active_group) {
+          log::error("unknown group id: {}", active_group_id_);
+          return;
+        }
+        log::info("current_active_group: {}", current_active_group->group_id_);
+        current_active_group->InvalidateCachedConfigurations();
+      }
+
       log::info("switching active group to: {}", group_id);
 
       auto result = CodecManager::GetInstance()->UpdateActiveUnicastAudioHalClient(
