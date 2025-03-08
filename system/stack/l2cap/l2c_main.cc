@@ -761,8 +761,34 @@ static void process_l2cap_cmd(tL2C_LCB* p_lcb, uint8_t* p, uint16_t pkt_len) {
       }
 
       case L2CAP_CMD_ECHO_REQ:
+        log::info("L2CAP_CMD_ECHO_REQ received: cmd_len={}", cmd_len);
         l2cu_send_peer_echo_rsp(p_lcb, id, p, cmd_len);
+        if (l2cb.p_echo_data_cb && cmd_len != 0) {
+          tL2CA_ECHO_DATA_CB* p_data_cb = l2cb.p_echo_data_cb;
+
+          (*p_data_cb)(p_lcb->remote_bd_addr, 0, p);
+        }
         break;
+
+      case L2CAP_CMD_ECHO_RSP: {
+        log::info("L2CAP_CMD_ECHO_RSP received: cmd_len={}", cmd_len);
+        /*
+        if (p_lcb->p_echo_rsp_cb) {
+          tL2CA_ECHO_RSP_CB* p_cb = p_lcb->p_echo_rsp_cb;
+
+          // Zero out the callback in case app immediately calls us again
+          p_lcb->p_echo_rsp_cb = NULL;
+
+          (*p_cb)(L2CAP_PING_RESULT_OK);
+        }
+        */
+        if (l2cb.p_echo_data_cb && cmd_len != 0) {
+          tL2CA_ECHO_DATA_CB* p_data_cb = l2cb.p_echo_data_cb;
+
+          (*p_data_cb)(p_lcb->remote_bd_addr, 0, p);
+        }
+        break;
+      }
 
       case L2CAP_CMD_INFO_REQ: {
         uint16_t info_type;

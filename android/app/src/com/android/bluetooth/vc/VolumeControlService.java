@@ -50,6 +50,10 @@ import android.bluetooth.IAudioInputCallback;
 import android.bluetooth.IBluetoothVolumeControl;
 import android.bluetooth.IBluetoothVolumeControlCallback;
 import android.content.AttributionSource;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.content.BroadcastReceiver;
 import android.media.AudioManager;
 import android.os.Handler;
 import android.os.HandlerThread;
@@ -57,6 +61,7 @@ import android.os.Looper;
 import android.os.ParcelUuid;
 import android.os.RemoteCallbackList;
 import android.os.RemoteException;
+import android.os.SystemProperties;
 import android.sysprop.BluetoothProperties;
 import android.util.Log;
 
@@ -98,6 +103,10 @@ public class VolumeControlService extends ProfileService {
     @VisibleForTesting static final int VOLUME_FLAGS_PERSISTED_USER_SET_VOLUME_MASK = 0x01;
 
     private static final int GROUP_ID_INVALID = -1;
+    private static final String ACTION_CHANGE_MUTE =
+            "com.android.bluetooth.vc.test.action.CHANGE_MUTE";
+    private static final String EXTRA_MUTE =
+            "com.android.bluetooth.vc.test.action.extra.MUTE";
 
     private static VolumeControlService sVolumeControlService;
 
@@ -125,6 +134,7 @@ public class VolumeControlService extends ProfileService {
     private final Map<BluetoothDevice, Boolean> mDeviceMuteCache = new ConcurrentHashMap<>();
 
     private Boolean mIgnoreSetVolumeFromAF = false;
+    private boolean mPtsTest = false;
 
     @VisibleForTesting ServiceFactory mFactory = new ServiceFactory();
 
@@ -157,6 +167,14 @@ public class VolumeControlService extends ProfileService {
             mStateMachinesThread = null;
             mStateMachinesLooper = looper;
         }
+        mPtsTest =
+                SystemProperties.getBoolean("persist.vendor.service.bt.vcp_controller.pts", false);
+        if (mPtsTest) {
+            //Registering intent
+            IntentFilter filter = new IntentFilter();
+            filter.addAction(ACTION_CHANGE_MUTE);
+            registerReceiver(mVcTestReceiver, filter, Context.RECEIVER_EXPORTED);
+        }
         setVolumeControlService(this);
         mNativeInterface.init();
     }
@@ -176,6 +194,9 @@ public class VolumeControlService extends ProfileService {
 
         // Mark service as stopped
         setVolumeControlService(null);
+        if (mPtsTest) {
+            unregisterReceiver(mVcTestReceiver);
+        }
 
         // Destroy state machines and stop handler thread
         synchronized (mStateMachines) {
@@ -1641,6 +1662,43 @@ public class VolumeControlService extends ProfileService {
             mStateMachines.remove(device);
         }
     }
+
+    private final BroadcastReceiver mVcTestReceiver = new BroadcastReceiver() {
+         @Override
+         public void onReceive(Context context, Intent intent) {
+             String action = intent.getAction();
+             if (action == null) {
+                 Log.w(TAG, "mVCReceiver, action is null");
+                 return;
+             }
+             switch (action) {
+                 case ACTION_CHANGE_MUTE: {
+                     BluetoothDevice device =
+                             intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+                     boolean isMute = intent.getBooleanExtra(EXTRA_MUTE, false);
+                     LeAudioService leAudioService = mFactory.getLeAudioService();
+                     int groupId = leAudioService.getGroupId(device);
+                     Log.w(TAG, "mute changed action received: device " + device
+                             + ", isMute: " + isMute + ", groupId: " + groupId);
+                     if (groupId == LE_AUDIO_GROUP_ID_INVALID) {
+                         Log.e(TAG, "Device not a part of the group");
+                         if (isMute) {
+                             mute(device);
+                         } else {
+                             unmute(device);
+                         }
+                     } else {
+                         if (isMute) {
+                             muteGroup(groupId);
+                         } else {
+                             unmuteGroup(groupId);
+                         }
+                     }
+                     break;
+                 }
+             }
+         }
+    };
 
     void handleConnectionStateChanged(BluetoothDevice device, int fromState, int toState) {
         mHandler.post(() -> connectionStateChanged(device, fromState, toState));
