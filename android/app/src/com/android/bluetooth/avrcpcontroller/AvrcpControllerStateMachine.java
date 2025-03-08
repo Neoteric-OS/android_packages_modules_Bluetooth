@@ -722,8 +722,8 @@ class AvrcpControllerStateMachine extends StateMachine {
                 case MESSAGE_PROCESS_IMAGE_DOWNLOADED:
                     AvrcpCoverArtManager.DownloadEvent event =
                             (AvrcpCoverArtManager.DownloadEvent) msg.obj;
-                    String uuid = event.getUuid();
-                    Uri uri = event.getUri();
+                    String uuid = event.uuid();
+                    Uri uri = event.uri();
                     debug("Connected: Received image for " + uuid + " at " + uri.toString());
 
                     // Let the addressed player know we got an image so it can see if the current
