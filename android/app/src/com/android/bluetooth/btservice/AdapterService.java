@@ -1109,7 +1109,7 @@ public class AdapterService extends Service {
         if (mScanController == null) {
             mAdapterStateMachine.sendMessage(AdapterState.BLE_STOPPED);
         } else {
-            mScanController.stop();
+            mScanController.cleanup();
             mScanController = null;
             mNativeInterface.disable();
         }
