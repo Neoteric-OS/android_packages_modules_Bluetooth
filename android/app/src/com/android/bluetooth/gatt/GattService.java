@@ -228,7 +228,7 @@ public class GattService extends ProfileService {
             setGattService(null);
         }
         if (mScanController != null) {
-            mScanController.stop();
+            mScanController.cleanup();
         }
         mClientMap.clear();
         mRestrictedHandles.clear();
