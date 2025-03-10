@@ -1272,68 +1272,20 @@ class BluetoothManagerService {
                     break;
 
                 case MESSAGE_HANDLE_ENABLE_DELAYED:
-                    // The Bluetooth is turning off, wait for STATE_OFF
-                    if (!mState.oneOf(STATE_OFF)) {
-                        if (mWaitForEnableRetry < MAX_WAIT_FOR_ENABLE_DISABLE_RETRIES) {
-                            mWaitForEnableRetry++;
-                            mHandler.sendEmptyMessageDelayed(
-                                    MESSAGE_HANDLE_ENABLE_DELAYED, ENABLE_DISABLE_DELAY_MS);
-                            break;
-                        } else {
-                            Log.e(TAG, "Wait for STATE_OFF timeout");
-                        }
-                    }
-                    // Either state is changed to STATE_OFF or reaches the maximum retry, we
-                    // should move forward to the next step.
-                    mWaitForEnableRetry = 0;
-                    mHandler.sendEmptyMessageDelayed(
-                            MESSAGE_RESTART_BLUETOOTH_SERVICE, getServiceRestartMs());
-                    Log.d(TAG, "Handle enable is finished");
+                    Log.d(TAG, "MESSAGE_HANDLE_ENABLE_DELAYED: mAdapter=" + mAdapter);
+
+                    handleEnableDelayed();
                     break;
 
                 case MESSAGE_HANDLE_DISABLE_DELAYED:
                     boolean disabling = (msg.arg1 == 1);
-                    Log.d(TAG, "MESSAGE_HANDLE_DISABLE_DELAYED: disabling:" + disabling);
-                    if (!disabling) {
-                        // The Bluetooth is turning on, wait for STATE_ON
-                        if (!mState.oneOf(STATE_ON)) {
-                            if (mWaitForDisableRetry < MAX_WAIT_FOR_ENABLE_DISABLE_RETRIES) {
-                                mWaitForDisableRetry++;
-                                mHandler.sendEmptyMessageDelayed(
-                                        MESSAGE_HANDLE_DISABLE_DELAYED, ENABLE_DISABLE_DELAY_MS);
-                                break;
-                            } else {
-                                Log.e(TAG, "Wait for STATE_ON timeout");
-                            }
-                        }
-                        // Either state is changed to STATE_ON or reaches the maximum retry, we
-                        // should move forward to the next step.
-                        mWaitForDisableRetry = 0;
-                        mEnable = false;
-                        onToBleOn();
-                        // Wait for state exiting STATE_ON
-                        Message disableDelayedMsg =
-                                mHandler.obtainMessage(MESSAGE_HANDLE_DISABLE_DELAYED, 1, 0);
-                        mHandler.sendMessageDelayed(disableDelayedMsg, ENABLE_DISABLE_DELAY_MS);
-                    } else {
-                        // The Bluetooth is turning off, wait for exiting STATE_ON
-                        if (mState.oneOf(STATE_ON)) {
-                            if (mWaitForDisableRetry < MAX_WAIT_FOR_ENABLE_DISABLE_RETRIES) {
-                                mWaitForDisableRetry++;
-                                Message disableDelayedMsg =
-                                        mHandler.obtainMessage(
-                                                MESSAGE_HANDLE_DISABLE_DELAYED, 1, 0);
-                                mHandler.sendMessageDelayed(
-                                        disableDelayedMsg, ENABLE_DISABLE_DELAY_MS);
-                                break;
-                            } else {
-                                Log.e(TAG, "Wait for exiting STATE_ON timeout");
-                            }
-                        }
-                        // Either state is exited from STATE_ON or reaches the maximum retry, we
-                        // should move forward to the next step.
-                        Log.d(TAG, "Handle disable is finished");
-                    }
+
+                    Log.d(
+                            TAG,
+                            ("MESSAGE_HANDLE_DISABLE_DELAYED(disabling=" + disabling + ")")
+                                    + (": mAdapter=" + mAdapter));
+
+                    handleDisableDelayed(disabling);
                     break;
 
                 case MESSAGE_RESTORE_USER_SETTING_OFF:
@@ -1682,6 +1634,66 @@ class BluetoothManagerService {
     private void handleEnable() {
         if (mAdapter == null && !isBinding()) {
             bindToAdapter();
+        }
+    }
+
+    private void handleEnableDelayed() {
+        // The Bluetooth is turning off, wait for STATE_OFF
+        if (!mState.oneOf(STATE_OFF)) {
+            if (mWaitForEnableRetry < MAX_WAIT_FOR_ENABLE_DISABLE_RETRIES) {
+                mWaitForEnableRetry++;
+                mHandler.sendEmptyMessageDelayed(
+                        MESSAGE_HANDLE_ENABLE_DELAYED, ENABLE_DISABLE_DELAY_MS);
+                return;
+            } else {
+                Log.e(TAG, "Wait for STATE_OFF timeout");
+            }
+        }
+        // Either state is changed to STATE_OFF or reaches the maximum retry, we
+        // should move forward to the next step.
+        mWaitForEnableRetry = 0;
+        mHandler.sendEmptyMessageDelayed(MESSAGE_RESTART_BLUETOOTH_SERVICE, getServiceRestartMs());
+        Log.d(TAG, "Handle enable is finished");
+    }
+
+    private void handleDisableDelayed(boolean disabling) {
+        if (!disabling) {
+            // The Bluetooth is turning on, wait for STATE_ON
+            if (!mState.oneOf(STATE_ON)) {
+                if (mWaitForDisableRetry < MAX_WAIT_FOR_ENABLE_DISABLE_RETRIES) {
+                    mWaitForDisableRetry++;
+                    mHandler.sendEmptyMessageDelayed(
+                            MESSAGE_HANDLE_DISABLE_DELAYED, ENABLE_DISABLE_DELAY_MS);
+                    return;
+                } else {
+                    Log.e(TAG, "Wait for STATE_ON timeout");
+                }
+            }
+            // Either state is changed to STATE_ON or reaches the maximum retry, we
+            // should move forward to the next step.
+            mWaitForDisableRetry = 0;
+            mEnable = false;
+            onToBleOn();
+            // Wait for state exiting STATE_ON
+            Message disableDelayedMsg =
+                    mHandler.obtainMessage(MESSAGE_HANDLE_DISABLE_DELAYED, 1, 0);
+            mHandler.sendMessageDelayed(disableDelayedMsg, ENABLE_DISABLE_DELAY_MS);
+        } else {
+            // The Bluetooth is turning off, wait for exiting STATE_ON
+            if (mState.oneOf(STATE_ON)) {
+                if (mWaitForDisableRetry < MAX_WAIT_FOR_ENABLE_DISABLE_RETRIES) {
+                    mWaitForDisableRetry++;
+                    Message disableDelayedMsg =
+                            mHandler.obtainMessage(MESSAGE_HANDLE_DISABLE_DELAYED, 1, 0);
+                    mHandler.sendMessageDelayed(disableDelayedMsg, ENABLE_DISABLE_DELAY_MS);
+                    return;
+                } else {
+                    Log.e(TAG, "Wait for exiting STATE_ON timeout");
+                }
+            }
+            // Either state is exited from STATE_ON or reaches the maximum retry, we
+            // should move forward to the next step.
+            Log.d(TAG, "Handle disable is finished");
         }
     }
 
