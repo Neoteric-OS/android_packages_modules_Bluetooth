@@ -177,6 +177,12 @@ protected:
                                           params.local_hci_role, params.interval, params.method);
   }
 
+  void ReceivedReadLocalCapabilitiesComplete() {
+    CsReadCapabilitiesCompleteEvent read_cs_complete_event;
+    test_hci_layer_->IncomingEvent(
+            GetLocalSupportedCapabilitiesCompleteEvent(read_cs_complete_event));
+  }
+
 protected:
   TestModuleRegistry fake_registry_;
   HciLayerFake* test_hci_layer_ = nullptr;
@@ -216,6 +222,30 @@ TEST_F(DistanceMeasurementManagerTest, fail_read_local_cs_capabilities) {
           GetLocalSupportedCapabilitiesCompleteEvent(read_cs_complete_event));
 
   StartMeasurement(params);
+
+  dm_session_future.wait_for(kTimeout);
+  sync_client_handler();
+}
+
+TEST_F(DistanceMeasurementManagerTest, ras_remote_not_support) {
+  ReceivedReadLocalCapabilitiesComplete();
+  StartMeasurementParameters params;
+  auto dm_session_future = GetDmSessionFuture();
+  EXPECT_CALL(mock_dm_callbacks_,
+              OnDistanceMeasurementStopped(
+                      params.remote_address,
+                      DistanceMeasurementErrorCode::REASON_FEATURE_NOT_SUPPORTED_REMOTE,
+                      DistanceMeasurementMethod::METHOD_CS))
+          .WillOnce([this](const Address& /*address*/, DistanceMeasurementErrorCode /*error_code*/,
+                           DistanceMeasurementMethod /*method*/) {
+            ASSERT_NE(dm_session_promise_, nullptr);
+            dm_session_promise_->set_value();
+            dm_session_promise_.reset();
+          });
+
+  StartMeasurement(params);
+  dm_manager_->HandleRasClientDisconnectedEvent(params.remote_address,
+                                                ras::RasDisconnectReason::SERVER_NOT_AVAILABLE);
 
   dm_session_future.wait_for(kTimeout);
   sync_client_handler();
