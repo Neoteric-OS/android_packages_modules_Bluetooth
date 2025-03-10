@@ -1213,7 +1213,7 @@ public class BassClientStateMachineTest {
 
         // Update value - PA SyncInfo Request, local broadcast
         mBassClientStateMachine.mPendingMetadata = createBroadcastMetadata();
-        when(mBassClientService.isLocalBroadcast(any(BluetoothLeBroadcastMetadata.class)))
+        when(mBassClientService.isLocalBroadcast(any(BluetoothLeBroadcastReceiveState.class)))
                 .thenReturn(true);
         cb.onCharacteristicChanged(null, characteristic);
         TestUtils.waitForLooperToFinishScheduledTask(mHandlerThread.getLooper());
