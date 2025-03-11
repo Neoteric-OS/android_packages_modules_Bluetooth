@@ -2,17 +2,6 @@
 <issues format="6" by="lint 8.4.0-alpha08" type="baseline" client="" dependencies="true" name="" variant="all" version="8.4.0-alpha08">
 
     <issue
-        id="UnknownIssueId"
-        message="Unknown issue id &quot;GetterSetterNullability&quot;"
-        errorLine1="  &lt;issue id=&apos;GetterSetterNullability&apos; severity=&apos;error&apos; />"
-        errorLine2="  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="./out/lint.xml"
-            line="125"
-            column="3"/>
-    </issue>
-
-    <issue
         id="GestureBackNavigation"
         message="If intercepting back events, this should be handled through the registration of callbacks on the window level; Please see https://developer.android.com/about/versions/13/features/predictive-back-gesture"
         errorLine1="        if (keyCode == KeyEvent.KEYCODE_BACK) {"
