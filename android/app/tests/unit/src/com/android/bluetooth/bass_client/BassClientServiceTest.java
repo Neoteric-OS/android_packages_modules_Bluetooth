@@ -1535,38 +1535,44 @@ public class BassClientServiceTest {
     }
 
     private void injectRemoteSourceStateChanged(
+            BassClientStateMachine sm,
+            BluetoothLeBroadcastMetadata meta,
+            boolean isPaSynced,
+            boolean isBisSynced) {
+        // Update receiver state
+        if (sm.getDevice().equals(mCurrentDevice)) {
+            injectRemoteSourceStateChanged(
+                    sm,
+                    meta,
+                    TEST_SOURCE_ID,
+                    isPaSynced
+                            ? BluetoothLeBroadcastReceiveState.PA_SYNC_STATE_SYNCHRONIZED
+                            : BluetoothLeBroadcastReceiveState.PA_SYNC_STATE_IDLE,
+                    meta.isEncrypted()
+                            ? BluetoothLeBroadcastReceiveState.BIG_ENCRYPTION_STATE_DECRYPTING
+                            : BluetoothLeBroadcastReceiveState.BIG_ENCRYPTION_STATE_NOT_ENCRYPTED,
+                    null,
+                    isBisSynced ? (long) 0x00000001 : (long) 0x00000000);
+        } else if (sm.getDevice().equals(mCurrentDevice1)) {
+            injectRemoteSourceStateChanged(
+                    sm,
+                    meta,
+                    TEST_SOURCE_ID + 1,
+                    isPaSynced
+                            ? BluetoothLeBroadcastReceiveState.PA_SYNC_STATE_SYNCHRONIZED
+                            : BluetoothLeBroadcastReceiveState.PA_SYNC_STATE_IDLE,
+                    meta.isEncrypted()
+                            ? BluetoothLeBroadcastReceiveState.BIG_ENCRYPTION_STATE_DECRYPTING
+                            : BluetoothLeBroadcastReceiveState.BIG_ENCRYPTION_STATE_NOT_ENCRYPTED,
+                    null,
+                    isBisSynced ? (long) 0x00000002 : (long) 0x00000000);
+        }
+    }
+
+    private void injectRemoteSourceStateChanged(
             BluetoothLeBroadcastMetadata meta, boolean isPaSynced, boolean isBisSynced) {
         for (BassClientStateMachine sm : mStateMachines.values()) {
-            // Update receiver state
-            if (sm.getDevice().equals(mCurrentDevice)) {
-                injectRemoteSourceStateChanged(
-                        sm,
-                        meta,
-                        TEST_SOURCE_ID,
-                        isPaSynced
-                                ? BluetoothLeBroadcastReceiveState.PA_SYNC_STATE_SYNCHRONIZED
-                                : BluetoothLeBroadcastReceiveState.PA_SYNC_STATE_IDLE,
-                        meta.isEncrypted()
-                                ? BluetoothLeBroadcastReceiveState.BIG_ENCRYPTION_STATE_DECRYPTING
-                                : BluetoothLeBroadcastReceiveState
-                                        .BIG_ENCRYPTION_STATE_NOT_ENCRYPTED,
-                        null,
-                        isBisSynced ? (long) 0x00000001 : (long) 0x00000000);
-            } else if (sm.getDevice().equals(mCurrentDevice1)) {
-                injectRemoteSourceStateChanged(
-                        sm,
-                        meta,
-                        TEST_SOURCE_ID + 1,
-                        isPaSynced
-                                ? BluetoothLeBroadcastReceiveState.PA_SYNC_STATE_SYNCHRONIZED
-                                : BluetoothLeBroadcastReceiveState.PA_SYNC_STATE_IDLE,
-                        meta.isEncrypted()
-                                ? BluetoothLeBroadcastReceiveState.BIG_ENCRYPTION_STATE_DECRYPTING
-                                : BluetoothLeBroadcastReceiveState
-                                        .BIG_ENCRYPTION_STATE_NOT_ENCRYPTED,
-                        null,
-                        isBisSynced ? (long) 0x00000002 : (long) 0x00000000);
-            }
+            injectRemoteSourceStateChanged(sm, meta, isPaSynced, isBisSynced);
         }
     }
 
@@ -1916,6 +1922,29 @@ public class BassClientServiceTest {
             } else if (sm.getDevice().equals(mCurrentDevice1)) {
                 assertThat(msg.get().arg1).isEqualTo(TEST_SOURCE_ID + 1);
                 injectRemoteSourceStateRemoval(sm, TEST_SOURCE_ID + 1);
+            }
+        }
+    }
+
+    private void verifyModifyMessageAndInjectSourceModfified() {
+        for (BassClientStateMachine sm : mStateMachines.values()) {
+            ArgumentCaptor<Message> messageCaptor = ArgumentCaptor.forClass(Message.class);
+            verify(sm, atLeast(1)).sendMessage(messageCaptor.capture());
+
+            Optional<Message> msg =
+                    messageCaptor.getAllValues().stream()
+                            .filter(m -> m.what == BassClientStateMachine.UPDATE_BCAST_SOURCE)
+                            .findFirst();
+            assertThat(msg.isPresent()).isEqualTo(true);
+
+            if (sm.getDevice().equals(mCurrentDevice)) {
+                assertThat(msg.get().arg1).isEqualTo(TEST_SOURCE_ID);
+                injectRemoteSourceStateChanged(
+                        sm, createBroadcastMetadata(TEST_BROADCAST_ID), false, false);
+            } else if (sm.getDevice().equals(mCurrentDevice1)) {
+                assertThat(msg.get().arg1).isEqualTo(TEST_SOURCE_ID + 1);
+                injectRemoteSourceStateChanged(
+                        sm, createBroadcastMetadata(TEST_BROADCAST_ID), false, false);
             }
         }
     }
@@ -4128,26 +4157,19 @@ public class BassClientServiceTest {
                 3 /* STATUS_LOCAL_STREAM_REQUESTED_NO_CONTEXT_VALIDATE */);
 
         /* Imitate broadcast source stop, sink notify about loosing BIS sync */
-        verifyRemoveMessageAndInjectSourceRemoval();
+        verifyModifyMessageAndInjectSourceModfified();
 
         assertThat(mStateMachines).hasSize(2);
         for (BassClientStateMachine sm : mStateMachines.values()) {
             Mockito.clearInvocations(sm);
         }
         // Make another stream request with no context validate
-        // and verify sm didn't get REMOVE_BCAST_SOURCE
         mBassClientService.handleUnicastSourceStreamStatusChange(
                 3 /* STATUS_LOCAL_STREAM_REQUESTED_NO_CONTEXT_VALIDATE */);
 
         // Make another stream request
-        // and verify sinks to resume remain unchanged later
         mBassClientService.handleUnicastSourceStreamStatusChange(
                 0 /* STATUS_LOCAL_STREAM_REQUESTED */);
-
-        assertThat(mStateMachines).hasSize(2);
-        for (BassClientStateMachine sm : mStateMachines.values()) {
-            verify(sm, never()).sendMessage(any());
-        }
 
         /* Unicast finished streaming */
         mBassClientService.handleUnicastSourceStreamStatusChange(
@@ -4162,7 +4184,7 @@ public class BassClientServiceTest {
                     messageCaptor.getAllValues().stream()
                             .filter(
                                     m ->
-                                            (m.what == BassClientStateMachine.ADD_BCAST_SOURCE)
+                                            (m.what == BassClientStateMachine.UPDATE_BCAST_SOURCE)
                                                     && (m.obj == meta))
                             .findFirst()
                             .orElse(null);
@@ -5647,7 +5669,7 @@ public class BassClientServiceTest {
         // Suspend receivers, HOST_INTENTIONAL
         mBassClientService.suspendReceiversSourceSynchronization(TEST_BROADCAST_ID);
         verifyStopBigMonitoringWithUnsync();
-        verifyRemoveMessageAndInjectSourceRemoval();
+        verifyModifyMessageAndInjectSourceModfified();
         checkNoResumeSynchronizationByBig();
         checkResumeSynchronizationByHost();
     }
@@ -5660,7 +5682,7 @@ public class BassClientServiceTest {
         // Suspend receivers, HOST_INTENTIONAL
         mBassClientService.suspendReceiversSourceSynchronization(TEST_BROADCAST_ID);
         verifyStopBigMonitoringWithoutUnsync();
-        verifyRemoveMessageAndInjectSourceRemoval();
+        verifyModifyMessageAndInjectSourceModfified();
         checkNoResumeSynchronizationByBig();
         checkResumeSynchronizationByHost();
     }
@@ -5673,7 +5695,7 @@ public class BassClientServiceTest {
         // Suspend all receivers, HOST_INTENTIONAL
         mBassClientService.suspendAllReceiversSourceSynchronization();
         verifyStopBigMonitoringWithUnsync();
-        verifyRemoveMessageAndInjectSourceRemoval();
+        verifyModifyMessageAndInjectSourceModfified();
         checkNoResumeSynchronizationByBig();
         checkResumeSynchronizationByHost();
     }
@@ -5686,7 +5708,7 @@ public class BassClientServiceTest {
         // Suspend all receivers, HOST_INTENTIONAL
         mBassClientService.suspendAllReceiversSourceSynchronization();
         verifyStopBigMonitoringWithoutUnsync();
-        verifyRemoveMessageAndInjectSourceRemoval();
+        verifyModifyMessageAndInjectSourceModfified();
         checkNoResumeSynchronizationByBig();
         checkResumeSynchronizationByHost();
     }
@@ -5967,7 +5989,7 @@ public class BassClientServiceTest {
         mBassClientService.handleUnicastSourceStreamStatusChange(
                 3 /* STATUS_LOCAL_STREAM_REQUESTED_NO_CONTEXT_VALIDATE */);
         verifyStopBigMonitoringWithUnsync();
-        verifyRemoveMessageAndInjectSourceRemoval();
+        verifyModifyMessageAndInjectSourceModfified();
         checkNoResumeSynchronizationByBig();
 
         /* Unicast finished streaming */
@@ -5986,7 +6008,7 @@ public class BassClientServiceTest {
         mBassClientService.handleUnicastSourceStreamStatusChange(
                 3 /* STATUS_LOCAL_STREAM_REQUESTED_NO_CONTEXT_VALIDATE */);
         verifyStopBigMonitoringWithoutUnsync();
-        verifyRemoveMessageAndInjectSourceRemoval();
+        verifyModifyMessageAndInjectSourceModfified();
         checkNoResumeSynchronizationByBig();
 
         /* Unicast finished streaming */
@@ -6603,7 +6625,7 @@ public class BassClientServiceTest {
 
         // Suspend all receivers, HOST_INTENTIONAL
         mBassClientService.suspendAllReceiversSourceSynchronization();
-        verifyRemoveMessageAndInjectSourceRemoval();
+        verifyModifyMessageAndInjectSourceModfified();
 
         // Start searching sources sync to paused broadcaster and remain cache
         startSearchingForSources();
@@ -6850,7 +6872,7 @@ public class BassClientServiceTest {
         mBassClientService.handleUnicastSourceStreamStatusChange(
                 3 /* STATUS_LOCAL_STREAM_REQUESTED_NO_CONTEXT_VALIDATE */);
         checkNoSinkPause();
-        verifyRemoveMessageAndInjectSourceRemoval();
+        verifyModifyMessageAndInjectSourceModfified();
 
         /* Unicast finished streaming */
         mBassClientService.handleUnicastSourceStreamStatusChange(
@@ -6868,7 +6890,7 @@ public class BassClientServiceTest {
         mBassClientService.handleUnicastSourceStreamStatusChange(
                 3 /* STATUS_LOCAL_STREAM_REQUESTED_NO_CONTEXT_VALIDATE */);
         checkNoSinkPause();
-        verifyRemoveMessageAndInjectSourceRemoval();
+        verifyModifyMessageAndInjectSourceModfified();
 
         /* Unicast finished streaming */
         mBassClientService.handleUnicastSourceStreamStatusChange(
@@ -7549,7 +7571,7 @@ public class BassClientServiceTest {
         /* Unicast would like to stream */
         mBassClientService.handleUnicastSourceStreamStatusChange(
                 3 /* STATUS_LOCAL_STREAM_REQUESTED_NO_CONTEXT_VALIDATE */);
-        verifyRemoveMessageAndInjectSourceRemoval();
+        verifyModifyMessageAndInjectSourceModfified();
         for (BassClientStateMachine sm : mStateMachines.values()) {
             clearInvocations(sm);
         }
@@ -7718,7 +7740,7 @@ public class BassClientServiceTest {
         /* Unicast would like to stream */
         mBassClientService.handleUnicastSourceStreamStatusChange(
                 3 /* STATUS_LOCAL_STREAM_REQUESTED_NO_CONTEXT_VALIDATE */);
-        verifyRemoveMessageAndInjectSourceRemoval();
+        verifyModifyMessageAndInjectSourceModfified();
         for (BassClientStateMachine sm : mStateMachines.values()) {
             clearInvocations(sm);
         }
@@ -7746,7 +7768,7 @@ public class BassClientServiceTest {
         /* Unicast would like to stream */
         mBassClientService.handleUnicastSourceStreamStatusChange(
                 3 /* STATUS_LOCAL_STREAM_REQUESTED_NO_CONTEXT_VALIDATE */);
-        verifyRemoveMessageAndInjectSourceRemoval();
+        verifyModifyMessageAndInjectSourceModfified();
         for (BassClientStateMachine sm : mStateMachines.values()) {
             clearInvocations(sm);
         }
@@ -7842,7 +7864,7 @@ public class BassClientServiceTest {
         /* Unicast would like to stream */
         mBassClientService.handleUnicastSourceStreamStatusChange(
                 3 /* STATUS_LOCAL_STREAM_REQUESTED_NO_CONTEXT_VALIDATE */);
-        verifyRemoveMessageAndInjectSourceRemoval();
+        verifyModifyMessageAndInjectSourceModfified();
         for (BassClientStateMachine sm : mStateMachines.values()) {
             clearInvocations(sm);
         }
