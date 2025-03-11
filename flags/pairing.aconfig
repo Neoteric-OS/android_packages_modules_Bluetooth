@@ -270,3 +270,13 @@ flag {
         purpose: PURPOSE_BUGFIX
     }
 }
+
+flag {
+    name: "immediate_encryption_after_pairing"
+    namespace: "bluetooth"
+    description: "Encrypt BR/EDR link immediately after pairing"
+    bug: "402510244"
+    metadata {
+        purpose: PURPOSE_BUGFIX
+    }
+}
