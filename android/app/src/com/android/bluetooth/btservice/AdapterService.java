@@ -131,7 +131,6 @@ import android.util.Pair;
 import android.util.SparseArray;
 
 import com.android.bluetooth.BluetoothEventLogger;
-import com.android.bluetooth.BluetoothMetricsProto;
 import com.android.bluetooth.BluetoothStatsLog;
 import com.android.bluetooth.R;
 import com.android.bluetooth.Utils;

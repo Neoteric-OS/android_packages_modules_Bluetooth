@@ -86,7 +86,6 @@ import com.android.bluetooth.flags.Flags;
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.modules.expresslog.Counter;
 import com.android.modules.expresslog.Histogram;
-import com.android.server.BluetoothManagerServiceDumpProto;
 import com.android.server.bluetooth.airplane.AirplaneModeListener;
 import com.android.server.bluetooth.satellite.SatelliteModeListener;
 
@@ -2009,10 +2008,6 @@ class BluetoothManagerService {
     }
 
     void dump(FileDescriptor fd, PrintWriter writer, String[] args) {
-        if ((args.length > 0) && args[0].startsWith("--proto")) {
-            dumpProto(fd);
-            return;
-        }
         String errorMsg = null;
 
         writer.println("Bluetooth Status");
@@ -2100,33 +2095,6 @@ class BluetoothManagerService {
                             }
                             writer.println("\t" + (flagValue ? "[■]" : "[ ]") + ": " + name);
                         });
-    }
-
-    private void dumpProto(FileDescriptor fd) {
-        final ProtoOutputStream proto = new ProtoOutputStream(new FileOutputStream(fd));
-        proto.write(BluetoothManagerServiceDumpProto.ENABLED, isEnabled());
-        proto.write(BluetoothManagerServiceDumpProto.STATE, mState.get());
-        proto.write(BluetoothManagerServiceDumpProto.STATE_NAME, nameForState(mState.get()));
-        proto.write(BluetoothManagerServiceDumpProto.ADDRESS, logAddress(mAddress));
-        proto.write(BluetoothManagerServiceDumpProto.NAME, mName);
-        if (mEnable) {
-            proto.write(BluetoothManagerServiceDumpProto.LAST_ENABLED_TIME_MS, mLastEnabledTime);
-        }
-        proto.write(
-                BluetoothManagerServiceDumpProto.CURR_TIMESTAMP_MS, SystemClock.elapsedRealtime());
-        ActiveLogs.dumpProto(proto);
-        proto.write(BluetoothManagerServiceDumpProto.NUM_CRASHES, mCrashes);
-        proto.write(
-                BluetoothManagerServiceDumpProto.CRASH_LOG_MAXED, mCrashes == CRASH_LOG_MAX_SIZE);
-        for (Long time : mCrashTimestamps) {
-            proto.write(BluetoothManagerServiceDumpProto.CRASH_TIMESTAMPS_MS, time);
-        }
-        proto.write(BluetoothManagerServiceDumpProto.NUM_BLE_APPS, mBleApps.size());
-        for (ClientDeathRecipient app : mBleApps.values()) {
-            proto.write(
-                    BluetoothManagerServiceDumpProto.BLE_APP_PACKAGE_NAMES, app.getPackageName());
-        }
-        proto.flush();
     }
 
     static @NonNull Bundle getTempAllowlistBroadcastOptions() {

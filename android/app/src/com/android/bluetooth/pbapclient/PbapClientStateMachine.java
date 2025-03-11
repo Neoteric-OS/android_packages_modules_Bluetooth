@@ -34,7 +34,6 @@ import android.os.Looper;
 import android.os.Message;
 import android.util.Log;
 
-import com.android.bluetooth.BluetoothMetricsProto;
 import com.android.bluetooth.Utils;
 import com.android.bluetooth.btservice.AdapterService;
 import com.android.bluetooth.btservice.MetricsLogger;
@@ -908,9 +907,6 @@ class PbapClientStateMachine extends StateMachine {
 
     private void onConnectionStateChanged(int state) {
         int prevState = mCurrentState;
-        if (prevState != state && state == STATE_CONNECTED) {
-            MetricsLogger.logProfileConnectionEvent(BluetoothMetricsProto.ProfileId.PBAP_CLIENT);
-        }
 
         Intent intent = new Intent(BluetoothPbapClient.ACTION_CONNECTION_STATE_CHANGED);
         intent.putExtra(BluetoothProfile.EXTRA_PREVIOUS_STATE, prevState);

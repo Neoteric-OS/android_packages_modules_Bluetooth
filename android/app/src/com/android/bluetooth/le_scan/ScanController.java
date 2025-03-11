@@ -60,7 +60,6 @@ import android.provider.DeviceConfig;
 import android.text.format.DateUtils;
 import android.util.Log;
 
-import com.android.bluetooth.BluetoothMetricsProto;
 import com.android.bluetooth.R;
 import com.android.bluetooth.Utils;
 import com.android.bluetooth.btservice.AdapterService;
@@ -96,7 +95,6 @@ public class ScanController {
 
     // Batch scan related constants.
     private static final int TRUNCATED_RESULT_SIZE = 11;
-    private static final int NUM_SCAN_EVENTS_KEPT = 20;
 
     // onFoundLost related constants
     @VisibleForTesting static final int ADVT_STATE_ONFOUND = 0;
@@ -121,10 +119,6 @@ public class ScanController {
                     stopScanInternal(intent);
                 }
             };
-
-    /** Internal list of scan events to use with the proto */
-    private final Deque<BluetoothMetricsProto.ScanEvent> mScanEvents =
-            new ArrayDeque<>(NUM_SCAN_EVENTS_KEPT);
 
     private final Map<Integer, Integer> mFilterIndexToMsftAdvMonitorMap = new HashMap<>();
     private final Object mTestModeLock = new Object();
@@ -1656,15 +1650,6 @@ public class ScanController {
         }
     }
 
-    void addScanEvent(BluetoothMetricsProto.ScanEvent event) {
-        synchronized (mScanEvents) {
-            if (mScanEvents.size() == NUM_SCAN_EVENTS_KEPT) {
-                mScanEvents.remove();
-            }
-            mScanEvents.add(event);
-        }
-    }
-
     public void dumpRegisterId(StringBuilder sb) {
         sb.append("  Scanner:\n");
         mScannerMap.dumpApps(sb, ProfileService::println);
@@ -1673,11 +1658,5 @@ public class ScanController {
     public void dump(StringBuilder sb) {
         sb.append("GATT Scanner Map\n");
         mScannerMap.dump(sb);
-    }
-
-    public void dumpProto(BluetoothMetricsProto.BluetoothLog.Builder builder) {
-        synchronized (mScanEvents) {
-            builder.addAllScanEvent(mScanEvents);
-        }
     }
 }

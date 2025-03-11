@@ -38,12 +38,10 @@ import android.support.v4.media.session.PlaybackStateCompat;
 import android.util.Log;
 import android.util.SparseArray;
 
-import com.android.bluetooth.BluetoothMetricsProto;
 import com.android.bluetooth.R;
 import com.android.bluetooth.Utils;
 import com.android.bluetooth.a2dpsink.A2dpSinkService;
 import com.android.bluetooth.btservice.AdapterService;
-import com.android.bluetooth.btservice.MetricsLogger;
 import com.android.bluetooth.btservice.ProfileService;
 import com.android.bluetooth.flags.Flags;
 import com.android.internal.annotations.VisibleForTesting;
@@ -1405,10 +1403,7 @@ class AvrcpControllerStateMachine extends StateMachine {
         if (mMostRecentState == currentState) {
             return;
         }
-        if (currentState == STATE_CONNECTED) {
-            MetricsLogger.logProfileConnectionEvent(
-                    BluetoothMetricsProto.ProfileId.AVRCP_CONTROLLER);
-        }
+
         mAdapterService.updateProfileConnectionAdapterProperties(
                 mDevice, BluetoothProfile.AVRCP_CONTROLLER, currentState, mMostRecentState);
 
