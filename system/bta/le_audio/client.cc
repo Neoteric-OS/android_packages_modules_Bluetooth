@@ -1451,7 +1451,12 @@ public:
     if (SetConfigurationAndStopStreamWhenNeeded(group, group->GetConfigurationContextType())) {
       log::debug("Group id {} do the reconfiguration based on preferred codec config", group_id);
     } else {
-      log::debug("Group id {} preferred codec config is not changed", group_id);
+      if (group->GetState() != AseState::BTA_LE_AUDIO_ASE_STATE_STREAMING) {
+        log::debug("Group id {} not streaming, update codec config for media as default", group_id);
+        SendAudioGroupContextCodecConfigChanged(group, LeAudioContextType::MEDIA);
+      } else {
+        log::debug("Group id {} is streaming, but reconfiguration not needed", group_id);
+      }
     }
   }
 
@@ -3992,6 +3997,28 @@ public:
     log::debug("{}", group->group_id_);
 
     auto audio_set_conf = group->GetConfiguration(configuration_context_type_);
+    if (!audio_set_conf) {
+      log::warn("Stream configuration is not valid for group id {}", group->group_id_);
+      return;
+    }
+
+    bluetooth::le_audio::btle_audio_codec_config_t input_config{};
+    bluetooth::le_audio::utils::fillStreamParamsToBtLeAudioCodecConfig(audio_set_conf->confs.source,
+                                                                       input_config);
+
+    bluetooth::le_audio::btle_audio_codec_config_t output_config{};
+    bluetooth::le_audio::utils::fillStreamParamsToBtLeAudioCodecConfig(audio_set_conf->confs.sink,
+                                                                       output_config);
+
+    callbacks_->OnAudioGroupCurrentCodecConf(group->group_id_, input_config, output_config);
+  }
+
+  void SendAudioGroupContextCodecConfigChanged(LeAudioDeviceGroup* group,
+            LeAudioContextType context_type) {
+    // This shall be called when configuration changes for context
+    log::debug("group_id {}", group->group_id_);
+
+    auto audio_set_conf = group->GetConfiguration(context_type);
     if (!audio_set_conf) {
       log::warn("Stream configuration is not valid for group id {}", group->group_id_);
       return;
