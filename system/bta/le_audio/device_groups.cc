@@ -1720,6 +1720,15 @@ bool LeAudioDeviceGroup::IsAudioSetConfigurationSupported(
     log::debug("Looking for configuration: {} - {}", audio_set_conf->name,
                direction == types::kLeAudioDirectionSink ? "Sink" : "Source");
     auto const& ase_confs = audio_set_conf->confs.get(direction);
+    if (use_preference) {
+      auto& direction_req = (direction == types::kLeAudioDirectionSink)
+                                    ? requirements.sink_requirements
+                                    : requirements.source_requirements;
+      if (ase_confs.empty() && direction_req.has_value()) {
+        log::debug("No configurations for direction {}, but requirement has value.", (int)direction);
+        return false;
+      }
+    }
     if (ase_confs.empty()) {
       log::debug("No configurations for direction {}, skip it.", (int)direction);
       continue;
