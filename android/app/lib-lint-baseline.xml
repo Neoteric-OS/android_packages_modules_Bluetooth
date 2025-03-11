@@ -57,39 +57,6 @@
     </issue>
 
     <issue
-        id="DefaultLocale"
-        message="Implicitly using the default locale is a common source of bugs: Use `String.format(Locale, ...)` instead"
-        errorLine1="                        String.format("
-        errorLine2="                        ^">
-        <location
-            file="packages/modules/Bluetooth/android/app/src/com/android/bluetooth/avrcp/AvrcpVolumeManager.java"
-            line="460"
-            column="25"/>
-    </issue>
-
-    <issue
-        id="DefaultLocale"
-        message="Implicitly using the default locale is a common source of bugs: Use `String.format(Locale, ...)` instead"
-        errorLine1="                offsetString = String.format(&quot;%1$02d&quot;, -(offset));"
-        errorLine2="                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="packages/modules/Bluetooth/android/app/src/com/android/bluetooth/map/BluetoothMapSmsPdu.java"
-            line="403"
-            column="32"/>
-    </issue>
-
-    <issue
-        id="DefaultLocale"
-        message="Implicitly using the default locale is a common source of bugs: Use `String.format(Locale, ...)` instead"
-        errorLine1="                offsetString = String.format(&quot;%1$02d&quot;, offset);"
-        errorLine2="                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="packages/modules/Bluetooth/android/app/src/com/android/bluetooth/map/BluetoothMapSmsPdu.java"
-            line="407"
-            column="32"/>
-    </issue>
-
-    <issue
         id="SimpleDateFormat"
         message="To get local formatting use `getDateInstance()`, `getDateTimeInstance()`, or `getTimeInstance()`, or use `new SimpleDateFormat(String template, Locale locale)` with for example `Locale.US` for ASCII dates."
         errorLine1="            ThreadLocal.withInitial(() -> new SimpleDateFormat(&quot;MM-dd HH:mm:ss&quot;));"
@@ -294,7 +261,7 @@
         errorLine2="                                      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="packages/modules/Bluetooth/android/app/src/com/android/bluetooth/map/BluetoothMapSmsPdu.java"
-            line="385"
+            line="386"
             column="39"/>
     </issue>
 
