@@ -666,6 +666,10 @@ public class ActiveDeviceManager implements AdapterService.BluetoothStateCallbac
             @Nullable BluetoothDevice previousActiveDevice,
             @Nullable BluetoothDevice nextActiveDevice) {
         if (!Utils.isDualModeAudioEnabled()) {
+            if (nextActiveDevice != null) {
+               Log.i(TAG, "In non dual mode case, when A2dp/HFP becomes active, LE is made null" + nextActiveDevice);
+               setLeAudioActiveDevice(null, true);
+            }
             return;
         }
 
@@ -782,13 +786,6 @@ public class ActiveDeviceManager implements AdapterService.BluetoothStateCallbac
                 }
 
                 updateLeAudioActiveDeviceIfDualMode(mHfpActiveDevice, device);
-
-                if ((!Utils.isDualModeAudioEnabled() && device == null)) {
-                    Log.d(TAG, "HFP active device is null. Try to fallback to the active device.");
-                    synchronized (mLock) {
-                        setFallbackDeviceActiveLocked(mHfpActiveDevice /* recentlyRemovedDevice */);
-                    }
-                }
             } else {
                 if (Utils.isDualModeAudioEnabled()
                      && !mAdapterService.isProfileSupported(device, BluetoothProfile.LE_AUDIO)) {
@@ -902,10 +899,10 @@ public class ActiveDeviceManager implements AdapterService.BluetoothStateCallbac
             // LE case has isBroadcastingAudio which would set the active device to null when
             // broadcasting the audio. So we shouldn't try to change the active device in this case.
             if (device == null && !Utils.isDualModeAudioEnabled() && !isBroadcastingAudio()) {
-                Log.d(TAG, "LE audio active device is null. Try to fallback to the active device.");
-                synchronized (mLock) {
-                    setFallbackDeviceActiveLocked(mLeAudioActiveDevice /* recentlyRemovedDevice */);
-                }
+                Log.d(TAG, "not falling back the active device");
+               /* synchronized (mLock) {
+                    setFallbackDeviceActiveLocked(mLeAudioActiveDevice /*recentlyRemovedDevice);
+                }*/
             }
 
             mLeAudioActiveDevice = device;

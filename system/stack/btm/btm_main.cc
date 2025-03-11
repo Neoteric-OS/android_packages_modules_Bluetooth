@@ -35,6 +35,7 @@
 #include "stack/include/btm_log_history.h"
 #include "stack/include/security_client_callbacks.h"
 #include "types/raw_address.h"
+#include "btif/include/stack_manager_t.h"
 
 using namespace bluetooth;
 
@@ -70,6 +71,11 @@ constexpr size_t kMaxLogHistoryMsgLength = 25;
 
 static void btm_log_history(const std::string& tag, const char* addr, const std::string& msg,
                             const std::string& extra) {
+  if (!stack_manager_get_interface()->get_stack_is_running()) {
+    log::warn("stack is not running");
+    return;
+  }
+
   if (btm_cb.history_ == nullptr) {
     log::error("BTM_LogHistory has not been constructed or already destroyed !");
     return;

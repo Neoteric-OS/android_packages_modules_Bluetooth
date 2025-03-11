@@ -51,7 +51,6 @@ import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Looper;
 import android.os.ParcelUuid;
-import android.os.SystemProperties;
 import android.os.UserHandle;
 import android.sysprop.BluetoothProperties;
 import android.telecom.PhoneAccount;
@@ -73,6 +72,7 @@ import com.android.bluetooth.hfpclient.HeadsetClientService;
 import com.android.bluetooth.hfpclient.HeadsetClientStateMachine;
 import com.android.bluetooth.le_audio.LeAudioService;
 import com.android.bluetooth.telephony.BluetoothInCallService;
+import com.android.bluetooth.util.SystemProperties;
 import com.android.internal.annotations.VisibleForTesting;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
@@ -2928,9 +2928,15 @@ public class HeadsetService extends ProfileService {
     /** Retrieves the most recently connected device in the A2DP connected devices list. */
     public BluetoothDevice getFallbackDevice() {
         DatabaseManager dbManager = mAdapterService.getDatabase();
-        return dbManager != null
-                ? dbManager.getMostRecentlyConnectedDevicesInList(getFallbackCandidates(dbManager))
-                : null;
+        if (dbManager != null) {
+            BluetoothDevice mostRecentDevice =
+                dbManager
+                    .getMostRecentlyConnectedDevicesInList(getFallbackCandidates(dbManager));
+            if (mostRecentDevice != null) {
+                return mostRecentDevice.equals(getActiveDevice()) ? null : mostRecentDevice;
+            }
+        }
+        return null;
     }
 
     @VisibleForTesting(visibility = VisibleForTesting.Visibility.PACKAGE)

@@ -564,7 +564,8 @@ public class A2dpService extends ProfileService {
      */
     public boolean setActiveDevice(@NonNull BluetoothDevice device) {
         if (device == null) {
-            Log.e(TAG, "device should not be null!");
+            Log.e(TAG, "setactivedevice to null");
+            removeActiveDevice(true);
             return false;
         }
 
@@ -1456,9 +1457,15 @@ public class A2dpService extends ProfileService {
     /** Retrieves the most recently connected device in the A2DP connected devices list. */
     public BluetoothDevice getFallbackDevice() {
         DatabaseManager dbManager = mAdapterService.getDatabase();
-        return dbManager != null
-                ? dbManager.getMostRecentlyConnectedDevicesInList(getConnectedDevices())
-                : null;
+        if (dbManager != null) {
+            BluetoothDevice mostRecentDevice =
+                dbManager
+                    .getMostRecentlyConnectedDevicesInList(getConnectedDevices());
+            if (mostRecentDevice != null) {
+                return mostRecentDevice.equals(getActiveDevice()) ? null : mostRecentDevice;
+            }
+        }
+        return null;
     }
 
     /** Binder object: must be a static class or memory leak may occur. */
