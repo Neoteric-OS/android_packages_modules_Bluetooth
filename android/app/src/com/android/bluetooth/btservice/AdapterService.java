@@ -2551,6 +2551,29 @@ public class AdapterService extends Service {
         public boolean createBond(
                 BluetoothDevice device,
                 int transport,
+                AttributionSource source) {
+            AdapterService service = getService();
+            if (service == null
+                    || !callerIsSystemOrActiveOrManagedUser(service, TAG, "createBond")
+                    || !Utils.checkConnectPermissionForDataDelivery(
+                            service, source, "AdapterService createBond")) {
+                return false;
+            }
+
+            Log.i(
+                    TAG,
+                    "createBond:"
+                            + (" device=" + device)
+                            + (" transport=" + transport)
+                            + (" from " + Utils.getUidPidString()));
+            return service.createBond(
+                    device, transport, null, null, source.getPackageName());
+        }
+
+        @Override
+        public boolean createBondOutOfBand(
+                BluetoothDevice device,
+                int transport,
                 OobData remoteP192Data,
                 OobData remoteP256Data,
                 AttributionSource source) {
@@ -2562,14 +2585,11 @@ public class AdapterService extends Service {
                 return false;
             }
 
-            // This conditional is required to satisfy permission dependencies
-            // since createBond calls createBondOutOfBand with null value passed as data.
-            // BluetoothDevice#createBond requires BLUETOOTH_ADMIN only.
-            service.enforceBluetoothPrivilegedPermissionIfNeeded(remoteP192Data, remoteP256Data);
+            service.enforceCallingOrSelfPermission(BLUETOOTH_PRIVILEGED, null);
 
             Log.i(
                     TAG,
-                    "createBond:"
+                    "createBondOutOfBand:"
                             + (" device=" + device)
                             + (" transport=" + transport)
                             + (" from " + Utils.getUidPidString()));
@@ -6698,14 +6718,6 @@ public class AdapterService extends Service {
         } else {
             writer.flush();
             mNativeInterface.dump(fd, args);
-        }
-    }
-
-    @SuppressLint("AndroidFrameworkRequiresPermission")
-    private void enforceBluetoothPrivilegedPermissionIfNeeded(
-            OobData remoteP192Data, OobData remoteP256Data) {
-        if (remoteP192Data != null || remoteP256Data != null) {
-            this.enforceCallingOrSelfPermission(BLUETOOTH_PRIVILEGED, null);
         }
     }
 
