@@ -197,7 +197,7 @@ class MediaBrowserWrapper {
                                     mSubscribedIds.put(
                                             rootId, new ArrayList<>(Arrays.asList(callback)));
                                     mWrappedBrowser.subscribe(
-                                            rootId, new BrowserSubscriptionCallback(mediaId));
+                                            rootId, new BrowserSubscriptionCallback(rootId));
                                 });
                     } else {
                         mSubscribedIds.put(mediaId, new ArrayList<>(Arrays.asList(callback)));
