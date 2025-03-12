@@ -74,7 +74,7 @@ struct CsReadCapabilitiesCompleteEvent {
   CsOptionalNadmSoundingCapability nadm_sounding_capability = {
           /*normalized_attack_detector_metric=*/1};
   CsOptionalNadmRandomCapability nadm_random_capability = {/*normalized_attack_detector_metric=*/1};
-  CsOptionalCsSyncPhysSupported cs_sync_phys_supported = {/*le_2m_phy=*/1};
+  CsOptionalCsSyncPhysSupported cs_sync_phys_supported = {/*le_2m_phy=*/1, /*le_2m_2bt_phy=*/0};
   CsOptionalSubfeaturesSupported subfeatures_supported = {/*no_frequency_actuation_error=*/1,
                                                           /*channel_selection_algorithm=*/1,
                                                           /*phase_based_ranging=*/1};
