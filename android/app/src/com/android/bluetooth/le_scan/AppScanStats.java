@@ -74,6 +74,7 @@ class AppScanStats {
     static boolean sIsRadioStarted = false;
     static boolean sIsScreenOn = false;
     static int sRadioScanAppImportance = IMPORTANCE_CACHED;
+    @Nullable static String sRadioScanAttributionTag;
 
     @GuardedBy("sLock")
     static long sRadioStartTime = 0;
@@ -134,6 +135,10 @@ class AppScanStats {
             this.isSuspended = false;
             this.appImportanceOnStart = appImportanceOnStart;
             this.filterString = new StringBuilder();
+        }
+
+        private String getAttributionTag() {
+            return attributionTag != null ? attributionTag : "";
         }
     }
 
@@ -406,7 +411,8 @@ class AppScanStats {
                     mOngoingScans.size(),
                     sIsScreenOn,
                     isAppDead,
-                    mAppImportance);
+                    mAppImportance,
+                    scan.getAttributionTag());
         }
         if (scan.isAutoBatchScan) {
             logger.cacheCount(BluetoothProtoEnums.LE_SCAN_COUNT_AUTO_BATCH_ENABLE, 1);
@@ -439,7 +445,8 @@ class AppScanStats {
                     mOngoingScans.size(),
                     sIsScreenOn,
                     isAppDead,
-                    mAppImportance);
+                    mAppImportance,
+                    scan.getAttributionTag());
         }
         if (scan.isAutoBatchScan) {
             logger.cacheCount(BluetoothProtoEnums.LE_SCAN_COUNT_AUTO_BATCH_DISABLE, 1);
@@ -524,7 +531,8 @@ class AppScanStats {
                     mWorkSourceUtil.getTags(),
                     convertScanType(getScanFromScannerId(scannerId)),
                     BluetoothStatsLog.LE_SCAN_ABUSED__LE_SCAN_ABUSE_REASON__REASON_SCAN_TIMEOUT,
-                    scanTimeoutMillis);
+                    scanTimeoutMillis,
+                    getScanFromScannerId(scannerId).getAttributionTag());
         }
         MetricsLogger.getInstance()
                 .cacheCount(BluetoothProtoEnums.LE_SCAN_ABUSE_COUNT_SCAN_TIMEOUT, 1);
@@ -539,7 +547,8 @@ class AppScanStats {
                     mWorkSourceUtil.getTags(),
                     convertScanType(getScanFromScannerId(scannerId)),
                     BluetoothStatsLog.LE_SCAN_ABUSED__LE_SCAN_ABUSE_REASON__REASON_HW_FILTER_NA,
-                    numOfFilterSupported);
+                    numOfFilterSupported,
+                    getScanFromScannerId(scannerId).getAttributionTag());
         }
         MetricsLogger.getInstance()
                 .cacheCount(BluetoothProtoEnums.LE_SCAN_ABUSE_COUNT_HW_FILTER_NOT_AVAILABLE, 1);
@@ -555,7 +564,8 @@ class AppScanStats {
                     convertScanType(getScanFromScannerId(scannerId)),
                     BluetoothStatsLog
                             .LE_SCAN_ABUSED__LE_SCAN_ABUSE_REASON__REASON_TRACKING_HW_FILTER_NA,
-                    numOfTrackableAdv);
+                    numOfTrackableAdv,
+                    getScanFromScannerId(scannerId).getAttributionTag());
         }
         MetricsLogger.getInstance()
                 .cacheCount(
@@ -588,6 +598,7 @@ class AppScanStats {
             sRadioScanIntervalMs = scanIntervalMs;
             sIsRadioStarted = true;
             sRadioScanAppImportance = stats.mAppImportance;
+            sRadioScanAttributionTag = stats.getScanFromScannerId(scannerId).getAttributionTag();
         }
         return true;
     }
@@ -627,7 +638,8 @@ class AppScanStats {
                     sRadioScanWindowMs,
                     sIsScreenOn,
                     radioScanDuration,
-                    sRadioScanAppImportance);
+                    sRadioScanAppImportance,
+                    getRadioScanAttributionTag());
             sRadioStartTime = 0;
             sIsRadioStarted = false;
         }
@@ -658,6 +670,12 @@ class AppScanStats {
             return sRadioScanWorkSourceUtil != null
                     ? sRadioScanWorkSourceUtil.getTags()
                     : new String[] {""};
+        }
+    }
+
+    private static String getRadioScanAttributionTag() {
+        synchronized (sLock) {
+            return sRadioScanAttributionTag != null ? sRadioScanAttributionTag : "";
         }
     }
 
@@ -701,7 +719,8 @@ class AppScanStats {
                         getRadioScanTags(),
                         1 /* num_results */,
                         BluetoothStatsLog.LE_SCAN_RESULT_RECEIVED__LE_SCAN_TYPE__SCAN_TYPE_REGULAR,
-                        sIsScreenOn);
+                        sIsScreenOn,
+                        getRadioScanAttributionTag());
             }
             MetricsLogger logger = MetricsLogger.getInstance();
             logger.cacheCount(BluetoothProtoEnums.LE_SCAN_RESULTS_COUNT_REGULAR, 1);
@@ -725,7 +744,8 @@ class AppScanStats {
                     getRadioScanTags(),
                     numRecords,
                     BluetoothStatsLog.LE_SCAN_RESULT_RECEIVED__LE_SCAN_TYPE__SCAN_TYPE_BATCH,
-                    sIsScreenOn);
+                    sIsScreenOn,
+                    getRadioScanAttributionTag());
         }
         MetricsLogger logger = MetricsLogger.getInstance();
         logger.cacheCount(BluetoothProtoEnums.LE_SCAN_RESULTS_COUNT_BATCH_BUNDLE, 1);
