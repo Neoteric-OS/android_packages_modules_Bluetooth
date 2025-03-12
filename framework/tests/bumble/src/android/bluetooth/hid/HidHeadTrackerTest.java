@@ -64,6 +64,7 @@ import android.util.Log;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.platform.app.InstrumentationRegistry;
 
+import com.android.bluetooth.flags.Flags;
 import com.android.compatibility.common.util.AdoptShellPermissionsRule;
 
 import org.hamcrest.CustomTypeSafeMatcher;
@@ -490,8 +491,10 @@ public class HidHeadTrackerTest {
      */
     private void verifyTransportSwitch(BluetoothDevice device, int fromTransport, int toTransport) {
         assertThat(fromTransport).isNotEqualTo(toTransport);
-        verifyConnectionState(mBumbleDevice, equalTo(fromTransport), equalTo(STATE_DISCONNECTING));
-
+        if (!Flags.ignoreUnselectedHidTransportStates()) {
+            verifyConnectionState(
+                    mBumbleDevice, equalTo(fromTransport), equalTo(STATE_DISCONNECTING));
+        }
         // Capture the next intent with filter
         // Filter is necessary as otherwise it will corrupt all other unordered verifications
         final Intent[] savedIntent = {null};
