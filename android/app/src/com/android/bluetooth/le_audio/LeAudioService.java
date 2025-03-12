@@ -97,7 +97,6 @@ import com.android.bluetooth.btservice.storage.DatabaseManager;
 import com.android.bluetooth.csip.CsipSetCoordinatorService;
 import com.android.bluetooth.flags.Flags;
 import com.android.bluetooth.hap.HapClientService;
-import com.android.bluetooth.hearingaid.HearingAidService;
 import com.android.bluetooth.hfp.HeadsetService;
 import com.android.bluetooth.mcp.McpService;
 import com.android.bluetooth.tbs.TbsGatt;
@@ -2930,49 +2929,17 @@ public class LeAudioService extends ProfileService {
         }
     }
 
-    private void disableLeAudioAndFallbackToLegacyAudioProfiles(int groupId) {
-        Log.i(
-                TAG,
-                "Disabling LE Audio for group: "
-                        + groupId
-                        + " and falling back to legacy profiles");
-        A2dpService a2dpService = mServiceFactory.getA2dpService();
-        HeadsetService hsService = mServiceFactory.getHeadsetService();
-        HearingAidService hearingAidService = mServiceFactory.getHearingAidService();
-        boolean isDualMode = Utils.isDualModeAudioEnabled();
-
-        List<BluetoothDevice> leAudioActiveGroupDevices = getGroupDevices(groupId);
-
-        for (BluetoothDevice activeGroupDevice : leAudioActiveGroupDevices) {
-            Log.d(TAG, "Disable LE_AUDIO for the device: " + activeGroupDevice);
-            final ParcelUuid[] uuids = mAdapterService.getRemoteUuids(activeGroupDevice);
-
-            setConnectionPolicy(activeGroupDevice, CONNECTION_POLICY_FORBIDDEN);
-            if (hsService != null && !isDualMode && Utils.arrayContains(uuids, BluetoothUuid.HFP)) {
-                Log.d(TAG, "Enable HFP for the device: " + activeGroupDevice);
-                hsService.setConnectionPolicy(activeGroupDevice, CONNECTION_POLICY_ALLOWED);
-            }
-            if (a2dpService != null
-                    && !isDualMode
-                    && (Utils.arrayContains(uuids, BluetoothUuid.A2DP_SINK)
-                            || Utils.arrayContains(uuids, BluetoothUuid.ADV_AUDIO_DIST))) {
-                Log.d(TAG, "Enable A2DP for the device: " + activeGroupDevice);
-                a2dpService.setConnectionPolicy(activeGroupDevice, CONNECTION_POLICY_ALLOWED);
-            }
-            if (hearingAidService != null
-                    && Utils.arrayContains(uuids, BluetoothUuid.HEARING_AID)) {
-                Log.d(TAG, "Enable ASHA for the device: " + activeGroupDevice);
-                hearingAidService.setConnectionPolicy(activeGroupDevice, CONNECTION_POLICY_ALLOWED);
-            }
-        }
-    }
-
     private void handleGroupHealthAction(int groupId, int action) {
-        Log.d(TAG, "handleGroupHealthAction: groupId: " + groupId + " action: " + action);
+        Log.d(
+                TAG,
+                "handleGroupHealthAction: groupId: "
+                        + groupId
+                        + " action: "
+                        + action
+                        + ", not implemented");
         BluetoothDevice device = getLeadDeviceForTheGroup(groupId);
         switch (action) {
-            case com.android.bluetooth.le_audio.LeAudioStackEvent
-                    .HEALTH_RECOMMENDATION_ACTION_DISABLE:
+            case LeAudioStackEvent.HEALTH_RECOMMENDATION_ACTION_DISABLE:
                 MetricsLogger.getInstance()
                         .count(
                                 mAdapterService.isLeAudioAllowed(device)
@@ -2981,7 +2948,6 @@ public class LeAudioService extends ProfileService {
                                         : BluetoothProtoEnums
                                                 .LE_AUDIO_NONALLOWLIST_GROUP_HEALTH_STATUS_BAD,
                                 1);
-                disableLeAudioAndFallbackToLegacyAudioProfiles(groupId);
                 break;
             case LeAudioStackEvent.HEALTH_RECOMMENDATION_ACTION_CONSIDER_DISABLING:
                 MetricsLogger.getInstance()
