@@ -31,7 +31,6 @@ import android.util.Log;
 import com.android.bluetooth.Utils;
 import com.android.bluetooth.a2dp.A2dpService;
 import com.android.bluetooth.hfp.HeadsetService;
-import com.android.internal.annotations.VisibleForTesting;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -205,7 +204,6 @@ public class SilenceDeviceManager {
         mSilenceDevices.clear();
     }
 
-    @VisibleForTesting
     boolean setSilenceMode(BluetoothDevice device, boolean silence) {
         Log.d(TAG, "setSilenceMode: " + device + ", " + silence);
         mHandler.obtainMessage(
