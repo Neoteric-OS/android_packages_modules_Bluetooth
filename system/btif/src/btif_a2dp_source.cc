@@ -253,8 +253,6 @@ static bool btif_a2dp_source_startup(void);
 static void btif_a2dp_source_startup_delayed(void);
 static void btif_a2dp_source_start_session_delayed(const RawAddress& peer_address,
                                                    std::promise<void> start_session_promise);
-static void btif_a2dp_source_end_session_delayed(const RawAddress& peer_address);
-static void btif_a2dp_source_shutdown_delayed(std::promise<void>);
 static void btif_a2dp_source_audio_tx_start_event(void);
 static void btif_a2dp_source_audio_tx_stop_event(void);
 static void btif_a2dp_source_audio_tx_flush_event(void);
@@ -262,7 +260,6 @@ static void btif_a2dp_source_audio_tx_flush_event(void);
 // The peer address is |peer_addr|.
 // This function should be called prior to starting A2DP streaming.
 static void btif_a2dp_source_setup_codec(const RawAddress& peer_addr);
-static void btif_a2dp_source_cleanup_codec();
 static void btif_a2dp_source_cleanup_codec_delayed();
 static void btif_a2dp_source_encoder_user_config_update_event(
         const RawAddress& peer_address,
@@ -496,7 +493,7 @@ bool btif_a2dp_source_restart_session(const RawAddress& old_peer_address,
 
   log::assert_that(!new_peer_address.IsEmpty(), "assert failed: !new_peer_address.IsEmpty()");
 
-  // Must stop first the audio streaming
+  // Must stop first the audio streaming.
   btif_a2dp_source_stop_audio_req();
 
   // If the old active peer was valid, end the old session.
@@ -516,22 +513,24 @@ bool btif_a2dp_source_restart_session(const RawAddress& old_peer_address,
 
 bool btif_a2dp_source_end_session(const RawAddress& peer_address) {
   log::info("peer_address={} state={}", peer_address, btif_a2dp_source_cb.StateStr());
-  btif_a2dp_source_cleanup_codec();
-  btif_a2dp_source_end_session_delayed(peer_address);
-  return true;
-}
 
-static void btif_a2dp_source_end_session_delayed(const RawAddress& peer_address) {
-  log::info("peer_address={} state={}", peer_address, btif_a2dp_source_cb.StateStr());
+  // Must stop first the audio streaming.
+  btif_a2dp_source_stop_audio_req();
+
+  do_in_main_thread(base::BindOnce(&btif_a2dp_source_cleanup_codec_delayed));
+
   if ((btif_a2dp_source_cb.State() == BtifA2dpSource::kStateRunning) ||
       (btif_a2dp_source_cb.State() == BtifA2dpSource::kStateShuttingDown)) {
     btif_av_stream_stop(peer_address);
   } else {
     log::error("A2DP Source media task is not running");
   }
+
   if (bluetooth::audio::a2dp::is_hal_enabled()) {
     bluetooth::audio::a2dp::end_session();
   }
+
+  return true;
 }
 
 void btif_a2dp_source_allow_low_latency_audio(bool allowed) {
@@ -549,16 +548,10 @@ void btif_a2dp_source_shutdown(std::promise<void> shutdown_complete_promise) {
     return;
   }
 
-  /* Make sure no channels are restarted while shutting down */
+  // Make sure no channels are restarted while shutting down.
   btif_a2dp_source_cb.SetState(BtifA2dpSource::kStateShuttingDown);
 
-  btif_a2dp_source_shutdown_delayed(std::move(shutdown_complete_promise));
-}
-
-static void btif_a2dp_source_shutdown_delayed(std::promise<void> shutdown_complete_promise) {
-  log::info("state={}", btif_a2dp_source_cb.StateStr());
-
-  // Stop the timer
+  // Stop the timer.
   btif_a2dp_source_cb.media_alarm.CancelAndWait();
   wakelock_release();
 
@@ -656,13 +649,6 @@ static void btif_a2dp_source_setup_codec(const RawAddress& peer_address) {
                                         btif_a2dp_get_peer_mtu(a2dp_codec_config),
                                         bta_av_co_get_encoder_preferred_interval_us());
   }
-}
-
-static void btif_a2dp_source_cleanup_codec() {
-  log::info("state={}", btif_a2dp_source_cb.StateStr());
-  // Must stop media task first before cleaning up the encoder
-  btif_a2dp_source_stop_audio_req();
-  do_in_main_thread(base::BindOnce(&btif_a2dp_source_cleanup_codec_delayed));
 }
 
 static void btif_a2dp_source_cleanup_codec_delayed() {
