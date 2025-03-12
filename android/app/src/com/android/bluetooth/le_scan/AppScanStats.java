@@ -46,6 +46,7 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 
@@ -62,9 +63,6 @@ class AppScanStats {
     static final int LOW_LATENCY_WEIGHT = 100;
 
     static final int LARGE_SCAN_TIME_GAP_MS = 24000;
-
-    private static final ThreadLocal<DateFormat> DATE_FORMAT =
-            ThreadLocal.withInitial(() -> new SimpleDateFormat("MM-dd HH:mm:ss"));
 
     static WorkSourceUtil sRadioScanWorkSourceUtil;
     static int sRadioScanType;
@@ -923,6 +921,8 @@ class AppScanStats {
 
     @SuppressWarnings("JavaUtilDate") // TODO: b/365629730 -- prefer Instant or LocalDate
     public synchronized void dumpToString(StringBuilder sb) {
+        DateFormat dateFormat = new SimpleDateFormat("MM-dd HH:mm:ss", Locale.ROOT);
+
         long currentTime = System.currentTimeMillis();
         long currTime = mTimeProvider.elapsedRealtime();
         long scanDuration = 0;
@@ -1030,7 +1030,7 @@ class AppScanStats {
             for (int i = 0; i < mLastScans.size(); i++) {
                 LastScan scan = mLastScans.get(i);
                 Date timestamp = new Date(currentTime - currTime + scan.timestamp);
-                sb.append("\n    ").append(DATE_FORMAT.get().format(timestamp)).append(" - ");
+                sb.append("\n    ").append(dateFormat.format(timestamp)).append(" - ");
                 sb.append(scan.duration).append("ms ");
                 if (scan.isOpportunisticScan) {
                     sb.append("Opp ");
@@ -1093,7 +1093,7 @@ class AppScanStats {
             sb.append("\n  Ongoing scans                                               :");
             for (LastScan scan : mOngoingScans.values()) {
                 Date timestamp = new Date(currentTime - currTime + scan.timestamp);
-                sb.append("\n    ").append(DATE_FORMAT.get().format(timestamp)).append(" - ");
+                sb.append("\n    ").append(dateFormat.format(timestamp)).append(" - ");
                 sb.append((currTime - scan.timestamp)).append("ms ");
                 if (scan.isOpportunisticScan) {
                     sb.append("Opp ");
