@@ -1237,14 +1237,16 @@ public class LeAudioService extends ProfileService {
             return;
         }
 
-        A2dpService mA2dp = A2dpService.getA2dpService();
-        if ((mA2dp != null && mA2dp.getActiveDevice() != null) || mInCall) {
-            Log.w(TAG, "A2dp device is active or call ongoing, skip broadcast creation.");
-            mHandler.post(
-                    () ->
-                            notifyBroadcastStartFailed(
-                                    BluetoothStatusCodes.ERROR_LOCAL_NOT_ENOUGH_RESOURCES));
-            return;
+        if (!leaudioBigDependsOnAudioState()) {
+            A2dpService mA2dp = A2dpService.getA2dpService();
+            if ((mA2dp != null && mA2dp.getActiveDevice() != null) || mInCall) {
+                Log.w(TAG, "A2dp device is active or call ongoing, skip broadcast creation.");
+                mHandler.post(
+                        () ->
+                                notifyBroadcastStartFailed(
+                                        BluetoothStatusCodes.ERROR_LOCAL_NOT_ENOUGH_RESOURCES));
+                return;
+            }
         }
 
         int canBroadcastBeCreatedReturnCode = canBroadcastBeCreated(broadcastSettings);
