@@ -86,16 +86,6 @@ flag {
 }
 
 flag {
-    name: "leaudio_broadcast_assistant_peripheral_entrustment"
-    namespace: "bluetooth"
-    description: "Give peripheral devices more responsibility for source handling"
-    bug: "333050419"
-    metadata {
-        purpose: PURPOSE_BUGFIX
-    }
-}
-
-flag {
     name: "leaudio_broadcast_volume_control_with_set_volume"
     namespace: "bluetooth"
     description: "Set broadcast sink volume with setVolume API"
@@ -126,16 +116,6 @@ flag {
 }
 
 flag {
-    name: "leaudio_broadcast_update_metadata_callback"
-    namespace: "bluetooth"
-    description: "Notify upper layer with callback when medadata is updated"
-    bug: "347710374"
-    metadata {
-        purpose: PURPOSE_BUGFIX
-    }
-}
-
-flag {
     name: "headtracker_sdu_size"
     namespace: "bluetooth"
     description: "Use updated headtracker SDU size"
@@ -160,16 +140,6 @@ flag {
     namespace: "bluetooth"
     description: "Fix reconfiguration time between call and media"
     bug: "352686917"
-    metadata {
-        purpose: PURPOSE_BUGFIX
-    }
-}
-
-flag {
-    name: "leaudio_broadcast_volume_control_primary_group_only"
-    namespace: "bluetooth"
-    description: "Only control broadcast primary group volume"
-    bug: "354201794"
     metadata {
         purpose: PURPOSE_BUGFIX
     }

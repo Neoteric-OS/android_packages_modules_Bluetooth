@@ -1270,7 +1270,9 @@ types::LeAudioLtvMap LeAudioDevice::GetMetadata(AudioContexts context_type,
                                                 const std::vector<uint8_t>& ccid_list) {
   types::LeAudioLtvMap metadata;
   metadata.Add(types::kLeAudioMetadataTypeStreamingAudioContext, context_type.value());
-  metadata.Add(types::kLeAudioMetadataTypeCcidList, ccid_list);
+  if (ccid_list.size()) {
+    metadata.Add(types::kLeAudioMetadataTypeCcidList, ccid_list);
+  }
   return metadata;
 }
 

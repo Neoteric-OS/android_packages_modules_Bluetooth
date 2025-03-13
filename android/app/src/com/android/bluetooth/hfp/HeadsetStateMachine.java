@@ -55,6 +55,7 @@ import com.android.bluetooth.btservice.MetricsLogger;
 import com.android.bluetooth.btservice.InteropUtil;
 import com.android.bluetooth.btservice.ProfileService;
 import com.android.bluetooth.btservice.storage.DatabaseManager;
+import com.android.bluetooth.flags.Flags;
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.internal.util.State;
 import com.android.internal.util.StateMachine;
@@ -2911,6 +2912,11 @@ class HeadsetStateMachine extends StateMachine {
                     sendIndicatorIntent(device, indId, -1);
                     break;
                 case HeadsetHalConstants.HF_INDICATOR_BATTERY_LEVEL_STATUS:
+                    if (Flags.enableBatteryLevelUpdateOnlyThroughHfIndicator()) {
+                        mAdapterService
+                                .getRemoteDevices()
+                                .handleHfIndicatorStatus(device, indId, true);
+                    }
                     log("Send Broadcast intent for the Battery Level indicator.");
                     sendIndicatorIntent(device, indId, -1);
                     break;

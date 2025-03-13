@@ -536,8 +536,6 @@ TEST_F(StateMachineTest, UpdateAnnouncement) {
 }
 
 TEST_F(StateMachineTest, UpdateBroadcastAnnouncementWithCallback) {
-  com::android::bluetooth::flags::provider_->leaudio_broadcast_update_metadata_callback(true);
-
   EXPECT_CALL(*(sm_callbacks_.get()), OnStateMachineCreateStatus(_, true)).Times(1);
 
   auto broadcast_id = InstantiateStateMachine();
@@ -558,8 +556,6 @@ TEST_F(StateMachineTest, UpdateBroadcastAnnouncementWithCallback) {
 }
 
 TEST_F(StateMachineTest, UpdatePublicBroadcastAnnouncementWithCallback) {
-  com::android::bluetooth::flags::provider_->leaudio_broadcast_update_metadata_callback(true);
-
   EXPECT_CALL(*(sm_callbacks_.get()), OnStateMachineCreateStatus(_, true)).Times(1);
 
   auto broadcast_id = InstantiateStateMachine();

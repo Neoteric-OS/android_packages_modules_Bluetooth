@@ -24,7 +24,6 @@ import static android.bluetooth.IBluetoothLeAudio.LE_AUDIO_GROUP_ID_INVALID;
 import static com.android.bluetooth.bass_client.BassConstants.INVALID_BROADCAST_ID;
 import static com.android.bluetooth.flags.Flags.leaudioBigDependsOnAudioState;
 import static com.android.bluetooth.flags.Flags.leaudioBroadcastApiManagePrimaryGroup;
-import static com.android.bluetooth.flags.Flags.leaudioBroadcastAssistantPeripheralEntrustment;
 import static com.android.bluetooth.flags.Flags.leaudioMonitorUnicastSourceWhenManagedByBroadcastDelegator;
 import static com.android.bluetooth.flags.Flags.leaudioUseAudioRecordingListener;
 import static com.android.modules.utils.build.SdkLevel.isAtLeastU;
@@ -1449,17 +1448,15 @@ public class LeAudioService extends ProfileService {
                 Log.d(TAG, "pauseBroadcast: Broadcast is stopped, skip pause request");
             }
         } else {
-            if (leaudioBroadcastAssistantPeripheralEntrustment()) {
-                if (!isPlaying(broadcastId)) {
-                    Log.d(TAG, "pauseBroadcast: Broadcast is not playing, skip pause request");
-                    return;
-                }
+            if (!isPlaying(broadcastId)) {
+                Log.d(TAG, "pauseBroadcast: Broadcast is not playing, skip pause request");
+                return;
+            }
 
-                // Due to broadcast pause sinks may lose synchronization
-                BassClientService bassClientService = getBassClientService();
-                if (bassClientService != null) {
-                    bassClientService.cacheSuspendingSources(broadcastId);
-                }
+            // Due to broadcast pause sinks may lose synchronization
+            BassClientService bassClientService = getBassClientService();
+            if (bassClientService != null) {
+                bassClientService.cacheSuspendingSources(broadcastId);
             }
 
             Log.d(TAG, "pauseBroadcast");
@@ -4110,9 +4107,7 @@ public class LeAudioService extends ProfileService {
                                             BluetoothStatusCodes.REASON_LOCAL_STACK_REQUEST));
 
                     if (bassClientService != null) {
-                        if (!leaudioBroadcastAssistantPeripheralEntrustment()) {
-                            bassClientService.suspendReceiversSourceSynchronization(broadcastId);
-                        } else if (leaudioBigDependsOnAudioState()) {
+                        if (leaudioBigDependsOnAudioState()) {
                             bassClientService.cacheSuspendingSources(broadcastId);
                         }
                     }
@@ -5073,28 +5068,16 @@ public class LeAudioService extends ProfileService {
             if (Flags.leaudioBroadcastVolumeControlWithSetVolume()
                     && currentlyActiveGroupId == LE_AUDIO_GROUP_ID_INVALID
                     && !activeBroadcastSinks.isEmpty()) {
-                if (Flags.leaudioBroadcastVolumeControlPrimaryGroupOnly()) {
-                    if (activeBroadcastSinks.stream()
-                            .anyMatch(dev -> isPrimaryGroup(getGroupId(dev)))) {
-                        Log.d(
-                                TAG,
-                                "Setting volume for broadcast sink primary group: "
-                                        + mUnicastGroupIdDeactivatedForBroadcastTransition);
-                        volumeControlService.setGroupVolume(
-                                mUnicastGroupIdDeactivatedForBroadcastTransition, volume);
-                    } else {
-                        Log.w(TAG, "Setting volume when no active or broadcast primary group");
-                    }
+                if (activeBroadcastSinks.stream()
+                        .anyMatch(dev -> isPrimaryGroup(getGroupId(dev)))) {
+                    Log.d(
+                            TAG,
+                            "Setting volume for broadcast sink primary group: "
+                                    + mUnicastGroupIdDeactivatedForBroadcastTransition);
+                    volumeControlService.setGroupVolume(
+                            mUnicastGroupIdDeactivatedForBroadcastTransition, volume);
                 } else {
-                    Set<Integer> broadcastGroups =
-                            activeBroadcastSinks.stream()
-                                    .map(dev -> getGroupId(dev))
-                                    .filter(id -> id != IBluetoothLeAudio.LE_AUDIO_GROUP_ID_INVALID)
-                                    .collect(Collectors.toSet());
-
-                    Log.d(TAG, "Setting volume for broadcast sink groups: " + broadcastGroups);
-                    broadcastGroups.forEach(
-                            groupId -> volumeControlService.setGroupVolume(groupId, volume));
+                    Log.w(TAG, "Setting volume when no active or broadcast primary group");
                 }
             } else {
                 volumeControlService.setGroupVolume(currentlyActiveGroupId, volume);

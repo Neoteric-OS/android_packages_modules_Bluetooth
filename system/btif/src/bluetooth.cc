@@ -41,6 +41,7 @@
 #include <utility>
 #include <vector>
 
+#include "bta/gatt/bta_gattc_int.h"
 #include "bta/hh/bta_hh_int.h"
 #include "bta/include/bta_api.h"
 #include "bta/include/bta_ar_api.h"
@@ -62,16 +63,19 @@
 #include "btif/include/btif_config.h"
 #include "btif/include/btif_debug_conn.h"
 #include "btif/include/btif_dm.h"
+#include "btif/include/btif_gatt.h"
 #include "btif/include/btif_hd.h"
 #include "btif/include/btif_hearing_aid.h"
 #include "btif/include/btif_hf.h"
 #include "btif/include/btif_hf_client.h"
 #include "btif/include/btif_hh.h"
 #include "btif/include/btif_keystore.h"
+#include "btif/include/btif_le_audio.h"
 #include "btif/include/btif_metrics_logging.h"
 #include "btif/include/btif_pan.h"
 #include "btif/include/btif_profile_storage.h"
 #include "btif/include/btif_rc.h"
+#include "btif/include/btif_sdp.h"
 #include "btif/include/btif_sock.h"
 #include "btif/include/btif_sock_logging.h"
 #include "btif/include/btif_storage.h"
@@ -163,11 +167,11 @@ tBT_TRANSPORT to_bt_transport(int val) {
  ******************************************************************************/
 
 static bt_callbacks_t* bt_hal_cbacks = NULL;
-bool restricted_mode = false;
-bool common_criteria_mode = false;
-const int CONFIG_COMPARE_ALL_PASS = 0b11;
-int common_criteria_config_compare_result = CONFIG_COMPARE_ALL_PASS;
-bool is_local_device_atv = false;
+static bool restricted_mode = false;
+static bool common_criteria_mode = false;
+static constexpr int CONFIG_COMPARE_ALL_PASS = 0b11;
+static int common_criteria_config_compare_result = CONFIG_COMPARE_ALL_PASS;
+static bool is_local_device_atv = false;
 
 /*******************************************************************************
  *  Externs
