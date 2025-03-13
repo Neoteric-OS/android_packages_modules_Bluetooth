@@ -355,7 +355,7 @@ class AdapterServiceBinder extends IBluetooth.Stub {
         AdapterService service = getService();
         if (service == null
                 || !callerIsSystemOrActiveOrManagedUser(service, TAG, "startDiscovery")
-                || !checkScanPermissionForDataDelivery(service, source, "startDiscovery")) {
+                || !checkScanPermissionForDataDelivery(service, source, TAG, "startDiscovery")) {
             return false;
         }
 
@@ -2064,7 +2064,7 @@ class AdapterServiceBinder extends IBluetooth.Stub {
                 || !callerIsSystemOrActiveOrManagedUser(
                         service, TAG, "getOffloadedTransportDiscoveryDataScanSupported")
                 || !checkScanPermissionForDataDelivery(
-                        service, source, "getOffloadedTransportDiscoveryDataScanSupported")) {
+                        service, source, TAG, "getOffloadedTransportDiscoveryDataScanSupported")) {
             return BluetoothStatusCodes.ERROR_MISSING_BLUETOOTH_SCAN_PERMISSION;
         }
 

@@ -653,15 +653,9 @@ public final class Utils {
     @SuppressLint("AndroidFrameworkRequiresPermission") // This method enforce the permission
     @RequiresPermission(BLUETOOTH_SCAN)
     public static boolean checkScanPermissionForDataDelivery(
-            Context context, AttributionSource source, String message) {
-        return checkPermissionForDataDelivery(context, BLUETOOTH_SCAN, source, message);
-    }
-
-    @SuppressLint("AndroidFrameworkRequiresPermission") // This method enforce the permission
-    @RequiresPermission(BLUETOOTH_SCAN)
-    public static boolean checkScanPermissionForDataDelivery(
             Context context, AttributionSource source, String tag, String method) {
-        return checkScanPermissionForDataDelivery(context, source, tag + "." + method + "()");
+        return checkPermissionForDataDelivery(
+                context, BLUETOOTH_SCAN, source, tag + "." + method + "()");
     }
 
     /**
