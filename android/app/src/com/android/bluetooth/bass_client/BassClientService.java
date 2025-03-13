@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 The Android Open Source Project
+ * Copyright (C) 2022 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -1803,7 +1803,6 @@ public class BassClientService extends ProfileService {
                     devices.add(sm.getDevice());
                 }
             }
-            log("getConnectedDevices: " + devices);
             return devices;
         }
     }
@@ -2763,13 +2762,6 @@ public class BassClientService extends ProfileService {
     }
 
     void addSelectSourceRequest(int broadcastId, boolean hasPriority) {
-        sEventLogger.logd(
-                TAG,
-                "Add Select Broadcast Source, broadcastId: "
-                        + broadcastId
-                        + ", hasPriority: "
-                        + hasPriority);
-
         if (getActiveSyncedSources().contains(getSyncHandleForBroadcastId(broadcastId))) {
             log("addSelectSourceRequest: Already synced");
             return;
@@ -2779,6 +2771,13 @@ public class BassClientService extends ProfileService {
             log("addSelectSourceRequest: Already added");
             return;
         }
+
+        sEventLogger.logd(
+                TAG,
+                "Add Select Broadcast Source, broadcastId: "
+                        + broadcastId
+                        + ", hasPriority: "
+                        + hasPriority);
 
         ScanResult scanRes = getCachedBroadcast(broadcastId);
         if (scanRes == null) {
@@ -3523,7 +3522,6 @@ public class BassClientService extends ProfileService {
      * @return the list of Broadcast Receive State {@link BluetoothLeBroadcastReceiveState}
      */
     public List<BluetoothLeBroadcastReceiveState> getAllSources(BluetoothDevice sink) {
-        log("getAllSources for " + sink);
         synchronized (mStateMachines) {
             BassClientStateMachine stateMachine = getOrCreateStateMachine(sink);
             if (stateMachine == null) {
