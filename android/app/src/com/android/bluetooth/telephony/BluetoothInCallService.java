@@ -882,7 +882,7 @@ public class BluetoothInCallService extends InCallService {
         }
     };
 
-    private void handlerThreadSleep(long millisecs) {
+    private static void handlerThreadSleep(long millisecs) {
       try {
         Log.d(TAG, "wait for" + millisecs + "msecs");
         Thread.sleep(millisecs);
@@ -2037,7 +2037,7 @@ public class BluetoothInCallService extends InCallService {
         return bluetoothCallState;
     }
 
-    private int getBtCallState(BluetoothCall call, boolean isForeground) {
+    private static int getBtCallState(BluetoothCall call, boolean isForeground) {
         switch (call.getState()) {
             case Call.STATE_NEW:
             case Call.STATE_DISCONNECTED:
@@ -2675,7 +2675,7 @@ public class BluetoothInCallService extends InCallService {
         }
     }
 
-    private Integer getTbsCallState(BluetoothCall call) {
+    private static Integer getTbsCallState(BluetoothCall call) {
         switch (call.getState()) {
             case Call.STATE_ACTIVE:
                 return BluetoothLeCall.STATE_ACTIVE;
@@ -2694,7 +2694,6 @@ public class BluetoothInCallService extends InCallService {
             case Call.STATE_RINGING:
             case Call.STATE_SIMULATED_RINGING:
                 if (call.isSilentRingingRequested()) {
-                    mSilentRingingRequested = true;
                     return null;
                 } else {
                     return BluetoothLeCall.STATE_INCOMING;

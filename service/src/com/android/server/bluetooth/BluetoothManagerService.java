@@ -698,7 +698,7 @@ class BluetoothManagerService {
     }
 
     /** Returns true if satellite mode is turned on. */
-    private boolean isSatelliteModeOn() {
+    private static boolean isSatelliteModeOn() {
         return SatelliteModeListener.isOn();
     }
 
@@ -756,7 +756,7 @@ class BluetoothManagerService {
         Log.d(TAG, "loadStoredNameAndAddress: Name=" + mName + ", Address=" + logAddress(mAddress));
     }
 
-    private String logAddress(String address) {
+    private static String logAddress(String address) {
         if (address == null) {
             return "[address is null]";
         }
@@ -2197,7 +2197,7 @@ class BluetoothManagerService {
                 intent, UserHandle.ALL, null, getTempAllowlistBroadcastOptions());
     }
 
-    private boolean isBleState(int state) {
+    private static boolean isBleState(int state) {
         switch (state) {
             case STATE_BLE_ON:
             case STATE_BLE_TURNING_ON:
@@ -2558,7 +2558,7 @@ class BluetoothManagerService {
         }
     }
 
-    private void dumpBluetoothFlags(PrintWriter writer) {
+    private static void dumpBluetoothFlags(PrintWriter writer) {
         writer.println("🚩Flag dump:");
         Arrays.stream(Flags.class.getDeclaredMethods())
                 .forEach(
@@ -2825,8 +2825,8 @@ class BluetoothManagerService {
         disableComponents(pm, packageInfo.providers, packageName, null);
     }
 
-    private <T extends android.content.pm.ComponentInfo> void disableComponents(
-        PackageManager pm, T[] components, String packageName, List<String> componentsToKeep) {
+    private static <T extends android.content.pm.ComponentInfo> void disableComponents(
+            PackageManager pm, T[] components, String packageName, List<String> componentsToKeep) {
         if (components == null) {
             return;
         }

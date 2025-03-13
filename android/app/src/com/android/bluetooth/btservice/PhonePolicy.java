@@ -122,7 +122,7 @@ public class PhonePolicy implements AdapterService.BluetoothStateCallback {
     }
 
 
-     private boolean isConnectTimeoutDelayApplicable(BluetoothDevice device) {
+     private static boolean isConnectTimeoutDelayApplicable(BluetoothDevice device) {
         if (device == null) return false;
 
         boolean matched = InteropUtil.interopMatchAddrOrName(
@@ -132,7 +132,7 @@ public class PhonePolicy implements AdapterService.BluetoothStateCallback {
         return matched;
      }
 
-     private boolean isConnectReducedTimeoutDelayApplicable(BluetoothDevice device) {
+     private static boolean isConnectReducedTimeoutDelayApplicable(BluetoothDevice device) {
         if (device == null) return false;
 
         boolean matched = InteropUtil.interopMatchAddrOrName(
@@ -1076,9 +1076,8 @@ public class PhonePolicy implements AdapterService.BluetoothStateCallback {
                 List<BluetoothDevice> connectedDevices = hapClientService.getConnectedDevices();
                 if (!connectedDevices.contains(device)
                         && (hapClientService.getConnectionPolicy(device)
-                                == BluetoothProfile.CONNECTION_POLICY_ALLOWED)
-                        && (hapClientService.getConnectionState(device)
-                                == BluetoothProfile.STATE_DISCONNECTED)) {
+                                == CONNECTION_POLICY_ALLOWED)
+                        && (hapClientService.getConnectionState(device) == STATE_DISCONNECTED)) {
                     Log.d(TAG, log + "Retrying HAP connection");
                     hapClientService.connect(device);
                 }
@@ -1125,11 +1124,10 @@ public class PhonePolicy implements AdapterService.BluetoothStateCallback {
                 profileId < BluetoothProfile.MAX_PROFILE_ID;
                 profileId++) {
             if (mAdapterService.getDatabase().getProfileConnectionPolicy(device, profileId)
-                    == BluetoothProfile.CONNECTION_POLICY_ALLOWED) {
+                    == CONNECTION_POLICY_ALLOWED) {
                 mAdapterService
                         .getDatabase()
-                        .setProfileConnectionPolicy(
-                                device, profileId, BluetoothProfile.CONNECTION_POLICY_FORBIDDEN);
+                        .setProfileConnectionPolicy(device, profileId, CONNECTION_POLICY_FORBIDDEN);
             }
         }
     }

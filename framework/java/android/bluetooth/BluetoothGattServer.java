@@ -52,6 +52,8 @@
 package android.bluetooth;
 
 import static android.Manifest.permission.BLUETOOTH_CONNECT;
+import static android.bluetooth.BluetoothProfile.STATE_CONNECTED;
+import static android.bluetooth.BluetoothProfile.STATE_DISCONNECTED;
 
 import android.annotation.IntDef;
 import android.annotation.NonNull;
@@ -157,9 +159,7 @@ public final class BluetoothGattServer implements BluetoothProfile {
                         mCallback.onConnectionStateChange(
                                 mAdapter.getRemoteDevice(address),
                                 status,
-                                connected
-                                        ? BluetoothProfile.STATE_CONNECTED
-                                        : BluetoothProfile.STATE_DISCONNECTED);
+                                connected ? STATE_CONNECTED : STATE_DISCONNECTED);
                     } catch (Exception ex) {
                         Log.w(TAG, "Unhandled exception in callback", ex);
                     }

@@ -250,6 +250,7 @@ protected:
   /* Use for single test to simulate late ASE notifications */
   bool stop_inject_configured_ase_after_first_ase_configured_;
 
+  uint16_t attr_handle = ATTR_HANDLE_ASCS_POOL_START;
   uint16_t pacs_attr_handle_next = ATTR_HANDLE_PACS_POOL_START;
 
   virtual void SetUp() override {
@@ -645,11 +646,6 @@ protected:
     leAudioDevice->conn_id_ = id;
     leAudioDevice->SetConnectionState(DeviceConnectState::CONNECTED);
 
-    uint16_t attr_handle = ATTR_HANDLE_ASCS_POOL_START;
-    leAudioDevice->snk_audio_locations_hdls_.val_hdl = attr_handle++;
-    leAudioDevice->snk_audio_locations_hdls_.ccc_hdl = attr_handle++;
-    leAudioDevice->src_audio_locations_hdls_.val_hdl = attr_handle++;
-    leAudioDevice->src_audio_locations_hdls_.ccc_hdl = attr_handle++;
     leAudioDevice->audio_avail_hdls_.val_hdl = attr_handle++;
     leAudioDevice->audio_avail_hdls_.ccc_hdl = attr_handle++;
     leAudioDevice->audio_supp_cont_hdls_.val_hdl = attr_handle++;
@@ -1086,7 +1082,10 @@ protected:
 
       leAudioDevice->snk_pacs_.emplace_back(std::make_tuple(std::move(handle_pair), pac_recs));
 
-      leAudioDevice->snk_audio_locations_ = audio_locations;
+      auto val_hdl = attr_handle++;
+      auto ccc_hdl = attr_handle++;
+      leAudioDevice->audio_locations_.sink.emplace(types::hdl_pair(val_hdl, ccc_hdl),
+                                                   types::AudioLocations(audio_locations));
     }
 
     if ((direction & types::kLeAudioDirectionSource) > 0) {
@@ -1107,7 +1106,10 @@ protected:
 
       leAudioDevice->src_pacs_.emplace_back(std::make_tuple(std::move(handle_pair), pac_recs));
 
-      leAudioDevice->src_audio_locations_ = audio_locations;
+      auto val_hdl = attr_handle++;
+      auto ccc_hdl = attr_handle++;
+      leAudioDevice->audio_locations_.source.emplace(types::hdl_pair(val_hdl, ccc_hdl),
+                                                     types::AudioLocations(audio_locations));
     }
 
     DeviceContextsUpdate(leAudioDevice, direction, contexts_available, contexts_supported);
@@ -9234,7 +9236,7 @@ TEST_F(StateMachineTest, testAutonomousDisableOneDeviceAndGoBackToStream_CisDisc
   /* Now lets try to attach the device back to the stream (Enabling and Receiver
    * Start ready to be called)*/
 
-  EXPECT_CALL(gatt_queue, WriteCharacteristic(lastDevice->conn_id_, firstDevice->ctp_hdls_.val_hdl,
+  EXPECT_CALL(gatt_queue, WriteCharacteristic(lastDevice->conn_id_, lastDevice->ctp_hdls_.val_hdl,
                                               _, GATT_WRITE_NO_RSP, _, _))
           .Times(2);
 
@@ -9343,7 +9345,7 @@ TEST_F(StateMachineTest, testAutonomousDisableOneDeviceAndGoBackToStream_CisConn
   /* Now lets try to attach the device back to the stream (Enabling and Receiver
    * Start ready to be called)*/
 
-  EXPECT_CALL(gatt_queue, WriteCharacteristic(lastDevice->conn_id_, firstDevice->ctp_hdls_.val_hdl,
+  EXPECT_CALL(gatt_queue, WriteCharacteristic(lastDevice->conn_id_, lastDevice->ctp_hdls_.val_hdl,
                                               _, GATT_WRITE_NO_RSP, _, _))
           .Times(2);
 
