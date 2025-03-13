@@ -1582,7 +1582,7 @@ public class AdapterService extends Service {
                 Log.wtf(TAG, logHdr + " profile is already started");
                 return;
             }
-            Log.d(TAG, logHdr + " starting profile");
+            Log.i(TAG, logHdr + " starting profile");
             ProfileService profileService = PROFILE_CONSTRUCTORS.get(profileId).apply(this);
             mStartedProfiles.put(profileId, profileService);
             addProfile(profileService);
@@ -1600,7 +1600,7 @@ public class AdapterService extends Service {
                 Log.wtf(TAG, logHdr + " profile is already stopped");
                 return;
             }
-            Log.d(TAG, logHdr + " stopping profile");
+            Log.i(TAG, logHdr + " stopping profile");
             profileService.setAvailable(false);
             onProfileServiceStateChanged(profileService, BluetoothAdapter.STATE_OFF);
             removeProfile(profileService);
@@ -1610,7 +1610,7 @@ public class AdapterService extends Service {
             }
         }
         Instant end = Instant.now();
-        Log.d(TAG, logHdr + " completed in " + Duration.between(start, end).toMillis() + "ms");
+        Log.i(TAG, logHdr + " completed in " + Duration.between(start, end).toMillis() + "ms");
     }
 
     private void setAllProfileServiceStates(int[] profileIds, int state) {
@@ -4922,6 +4922,11 @@ public class AdapterService extends Service {
     void onToBleOn() {
         Log.d(TAG, "onToBleOn() called with mRunningProfiles.size() = " + mRunningProfiles.size());
         mAdapterStateMachine.sendMessage(AdapterState.USER_TURN_OFF);
+    }
+
+    void disconnectAllAcls() {
+        Log.d(TAG, "disconnectAllAcls()");
+        mNativeInterface.disconnectAllAcls();
     }
 
     public String getName() {
