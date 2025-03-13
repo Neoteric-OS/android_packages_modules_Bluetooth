@@ -269,6 +269,7 @@ public class BassClientService extends ProfileService {
                 }
                 controller.stopScanInternal(mScannerId);
                 controller.unregisterScannerInternal(mScannerId);
+                mBaasUuidFilters.clear();
                 mScannerId = SCANNER_ID_NOT_INITIALIZED;
             }
         }
@@ -2830,6 +2831,11 @@ public class BassClientService extends ProfileService {
                         + broadcastId
                         + ", hasPriority: "
                         + hasPriority);
+
+        if (getActiveSyncedSources().contains(getSyncHandleForBroadcastId(broadcastId))) {
+            log("addSelectSourceRequest: Already synced");
+            return;
+        }
 
         if (isAddedToSelectSourceRequest(broadcastId, hasPriority)) {
             log("addSelectSourceRequest: Already added");
