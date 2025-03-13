@@ -817,7 +817,7 @@ class HeadsetStateMachine extends StateMachine {
             super.enter();
             mConnectingTimestampMs = SystemClock.uptimeMillis();
             sendMessageDelayed(CONNECT_TIMEOUT, mDevice, sConnectTimeoutMs);
-            mSystemInterface.queryPhoneState();
+            mSystemInterface.queryPhoneState(mHeadsetService);
             // update call states in StateMachine
             mStateMachineCallState.mNumActive =
                    mSystemInterface.getHeadsetPhoneState().getNumActiveCall();
@@ -1410,7 +1410,7 @@ class HeadsetStateMachine extends StateMachine {
                 // Reset NREC on connect event. Headset will override later
                 processNoiseReductionEvent(true);
                 // Query phone state for initial setup
-                mSystemInterface.queryPhoneState();
+                mSystemInterface.queryPhoneState(mHeadsetService);
                 // Checking for the Blacklisted device Addresses
                 mIsBlacklistedDevice = isConnectedDeviceBlacklistedforIncomingCall();
                 // Checking for the Blacklisted device Addresses
@@ -1934,8 +1934,7 @@ class HeadsetStateMachine extends StateMachine {
      *
      * @return device in focus
      */
-    @VisibleForTesting
-    public BluetoothDevice getDevice() {
+    BluetoothDevice getDevice() {
         return mDevice;
     }
 
@@ -2362,7 +2361,7 @@ class HeadsetStateMachine extends StateMachine {
 
     @VisibleForTesting
     void processAtChld(int chld, BluetoothDevice device) {
-        if (mSystemInterface.processChld(chld)) {
+        if (mSystemInterface.processChld(mHeadsetService, chld)) {
             mNativeInterface.atResponseCode(device, HeadsetHalConstants.AT_RESPONSE_OK, 0);
         } else {
             mNativeInterface.atResponseCode(device, HeadsetHalConstants.AT_RESPONSE_ERROR, 0);

@@ -408,8 +408,8 @@ bool BTM_IsLinkKeyAuthed(const RawAddress& bd_addr, tBT_TRANSPORT transport) {
   return btm_sec_cb.IsLinkKeyAuthenticated(bd_addr, transport);
 }
 
-bool BTM_IsLinkKeyKnown(const RawAddress& bd_addr, tBT_TRANSPORT transport) {
-  return btm_sec_cb.IsLinkKeyKnown(bd_addr, transport);
+bool BTM_IsBonded(const RawAddress& bd_addr, tBT_TRANSPORT transport) {
+  return btm_sec_cb.IsDeviceBonded(bd_addr, transport);
 }
 
 bool BTM_IsAuthenticated(const RawAddress& bd_addr, tBT_TRANSPORT transport) {
@@ -2012,7 +2012,7 @@ void btm_create_conn_cancel_complete(uint8_t status, const RawAddress bd_addr) {
  * Returns          void
  *
  ******************************************************************************/
-void btm_sec_check_pending_reqs(void) {
+static void btm_sec_check_pending_reqs(void) {
   if (btm_sec_cb.pairing_state == BTM_PAIR_STATE_IDLE) {
     /* First, resubmit L2CAP requests */
     if (btm_sec_cb.sec_req_pending) {

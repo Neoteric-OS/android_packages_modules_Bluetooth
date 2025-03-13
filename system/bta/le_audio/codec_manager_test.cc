@@ -30,6 +30,7 @@
 #include "le_audio/le_audio_types.h"
 #include "le_audio_set_configuration_provider.h"
 #include "stack/include/btm_client_interface.h"
+#include "osi/include/properties.h"
 #include "test/mock/mock_legacy_hci_interface.h"
 #include "test/mock/mock_main_shim_entry.h"
 #include "test/mock/mock_stack_btm_interface.h"
@@ -48,8 +49,6 @@ using bluetooth::le_audio::types::LeAudioCodecIdLc3;
 using bluetooth::le_audio::types::CodecLocation;
 using bluetooth::le_audio::types::kLeAudioDirectionSink;
 using bluetooth::le_audio::types::kLeAudioDirectionSource;
-
-void osi_property_set_bool(const char* key, bool value);
 
 static const std::vector<AudioSetConfiguration> offload_capabilities_none(0);
 

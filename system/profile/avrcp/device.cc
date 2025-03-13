@@ -28,6 +28,7 @@
 #include "btif/include/btif_hf.h"
 #include "btif/include/btif_storage.h"
 #include "device/include/interop.h"
+#include "btif/include/btif_av.h"
 #include "internal_include/stack_config.h"
 #include "l2cdefs.h"
 #include "osi/include/properties.h"
@@ -44,13 +45,6 @@
 #include "types/raw_address.h"
 #include "btif/include/btif_config.h"
 #include "storage/config_keys.h"
-
-// TODO(b/369381361) Enfore -Wmissing-prototypes
-#pragma GCC diagnostic ignored "-Wmissing-prototypes"
-
-extern bool btif_av_peer_is_connected_sink(const RawAddress& peer_address);
-extern bool btif_av_both_enable(void);
-extern bool btif_av_src_sink_coexist_enabled(void);
 
 template <>
 struct std::formatter<bluetooth::avrcp::PlayState> : enum_formatter<bluetooth::avrcp::PlayState> {};
@@ -147,7 +141,7 @@ bool Device::HasCoverArtSupport() const {
   return coverart_supported;
 }
 
-void filter_cover_art(SongInfo& s) {
+static void filter_cover_art(SongInfo& s) {
   for (auto it = s.attributes.begin(); it != s.attributes.end(); it++) {
     if (it->attribute() == Attribute::DEFAULT_COVER_ART) {
       s.attributes.erase(it);
@@ -1611,8 +1605,8 @@ void Device::GetMediaPlayerListResponse(uint8_t label, std::shared_ptr<GetFolder
   send_message(label, true, std::move(builder));
 }
 
-std::set<AttributeEntry> filter_attributes_requested(const SongInfo& song,
-                                                     const std::vector<Attribute>& attrs) {
+static std::set<AttributeEntry> filter_attributes_requested(const SongInfo& song,
+                                                            const std::vector<Attribute>& attrs) {
   std::set<AttributeEntry> result;
   for (const auto& attr : attrs) {
     if (song.attributes.find(attr) != song.attributes.end()) {
