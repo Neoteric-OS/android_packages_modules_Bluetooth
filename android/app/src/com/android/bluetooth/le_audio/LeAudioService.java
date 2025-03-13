@@ -1996,7 +1996,7 @@ public class LeAudioService extends ProfileService {
                 Utils.getTempBroadcastOptions().toBundle());
     }
 
-    void sentActiveDeviceChangeIntent(BluetoothDevice device) {
+    void sendActiveDeviceChangeIntent(BluetoothDevice device) {
         Intent intent = new Intent(BluetoothLeAudio.ACTION_LE_AUDIO_ACTIVE_DEVICE_CHANGED);
         intent.putExtra(BluetoothDevice.EXTRA_DEVICE, device);
         intent.addFlags(
@@ -2005,6 +2005,7 @@ public class LeAudioService extends ProfileService {
         createContextAsUser(UserHandle.ALL, /* flags= */ 0)
                 .sendBroadcastWithMultiplePermissions(
                         intent, new String[] {BLUETOOTH_CONNECT, BLUETOOTH_PRIVILEGED});
+        mExposedActiveDevice = device;
     }
 
     void notifyVolumeControlServiceAboutActiveGroup(BluetoothDevice device) {
@@ -2033,12 +2034,13 @@ public class LeAudioService extends ProfileService {
                 "Notify Active device changed."
                         + device
                         + ". Currently active device is "
-                        + mActiveAudioOutDevice);
+                        + mActiveAudioOutDevice
+                        + " Currently exposed device "
+                        + mExposedActiveDevice);
 
         mAdapterService.handleActiveDeviceChange(BluetoothProfile.LE_AUDIO, device);
-        sentActiveDeviceChangeIntent(device);
         notifyVolumeControlServiceAboutActiveGroup(device);
-        mExposedActiveDevice = device;
+        sendActiveDeviceChangeIntent(device);
     }
 
     boolean isAnyGroupDisabledFromAutoActiveMode() {
@@ -2657,7 +2659,7 @@ public class LeAudioService extends ProfileService {
                                 + groupId
                                 + ", exposedDevice: "
                                 + mExposedActiveDevice);
-                sentActiveDeviceChangeIntent(mExposedActiveDevice);
+                sendActiveDeviceChangeIntent(mExposedActiveDevice);
             }
             return true;
         }
@@ -5047,11 +5049,6 @@ public class LeAudioService extends ProfileService {
         List<BluetoothDevice> activeBroadcastSinks = new ArrayList<>();
 
         if (currentlyActiveGroupId == LE_AUDIO_GROUP_ID_INVALID) {
-            if (!Flags.leaudioBroadcastVolumeControlWithSetVolume()) {
-                Log.e(TAG, "There is no active group ");
-                return;
-            }
-
             BassClientService bassClientService = getBassClientService();
             if (bassClientService != null) {
                 activeBroadcastSinks = bassClientService.getSyncedBroadcastSinks();
@@ -5064,24 +5061,23 @@ public class LeAudioService extends ProfileService {
         }
 
         VolumeControlService volumeControlService = getVolumeControlService();
-        if (volumeControlService != null) {
-            if (Flags.leaudioBroadcastVolumeControlWithSetVolume()
-                    && currentlyActiveGroupId == LE_AUDIO_GROUP_ID_INVALID
-                    && !activeBroadcastSinks.isEmpty()) {
-                if (activeBroadcastSinks.stream()
-                        .anyMatch(dev -> isPrimaryGroup(getGroupId(dev)))) {
-                    Log.d(
-                            TAG,
-                            "Setting volume for broadcast sink primary group: "
-                                    + mUnicastGroupIdDeactivatedForBroadcastTransition);
-                    volumeControlService.setGroupVolume(
-                            mUnicastGroupIdDeactivatedForBroadcastTransition, volume);
-                } else {
-                    Log.w(TAG, "Setting volume when no active or broadcast primary group");
-                }
+        if (volumeControlService == null) {
+            return;
+        }
+        if (currentlyActiveGroupId == LE_AUDIO_GROUP_ID_INVALID
+                && !activeBroadcastSinks.isEmpty()) {
+            if (activeBroadcastSinks.stream().anyMatch(dev -> isPrimaryGroup(getGroupId(dev)))) {
+                Log.d(
+                        TAG,
+                        "Setting volume for broadcast sink primary group: "
+                                + mUnicastGroupIdDeactivatedForBroadcastTransition);
+                volumeControlService.setGroupVolume(
+                        mUnicastGroupIdDeactivatedForBroadcastTransition, volume);
             } else {
-                volumeControlService.setGroupVolume(currentlyActiveGroupId, volume);
+                Log.w(TAG, "Setting volume when no active or broadcast primary group");
             }
+        } else {
+            volumeControlService.setGroupVolume(currentlyActiveGroupId, volume);
         }
     }
 

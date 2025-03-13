@@ -72,10 +72,11 @@ java_defaults {
     instrumentation_for: "Bluetooth",
 }
 
-android_test {
-    name: "BluetoothInstrumentationTests",
-    defaults: ["BluetoothInstrumentationTestsDefaults"],
-}
+// Qualcomm has their own BluetoothInstrumentationTests
+// android_test {
+//     name: "BluetoothInstrumentationTests",
+//     defaults: ["BluetoothInstrumentationTestsDefaults"],
+// }
 
 android_test {
     name: "GoogleBluetoothInstrumentationTests",
