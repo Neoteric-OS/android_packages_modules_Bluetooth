@@ -566,6 +566,7 @@ void avdt_scb_hdl_setconfig_cmd(AvdtpScb* p_scb, tAVDT_SCB_EVT* p_data) {
   }
 
   AvdtpSepConfig* p_cfg = p_data->msg.config_cmd.p_cfg;
+  codec_type = A2DP_GetCodecType(p_cfg->codec_info);
   auto local_codec_type = A2DP_GetCodecType(p_scb->stream_config.cfg.codec_info);
   auto remote_codec_type = A2DP_GetCodecType(p_cfg->codec_info);
 
@@ -598,7 +599,54 @@ void avdt_scb_hdl_setconfig_cmd(AvdtpScb* p_scb, tAVDT_SCB_EVT* p_data) {
   p_scb->in_use = true;
   p_scb->peer_seid = p_data->msg.config_cmd.int_seid;
   p_scb->req_cfg = *p_cfg;
+  if (codec_type == A2DP_MEDIA_CT_SBC) {
+    if (p_scb->stream_config.tsep == AVDT_TSEP_SNK) {
+      //SNK minbitool > 86, then set minbitpool = 86
+      if ((p_cfg->codec_info[A2DP_SBC_IE_MIN_BITPOOL_OFFSET]) > A2DP_SBC_SINK_MAX_BITPOOL) {
+         p_cfg->codec_info[A2DP_SBC_IE_MIN_BITPOOL_OFFSET] = A2DP_SBC_SINK_MAX_BITPOOL;
+      }
+      //SNK maxbitool > 86, then set maxbitpool = 86
+      if ((p_cfg->codec_info[A2DP_SBC_IE_MAX_BITPOOL_OFFSET]) > A2DP_SBC_SINK_MAX_BITPOOL) {
+         p_cfg->codec_info[A2DP_SBC_IE_MAX_BITPOOL_OFFSET] = A2DP_SBC_SINK_MAX_BITPOOL;
+      }
+      log::verbose("SNK min/max bitpool: {}/{}",
+                  p_cfg->codec_info[A2DP_SBC_IE_MIN_BITPOOL_OFFSET],
+                  p_cfg->codec_info[A2DP_SBC_IE_MAX_BITPOOL_OFFSET]);
+    }
+    //minbitpool < 2, then set minbitpool = 2
+    if ((p_cfg->codec_info[A2DP_SBC_IE_MIN_BITPOOL_OFFSET]) < A2DP_SBC_IE_MIN_BITPOOL) {
+      p_cfg->codec_info[A2DP_SBC_IE_MIN_BITPOOL_OFFSET] = A2DP_SBC_IE_MIN_BITPOOL;
+      log::verbose("Incoming connection set min bitpool: {}",
+                  p_cfg->codec_info[A2DP_SBC_IE_MIN_BITPOOL_OFFSET]);
+    }
 
+    if (p_scb->stream_config.tsep == AVDT_TSEP_SRC) {
+      //minbitpool > 250, then set minbitpool = 250
+      if ((p_cfg->codec_info[A2DP_SBC_IE_MIN_BITPOOL_OFFSET]) > A2DP_SBC_IE_MAX_BITPOOL) {
+        p_cfg->codec_info[A2DP_SBC_IE_MIN_BITPOOL_OFFSET] = A2DP_SBC_IE_MAX_BITPOOL;
+        log::verbose("Incoming connection set min bitpool: {}",
+                    p_cfg->codec_info[A2DP_SBC_IE_MIN_BITPOOL_OFFSET]);
+      }
+
+      //maxbitpool > 250, then set maxbitpool = 250
+      if ((p_cfg->codec_info[A2DP_SBC_IE_MAX_BITPOOL_OFFSET]) > A2DP_SBC_IE_MAX_BITPOOL) {
+        p_cfg->codec_info[A2DP_SBC_IE_MAX_BITPOOL_OFFSET] = A2DP_SBC_IE_MAX_BITPOOL;
+        log::verbose("Incoming connection set max bitpool: {}",
+                    p_cfg->codec_info[A2DP_SBC_IE_MAX_BITPOOL_OFFSET]);
+      }
+    }
+
+    //minbitpool > maxbitpool, then set maxbitpool = minbitpool
+    if ((p_cfg->codec_info[A2DP_SBC_IE_MIN_BITPOOL_OFFSET]) >
+        (p_cfg->codec_info[A2DP_SBC_IE_MAX_BITPOOL_OFFSET])) {
+      p_cfg->codec_info[A2DP_SBC_IE_MAX_BITPOOL_OFFSET] =
+                          p_cfg->codec_info[A2DP_SBC_IE_MIN_BITPOOL_OFFSET];
+      log::verbose("Incoming connection minbitpool set by remote exceeds"
+                  "maxbitpool value, So set maxbitbool to minbitpool: {} to {}",
+                   p_cfg->codec_info[A2DP_SBC_IE_MAX_BITPOOL_OFFSET],
+                   p_cfg->codec_info[A2DP_SBC_IE_MIN_BITPOOL_OFFSET]);
+    }
+  }
   /* call app callback */
   /* handle of scb- which is same as sep handle of bta_av_cb.p_scb*/
   (*p_scb->stream_config.p_avdt_ctrl_cback)(
