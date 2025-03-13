@@ -123,8 +123,8 @@ public class A2dpService extends ProfileService {
     private boolean mAlsDisabled;
 
     // Head tracker available
-    private final long HEAD_TRACKER_AVAILABLE_MASK = 0x00300000;
-    private final long HEAD_TRACKER_AVAILABLE_ON = 0x00200000;
+    private static final long HEAD_TRACKER_AVAILABLE_MASK = 0x00300000;
+    private static final long HEAD_TRACKER_AVAILABLE_ON = 0x00200000;
 
     //Only Gaming Tx
     private static final long GAMING_ON = 0x00002000;

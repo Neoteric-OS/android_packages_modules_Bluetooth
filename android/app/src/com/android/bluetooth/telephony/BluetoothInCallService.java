@@ -217,7 +217,7 @@ public class BluetoothInCallService extends InCallService {
     private static final String ENABLE_DSDA_SUPPORT =
           "persist.bluetooth.init.dsda.support";
 
-    private final String EXTRAS_MSIM_VOICE_CAPABILITY = "MsimVoiceCapability";
+    private static final String EXTRAS_MSIM_VOICE_CAPABILITY = "MsimVoiceCapability";
 
     private static final String ACTION_MSIM_VOICE_CAPABILITY_CHANGED =
         "org.codeaurora.intent.action.MSIM_VOICE_CAPABILITY_CHANGED";
@@ -507,11 +507,11 @@ public class BluetoothInCallService extends InCallService {
             int numActiveCalls        = mCallInfo.isNullCall(activeCall) ? 0 : 1;
             BluetoothCall dailingCall = mCallInfo.getOutgoingCall();
             int numOutgoingCalls      = mCallInfo.isNullCall(dailingCall) ? 0 : 1;
-            int updateheldCalls       = 0;
-            if (numHeldCalls == 0)
-               updateheldCalls = 0;
-            else
-               updateheldCalls = 1;
+            // int updateheldCalls       = 0;
+            // if (numHeldCalls == 0)
+            //    updateheldCalls = 0;
+            // else
+            //    updateheldCalls = 1;
 
             mDsDaEventsHadlingInProgress = true;
             switch (msg.what) {
@@ -557,7 +557,7 @@ public class BluetoothInCallService extends InCallService {
                    //Incoming calls changed
                    //incoming call became active. Outgoing call should be disconnected
                    //if Outgoing disconnected event has not yet received, fake the params
-                   BluetoothCall ringingCall = getBluetoothCallById(mFirstIncomingCallId);
+                //   BluetoothCall ringingCall = getBluetoothCallById(mFirstIncomingCallId);
                 //    if (mBluetoothHeadset != null) {
                 //      getDSDARingingAddress(null);
                 //      mBluetoothHeadset.phoneStateChanged(
@@ -598,7 +598,7 @@ public class BluetoothInCallService extends InCallService {
                    Log.d(TAG, "multiple ringing calls, 1 ringing moved to active");
                    if ((numActiveCalls == 1) && (mDsdaActiveCalls == 0)) {
                      if (mFirstIncomingCallId == activeCall.getId()) {
-                       BluetoothCall ringingCall = getBluetoothCallById(mSecondIncomingCallId);
+                    //   BluetoothCall ringingCall = getBluetoothCallById(mSecondIncomingCallId);
                        //1st call moved to active
                        //2nd call need to be updated as waiting call
                     //    if (mBluetoothHeadset != null) {
@@ -628,7 +628,7 @@ public class BluetoothInCallService extends InCallService {
                     //    }
                      } else if (mSecondIncomingCallId == activeCall.getId()) {
                        Log.d(TAG, "2nd incoming call became active");
-                       BluetoothCall ringingCall = getBluetoothCallById(mSecondIncomingCallId);
+                    //   BluetoothCall ringingCall = getBluetoothCallById(mSecondIncomingCallId);
                        mDsDaTwoIncomingCallsFlag = 0;
                     //    if (mBluetoothHeadset != null) {
                     //      Log.d(TAG, "1st setup end");

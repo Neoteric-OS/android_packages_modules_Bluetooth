@@ -4577,7 +4577,7 @@ public:
     /* We update the target audio allocation before streamStarted so that the CodecManager would
      * already know how to configure the encoder once we confirm the streaming request. */
     CodecManager::GetInstance()->UpdateActiveAudioConfig(
-            group->stream_conf.stream_params,
+            group->stream_conf.stream_params, group->stream_conf.codec_id,
             std::bind(&LeAudioClientImpl::UpdateAudioConfigToHal, weak_factory_.GetWeakPtr(),
                       std::placeholders::_1, std::placeholders::_2),
             ::bluetooth::le_audio::types::kLeAudioDirectionSink);
@@ -4691,7 +4691,7 @@ public:
     /* We update the target audio allocation before streamStarted so that the CodecManager would
      * already know how to configure the encoder once we confirm the streaming request. */
     CodecManager::GetInstance()->UpdateActiveAudioConfig(
-            group->stream_conf.stream_params,
+            group->stream_conf.stream_params, group->stream_conf.codec_id,
             std::bind(&LeAudioClientImpl::UpdateAudioConfigToHal, weak_factory_.GetWeakPtr(),
                       std::placeholders::_1, std::placeholders::_2),
             ::bluetooth::le_audio::types::kLeAudioDirectionSource);
@@ -6891,7 +6891,7 @@ public:
            * we might need to just update the current channel mixing information.
            */
           CodecManager::GetInstance()->UpdateActiveAudioConfig(
-                  group->stream_conf.stream_params,
+                  group->stream_conf.stream_params, group->stream_conf.codec_id,
                   std::bind(&LeAudioClientImpl::UpdateAudioConfigToHal, weak_factory_.GetWeakPtr(),
                             std::placeholders::_1, std::placeholders::_2),
                   ::bluetooth::le_audio::types::kLeAudioDirectionSink);
@@ -6904,7 +6904,7 @@ public:
            * we might need to just update the current channel mixing information.
            */
           CodecManager::GetInstance()->UpdateActiveAudioConfig(
-                  group->stream_conf.stream_params,
+                  group->stream_conf.stream_params, group->stream_conf.codec_id,
                   std::bind(&LeAudioClientImpl::UpdateAudioConfigToHal, weak_factory_.GetWeakPtr(),
                             std::placeholders::_1, std::placeholders::_2),
                   bluetooth::le_audio::types::kLeAudioDirectionSource);
