@@ -2754,6 +2754,15 @@ public class AdapterService extends Service {
         return new BluetoothAddress(identityAddress, identityAddressType);
     }
 
+    public boolean addAssociatedPackage(BluetoothDevice device, String packageName) {
+        DeviceProperties deviceProp = mRemoteDevices.getDeviceProperties(device);
+        if (deviceProp == null) {
+            return false;
+        }
+        deviceProp.addPackage(packageName);
+        return true;
+    }
+
     private record CallerInfo(String callerPackageName, UserHandle user) {}
 
     boolean createBond(
