@@ -2688,12 +2688,8 @@ public class AdapterService extends Service {
             return Utils.getBytesFromAddress(deviceProp.getIdentityAddress());
         }
 
-        if (Flags.identityAddressNullIfNotKnown()) {
-            // Return null if identity address unknown
-            return null;
-        } else {
-            return Utils.getByteAddress(device);
-        }
+        // Return null if identity address unknown
+        return null;
     }
 
     public BluetoothDevice getDeviceFromByte(byte[] address) {
@@ -2711,14 +2707,9 @@ public class AdapterService extends Service {
         DeviceProperties deviceProp = mRemoteDevices.getDeviceProperties(device);
         if (deviceProp != null && deviceProp.getIdentityAddress() != null) {
             return deviceProp.getIdentityAddress();
-        } else {
-            if (Flags.identityAddressNullIfNotKnown()) {
-                // Return null if identity address unknown
-                return null;
-            } else {
-                return address;
-            }
         }
+        // Return null if identity address unknown
+        return null;
     }
 
     /**
@@ -2744,11 +2735,7 @@ public class AdapterService extends Service {
             }
             identityAddressType = deviceProp.getIdentityAddressType();
         } else {
-            if (Flags.identityAddressNullIfNotKnown()) {
-                identityAddress = null;
-            } else {
-                identityAddress = address;
-            }
+            identityAddress = null;
         }
 
         return new BluetoothAddress(identityAddress, identityAddressType);

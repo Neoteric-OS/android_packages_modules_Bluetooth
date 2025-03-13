@@ -218,9 +218,7 @@ public class PanService extends ProfileService {
                 case MESSAGE_CONNECT:
                     BluetoothDevice connectDevice = (BluetoothDevice) msg.obj;
                     if (!mNativeInterface.connect(
-                            Flags.identityAddressNullIfNotKnown()
-                                    ? Utils.getByteBrEdrAddress(mAdapterService, connectDevice)
-                                    : mAdapterService.getByteIdentityAddress(connectDevice))) {
+                            Utils.getByteBrEdrAddress(mAdapterService, connectDevice))) {
                         handlePanDeviceStateChange(
                                 connectDevice,
                                 null,
@@ -238,9 +236,7 @@ public class PanService extends ProfileService {
                 case MESSAGE_DISCONNECT:
                     BluetoothDevice disconnectDevice = (BluetoothDevice) msg.obj;
                     if (!mNativeInterface.disconnect(
-                            Flags.identityAddressNullIfNotKnown()
-                                    ? Utils.getByteBrEdrAddress(mAdapterService, disconnectDevice)
-                                    : mAdapterService.getByteIdentityAddress(disconnectDevice))) {
+                            Utils.getByteBrEdrAddress(mAdapterService, disconnectDevice))) {
                         handlePanDeviceStateChange(
                                 disconnectDevice,
                                 mPanIfName,
