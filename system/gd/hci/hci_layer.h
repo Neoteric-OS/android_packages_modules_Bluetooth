@@ -149,6 +149,8 @@ protected:
 
   void Stop() override;
 
+  void LifeCycleStop();
+
   virtual void Disconnect(uint16_t handle, ErrorCode reason);
   virtual void ReadRemoteVersion(hci::ErrorCode hci_status, uint16_t handle, uint8_t version,
                                  uint16_t manufacturer_name, uint16_t sub_version);
