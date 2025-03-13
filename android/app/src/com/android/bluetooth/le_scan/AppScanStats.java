@@ -195,6 +195,7 @@ class AppScanStats {
         mTimeProvider = requireNonNull(timeProvider);
     }
 
+    @Nullable
     private synchronized LastScan getScanFromScannerId(int scannerId) {
         return mOngoingScans.get(scannerId);
     }
@@ -530,7 +531,7 @@ class AppScanStats {
                     convertScanType(getScanFromScannerId(scannerId)),
                     BluetoothStatsLog.LE_SCAN_ABUSED__LE_SCAN_ABUSE_REASON__REASON_SCAN_TIMEOUT,
                     scanTimeoutMillis,
-                    getScanFromScannerId(scannerId).getAttributionTag());
+                    getAttributionTagFromScannerId(scannerId));
         }
         MetricsLogger.getInstance()
                 .cacheCount(BluetoothProtoEnums.LE_SCAN_ABUSE_COUNT_SCAN_TIMEOUT, 1);
@@ -546,7 +547,7 @@ class AppScanStats {
                     convertScanType(getScanFromScannerId(scannerId)),
                     BluetoothStatsLog.LE_SCAN_ABUSED__LE_SCAN_ABUSE_REASON__REASON_HW_FILTER_NA,
                     numOfFilterSupported,
-                    getScanFromScannerId(scannerId).getAttributionTag());
+                    getAttributionTagFromScannerId(scannerId));
         }
         MetricsLogger.getInstance()
                 .cacheCount(BluetoothProtoEnums.LE_SCAN_ABUSE_COUNT_HW_FILTER_NOT_AVAILABLE, 1);
@@ -563,7 +564,7 @@ class AppScanStats {
                     BluetoothStatsLog
                             .LE_SCAN_ABUSED__LE_SCAN_ABUSE_REASON__REASON_TRACKING_HW_FILTER_NA,
                     numOfTrackableAdv,
-                    getScanFromScannerId(scannerId).getAttributionTag());
+                    getAttributionTagFromScannerId(scannerId));
         }
         MetricsLogger.getInstance()
                 .cacheCount(
@@ -596,7 +597,7 @@ class AppScanStats {
             sRadioScanIntervalMs = scanIntervalMs;
             sIsRadioStarted = true;
             sRadioScanAppImportance = stats.mAppImportance;
-            sRadioScanAttributionTag = stats.getScanFromScannerId(scannerId).getAttributionTag();
+            sRadioScanAttributionTag = stats.getAttributionTagFromScannerId(scannerId);
         }
         return true;
     }
@@ -847,6 +848,11 @@ class AppScanStats {
         LastScan lastScan = mLastScans.get(mLastScans.size() - 1);
         return ((mTimeProvider.elapsedRealtime() - lastScan.duration - lastScan.timestamp)
                 < LARGE_SCAN_TIME_GAP_MS);
+    }
+
+    private String getAttributionTagFromScannerId(int scannerId) {
+        LastScan scan = getScanFromScannerId(scannerId);
+        return scan == null ? "" : scan.getAttributionTag();
     }
 
     private static String filterToStringWithoutNullParam(ScanFilter filter) {
