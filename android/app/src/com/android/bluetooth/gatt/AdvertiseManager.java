@@ -47,7 +47,8 @@ import java.util.concurrent.TimeoutException;
 
 /** Manages Bluetooth LE advertising operations. */
 public class AdvertiseManager {
-    private static final String TAG = GattServiceConfig.TAG_PREFIX + "AdvertiseManager";
+    private static final String TAG =
+            GattServiceConfig.TAG_PREFIX + AdvertiseManager.class.getSimpleName();
 
     private static final long RUN_SYNC_WAIT_TIME_MS = 2000L;
 

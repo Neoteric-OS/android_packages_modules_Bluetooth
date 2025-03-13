@@ -118,7 +118,7 @@ import java.util.Iterator;
  * Handsfree device, device running headset client, e.g. Wireless headphones or car kits
  */
 public class HeadsetService extends ProfileService {
-    private static final String TAG = "HeadsetService";
+    private static final String TAG = HeadsetService.class.getSimpleName();
 
     /** HFP AG owned/managed components */
     private static final String HFP_AG_IN_CALL_SERVICE =

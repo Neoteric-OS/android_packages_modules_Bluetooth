@@ -141,7 +141,7 @@ import java.util.function.Consumer;
  * @see BluetoothServerSocket
  */
 public final class BluetoothAdapter {
-    private static final String TAG = "BluetoothAdapter";
+    private static final String TAG = BluetoothAdapter.class.getSimpleName();
 
     private static final String DESCRIPTOR = "android.bluetooth.BluetoothAdapter";
     private static final boolean DBG = true;
@@ -1128,7 +1128,7 @@ public final class BluetoothAdapter {
 
         mServiceLock.writeLock().lock();
         try {
-            mService = registerBlueoothManagerCallback(mManagerCallback);
+            mService = registerBluetoothManagerCallback(mManagerCallback);
         } finally {
             mServiceLock.writeLock().unlock();
         }
@@ -1931,7 +1931,7 @@ public final class BluetoothAdapter {
     }
 
     /**
-     * Set the local Bluetooth adapter connectablility and discoverability.
+     * Set the local Bluetooth adapter connectability and discoverability.
      *
      * <p>If the scan mode is set to {@link #SCAN_MODE_CONNECTABLE_DISCOVERABLE}, it will change to
      * {@link #SCAN_MODE_CONNECTABLE} after the discoverable timeout. The discoverable timeout can
@@ -4195,7 +4195,7 @@ public final class BluetoothAdapter {
      * <p>For example, this secret can be transferred to a remote device out of band (meaning any
      * other way besides using bluetooth). Once the remote device finds this device using the
      * information given in the data, such as the PUBLIC ADDRESS, the remote device could then
-     * connect to this device using this secret when the pairing sequenece asks for the secret. This
+     * connect to this device using this secret when the pairing sequence asks for the secret. This
      * device will respond by automatically accepting the pairing due to the secret being so
      * trustworthy.
      *
@@ -4351,7 +4351,7 @@ public final class BluetoothAdapter {
     }
 
     /** Registers a IBluetoothManagerCallback and returns the cached service proxy object. */
-    IBluetooth registerBlueoothManagerCallback(IBluetoothManagerCallback cb) {
+    IBluetooth registerBluetoothManagerCallback(IBluetoothManagerCallback cb) {
         requireNonNull(cb);
         if (Flags.getProfileUseLock()) {
             sServiceLock.writeLock().lock();
@@ -5001,7 +5001,7 @@ public final class BluetoothAdapter {
      * Unregister a {@link #OnMetadataChangedListener} from a registered {@link BluetoothDevice}.
      * Unregistration can be done when Bluetooth is either ON or OFF. {@link
      * #addOnMetadataChangedListener(OnMetadataChangedListener, BluetoothDevice, Executor)} must be
-     * called before unregisteration.
+     * called before unregistration.
      *
      * @param device {@link BluetoothDevice} that will be unregistered. It should not be null or
      *     {@link NullPointerException} will be triggered.
@@ -5252,7 +5252,7 @@ public final class BluetoothAdapter {
 
     /**
      * Sets the preferred profiles for each audio mode for system routed audio. The audio framework
-     * and Telecomm will read this preference when routing system managed audio. Not supplying an
+     * and Telecom will read this preference when routing system managed audio. Not supplying an
      * audio mode in the Bundle will reset that audio mode to the default profile preference for
      * that mode (e.g. an empty Bundle resets all audio modes to their default profiles).
      *

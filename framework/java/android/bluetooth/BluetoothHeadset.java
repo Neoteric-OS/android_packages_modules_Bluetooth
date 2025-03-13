@@ -63,7 +63,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  * its appropriate permission.
  */
 public final class BluetoothHeadset implements BluetoothProfile {
-    private static final String TAG = "BluetoothHeadset";
+    private static final String TAG = BluetoothHeadset.class.getSimpleName();
 
     private static final boolean DBG = Log.isLoggable(TAG, Log.DEBUG);
     private static final boolean VDBG = false;
