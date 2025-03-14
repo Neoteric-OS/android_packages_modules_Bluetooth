@@ -42,7 +42,7 @@
         <LinearLayout android:id="@+id/layout_methods"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            app:layout_constraintTop_toBottomOf="@id/init_ble_connection_container"
+            app:layout_constraintTop_toBottomOf="@id/conn_up_spinner"
             app:layout_constraintBottom_toTopOf="@id/layout_parameters"
             android:weightSum="4"
             android:orientation="horizontal">
@@ -69,7 +69,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             app:layout_constraintTop_toBottomOf="@id/layout_methods"
-            app:layout_constraintBottom_toTopOf="@id/btn_cs"
+            app:layout_constraintBottom_toTopOf="@id/spinner_security_mode"
             android:weightSum="4"
             android:orientation="horizontal">
             <TextView
@@ -108,16 +108,8 @@
                 app:layout_constraintStart_toEndOf="@id/duration_label"
                 app:layout_constraintEnd_toEndOf="parent"
                 />
+  
         </LinearLayout>
-        <Button
-            android:id="@+id/btn_dm_method"
-            android:layout_width="130dp"
-            android:layout_height="50dp"
-            android:layout_margin="10dp"
-            android:text="DM method"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/conn_up_button" />
-
         <Spinner
             android:id="@+id/spinner_security_mode"
             android:layout_width="200dp"
@@ -125,7 +117,7 @@
             android:layout_margin="10dp"
             android:padding="10dp"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/spinner_dm_method" />
+            app:layout_constraintTop_toBottomOf="@id/layout_parameters" />
 
         <Button
             android:id="@+id/btn_seclevel"
@@ -134,47 +126,7 @@
             android:layout_margin="10dp"
             android:text="Sec Level"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/btn_dm_method" />
-
-        <Spinner
-            android:id="@+id/spinner_frequency"
-            android:layout_width="200dp"
-            android:layout_height="50dp"
-            android:layout_margin="10dp"
-            android:padding="10dp"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/spinner_security_mode" />
-
-
-        <Button
-            android:id="@+id/btn_frequency"
-            android:layout_width="130dp"
-            android:layout_height="50dp"
-            android:layout_margin="10dp"
-            android:padding="10dp"
-            android:text="Frequency"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/btn_seclevel" />
-
-        <EditText
-            android:id="@+id/edittext_duration"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_margin="10dp"
-            android:padding="10dp"
-            android:inputType="number"
-            android:hint="Default: 60 sec"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/spinner_frequency" />
-
-        <Button
-            android:id="@+id/btn_duration"
-            android:layout_width="130dp"
-            android:layout_height="50dp"
-            android:layout_margin="10dp"
-            android:text="Duration"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/btn_frequency" />
+            app:layout_constraintTop_toBottomOf="@id/layout_parameters" />
 
         <Button
             android:id="@+id/btn_cs"
@@ -185,7 +137,7 @@
             android:padding="10dp"
             android:text="Start Distance Measurement"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/edittext_duration" />
+            app:layout_constraintTop_toBottomOf="@id/spinner_security_mode" />
 
         <Button
             android:id="@+id/marker_log"
@@ -197,7 +149,7 @@
             android:text="Marker"
             android:clickable="true"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/edittext_duration" />
+            app:layout_constraintTop_toBottomOf="@id/spinner_security_mode" />
 
         <Button
             android:id="@+id/marker_dist"
@@ -206,7 +158,7 @@
             android:layout_margin="10dp"
             android:layout_marginTop="84dp"
             android:padding="10dp"
-            android:text="marker"
+            android:text="Meas Dist"
             android:clickable="true"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
