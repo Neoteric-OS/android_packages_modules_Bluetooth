@@ -553,25 +553,6 @@ bool A2DP_VendorDumpCodecInfoAptxAdaptive(const uint8_t* p_codec_info) {
     return false;
   }
 
-  if (aptx_adaptive_cie.sampleRate & A2DP_APTX_ADAPTIVE_SAMPLERATE_44100) {
-  }
-  if (aptx_adaptive_cie.sampleRate & A2DP_APTX_ADAPTIVE_SAMPLERATE_48000) {
-  }
-  if (aptx_adaptive_cie.sampleRate & A2DP_APTX_ADAPTIVE_SAMPLERATE_96000) {
-  }
-  if (aptx_adaptive_cie.channelMode & A2DP_APTX_ADAPTIVE_CHANNELS_MONO) {
-  }
-
-  if (aptx_adaptive_cie.channelMode & A2DP_APTX_ADAPTIVE_CHANNELS_TWS_MONO) {
-  }
-  if (aptx_adaptive_cie.channelMode & A2DP_APTX_ADAPTIVE_CHANNELS_STEREO) {
-  }
-
-  if (aptx_adaptive_cie.channelMode & A2DP_APTX_ADAPTIVE_CHANNELS_JOINT_STEREO) {
-  }
-  if (aptx_adaptive_cie.channelMode & A2DP_APTX_ADAPTIVE_CHANNELS_TWS_STEREO) {
-  }
-
   return true;
 }
 
@@ -952,7 +933,6 @@ tA2DP_STATUS A2dpCodecConfigAptxAdaptive::setCodecConfig(const uint8_t* p_peer_c
   uint8_t sink_byte_17th = 0x00, src_byte_17th = 0x00, byte_negotiated_17th = 0x00;
   // Save the internal state
   btav_a2dp_codec_config_t saved_codec_config = codec_config_;
-  btav_a2dp_codec_config_t saved_codec_capability = codec_capability_;
   btav_a2dp_codec_config_t saved_codec_selectable_capability = codec_selectable_capability_;
   btav_a2dp_codec_config_t saved_codec_user_config = codec_user_config_;
   btav_a2dp_codec_config_t saved_codec_audio_config = codec_audio_config_;
@@ -1027,21 +1007,18 @@ tA2DP_STATUS A2dpCodecConfigAptxAdaptive::setCodecConfig(const uint8_t* p_peer_c
     case BTAV_A2DP_CODEC_SAMPLE_RATE_44100:
       if (sampleRate & A2DP_APTX_ADAPTIVE_SAMPLERATE_44100) {
         result_config_cie.sampleRate = A2DP_APTX_ADAPTIVE_SAMPLERATE_44100;
-        codec_capability_.sample_rate = codec_user_config_.sample_rate;
         codec_config_.sample_rate = codec_user_config_.sample_rate;
       }
       break;
     case BTAV_A2DP_CODEC_SAMPLE_RATE_48000:
       if (sampleRate & A2DP_APTX_ADAPTIVE_SAMPLERATE_48000) {
         result_config_cie.sampleRate = A2DP_APTX_ADAPTIVE_SAMPLERATE_48000;
-        codec_capability_.sample_rate = codec_user_config_.sample_rate;
         codec_config_.sample_rate = codec_user_config_.sample_rate;
       }
       break;
     case BTAV_A2DP_CODEC_SAMPLE_RATE_96000:
       if (sampleRate & A2DP_APTX_ADAPTIVE_SAMPLERATE_96000) {
         result_config_cie.sampleRate = A2DP_APTX_ADAPTIVE_SAMPLERATE_96000;
-        codec_capability_.sample_rate = codec_user_config_.sample_rate;
         codec_config_.sample_rate = codec_user_config_.sample_rate;
       }
       break;
@@ -1050,7 +1027,6 @@ tA2DP_STATUS A2dpCodecConfigAptxAdaptive::setCodecConfig(const uint8_t* p_peer_c
     case BTAV_A2DP_CODEC_SAMPLE_RATE_192000:
     case BTAV_A2DP_CODEC_SAMPLE_RATE_NONE:
     default:
-      codec_capability_.sample_rate = BTAV_A2DP_CODEC_SAMPLE_RATE_NONE;
       codec_config_.sample_rate = BTAV_A2DP_CODEC_SAMPLE_RATE_NONE;
       break;
   }
@@ -1075,13 +1051,10 @@ tA2DP_STATUS A2dpCodecConfigAptxAdaptive::setCodecConfig(const uint8_t* p_peer_c
 
     // Compute the common capability
     if (sampleRate & A2DP_APTX_ADAPTIVE_SAMPLERATE_44100) {
-      codec_capability_.sample_rate |= BTAV_A2DP_CODEC_SAMPLE_RATE_44100;
     }
     if (sampleRate & A2DP_APTX_ADAPTIVE_SAMPLERATE_48000) {
-      codec_capability_.sample_rate |= BTAV_A2DP_CODEC_SAMPLE_RATE_48000;
     }
     if (sampleRate & A2DP_APTX_ADAPTIVE_SAMPLERATE_96000) {
-      codec_capability_.sample_rate |= BTAV_A2DP_CODEC_SAMPLE_RATE_96000;
     }
 
     // No user preference - try the codec audio config
@@ -1112,18 +1085,15 @@ tA2DP_STATUS A2dpCodecConfigAptxAdaptive::setCodecConfig(const uint8_t* p_peer_c
   codec_config_.bits_per_sample = BTAV_A2DP_CODEC_BITS_PER_SAMPLE_NONE;
   switch (codec_user_config_.bits_per_sample) {
     case BTAV_A2DP_CODEC_BITS_PER_SAMPLE_16:
-      codec_capability_.bits_per_sample = BTAV_A2DP_CODEC_BITS_PER_SAMPLE_NONE;
       codec_config_.bits_per_sample = BTAV_A2DP_CODEC_BITS_PER_SAMPLE_NONE;
       break;
 
     case BTAV_A2DP_CODEC_BITS_PER_SAMPLE_24:
-      codec_capability_.bits_per_sample = codec_user_config_.bits_per_sample;
       codec_config_.bits_per_sample = codec_user_config_.bits_per_sample;
       break;
     case BTAV_A2DP_CODEC_BITS_PER_SAMPLE_32:
 
     case BTAV_A2DP_CODEC_BITS_PER_SAMPLE_NONE:
-      codec_capability_.bits_per_sample = BTAV_A2DP_CODEC_BITS_PER_SAMPLE_NONE;
       codec_config_.bits_per_sample = BTAV_A2DP_CODEC_BITS_PER_SAMPLE_NONE;
       break;
   }
@@ -1137,7 +1107,6 @@ tA2DP_STATUS A2dpCodecConfigAptxAdaptive::setCodecConfig(const uint8_t* p_peer_c
     }
 
     // Compute the common capability
-    codec_capability_.bits_per_sample = BTAV_A2DP_CODEC_BITS_PER_SAMPLE_24;
 
     // No user preference - try the codec audio config
     if (select_audio_bits_per_sample(&codec_audio_config_, &codec_config_)) {
@@ -1166,13 +1135,11 @@ tA2DP_STATUS A2dpCodecConfigAptxAdaptive::setCodecConfig(const uint8_t* p_peer_c
     case BTAV_A2DP_CODEC_CHANNEL_MODE_MONO:
       if (channelMode & A2DP_APTX_ADAPTIVE_CHANNELS_MONO) {
         result_config_cie.channelMode = A2DP_APTX_ADAPTIVE_CHANNELS_MONO;
-        codec_capability_.channel_mode = codec_user_config_.channel_mode;
         codec_config_.channel_mode = codec_user_config_.channel_mode;
         break;
       }
       if (channelMode & A2DP_APTX_ADAPTIVE_CHANNELS_TWS_MONO) {
         result_config_cie.channelMode = A2DP_APTX_ADAPTIVE_CHANNELS_MONO;
-        codec_capability_.channel_mode = codec_user_config_.channel_mode;
         codec_config_.channel_mode = codec_user_config_.channel_mode;
         break;
       }
@@ -1180,31 +1147,26 @@ tA2DP_STATUS A2dpCodecConfigAptxAdaptive::setCodecConfig(const uint8_t* p_peer_c
     case BTAV_A2DP_CODEC_CHANNEL_MODE_STEREO:
       if (channelMode & A2DP_APTX_ADAPTIVE_CHANNELS_TWS_PLUS) {
         result_config_cie.channelMode = A2DP_APTX_ADAPTIVE_CHANNELS_TWS_PLUS;
-        codec_capability_.channel_mode = codec_user_config_.channel_mode;
         codec_config_.channel_mode = codec_user_config_.channel_mode;
         break;
       }
       if (channelMode & A2DP_APTX_ADAPTIVE_CHANNELS_STEREO) {
         result_config_cie.channelMode = A2DP_APTX_ADAPTIVE_CHANNELS_STEREO;
-        codec_capability_.channel_mode = codec_user_config_.channel_mode;
         codec_config_.channel_mode = codec_user_config_.channel_mode;
         break;
       }
       if (channelMode & A2DP_APTX_ADAPTIVE_CHANNELS_JOINT_STEREO) {
         result_config_cie.channelMode = A2DP_APTX_ADAPTIVE_CHANNELS_JOINT_STEREO;
-        codec_capability_.channel_mode = codec_user_config_.channel_mode;
         codec_config_.channel_mode = codec_user_config_.channel_mode;
         break;
       }
       if (channelMode & A2DP_APTX_ADAPTIVE_CHANNELS_TWS_STEREO) {
         result_config_cie.channelMode = A2DP_APTX_ADAPTIVE_CHANNELS_TWS_STEREO;
-        codec_capability_.channel_mode = codec_user_config_.channel_mode;
         codec_config_.channel_mode = codec_user_config_.channel_mode;
         break;
       }
       break;
     case BTAV_A2DP_CODEC_CHANNEL_MODE_NONE:
-      codec_capability_.channel_mode = BTAV_A2DP_CODEC_CHANNEL_MODE_NONE;
       codec_config_.channel_mode = BTAV_A2DP_CODEC_CHANNEL_MODE_NONE;
       break;
   }
@@ -1236,22 +1198,16 @@ tA2DP_STATUS A2dpCodecConfigAptxAdaptive::setCodecConfig(const uint8_t* p_peer_c
 
     // Compute the common capability
     if (channelMode & A2DP_APTX_ADAPTIVE_CHANNELS_MONO) {
-      codec_capability_.channel_mode |= BTAV_A2DP_CODEC_CHANNEL_MODE_MONO;
     }
     if (channelMode & A2DP_APTX_ADAPTIVE_CHANNELS_TWS_MONO) {
-      codec_capability_.channel_mode |= BTAV_A2DP_CODEC_CHANNEL_MODE_MONO;
     }
     if (channelMode & A2DP_APTX_ADAPTIVE_CHANNELS_STEREO) {
-      codec_capability_.channel_mode |= BTAV_A2DP_CODEC_CHANNEL_MODE_STEREO;
     }
     if (channelMode & A2DP_APTX_ADAPTIVE_CHANNELS_JOINT_STEREO) {
-      codec_capability_.channel_mode |= BTAV_A2DP_CODEC_CHANNEL_MODE_STEREO;
     }
     if (channelMode & A2DP_APTX_ADAPTIVE_CHANNELS_TWS_STEREO) {
-      codec_capability_.channel_mode |= BTAV_A2DP_CODEC_CHANNEL_MODE_STEREO;
     }
     if (channelMode & A2DP_APTX_ADAPTIVE_CHANNELS_TWS_PLUS) {
-      codec_capability_.channel_mode |= BTAV_A2DP_CODEC_CHANNEL_MODE_STEREO;
     }
 
     // No user preference - try the codec audio config
@@ -1313,7 +1269,6 @@ tA2DP_STATUS A2dpCodecConfigAptxAdaptive::setCodecConfig(const uint8_t* p_peer_c
 fail:
   // Restore the internal state
   codec_config_ = saved_codec_config;
-  codec_capability_ = saved_codec_capability;
   codec_selectable_capability_ = saved_codec_selectable_capability;
   codec_user_config_ = saved_codec_user_config;
   codec_audio_config_ = saved_codec_audio_config;

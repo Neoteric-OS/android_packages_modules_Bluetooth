@@ -33,9 +33,6 @@
 #include "tests/packet_test_helper.h"
 #include "types/raw_address.h"
 
-// TODO(b/369381361) Enfore -Wmissing-prototypes
-#pragma GCC diagnostic ignored "-Wmissing-prototypes"
-
 bool btif_av_src_sink_coexist_enabled(void) { return true; }
 void btif_av_clear_remote_suspend_flag(A2dpType type) { return; }
 bool btif_av_check_flag(const A2dpType local_a2dp_type, uint8_t flag) { return false; }
@@ -65,7 +62,7 @@ using ::testing::NiceMock;
 using ::testing::Return;
 using ::testing::SaveArg;
 
-bool get_pts_avrcp_test(void) { return false; }
+static bool get_pts_avrcp_test(void) { return false; }
 
 const stack_config_t interface = {get_pts_avrcp_test,
                                   nullptr,

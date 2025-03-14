@@ -48,9 +48,6 @@
 #include "storage/config_cache.h"
 #include "storage/storage_module.h"
 
-// TODO(b/369381361) Enfore -Wmissing-prototypes
-#pragma GCC diagnostic ignored "-Wmissing-prototypes"
-
 namespace bluetooth {
 namespace hci {
 
@@ -126,7 +123,7 @@ struct Advertiser {
  * (2) if the host supports only non-resolvable addresses, then advertisements will never use RPA
  * (3) if the host supports RPAs, then the requested type will always be honored
  */
-AdvertiserAddressType GetAdvertiserAddressTypeFromRequestedTypeAndPolicy(
+static AdvertiserAddressType GetAdvertiserAddressTypeFromRequestedTypeAndPolicy(
         AdvertiserAddressType requested_address_type,
         LeAddressManager::AddressPolicy address_policy) {
   switch (address_policy) {
@@ -151,7 +148,7 @@ AdvertiserAddressType GetAdvertiserAddressTypeFromRequestedTypeAndPolicy(
  *     can use both Public and NRPA if requested. Use NRPA if RPA is requested.
  * (2) in other cases, based on the requested type and the address manager policy.
  */
-AdvertiserAddressType GetAdvertiserAddressTypeNonConnectable(
+static AdvertiserAddressType GetAdvertiserAddressTypeNonConnectable(
         AdvertiserAddressType requested_address_type,
         LeAddressManager::AddressPolicy address_policy) {
   switch (address_policy) {

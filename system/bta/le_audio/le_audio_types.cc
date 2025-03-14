@@ -48,9 +48,6 @@
 #include "le_audio_utils.h"
 #include "stack/include/bt_types.h"
 
-// TODO(b/369381361) Enfore -Wmissing-prototypes
-#pragma GCC diagnostic ignored "-Wmissing-prototypes"
-
 namespace bluetooth::le_audio {
 using types::acs_ac_record;
 using types::LeAudioContextType;
@@ -59,124 +56,6 @@ namespace types {
 using types::CodecConfigSetting;
 using types::kLeAudioCodingFormatLC3;
 using types::LeAudioCoreCodecConfig;
-
-void get_cis_count(LeAudioContextType context_type,
-                   std::shared_ptr<const types::AudioSetConfiguration> conf,
-                   uint8_t expected_remote_direction, int expected_device_cnt, types::LeAudioConfigurationStrategy strategy,
-                   int avail_group_ase_snk_cnt, int avail_group_ase_src_count,
-                   uint8_t& out_cis_count_bidir, uint8_t& out_cis_count_unidir_sink,
-                   uint8_t& out_cis_count_unidir_source,
-                   types::BidirectionalPair<types::AudioContexts> group_contexts) {
-  log::info(
-          "{} expected_remote_direction {}, strategy {}, group avail sink ases: {}, "
-          "group avail source ases {} "
-          "expected_device_count {}",
-          bluetooth::common::ToString(context_type), expected_remote_direction,
-          static_cast<int>(strategy), avail_group_ase_snk_cnt, avail_group_ase_src_count,
-          expected_device_cnt);
-
-  bool is_bidirectional = expected_remote_direction == types::kLeAudioDirectionBoth;
-  bool is_source_only = expected_remote_direction == types::kLeAudioDirectionSource;
-
-  bool is_leX_codec = false;
-
-  if (conf->confs.sink.size() > 0) {
-    if (conf->confs.sink[0].codec.id == types::LeAudioCodecIdAptxLeX) {
-      is_leX_codec = true;
-    }
-  }
-
-  if ((strategy == types::LeAudioConfigurationStrategy::STEREO_TWO_CISES_PER_DEVICE) &&
-      !(group_contexts.sink.test(context_type) && group_contexts.source.test(context_type))) {
-    log::warn("Remote does not support (context:{}) for both directions",
-              bluetooth::common::ToString(context_type));
-    is_bidirectional = false;
-  }
-
-  switch (strategy) {
-    case types::LeAudioConfigurationStrategy::MONO_ONE_CIS_PER_DEVICE:
-    /* This strategy is for the CSIS topology, e.g. two earbuds which are both
-     * connected with a Phone
-     */
-    case types::LeAudioConfigurationStrategy::STEREO_ONE_CIS_PER_DEVICE:
-      /* This strategy is for e.g. the banded headphones */
-      if (is_bidirectional) {
-        if ((avail_group_ase_snk_cnt > 0) && (avail_group_ase_src_count) > 0) {
-          /* Prepare CIG to enable all microphones */
-          out_cis_count_bidir = expected_device_cnt;
-        } else {
-          if (avail_group_ase_snk_cnt > 0) {
-            out_cis_count_unidir_sink = expected_device_cnt;
-          } else if (avail_group_ase_src_count > 0) {
-            out_cis_count_unidir_source = expected_device_cnt;
-          }
-        }
-      } else if (is_source_only) {
-        out_cis_count_unidir_source = expected_device_cnt;
-      } else {
-        if (context_type == LeAudioContextType::LIVE) {
-          out_cis_count_unidir_source = expected_device_cnt;
-        } else {
-          out_cis_count_unidir_sink = expected_device_cnt;
-        }
-      }
-
-      break;
-    case types::LeAudioConfigurationStrategy::STEREO_TWO_CISES_PER_DEVICE:
-      /* This strategy is for the old TWS topology. e.g. one earbud connected to
-       * the Phone but each channel is carried in separate CIS
-       */
-      if (is_bidirectional) {
-        if ((avail_group_ase_snk_cnt > 0) && (avail_group_ase_src_count) > 0) {
-          /* Prepare CIG to enable all microphones per device */
-          if (context_type == LeAudioContextType::CONVERSATIONAL) {
-            if (is_leX_codec) {
-              out_cis_count_bidir = expected_device_cnt;
-              out_cis_count_unidir_sink = expected_device_cnt;
-            } else {
-              out_cis_count_bidir = 2 * expected_device_cnt;
-            }
-          } else if (context_type == LeAudioContextType::LIVE ||
-                     context_type == LeAudioContextType::VOICEASSISTANTS) {
-            out_cis_count_bidir = 2 * expected_device_cnt;
-          } else if (context_type == LeAudioContextType::GAME) {
-            out_cis_count_bidir = expected_device_cnt;
-            out_cis_count_unidir_sink = expected_device_cnt;
-          } else {
-            out_cis_count_bidir = expected_device_cnt;
-            if (avail_group_ase_src_count > 1) {
-              out_cis_count_bidir++;
-            } else {
-              out_cis_count_unidir_sink = expected_device_cnt;
-            }
-          }
-        } else {
-          if (avail_group_ase_snk_cnt > 0) {
-            out_cis_count_unidir_sink = 2 * expected_device_cnt;
-          } else if (avail_group_ase_src_count > 0) {
-            out_cis_count_unidir_source = 2 * expected_device_cnt;
-          }
-        }
-      } else if (is_source_only) {
-        out_cis_count_unidir_source = 2 * expected_device_cnt;
-      } else {
-        if (context_type == LeAudioContextType::LIVE) {
-          out_cis_count_unidir_source = 2 * expected_device_cnt;
-        } else {
-          out_cis_count_unidir_sink = 2 * expected_device_cnt;
-        }
-      }
-      break;
-    case types::LeAudioConfigurationStrategy::RFU:
-      log::error("Should not happen;");
-      break;
-  }
-
-  log::info(
-          "Required cis count: Bi-Directional: {}, Uni-Directional Sink: {}, "
-          "Uni-Directional Source: {}",
-          out_cis_count_bidir, out_cis_count_unidir_sink, out_cis_count_unidir_source);
-}
 
 uint8_t ConvertLeToLeXContext(const LeAudioContextType& context_type) {
   uint8_t lex_context_type = static_cast<uint8_t>(types::qcom_lex::LeXAudioContextTypeMask::MEDIA);
@@ -392,7 +271,7 @@ const std::map<uint32_t, uint8_t> LeAudioCoreCodecConfig::data_interval_map = {
          codec_spec_conf::kLeAudioCodecFrameDur10000us},
 };
 
-std::string CapabilityTypeToStr(const uint8_t& type) {
+static std::string CapabilityTypeToStr(const uint8_t& type) {
   switch (type) {
     case codec_spec_caps::kLeAudioLtvTypeSupportedSamplingFrequencies:
       return "Supported Sampling Frequencies";
@@ -409,7 +288,7 @@ std::string CapabilityTypeToStr(const uint8_t& type) {
   }
 }
 
-std::string CapabilityValueToStr(const uint8_t& type, const std::vector<uint8_t>& value) {
+static std::string CapabilityValueToStr(const uint8_t& type, const std::vector<uint8_t>& value) {
   std::string string = "";
 
   switch (type) {

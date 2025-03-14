@@ -19,6 +19,10 @@ package com.android.bluetooth.hfp;
 import static android.Manifest.permission.BLUETOOTH_CONNECT;
 import static android.bluetooth.BluetoothDevice.ACCESS_ALLOWED;
 import static android.bluetooth.BluetoothDevice.ACCESS_REJECTED;
+import static android.bluetooth.BluetoothProfile.STATE_CONNECTED;
+import static android.bluetooth.BluetoothProfile.STATE_CONNECTING;
+import static android.bluetooth.BluetoothProfile.STATE_DISCONNECTED;
+import static android.bluetooth.BluetoothProfile.STATE_DISCONNECTING;
 import static android.media.audio.Flags.deprecateStreamBtSco;
 
 import static com.android.modules.utils.build.SdkLevel.isAtLeastU;
@@ -55,6 +59,7 @@ import com.android.bluetooth.btservice.MetricsLogger;
 import com.android.bluetooth.btservice.InteropUtil;
 import com.android.bluetooth.btservice.ProfileService;
 import com.android.bluetooth.btservice.storage.DatabaseManager;
+import com.android.bluetooth.flags.Flags;
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.internal.util.State;
 import com.android.internal.util.StateMachine;
@@ -589,7 +594,7 @@ class HeadsetStateMachine extends StateMachine {
     class Disconnected extends HeadsetStateBase {
         @Override
         int getConnectionStateInt() {
-            return BluetoothProfile.STATE_DISCONNECTED;
+            return STATE_DISCONNECTED;
         }
 
         @Override
@@ -630,6 +635,13 @@ class HeadsetStateMachine extends StateMachine {
             mIsBlacklistedDevice = false;
             mIsRetrySco = false;
             mIsBlacklistedDeviceforRetrySCO = false;
+
+            if (mPrevState == mConnecting) {
+                logHfpSessionMetric(
+                        mDevice,
+                        BluetoothStatsLog
+                                .BLUETOOTH_CROSS_LAYER_EVENT_REPORTED__STATE__HFP_CONNECT_FAIL);
+            }
         }
 
         @Override
@@ -638,6 +650,10 @@ class HeadsetStateMachine extends StateMachine {
                 case CONNECT:
                     BluetoothDevice device = (BluetoothDevice) message.obj;
                     stateLogD("Connecting to " + device);
+                    logHfpSessionMetric(
+                            device,
+                            BluetoothStatsLog
+                                    .BLUETOOTH_CROSS_LAYER_EVENT_REPORTED__STATE__START_LOCAL_INITIATED);
                     if (!mDevice.equals(device)) {
                         stateLogE(
                                 "CONNECT failed, device=" + device + ", currentDevice=" + mDevice);
@@ -654,16 +670,17 @@ class HeadsetStateMachine extends StateMachine {
                     if (!mNativeInterface.connectHfp(device)) {
                         stateLogE("CONNECT failed for connectHfp(" + device + ")");
                         // No state transition is involved, fire broadcast immediately
-                        broadcastConnectionState(
+                        logHfpSessionMetric(
                                 device,
-                                BluetoothProfile.STATE_DISCONNECTED,
-                                BluetoothProfile.STATE_DISCONNECTED);
+                                BluetoothStatsLog
+                                        .BLUETOOTH_CROSS_LAYER_EVENT_REPORTED__STATE__HFP_CONNECT_FAIL);
+                        broadcastConnectionState(device, STATE_DISCONNECTED, STATE_DISCONNECTED);
                         BluetoothStatsLog.write(
                                 BluetoothStatsLog.BLUETOOTH_PROFILE_CONNECTION_ATTEMPTED,
                                 BluetoothProfile.HEADSET,
                                 BluetoothProtoEnums.RESULT_FAILURE,
-                                BluetoothProfile.STATE_DISCONNECTED,
-                                BluetoothProfile.STATE_DISCONNECTED,
+                                STATE_DISCONNECTED,
+                                STATE_DISCONNECTED,
                                 BluetoothProtoEnums.REASON_NATIVE_LAYER_REJECTED,
                                 MetricsLogger.getInstance().getRemoteDeviceInfoProto(mDevice));
                         break;
@@ -719,6 +736,10 @@ class HeadsetStateMachine extends StateMachine {
                 case HeadsetHalConstants.CONNECTION_STATE_CONNECTING:
                     if (mHeadsetService.okToAcceptConnection(mDevice, false)) {
                         stateLogI("accept incoming connection");
+                        logHfpSessionMetric(
+                                mDevice,
+                                BluetoothStatsLog
+                                        .BLUETOOTH_CROSS_LAYER_EVENT_REPORTED__STATE__START_REMOTE_INITIATED);
                         transitionTo(mConnecting);
                     } else {
                         stateLogI(
@@ -731,18 +752,19 @@ class HeadsetStateMachine extends StateMachine {
                             stateLogE("failed to disconnect");
                         }
                         // Indicate rejection to other components.
-                        broadcastConnectionState(
-                                mDevice,
-                                BluetoothProfile.STATE_DISCONNECTED,
-                                BluetoothProfile.STATE_DISCONNECTED);
+                        broadcastConnectionState(mDevice, STATE_DISCONNECTED, STATE_DISCONNECTED);
                         BluetoothStatsLog.write(
                                 BluetoothStatsLog.BLUETOOTH_PROFILE_CONNECTION_ATTEMPTED,
                                 BluetoothProfile.HEADSET,
                                 BluetoothProtoEnums.RESULT_FAILURE,
-                                BluetoothProfile.STATE_DISCONNECTED,
-                                BluetoothProfile.STATE_DISCONNECTED,
+                                STATE_DISCONNECTED,
+                                STATE_DISCONNECTED,
                                 BluetoothProtoEnums.REASON_INCOMING_CONN_REJECTED,
                                 MetricsLogger.getInstance().getRemoteDeviceInfoProto(mDevice));
+                        logHfpSessionMetric(
+                                mDevice,
+                                BluetoothStatsLog
+                                        .BLUETOOTH_CROSS_LAYER_EVENT_REPORTED__STATE__HFP_CONNECT_REJECT_FAIL);
                     }
                     break;
                 case HeadsetHalConstants.CONNECTION_STATE_DISCONNECTING:
@@ -768,7 +790,7 @@ class HeadsetStateMachine extends StateMachine {
                         BluetoothProfile.HEADSET,
                         result,
                         mPrevState.getConnectionStateInt(),
-                        BluetoothProfile.STATE_DISCONNECTED,
+                        STATE_DISCONNECTED,
                         BluetoothProtoEnums.REASON_UNEXPECTED_STATE,
                         MetricsLogger.getInstance().getRemoteDeviceInfoProto(mDevice));
             }
@@ -782,7 +804,7 @@ class HeadsetStateMachine extends StateMachine {
     class Connecting extends HeadsetStateBase {
         @Override
         int getConnectionStateInt() {
-            return BluetoothProfile.STATE_CONNECTING;
+            return STATE_CONNECTING;
         }
 
         @Override
@@ -795,7 +817,7 @@ class HeadsetStateMachine extends StateMachine {
             super.enter();
             mConnectingTimestampMs = SystemClock.uptimeMillis();
             sendMessageDelayed(CONNECT_TIMEOUT, mDevice, sConnectTimeoutMs);
-            mSystemInterface.queryPhoneState();
+            mSystemInterface.queryPhoneState(mHeadsetService);
             // update call states in StateMachine
             mStateMachineCallState.mNumActive =
                    mSystemInterface.getHeadsetPhoneState().getNumActiveCall();
@@ -828,6 +850,10 @@ class HeadsetStateMachine extends StateMachine {
                             break;
                         }
                         stateLogW("CONNECT_TIMEOUT");
+                        logHfpSessionMetric(
+                                device,
+                                BluetoothStatsLog
+                                        .BLUETOOTH_CROSS_LAYER_EVENT_REPORTED__STATE__CONNECTION_TIMEOUT);
                         transitionTo(mDisconnected);
                         break;
                     }
@@ -994,7 +1020,7 @@ class HeadsetStateMachine extends StateMachine {
     class Disconnecting extends HeadsetStateBase {
         @Override
         int getConnectionStateInt() {
-            return BluetoothProfile.STATE_DISCONNECTING;
+            return STATE_DISCONNECTING;
         }
 
         @Override
@@ -1088,7 +1114,7 @@ class HeadsetStateMachine extends StateMachine {
     private abstract class ConnectedBase extends HeadsetStateBase {
         @Override
         int getConnectionStateInt() {
-            return BluetoothProfile.STATE_CONNECTED;
+            return STATE_CONNECTED;
         }
 
         /**
@@ -1384,7 +1410,7 @@ class HeadsetStateMachine extends StateMachine {
                 // Reset NREC on connect event. Headset will override later
                 processNoiseReductionEvent(true);
                 // Query phone state for initial setup
-                mSystemInterface.queryPhoneState();
+                mSystemInterface.queryPhoneState(mHeadsetService);
                 // Checking for the Blacklisted device Addresses
                 mIsBlacklistedDevice = isConnectedDeviceBlacklistedforIncomingCall();
                 // Checking for the Blacklisted device Addresses
@@ -1406,6 +1432,9 @@ class HeadsetStateMachine extends StateMachine {
             }
             broadcastStateTransitions();
             logSuccessIfNeeded();
+            logHfpSessionMetric(
+                    mDevice,
+                    BluetoothStatsLog.BLUETOOTH_CROSS_LAYER_EVENT_REPORTED__STATE__HFP_CONNECTED);
         }
 
         @Override
@@ -1429,10 +1458,7 @@ class HeadsetStateMachine extends StateMachine {
                         if (!mNativeInterface.disconnectHfp(device)) {
                             // broadcast immediately as no state transition is involved
                             stateLogE("DISCONNECT from " + device + " failed");
-                            broadcastConnectionState(
-                                    device,
-                                    BluetoothProfile.STATE_CONNECTED,
-                                    BluetoothProfile.STATE_CONNECTED);
+                            broadcastConnectionState(device, STATE_CONNECTED, STATE_CONNECTED);
                             break;
                         }
                         transitionTo(mDisconnecting);
@@ -1549,7 +1575,7 @@ class HeadsetStateMachine extends StateMachine {
                         BluetoothProfile.HEADSET,
                         BluetoothProtoEnums.RESULT_SUCCESS,
                         mPrevState.getConnectionStateInt(),
-                        BluetoothProfile.STATE_CONNECTED,
+                        STATE_CONNECTED,
                         BluetoothProtoEnums.REASON_SUCCESS,
                         MetricsLogger.getInstance().getRemoteDeviceInfoProto(mDevice));
             }
@@ -1908,8 +1934,7 @@ class HeadsetStateMachine extends StateMachine {
      *
      * @return device in focus
      */
-    @VisibleForTesting
-    public BluetoothDevice getDevice() {
+    BluetoothDevice getDevice() {
         return mDevice;
     }
 
@@ -2336,7 +2361,7 @@ class HeadsetStateMachine extends StateMachine {
 
     @VisibleForTesting
     void processAtChld(int chld, BluetoothDevice device) {
-        if (mSystemInterface.processChld(chld)) {
+        if (mSystemInterface.processChld(mHeadsetService, chld)) {
             mNativeInterface.atResponseCode(device, HeadsetHalConstants.AT_RESPONSE_OK, 0);
         } else {
             mNativeInterface.atResponseCode(device, HeadsetHalConstants.AT_RESPONSE_ERROR, 0);
@@ -2911,6 +2936,11 @@ class HeadsetStateMachine extends StateMachine {
                     sendIndicatorIntent(device, indId, -1);
                     break;
                 case HeadsetHalConstants.HF_INDICATOR_BATTERY_LEVEL_STATUS:
+                    if (Flags.enableBatteryLevelUpdateOnlyThroughHfIndicator()) {
+                        mAdapterService
+                                .getRemoteDevices()
+                                .handleHfIndicatorStatus(device, indId, true);
+                    }
                     log("Send Broadcast intent for the Battery Level indicator.");
                     sendIndicatorIntent(device, indId, -1);
                     break;
@@ -3123,5 +3153,15 @@ class HeadsetStateMachine extends StateMachine {
             default:
                 return "UNKNOWN(" + what + ")";
         }
+    }
+
+    private static void logHfpSessionMetric(BluetoothDevice device, int state) {
+        MetricsLogger.getInstance()
+                .logBluetoothEvent(
+                        device,
+                        BluetoothStatsLog
+                                .BLUETOOTH_CROSS_LAYER_EVENT_REPORTED__EVENT_TYPE__HFP_SESSION,
+                        state,
+                        0);
     }
 }

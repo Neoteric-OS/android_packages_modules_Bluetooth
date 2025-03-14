@@ -33,6 +33,7 @@
 #include "osi/include/alarm.h"
 #include "stack/include/bt_hdr.h"
 #include "stack/include/rfcdefs.h"
+#include "stack/include/sdp_status.h"
 #include "types/bluetooth/uuid.h"
 #include "types/raw_address.h"
 
@@ -181,5 +182,10 @@ void bta_jv_set_pm_profile(uint32_t handle, tBTA_JV_PM_ID app_id, tBTA_JV_CONN_S
 
 void bta_jv_l2cap_stop_server_le(uint16_t local_chan);
 extern void bta_jv_idle_timeout_handler(void* tle);
+
+namespace bluetooth::legacy::testing {
+void bta_jv_start_discovery_cback(uint32_t rfcomm_slot_id, const RawAddress& bd_addr,
+                                  tSDP_RESULT result);
+}  // namespace bluetooth::legacy::testing
 
 #endif /* BTA_JV_INT_H */

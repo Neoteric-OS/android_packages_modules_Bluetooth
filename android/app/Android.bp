@@ -171,47 +171,10 @@ cc_library_shared {
     min_sdk_version: "Tiramisu",
 }
 
-cc_library {
-    name: "libbluetooth-core",
-    defaults: ["fluoride_defaults"],
-    header_libs: [
-        "jni_headers",
-        "libbluetooth_headers",
-    ],
-    include_dirs: [
-        "packages/modules/Bluetooth/system/types",
-    ],
-    static_libs: [
-        "libbte",
-        "libbt-bta-core",
-        "libbt-common",
-        "libbtdevice",
-        "libbtif-core",
-        "libbt-hci",
-        "libbt-stack-core",
-        "libbtcore",
-        "libosi",
-        "lib-bt-packets",
-        "lib-bt-packets-base",
-
-        "libbluetooth-types",
-    ],
-    cflags: [
-        // we export all classes, so change default visibility,
-        // instead of having EXPORT_SYMBOL on each class
-        "-fvisibility=default",
-    ],
-    sanitize: {
-        scs: true,
-    },
-    apex_available: ["com.android.bt"],
-    host_supported: true,
-    min_sdk_version: "Tiramisu",
-}
-
 android_library {
     name: "BluetoothLib",
     defaults: ["bluetooth_framework_errorprone_rules"],
+    manifest: "LibAndroidManifest.xml",
 
     srcs: [
         ":statslog-bluetooth-java-gen",
@@ -231,7 +194,7 @@ android_library {
         "bluetooth_flags_java_lib",
         "error_prone_annotations",
         "framework-annotations-lib",
-        "framework-bluetooth-pre-jarjar",
+        "framework-bluetooth.impl",
         "framework-configinfrastructure.stubs.module_lib",
         "framework-connectivity-t.stubs.module_lib",
         "framework-connectivity.stubs.module_lib",
@@ -351,7 +314,7 @@ android_app {
         enabled: true,
         shrink: true,
         optimize: false,
-        // ignore_warnings: false, // TODO: b/191783947 -- re-activate error
+        ignore_warnings: false,
         proguard_flags_files: ["proguard.flags"],
     },
 
