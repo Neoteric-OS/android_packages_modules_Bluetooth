@@ -1237,14 +1237,16 @@ public class LeAudioService extends ProfileService {
             return;
         }
 
-        A2dpService mA2dp = A2dpService.getA2dpService();
-        if ((mA2dp != null && mA2dp.getActiveDevice() != null) || mInCall) {
-            Log.w(TAG, "A2dp device is active or call ongoing, skip broadcast creation.");
-            mHandler.post(
-                    () ->
-                            notifyBroadcastStartFailed(
-                                    BluetoothStatusCodes.ERROR_LOCAL_NOT_ENOUGH_RESOURCES));
-            return;
+        if (!leaudioBigDependsOnAudioState()) {
+            A2dpService mA2dp = A2dpService.getA2dpService();
+            if ((mA2dp != null && mA2dp.getActiveDevice() != null) || mInCall) {
+                Log.w(TAG, "A2dp device is active or call ongoing, skip broadcast creation.");
+                mHandler.post(
+                        () ->
+                                notifyBroadcastStartFailed(
+                                        BluetoothStatusCodes.ERROR_LOCAL_NOT_ENOUGH_RESOURCES));
+                return;
+            }
         }
 
         int canBroadcastBeCreatedReturnCode = canBroadcastBeCreated(broadcastSettings);
@@ -2249,6 +2251,7 @@ public class LeAudioService extends ProfileService {
         }
 
         notifyActiveDeviceChanged(device);
+        mAudioManager.setA2dpSuspended(false);
         return true;
     }
 
@@ -2339,6 +2342,11 @@ public class LeAudioService extends ProfileService {
                 if (deviceInfo.getType() == AudioDeviceInfo.TYPE_BLE_BROADCAST) {
                     Log.i(TAG, "Broadcast Audio device is removed");
                     releaseLeAudioStream();
+                    if (leaudioBigDependsOnAudioState()) {
+                        if (mExposedActiveDevice != null) {
+                            notifyVolumeControlServiceAboutActiveGroup(mExposedActiveDevice);
+                        }
+                    }
                     continue;
                 }
 
@@ -4232,9 +4240,8 @@ public class LeAudioService extends ProfileService {
             /* Broadcast creation procedure were initiated and some unicast group are still
              * active.
              */
+            /* skip removing unicast active device
             if (mAwaitingBroadcastCreateResponse && !areAllGroupsInNotActiveState()) {
-                /* Broadcast would be created once unicast group became inactive */
-                /*
                 Log.i(TAG, "Unicast group is active, deactivate due to pending broadcast");
 
                 if (!leaudioUseAudioRecordingListener()) {
@@ -4243,13 +4250,13 @@ public class LeAudioService extends ProfileService {
                 }
 
                 removeActiveDevice(true);
-                */
+            }
+            */
 
-                /* Notify Broadcast device active while broadcast audio session created*/
-                Log.i(TAG, "Notify Broadcast device active to Audio framework");
-                if (!device.equals(mActiveBroadcastAudioDevice)) {
-                   updateBroadcastActiveDevice(device, mActiveBroadcastAudioDevice, true);
-                }
+            /* Notify Broadcast device active while broadcast audio session created*/
+            Log.i(TAG, "Notify Broadcast device active to Audio framework");
+            if (!device.equals(mActiveBroadcastAudioDevice)) {
+               updateBroadcastActiveDevice(device, mActiveBroadcastAudioDevice, true);
             }
         } else if (stackEvent.type == LeAudioStackEvent.EVENT_TYPE_NATIVE_INITIALIZED) {
             mLeAudioNativeIsInitialized = true;
