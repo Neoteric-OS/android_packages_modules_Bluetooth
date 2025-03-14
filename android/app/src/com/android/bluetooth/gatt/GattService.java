@@ -1593,9 +1593,11 @@ public class GattService extends ProfileService {
 
         int preferredMtu = 0;
 
-        // Some applications expect MTU to be exchanged immediately on connections
         String packageName = source.getPackageName();
         if (packageName != null) {
+            mAdapterService.addAssociatedPackage(getDevice(address), packageName);
+
+            // Some apps expect MTU to be exchanged immediately on connections
             for (Map.Entry<String, Integer> entry : EARLY_MTU_EXCHANGE_PACKAGES.entrySet()) {
                 if (packageName.contains(entry.getKey())) {
                     preferredMtu = entry.getValue();
