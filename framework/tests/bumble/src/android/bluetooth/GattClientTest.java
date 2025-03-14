@@ -422,7 +422,6 @@ public class GattClientTest {
     }
 
     @Test
-    @RequiresFlagsEnabled(Flags.FLAG_GATT_FIX_MULTIPLE_DIRECT_CONNECT)
     public void connectMultiple_closeOne_shouldSuccess() {
         BluetoothGattCallback gattCallback = mock(BluetoothGattCallback.class);
         BluetoothGattCallback gattCallback2 = mock(BluetoothGattCallback.class);
