@@ -324,3 +324,13 @@ flag {
         purpose: PURPOSE_BUGFIX
     }
 }
+
+flag {
+    name: "le_disconnect_notification_handling"
+    namespace: "bluetooth"
+    description: "Fix LE link disconnection notification to stack's upper layers"
+    bug: "403433488"
+    metadata {
+        purpose: PURPOSE_BUGFIX
+    }
+}
