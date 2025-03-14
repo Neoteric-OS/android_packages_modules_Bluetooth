@@ -2,13 +2,6 @@ package: "com.android.bluetooth.flags"
 container: "com.android.bt"
 
 flag {
-    name: "key_missing_classic_device"
-    namespace: "bluetooth"
-    description: "Key missing broadcast for Classic devices"
-    bug: "333634398"
-}
-
-flag {
     name: "key_missing_ble_peripheral"
     namespace: "bluetooth"
     description: "Key missing broadcast for LE devices in peripheral role"
