@@ -1253,12 +1253,6 @@ public:
     background_connections_.erase(address_with_type);
   }
 
-  void is_on_background_connection_list(AddressWithType address_with_type,
-                                        std::promise<bool> promise) {
-    promise.set_value(background_connections_.find(address_with_type) !=
-                      background_connections_.end());
-  }
-
   void OnPause() override {  // bluetooth::hci::LeAddressManagerCallback
     if (!address_manager_registered) {
       log::warn("Unregistered!");
