@@ -2604,6 +2604,8 @@ public class LeAudioService extends ProfileService {
                         + groupId
                         + ", currentlyActiveGroupId = "
                         + currentlyActiveGroupId
+                        + ", mUnicastGroupIdDeactivatedForBroadcastTransition = "
+                        + mUnicastGroupIdDeactivatedForBroadcastTransition
                         + ", device: "
                         + device
                         + ", hasFallbackDevice: "
@@ -2616,7 +2618,8 @@ public class LeAudioService extends ProfileService {
         /* Replace fallback unicast and monitoring input device if device is active local
          * broadcaster.
          */
-        if (isAnyBroadcastInStreamingState()) {
+        if (isAnyBroadcastInStreamingState() &&
+                mUnicastGroupIdDeactivatedForBroadcastTransition != LE_AUDIO_GROUP_ID_INVALID) {
             LeAudioGroupDescriptor fallbackGroupDescriptor = getGroupDescriptor(groupId);
             // If broadcast is ongoing and need to update unicast fallback active group
             // we need to update the cached group id and skip changing the active device
@@ -4011,8 +4014,10 @@ public class LeAudioService extends ProfileService {
                 if (mAudioManagerAddedOutDevice == null) {
                     startBroadcast(broadcastId);
                 } else {
-                    Log.d(TAG, "Audio out device is still not removed, pending start broadcast");
-                    mBroadcastIdPendingStart = Optional.of(broadcastId);
+                    if (!leaudioBigDependsOnAudioState()) {
+                        Log.d(TAG, "Audio out device is still not removed, pending start broadcast");
+                        mBroadcastIdPendingStart = Optional.of(broadcastId);
+                    }
                 }
             } else {
                 // TODO: Improve reason reporting or extend the native stack event with reason code
