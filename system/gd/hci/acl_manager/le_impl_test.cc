@@ -1475,16 +1475,6 @@ TEST_F(LeImplTest, cancel_connect) {
   ASSERT_TRUE(le_impl_->create_connection_timeout_alarms_.empty());
 }
 
-TEST_F(LeImplTest, set_le_suggested_default_data_parameters) {
-  le_impl_->set_le_suggested_default_data_parameters(kLength, kTime);
-  sync_handler();
-  auto view = CreateLeConnectionManagementCommandView<LeWriteSuggestedDefaultDataLengthView>(
-          hci_layer_->GetCommand());
-  ASSERT_TRUE(view.IsValid());
-  ASSERT_EQ(kLength, view.GetTxOctets());
-  ASSERT_EQ(kTime, view.GetTxTime());
-}
-
 enum class ConnectionCompleteType { CONNECTION_COMPLETE, ENHANCED_CONNECTION_COMPLETE };
 
 class LeImplTestParameterizedByConnectionCompleteEventType

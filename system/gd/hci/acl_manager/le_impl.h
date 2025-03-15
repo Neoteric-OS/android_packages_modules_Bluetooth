@@ -1149,12 +1149,6 @@ public:
     remove_device_from_accept_list(address_with_type);
   }
 
-  void set_le_suggested_default_data_parameters(uint16_t length, uint16_t time) {
-    auto packet = LeWriteSuggestedDefaultDataLengthBuilder::Create(length, time);
-    le_acl_connection_interface_->EnqueueCommand(
-            std::move(packet), handler_->BindOnce([](CommandCompleteView /* complete */) {}));
-  }
-
   void clear_resolving_list() { le_address_manager_->ClearResolvingList(); }
 
   void set_privacy_policy_for_initiator_address(LeAddressManager::AddressPolicy address_policy,
