@@ -414,6 +414,9 @@ cc_test {
         "storage/mutation_test.cc",
         "storage/storage_module_test.cc",
     ],
+    cflags: [
+        "-DUSE_FAKE_TIMERS",
+    ],
     static_libs: [
         "bluetooth_flags_c_lib_for_test",
         "libbase",
