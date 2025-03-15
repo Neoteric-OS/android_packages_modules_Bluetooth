@@ -201,6 +201,7 @@ struct DistanceMeasurementManager::impl : bluetooth::hal::RangingHalCallback {
     WAIT_FOR_SECURITY_ENABLED = 1 << 4,
     WAIT_FOR_PROCEDURE_ENABLED = 1 << 5,
     STARTED = 1 << 6,
+    HOLD = 1 << 7,
   };
 
   struct CsTracker {
@@ -409,6 +410,13 @@ struct DistanceMeasurementManager::impl : bluetooth::hal::RangingHalCallback {
       set_cs_params_.erase(connection_handle);
     }
 
+    if(cs_requester_trackers_.find(connection_handle) != cs_requester_trackers_.end()) {
+      auto it = cs_requester_trackers_.find(connection_handle);
+      if(it->second.state == CsTrackerState::HOLD) {
+          log::warn("Cs tracker on hold and params removed");
+          set_cs_params_.erase(connection_handle);
+      }
+    }
     tCS_PROCEDURE_PARAM cs_proc_setting;
     tCS_CONFIG cs_config_setting;
     mCsSecurityLevel = mCsSecurityLevel-1;
@@ -605,13 +613,14 @@ struct DistanceMeasurementManager::impl : bluetooth::hal::RangingHalCallback {
         } else if (it->second.measurement_ongoing) {
           it->second.repeating_alarm->Cancel();
           send_le_cs_procedure_enable(connection_handle, Enable::DISABLED);
-          // does not depend on the 'disable' command result.
           reset_tracker_on_stopped(it->second);
+          it->second.state = CsTrackerState::HOLD;
+          it->second.used_config_id = kInvalidConfigId;
 	  /*
 	  if (ranging_hal_->IsBound())
 	    ranging_hal_->close(connection_handle);
           */
-	 }
+	     }
       } break;
     }
   }
@@ -881,7 +890,7 @@ struct DistanceMeasurementManager::impl : bluetooth::hal::RangingHalCallback {
     if (cs_requester_trackers_.find(connection_handle) == cs_requester_trackers_.end()) {
       log::warn("no cs tracker found for {}", connection_handle);
     }
-    log::debug("send cs create config");
+    log::debug("send cs create config {}", config_id);
     cs_requester_trackers_[connection_handle].state = CsTrackerState::WAIT_FOR_CONFIG_COMPLETE;
 
     bool config_avb = false;
@@ -1244,6 +1253,7 @@ struct DistanceMeasurementManager::impl : bluetooth::hal::RangingHalCallback {
       log::warn("Get invalid LeCsConfigCompleteView");
       return;
     }
+
     uint16_t connection_handle = event_view.GetConnectionHandle();
     if (event_view.GetStatus() != ErrorCode::SUCCESS) {
       std::string error_code = ErrorCodeText(event_view.GetStatus());
@@ -1273,8 +1283,12 @@ struct DistanceMeasurementManager::impl : bluetooth::hal::RangingHalCallback {
                               CsTrackerState::WAIT_FOR_CONFIG_COMPLETE);
     auto valid_requester_states = static_cast<uint8_t>(CsTrackerState::WAIT_FOR_CONFIG_COMPLETE);
     // any state, as the remote can start over at any time.
-    auto valid_responder_states = static_cast<uint8_t>(CsTrackerState::UNSPECIFIED);
-
+    uint8_t valid_responder_states = static_cast<uint8_t>(CsTrackerState::UNSPECIFIED);
+    if(cs_responder_trackers_.find(connection_handle) != cs_responder_trackers_.end()) {
+      if(cs_responder_trackers_[connection_handle].used_config_id != 0xff && config_id != cs_responder_trackers_[connection_handle].used_config_id) {
+        cs_responder_trackers_[connection_handle].used_config_id = config_id;
+      }
+    }
     CsTracker* live_tracker = get_live_tracker(connection_handle, config_id, valid_requester_states,
                                                valid_responder_states);
     if (live_tracker == nullptr) {
