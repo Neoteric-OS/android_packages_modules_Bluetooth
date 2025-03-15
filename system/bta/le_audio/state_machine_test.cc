@@ -42,9 +42,6 @@
 #include "test/mock/mock_stack_btm_iso.h"
 #include "types/bt_transport.h"
 
-// TODO(b/369381361) Enfore -Wmissing-prototypes
-#pragma GCC diagnostic ignored "-Wmissing-prototypes"
-
 using ::bluetooth::le_audio::DeviceConnectState;
 using ::bluetooth::le_audio::codec_spec_caps::kLeAudioCodecChannelCountSingleChannel;
 using ::bluetooth::le_audio::codec_spec_caps::kLeAudioCodecChannelCountTwoChannel;
@@ -61,8 +58,6 @@ using ::testing::Test;
 
 extern struct fake_osi_alarm_set_on_mloop fake_osi_alarm_set_on_mloop_;
 
-void osi_property_set_bool(const char* key, bool value);
-
 constexpr uint8_t media_ccid = 0xC0;
 constexpr auto media_context = LeAudioContextType::MEDIA;
 
@@ -70,20 +65,20 @@ constexpr uint8_t call_ccid = 0xD0;
 constexpr auto call_context = LeAudioContextType::CONVERSATIONAL;
 
 const std::string kSmpOptions("mock smp options");
-bool get_pts_avrcp_test(void) { return false; }
-bool get_pts_secure_only_mode(void) { return false; }
-bool get_pts_conn_updates_disabled(void) { return false; }
-bool get_pts_crosskey_sdp_disable(void) { return false; }
-const std::string* get_pts_smp_options(void) { return &kSmpOptions; }
-int get_pts_smp_failure_case(void) { return 123; }
-bool get_pts_force_eatt_for_notifications(void) { return false; }
-bool get_pts_connect_eatt_unconditionally(void) { return false; }
-bool get_pts_connect_eatt_before_encryption(void) { return false; }
-bool get_pts_unencrypt_broadcast(void) { return false; }
-bool get_pts_eatt_peripheral_collision_support(void) { return false; }
-bool get_pts_force_le_audio_multiple_contexts_metadata(void) { return false; }
-bool get_pts_le_audio_disable_ases_before_stopping(void) { return false; }
-config_t* get_all(void) { return nullptr; }
+static bool get_pts_avrcp_test(void) { return false; }
+static bool get_pts_secure_only_mode(void) { return false; }
+static bool get_pts_conn_updates_disabled(void) { return false; }
+static bool get_pts_crosskey_sdp_disable(void) { return false; }
+static const std::string* get_pts_smp_options(void) { return &kSmpOptions; }
+static int get_pts_smp_failure_case(void) { return 123; }
+static bool get_pts_force_eatt_for_notifications(void) { return false; }
+static bool get_pts_connect_eatt_unconditionally(void) { return false; }
+static bool get_pts_connect_eatt_before_encryption(void) { return false; }
+static bool get_pts_unencrypt_broadcast(void) { return false; }
+static bool get_pts_eatt_peripheral_collision_support(void) { return false; }
+static bool get_pts_force_le_audio_multiple_contexts_metadata(void) { return false; }
+static bool get_pts_le_audio_disable_ases_before_stopping(void) { return false; }
+static config_t* get_all(void) { return nullptr; }
 
 stack_config_t mock_stack_config{
         .get_pts_avrcp_test = get_pts_avrcp_test,
@@ -253,6 +248,7 @@ protected:
   /* Use for single test to simulate late ASE notifications */
   bool stop_inject_configured_ase_after_first_ase_configured_;
 
+  uint16_t attr_handle = ATTR_HANDLE_ASCS_POOL_START;
   uint16_t pacs_attr_handle_next = ATTR_HANDLE_PACS_POOL_START;
 
   virtual void SetUp() override {
@@ -648,11 +644,6 @@ protected:
     leAudioDevice->conn_id_ = id;
     leAudioDevice->SetConnectionState(DeviceConnectState::CONNECTED);
 
-    uint16_t attr_handle = ATTR_HANDLE_ASCS_POOL_START;
-    leAudioDevice->snk_audio_locations_hdls_.val_hdl = attr_handle++;
-    leAudioDevice->snk_audio_locations_hdls_.ccc_hdl = attr_handle++;
-    leAudioDevice->src_audio_locations_hdls_.val_hdl = attr_handle++;
-    leAudioDevice->src_audio_locations_hdls_.ccc_hdl = attr_handle++;
     leAudioDevice->audio_avail_hdls_.val_hdl = attr_handle++;
     leAudioDevice->audio_avail_hdls_.ccc_hdl = attr_handle++;
     leAudioDevice->audio_supp_cont_hdls_.val_hdl = attr_handle++;
@@ -1089,7 +1080,10 @@ protected:
 
       leAudioDevice->snk_pacs_.emplace_back(std::make_tuple(std::move(handle_pair), pac_recs));
 
-      leAudioDevice->snk_audio_locations_ = audio_locations;
+      auto val_hdl = attr_handle++;
+      auto ccc_hdl = attr_handle++;
+      leAudioDevice->audio_locations_.sink.emplace(types::hdl_pair(val_hdl, ccc_hdl),
+                                                   types::AudioLocations(audio_locations));
     }
 
     if ((direction & types::kLeAudioDirectionSource) > 0) {
@@ -1110,7 +1104,10 @@ protected:
 
       leAudioDevice->src_pacs_.emplace_back(std::make_tuple(std::move(handle_pair), pac_recs));
 
-      leAudioDevice->src_audio_locations_ = audio_locations;
+      auto val_hdl = attr_handle++;
+      auto ccc_hdl = attr_handle++;
+      leAudioDevice->audio_locations_.source.emplace(types::hdl_pair(val_hdl, ccc_hdl),
+                                                     types::AudioLocations(audio_locations));
     }
 
     DeviceContextsUpdate(leAudioDevice, direction, contexts_available, contexts_supported);
@@ -1265,6 +1262,8 @@ protected:
                   cached_codec_configuration_map_[ase_id] = codec_configured_state_params;
                 }
 
+                InjectCtpNotification(group, device, value);
+
                 if (inject_configured) {
                   InjectAseStateNotification(ase, device, group, ascs::kAseStateCodecConfigured,
                                              &codec_configured_state_params);
@@ -1283,6 +1282,7 @@ protected:
             .WillByDefault(Invoke([group, verify_ase_count, caching, inject_qos_configured, this](
                                           LeAudioDevice* device, std::vector<uint8_t> value,
                                           GATT_WRITE_OP_CB /*cb*/, void* /*cb_data*/) {
+              InjectCtpNotification(group, device, value);
               auto num_ase = value[1];
 
               // Verify ase count if needed
@@ -1350,43 +1350,70 @@ protected:
             }));
   }
 
-  void PrepareCtpNotificationError(LeAudioDeviceGroup* group, uint8_t opcode, uint8_t response_code,
-                                   uint8_t reason) {
-    auto foo = [group, opcode, response_code, reason](LeAudioDevice* device,
-                                                      std::vector<uint8_t> value,
-                                                      GATT_WRITE_OP_CB /*cb*/, void* /*cb_data*/) {
-      auto num_ase = value[1];
-      std::vector<uint8_t> notif_value(2 +
-                                       num_ase * sizeof(struct client_parser::ascs::ctp_ase_entry));
-      auto* p = notif_value.data();
+  void InjectCtpNotification(LeAudioDeviceGroup* group, LeAudioDevice* leAudioDevice,
+                             std::vector<uint8_t>& ctp_command, uint8_t response_code = 0x00,
+                             uint8_t reason = 0x00) {
+    auto opcode = ctp_command[0];
+    auto num_ase = ctp_command[1];
+    std::vector<uint8_t> notif_value(2 +
+                                     num_ase * sizeof(struct client_parser::ascs::ctp_ase_entry));
+    auto* p = notif_value.data();
 
-      UINT8_TO_STREAM(p, opcode);
-      UINT8_TO_STREAM(p, num_ase);
+    UINT8_TO_STREAM(p, opcode);
+    UINT8_TO_STREAM(p, num_ase);
 
-      auto* ase_p = &value[2];
-      for (auto i = 0u; i < num_ase; ++i) {
-        /* Check if this is a valid ASE ID  */
-        auto ase_id = *ase_p++;
-        auto it = std::find_if(device->ases_.begin(), device->ases_.end(),
+    auto* ase_p = &ctp_command[2];
+    for (auto i = 0u; i < num_ase; ++i) {
+      /* Check if this is a valid ASE ID  */
+      auto ase_id = *ase_p++;
+
+      /* Do additional verification with the device ASE only when opcode is different than codec
+       * config. This is because, device will get ASE id when Codec Configured Notification arrives.
+       */
+      if (opcode != client_parser::ascs::kCtpOpcodeCodecConfiguration) {
+        auto it = std::find_if(leAudioDevice->ases_.begin(), leAudioDevice->ases_.end(),
                                [ase_id](auto& ase) { return ase.id == ase_id; });
-        ASSERT_NE(it, device->ases_.end());
-
-        auto meta_len = *ase_p++;
-        auto num_handled_bytes = ase_p - value.data();
-        ase_p += meta_len;
-
-        client_parser::ascs::ase_transient_state_params enable_params = {
-                .metadata = std::vector<uint8_t>(value.begin() + num_handled_bytes,
-                                                 value.begin() + num_handled_bytes + meta_len)};
-
-        // Inject error response
-        UINT8_TO_STREAM(p, ase_id);
-        UINT8_TO_STREAM(p, response_code);
-        UINT8_TO_STREAM(p, reason);
+        ASSERT_NE(it, leAudioDevice->ases_.end());
       }
 
-      LeAudioGroupStateMachine::Get()->ProcessGattCtpNotification(group, notif_value.data(),
-                                                                  notif_value.size());
+      switch (opcode) {
+        case client_parser::ascs::kCtpOpcodeCodecConfiguration: {
+          ase_p += 7;
+          auto codec_spec_len = *ase_p++;
+          ase_p += codec_spec_len;
+        } break;
+        case client_parser::ascs::kCtpOpcodeQosConfiguration:
+          ase_p += 15;
+          break;
+        case client_parser::ascs::kCtpOpcodeUpdateMetadata:
+        case client_parser::ascs::kCtpOpcodeEnable: {
+          auto meta_len = *ase_p++;
+          ase_p += meta_len;
+        } break;
+        case client_parser::ascs::kCtpOpcodeReceiverStartReady:
+        case client_parser::ascs::kCtpOpcodeDisable:
+        case client_parser::ascs::kCtpOpcodeReceiverStopReady:
+        case client_parser::ascs::kCtpOpcodeRelease:
+        default:
+          break;
+      }
+
+      // Inject error response
+      UINT8_TO_STREAM(p, ase_id);
+      UINT8_TO_STREAM(p, response_code);
+      UINT8_TO_STREAM(p, reason);
+    }
+
+    LeAudioGroupStateMachine::Get()->ProcessGattCtpNotification(group, notif_value.data(),
+                                                                notif_value.size());
+  }
+
+  void PrepareCtpNotificationError(LeAudioDeviceGroup* group, uint8_t opcode, uint8_t response_code,
+                                   uint8_t reason) {
+    auto foo = [group, response_code, reason, this](LeAudioDevice* device,
+                                                    std::vector<uint8_t> value,
+                                                    GATT_WRITE_OP_CB /*cb*/, void* /*cb_data*/) {
+      InjectCtpNotification(group, device, value, response_code, reason);
     };
 
     switch (opcode) {
@@ -1425,6 +1452,8 @@ protected:
             .WillByDefault(Invoke([group, verify_ase_count, inject_enabling, incject_streaming,
                                    this](LeAudioDevice* device, std::vector<uint8_t> value,
                                          GATT_WRITE_OP_CB /*cb*/, void* /*cb_data*/) {
+              InjectCtpNotification(group, device, value);
+
               auto num_ase = value[1];
 
               // Verify ase count if needed
@@ -1477,6 +1506,7 @@ protected:
             .WillByDefault(Invoke([group, verify_ase_count, this](
                                           LeAudioDevice* device, std::vector<uint8_t> value,
                                           GATT_WRITE_OP_CB /*cb*/, void* /*cb_data*/) {
+              InjectCtpNotification(group, device, value);
               auto num_ase = value[1];
 
               // Verify ase count if needed
@@ -1520,6 +1550,7 @@ protected:
             .WillByDefault(Invoke([group, verify_ase_count, this](
                                           LeAudioDevice* device, std::vector<uint8_t> value,
                                           GATT_WRITE_OP_CB /*cb*/, void* /*cb_data*/) {
+              InjectCtpNotification(group, device, value);
               auto num_ase = value[1];
 
               // Verify ase count if needed
@@ -1552,6 +1583,7 @@ protected:
             .WillByDefault(Invoke([group, verify_ase_count, this](
                                           LeAudioDevice* device, std::vector<uint8_t> value,
                                           GATT_WRITE_OP_CB /*cb*/, void* /*cb_data*/) {
+              InjectCtpNotification(group, device, value);
               auto num_ase = value[1];
 
               // Verify ase count if needed
@@ -1589,7 +1621,7 @@ protected:
                 log::info("Do nothing for {}", dev->address_);
                 return;
               }
-
+              InjectCtpNotification(group, device, value);
               auto num_ase = value[1];
 
               // Verify ase count if needed
@@ -9237,7 +9269,7 @@ TEST_F(StateMachineTest, testAutonomousDisableOneDeviceAndGoBackToStream_CisDisc
   /* Now lets try to attach the device back to the stream (Enabling and Receiver
    * Start ready to be called)*/
 
-  EXPECT_CALL(gatt_queue, WriteCharacteristic(lastDevice->conn_id_, firstDevice->ctp_hdls_.val_hdl,
+  EXPECT_CALL(gatt_queue, WriteCharacteristic(lastDevice->conn_id_, lastDevice->ctp_hdls_.val_hdl,
                                               _, GATT_WRITE_NO_RSP, _, _))
           .Times(2);
 
@@ -9346,7 +9378,7 @@ TEST_F(StateMachineTest, testAutonomousDisableOneDeviceAndGoBackToStream_CisConn
   /* Now lets try to attach the device back to the stream (Enabling and Receiver
    * Start ready to be called)*/
 
-  EXPECT_CALL(gatt_queue, WriteCharacteristic(lastDevice->conn_id_, firstDevice->ctp_hdls_.val_hdl,
+  EXPECT_CALL(gatt_queue, WriteCharacteristic(lastDevice->conn_id_, lastDevice->ctp_hdls_.val_hdl,
                                               _, GATT_WRITE_NO_RSP, _, _))
           .Times(2);
 

@@ -61,7 +61,7 @@ import java.util.Map;
  * @see AdvertiseData
  */
 public final class BluetoothLeAdvertiser {
-    private static final String TAG = "BluetoothLeAdvertiser";
+    private static final String TAG = BluetoothLeAdvertiser.class.getSimpleName();
 
     private static final int MAX_LEGACY_ADVERTISING_DATA_BYTES = 31;
     // Each fields need one byte for field length and another byte for field type.
@@ -289,7 +289,7 @@ public final class BluetoothLeAdvertiser {
      *     three bytes will be added for flags.
      * @param scanResponse Scan response associated with the advertisement data. Size must not
      *     exceed {@link BluetoothAdapter#getLeMaximumAdvertisingDataLength}.
-     * @param periodicParameters periodic advertisng parameters. If null, periodic advertising will
+     * @param periodicParameters periodic advertising parameters. If null, periodic advertising will
      *     not be started.
      * @param periodicData Periodic advertising data. Size must not exceed {@link
      *     BluetoothAdapter#getLeMaximumAdvertisingDataLength}.
@@ -339,7 +339,7 @@ public final class BluetoothLeAdvertiser {
      *     three bytes will be added for flags.
      * @param scanResponse Scan response associated with the advertisement data. Size must not
      *     exceed {@link BluetoothAdapter#getLeMaximumAdvertisingDataLength}.
-     * @param periodicParameters periodic advertisng parameters. If null, periodic advertising will
+     * @param periodicParameters periodic advertising parameters. If null, periodic advertising will
      *     not be started.
      * @param periodicData Periodic advertising data. Size must not exceed {@link
      *     BluetoothAdapter#getLeMaximumAdvertisingDataLength}.
@@ -391,7 +391,7 @@ public final class BluetoothLeAdvertiser {
      *     three bytes will be added for flags.
      * @param scanResponse Scan response associated with the advertisement data. Size must not
      *     exceed {@link BluetoothAdapter#getLeMaximumAdvertisingDataLength}.
-     * @param periodicParameters periodic advertisng parameters. If null, periodic advertising will
+     * @param periodicParameters periodic advertising parameters. If null, periodic advertising will
      *     not be started.
      * @param periodicData Periodic advertising data. Size must not exceed {@link
      *     BluetoothAdapter#getLeMaximumAdvertisingDataLength}.
@@ -448,7 +448,7 @@ public final class BluetoothLeAdvertiser {
      *     three bytes will be added for flags.
      * @param scanResponse Scan response associated with the advertisement data. Size must not
      *     exceed {@link BluetoothAdapter#getLeMaximumAdvertisingDataLength}
-     * @param periodicParameters Periodic advertisng parameters. If null, periodic advertising will
+     * @param periodicParameters Periodic advertising parameters. If null, periodic advertising will
      *     not be started.
      * @param periodicData Periodic advertising data. Size must not exceed {@link
      *     BluetoothAdapter#getLeMaximumAdvertisingDataLength}
@@ -515,7 +515,7 @@ public final class BluetoothLeAdvertiser {
      *     three bytes will be added for flags.
      * @param scanResponse Scan response associated with the advertisement data. Size must not
      *     exceed {@link BluetoothAdapter#getLeMaximumAdvertisingDataLength}
-     * @param periodicParameters Periodic advertisng parameters. If null, periodic advertising will
+     * @param periodicParameters Periodic advertising parameters. If null, periodic advertising will
      *     not be started.
      * @param periodicData Periodic advertising data. Size must not exceed {@link
      *     BluetoothAdapter#getLeMaximumAdvertisingDataLength}
@@ -807,7 +807,7 @@ public final class BluetoothLeAdvertiser {
         return size;
     }
 
-    private int byteLength(byte[] array) {
+    private static int byteLength(byte[] array) {
         return array == null ? 0 : array.length;
     }
 
@@ -923,7 +923,7 @@ public final class BluetoothLeAdvertiser {
     }
 
     @SuppressLint("AndroidFrameworkBluetoothPermission")
-    private void postStartSetFailure(
+    private static void postStartSetFailure(
             Handler handler, final AdvertisingSetCallback callback, final int error) {
         handler.post(
                 new Runnable() {

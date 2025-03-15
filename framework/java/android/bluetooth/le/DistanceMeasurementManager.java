@@ -66,7 +66,7 @@ import java.util.stream.Collectors;
  */
 @SystemApi
 public final class DistanceMeasurementManager {
-    private static final String TAG = "DistanceMeasurementManager";
+    private static final String TAG = DistanceMeasurementManager.class.getSimpleName();
 
     private final ConcurrentHashMap<BluetoothDevice, DistanceMeasurementSession> mSessionMap =
             new ConcurrentHashMap<>();
