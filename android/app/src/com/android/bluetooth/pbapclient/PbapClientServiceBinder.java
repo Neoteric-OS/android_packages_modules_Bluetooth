@@ -35,12 +35,12 @@ import java.util.Collections;
 import java.util.List;
 
 /** Handler for incoming service calls destined for PBAP Client */
-class PbapClientBinder extends IBluetoothPbapClient.Stub implements IProfileServiceBinder {
-    private static final String TAG = PbapClientBinder.class.getSimpleName();
+class PbapClientServiceBinder extends IBluetoothPbapClient.Stub implements IProfileServiceBinder {
+    private static final String TAG = PbapClientServiceBinder.class.getSimpleName();
 
     private PbapClientService mService;
 
-    PbapClientBinder(PbapClientService service) {
+    PbapClientServiceBinder(PbapClientService service) {
         mService = service;
     }
 
