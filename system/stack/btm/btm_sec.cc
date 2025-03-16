@@ -2440,8 +2440,7 @@ void btm_io_capabilities_req(RawAddress p) {
 
     /* If device is bonded, and encrypted it's upgrading security and it's ok.
      * If it's bonded and not encrypted, it's remote missing keys scenario */
-    if (!p_dev_rec->sec_rec.is_device_encrypted() &&
-        com::android::bluetooth::flags::key_missing_classic_device()) {
+    if (!p_dev_rec->sec_rec.is_device_encrypted()) {
       log::warn("Incoming bond request, but {} is already bonded (notifying user)", p);
       bta_dm_remote_key_missing(p);
       btm_sec_disconnect(p_dev_rec->hci_handle, HCI_ERR_AUTH_FAILURE,
@@ -2632,8 +2631,7 @@ void btm_io_capabilities_rsp(const tBTM_SP_IO_RSP evt_data) {
 
   /* If device is bonded, and encrypted it's upgrading security and it's ok.
    * If it's bonded and not encrypted, it's remote missing keys scenario */
-  if (btm_sec_is_a_bonded_dev(evt_data.bd_addr) && !p_dev_rec->sec_rec.is_device_encrypted() &&
-      com::android::bluetooth::flags::key_missing_classic_device()) {
+  if (btm_sec_is_a_bonded_dev(evt_data.bd_addr) && !p_dev_rec->sec_rec.is_device_encrypted()) {
     log::warn("Incoming bond request, but {} is already bonded (notifying user)", evt_data.bd_addr);
     bta_dm_remote_key_missing(evt_data.bd_addr);
     btm_sec_disconnect(p_dev_rec->hci_handle, HCI_ERR_AUTH_FAILURE,
@@ -3031,8 +3029,7 @@ void btm_sec_auth_complete(uint16_t handle, tHCI_STATUS status) {
             p_dev_rec->sec_rec.classic_link, p_dev_rec->bd_addr,
             reinterpret_cast<char const*>(p_dev_rec->sec_bd_name));
 
-    if (status == HCI_ERR_KEY_MISSING &&
-        com::android::bluetooth::flags::key_missing_classic_device()) {
+    if (status == HCI_ERR_KEY_MISSING) {
       log::warn("auth_complete KEY_MISSING {} is already bonded (notifying user)",
                 p_dev_rec->bd_addr);
       bta_dm_remote_key_missing(p_dev_rec->bd_addr);
@@ -3321,10 +3318,8 @@ void btm_sec_encrypt_change(uint16_t handle, tHCI_STATUS status, uint8_t encr_en
     if (status == HCI_ERR_KEY_MISSING) {
       log::info("Remote key missing - will report");
       bta_dm_remote_key_missing(p_dev_rec->ble.pseudo_addr);
-      if (com::android::bluetooth::flags::sec_disconnect_on_le_key_missing()) {
-        btm_sec_send_hci_disconnect(p_dev_rec, HCI_ERR_HOST_REJECT_SECURITY,
-                                    p_dev_rec->ble_hci_handle, "encryption_change:key_missing");
-      }
+      btm_sec_send_hci_disconnect(p_dev_rec, HCI_ERR_HOST_REJECT_SECURITY,
+                                  p_dev_rec->ble_hci_handle, "encryption_change:key_missing");
       return;
     }
 
