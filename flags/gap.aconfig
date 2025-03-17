@@ -97,13 +97,6 @@ flag {
 }
 
 flag {
-    name: "non_wake_alarm_for_rpa_rotation"
-    namespace: "bluetooth"
-    description: "Use non-wake alarm for LE RPA rotation. go/non-wake-alarm-for-rpa-rotation"
-    bug: "360743527"
-}
-
-flag {
     name: "gatt_disconnect_fix"
     namespace: "bluetooth"
     description: "Fix GATT disconnect handling"
