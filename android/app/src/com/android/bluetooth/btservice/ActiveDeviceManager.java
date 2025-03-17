@@ -575,9 +575,6 @@ public class ActiveDeviceManager implements AdapterService.BluetoothStateCallbac
             boolean hasFallbackDevice = false;
             if (Objects.equals(mLeAudioActiveDevice, device)) {
                 hasFallbackDevice = setFallbackDeviceActiveLocked(device);
-                if (!hasFallbackDevice && !Flags.admFixDisconnectOfSetMember()) {
-                    leAudioService.removeActiveDevice(false);
-                }
             }
             leAudioService.deviceDisconnected(device, hasFallbackDevice);
         }
@@ -1102,12 +1099,6 @@ public class ActiveDeviceManager implements AdapterService.BluetoothStateCallbac
 
     @GuardedBy("mLock")
     private boolean areSameGroupMembers(BluetoothDevice firstDevice, BluetoothDevice secondDevice) {
-
-        if (!Flags.admFixDisconnectOfSetMember()) {
-            /* This function shall return false without the fix flag. */
-            return false;
-        }
-
         if (firstDevice == null || secondDevice == null) {
             return false;
         }
