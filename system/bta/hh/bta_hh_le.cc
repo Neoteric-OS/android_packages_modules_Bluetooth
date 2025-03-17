@@ -1847,17 +1847,13 @@ static void read_report_cb(tCONN_ID conn_id, tGATT_STATUS status, uint16_t handl
     log::warn("Unexpected Read response, w4_evt={}", bta_hh_event_text(p_dev_cb->w4_evt));
     return;
   }
-  if (com::android::bluetooth::flags::forward_get_set_report_failure_to_uhid()) {
-    p_dev_cb->w4_evt = BTA_HH_EMPTY_EVT;
-  }
+  p_dev_cb->w4_evt = BTA_HH_EMPTY_EVT;
 
   uint8_t hid_handle = p_dev_cb->hid_handle;
   const gatt::Characteristic* p_char = BTA_GATTC_GetCharacteristic(conn_id, handle);
   if (p_char == nullptr) {
     log::error("Unknown handle");
-    if (com::android::bluetooth::flags::forward_get_set_report_failure_to_uhid()) {
-      send_read_report_reply(hid_handle, BTA_HH_ERR, nullptr);
-    }
+    send_read_report_reply(hid_handle, BTA_HH_ERR, nullptr);
     return;
   }
 
@@ -1871,14 +1867,8 @@ static void read_report_cb(tCONN_ID conn_id, tGATT_STATUS status, uint16_t handl
       break;
     default:
       log::error("Unexpected Read UUID: {}", p_char->uuid.ToString());
-      if (com::android::bluetooth::flags::forward_get_set_report_failure_to_uhid()) {
-        send_read_report_reply(hid_handle, BTA_HH_ERR, nullptr);
-      }
+      send_read_report_reply(hid_handle, BTA_HH_ERR, nullptr);
       return;
-  }
-
-  if (!com::android::bluetooth::flags::forward_get_set_report_failure_to_uhid()) {
-    p_dev_cb->w4_evt = BTA_HH_EMPTY_EVT;
   }
 
   if (status != GATT_SUCCESS) {
@@ -1924,9 +1914,7 @@ static void bta_hh_le_get_rpt(tBTA_HH_DEV_CB* p_cb, tBTA_HH_RPT_TYPE r_type, uin
 
   if (p_rpt == nullptr) {
     log::error("no matching report");
-    if (com::android::bluetooth::flags::forward_get_set_report_failure_to_uhid()) {
-      send_read_report_reply(p_cb->hid_handle, BTA_HH_ERR, nullptr);
-    }
+    send_read_report_reply(p_cb->hid_handle, BTA_HH_ERR, nullptr);
     return;
   }
 
@@ -1969,17 +1957,13 @@ static void write_report_cb(tCONN_ID conn_id, tGATT_STATUS status, uint16_t hand
   }
 
   log::verbose("w4_evt:{}", bta_hh_event_text(p_dev_cb->w4_evt));
-  if (com::android::bluetooth::flags::forward_get_set_report_failure_to_uhid()) {
-    p_dev_cb->w4_evt = BTA_HH_EMPTY_EVT;
-  }
+  p_dev_cb->w4_evt = BTA_HH_EMPTY_EVT;
 
   uint8_t hid_handle = p_dev_cb->hid_handle;
   const gatt::Characteristic* p_char = BTA_GATTC_GetCharacteristic(conn_id, handle);
   if (p_char == nullptr) {
     log::error("Unknown characteristic handle: {}", handle);
-    if (com::android::bluetooth::flags::forward_get_set_report_failure_to_uhid()) {
-      send_write_report_reply(hid_handle, BTA_HH_ERR, cb_evt);
-    }
+    send_write_report_reply(hid_handle, BTA_HH_ERR, cb_evt);
     return;
   }
 
@@ -1987,15 +1971,8 @@ static void write_report_cb(tCONN_ID conn_id, tGATT_STATUS status, uint16_t hand
   if (uuid16 != GATT_UUID_HID_REPORT && uuid16 != GATT_UUID_HID_BT_KB_INPUT &&
       uuid16 != GATT_UUID_HID_BT_MOUSE_INPUT && uuid16 != GATT_UUID_HID_BT_KB_OUTPUT) {
     log::error("Unexpected characteristic UUID: {}", p_char->uuid.ToString());
-    if (com::android::bluetooth::flags::forward_get_set_report_failure_to_uhid()) {
-      send_write_report_reply(hid_handle, BTA_HH_ERR, cb_evt);
-    }
+    send_write_report_reply(hid_handle, BTA_HH_ERR, cb_evt);
     return;
-  }
-
-  /* Set Report finished */
-  if (!com::android::bluetooth::flags::forward_get_set_report_failure_to_uhid()) {
-    p_dev_cb->w4_evt = BTA_HH_EMPTY_EVT;
   }
 
   if (status == GATT_SUCCESS) {
@@ -2020,9 +1997,7 @@ static void bta_hh_le_write_rpt(tBTA_HH_DEV_CB* p_cb, tBTA_HH_RPT_TYPE r_type, B
 
   if (p_buf == NULL || p_buf->len == 0) {
     log::error("Illegal data");
-    if (com::android::bluetooth::flags::forward_get_set_report_failure_to_uhid()) {
-      send_write_report_reply(p_cb->hid_handle, BTA_HH_ERR, w4_evt);
-    }
+    send_write_report_reply(p_cb->hid_handle, BTA_HH_ERR, w4_evt);
     return;
   }
 
@@ -2034,9 +2009,7 @@ static void bta_hh_le_write_rpt(tBTA_HH_DEV_CB* p_cb, tBTA_HH_RPT_TYPE r_type, B
   p_rpt = bta_hh_le_find_rpt_by_idtype(p_cb->hid_srvc.report, p_cb->mode, r_type, rpt_id);
   if (p_rpt == NULL) {
     log::error("no matching report");
-    if (com::android::bluetooth::flags::forward_get_set_report_failure_to_uhid()) {
-      send_write_report_reply(p_cb->hid_handle, BTA_HH_ERR, w4_evt);
-    }
+    send_write_report_reply(p_cb->hid_handle, BTA_HH_ERR, w4_evt);
     osi_free(p_buf);
     return;
   }
