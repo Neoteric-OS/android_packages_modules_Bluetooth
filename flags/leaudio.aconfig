@@ -51,16 +51,6 @@ flag {
 }
 
 flag {
-    name: "leaudio_mono_location_errata"
-    namespace: "bluetooth"
-    description: "Add mono location as per Bluetooth Assigned Numbers"
-    bug: "331139722"
-    metadata {
-        purpose: PURPOSE_BUGFIX
-    }
-}
-
-flag {
     name: "leaudio_mono_location_errata_api"
     is_exported: true
     namespace: "bluetooth"
