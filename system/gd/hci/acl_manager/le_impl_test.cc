@@ -1485,19 +1485,6 @@ TEST_F(LeImplTest, set_le_suggested_default_data_parameters) {
   ASSERT_EQ(kTime, view.GetTxTime());
 }
 
-TEST_F(LeImplTest, LeSetDefaultSubrate) {
-  le_impl_->LeSetDefaultSubrate(kIntervalMin, kIntervalMax, kLatency, kContinuationNumber,
-                                kTimeout);
-  sync_handler();
-  auto view = CreateAclCommandView<LeSetDefaultSubrateView>(hci_layer_->GetCommand());
-  ASSERT_TRUE(view.IsValid());
-  ASSERT_EQ(kIntervalMin, view.GetSubrateMin());
-  ASSERT_EQ(kIntervalMax, view.GetSubrateMax());
-  ASSERT_EQ(kLatency, view.GetMaxLatency());
-  ASSERT_EQ(kContinuationNumber, view.GetContinuationNumber());
-  ASSERT_EQ(kTimeout, view.GetSupervisionTimeout());
-}
-
 enum class ConnectionCompleteType { CONNECTION_COMPLETE, ENHANCED_CONNECTION_COMPLETE };
 
 class LeImplTestParameterizedByConnectionCompleteEventType
