@@ -5022,7 +5022,6 @@ TEST_F(UnicastTest, GroupSetActive_and_InactiveDuringStreamConfiguration) {
 }
 
 TEST_F(UnicastTest, AnotherGroupSetActive_DuringMediaStream) {
-  com::android::bluetooth::flags::provider_->leaudio_improve_switch_during_phone_call(true);
   const RawAddress test_address0 = GetTestAddress(0);
   const RawAddress test_address1 = GetTestAddress(1);
   int group_id_1 = 1;
@@ -5101,7 +5100,6 @@ TEST_F(UnicastTest, AnotherGroupSetActive_DuringMediaStream) {
 }
 
 TEST_F(UnicastTest, AnotherGroupSetActive_DuringVoip) {
-  com::android::bluetooth::flags::provider_->leaudio_improve_switch_during_phone_call(true);
   const RawAddress test_address0 = GetTestAddress(0);
   const RawAddress test_address1 = GetTestAddress(1);
   int group_id_1 = 1;
@@ -5174,7 +5172,6 @@ TEST_F(UnicastTest, AnotherGroupSetActive_DuringVoip) {
 }
 
 TEST_F(UnicastTest, GroupSetActive_and_GroupSetInactive_DuringPhoneCall) {
-  com::android::bluetooth::flags::provider_->leaudio_improve_switch_during_phone_call(true);
   const RawAddress test_address0 = GetTestAddress(0);
   int group_id = bluetooth::groups::kGroupUnknown;
 
@@ -5221,7 +5218,6 @@ TEST_F(UnicastTest, GroupSetActive_and_GroupSetInactive_DuringPhoneCall) {
 }
 
 TEST_F(UnicastTest, GroupSetActive_DuringPhoneCall_ThenResume) {
-  com::android::bluetooth::flags::provider_->leaudio_improve_switch_during_phone_call(true);
   const RawAddress test_address0 = GetTestAddress(0);
   int group_id = bluetooth::groups::kGroupUnknown;
 

@@ -130,16 +130,6 @@ flag {
 }
 
 flag {
-    name: "leaudio_improve_switch_during_phone_call"
-    namespace: "bluetooth"
-    description: "Fix audio slip to speaker while switching bt audio device during phonecall"
-    bug: "369322905"
-    metadata {
-        purpose: PURPOSE_BUGFIX
-    }
-}
-
-flag {
     name: "leaudio_sort_scans_to_sync_by_fails"
     namespace: "bluetooth"
     description: "Sort scan results for source sync by fails counter"
