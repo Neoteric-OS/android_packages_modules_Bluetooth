@@ -6577,7 +6577,6 @@ TEST_F(UnicastTest, SpeakerStreamingNonDefault) {
 }
 
 TEST_F(UnicastTest, TestUnidirectionalGameAndLiveRecording) {
-  com::android::bluetooth::flags::provider_->le_audio_support_unidirectional_voice_assistant(true);
   const RawAddress test_address0 = GetTestAddress(0);
   int group_id = bluetooth::groups::kGroupUnknown;
 
@@ -6768,7 +6767,6 @@ TEST_F(UnicastTest, TestUnidirectionalGameAndLiveRecordingMicOnlyDev) {
 }
 
 TEST_F(UnicastTest, TestUnidirectionalVoiceAssistant_Sink) {
-  com::android::bluetooth::flags::provider_->le_audio_support_unidirectional_voice_assistant(true);
   const RawAddress test_address0 = GetTestAddress(0);
   int group_id = bluetooth::groups::kGroupUnknown;
 
@@ -6842,7 +6840,6 @@ TEST_F(UnicastTest, TestUnidirectionalVoiceAssistant_Sink) {
 }
 
 TEST_F(UnicastTest, TestUnidirectionalVoiceAssistant_Source) {
-  com::android::bluetooth::flags::provider_->le_audio_support_unidirectional_voice_assistant(true);
   const RawAddress test_address0 = GetTestAddress(0);
   int group_id = bluetooth::groups::kGroupUnknown;
 
