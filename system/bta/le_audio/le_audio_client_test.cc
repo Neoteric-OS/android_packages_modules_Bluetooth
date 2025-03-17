@@ -4792,7 +4792,6 @@ TEST_F(UnicastTest, GroupSetActiveNonConnectedGroup) {
 }
 
 TEST_F(UnicastTest, GroupSetActive_CurrentCodecSentOfActive) {
-  com::android::bluetooth::flags::provider_->leaudio_codec_config_callback_order_fix(true);
   const RawAddress test_address0 = GetTestAddress(0);
   int group_id = bluetooth::groups::kGroupUnknown;
 

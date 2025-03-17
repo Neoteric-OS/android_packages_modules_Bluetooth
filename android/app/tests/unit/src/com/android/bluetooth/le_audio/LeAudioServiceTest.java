@@ -210,7 +210,6 @@ public class LeAudioServiceTest {
     public static List<FlagsParameterization> getParams() {
         return FlagsParameterization.progressionOf(
                 Flags.FLAG_LEAUDIO_BROADCAST_PRIMARY_GROUP_SELECTION,
-                Flags.FLAG_LEAUDIO_CODEC_CONFIG_CALLBACK_ORDER_FIX,
                 Flags.FLAG_LEAUDIO_UNICAST_NO_AVAILABLE_CONTEXTS,
                 Flags.FLAG_LEAUDIO_BROADCAST_API_MANAGE_PRIMARY_GROUP,
                 Flags.FLAG_DO_NOT_HARDCODE_TMAP_ROLE_MASK);
@@ -1842,7 +1841,6 @@ public class LeAudioServiceTest {
 
     /** Test native interface group status message handling */
     @Test
-    @EnableFlags(Flags.FLAG_LEAUDIO_CODEC_CONFIG_CALLBACK_ORDER_FIX)
     public void testMessageFromNativeGroupCodecConfigChangedNonActiveDevice() {
         onGroupCodecConfChangedCallbackCalled = false;
 
@@ -1928,7 +1926,6 @@ public class LeAudioServiceTest {
 
     /** Test native interface group status message handling */
     @Test
-    @EnableFlags(Flags.FLAG_LEAUDIO_CODEC_CONFIG_CALLBACK_ORDER_FIX)
     public void testMessageFromNativeGroupCodecConfigChangedActiveDevice_DifferentConfiguration() {
         onGroupCodecConfChangedCallbackCalled = false;
 
