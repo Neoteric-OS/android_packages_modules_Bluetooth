@@ -3130,12 +3130,12 @@ void btm_sec_auth_complete(uint16_t handle, tHCI_STATUS status) {
     p_dev_rec->sec_rec.security_required &= ~BTM_SEC_OUT_AUTHENTICATE;
 
     if (status != HCI_SUCCESS) {
-      if ((status != HCI_ERR_PEER_USER) && (status != HCI_ERR_CONN_CAUSE_LOCAL_HOST)) {
+      if (status != HCI_ERR_PEER_USER && status != HCI_ERR_CONN_CAUSE_LOCAL_HOST) {
         btm_sec_send_hci_disconnect(
                 p_dev_rec, HCI_ERR_PEER_USER, p_dev_rec->hci_handle,
                 "stack::btm::btm_sec::btm_sec_auth_retry Auth fail while bonding");
       }
-    } else {
+    } else if (!com::android::bluetooth::flags::immediate_encryption_after_pairing()) {
       BTM_LogHistory(kBtmLogTag, p_dev_rec->bd_addr, "Bonding completed",
                      hci_error_code_text(status));
 
@@ -3159,6 +3159,11 @@ void btm_sec_auth_complete(uint16_t handle, tHCI_STATUS status) {
         }
       }
 
+      l2cu_start_post_bond_timer(p_dev_rec->hci_handle);
+    } else {
+      BTM_LogHistory(kBtmLogTag, p_dev_rec->bd_addr, "Bonding completed",
+                     hci_error_code_text(status));
+      BTM_SetEncryption(p_dev_rec->bd_addr, BT_TRANSPORT_BR_EDR, NULL, NULL, BTM_BLE_SEC_NONE);
       l2cu_start_post_bond_timer(p_dev_rec->hci_handle);
     }
 
