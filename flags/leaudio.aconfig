@@ -116,16 +116,6 @@ flag {
 }
 
 flag {
-    name: "leaudio_speed_up_reconfiguration_between_call"
-    namespace: "bluetooth"
-    description: "Fix reconfiguration time between call and media"
-    bug: "352686917"
-    metadata {
-        purpose: PURPOSE_BUGFIX
-    }
-}
-
-flag {
     name: "leaudio_set_codec_config_preference"
     namespace: "bluetooth"
     description: "New apis to set codec config preference"
