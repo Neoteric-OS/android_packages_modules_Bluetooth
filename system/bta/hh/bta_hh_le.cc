@@ -925,14 +925,8 @@ static void bta_hh_le_dis_cback(const RawAddress& addr, tDIS_VALUE* p_dis_value)
     p_cb->dscp_info.version = p_dis_value->pnp_id.product_version;
   }
 
-  /* TODO(b/367910199): un-serialize once multiservice HoGP is implemented */
-  if (com::android::bluetooth::flags::serialize_hogp_and_dis()) {
-    Uuid pri_srvc = Uuid::From16Bit(UUID_SERVCLASS_LE_HID);
-    BTA_GATTC_ServiceSearchRequest(p_cb->conn_id, pri_srvc);
-    return;
-  }
-
-  bta_hh_le_open_cmpl(p_cb);
+  Uuid pri_srvc = Uuid::From16Bit(UUID_SERVCLASS_LE_HID);
+  BTA_GATTC_ServiceSearchRequest(p_cb->conn_id, pri_srvc);
 }
 
 /*******************************************************************************
@@ -950,23 +944,16 @@ static void bta_hh_le_pri_service_discovery(tBTA_HH_DEV_CB* p_cb) {
 
   p_cb->disc_active |= (BTA_HH_LE_DISC_HIDS | BTA_HH_LE_DISC_DIS);
 
-  /* read DIS info */
+  /* read DIS info. If failed, continue to discover HoGP services. */
   if (!DIS_ReadDISInfo(p_cb->link_spec.addrt.bda, bta_hh_le_dis_cback, DIS_ATTR_PNP_ID_BIT)) {
     log::error("read DIS failed");
     p_cb->disc_active &= ~BTA_HH_LE_DISC_DIS;
-  } else {
-    /* TODO(b/367910199): un-serialize once multiservice HoGP is implemented */
-    if (com::android::bluetooth::flags::serialize_hogp_and_dis()) {
-      log::debug("Waiting for DIS result before starting HoGP service discovery");
-      return;
-    }
+    Uuid pri_srvc = Uuid::From16Bit(UUID_SERVCLASS_LE_HID);
+    BTA_GATTC_ServiceSearchRequest(p_cb->conn_id, pri_srvc);
+    return;
   }
 
-  /* in parallel */
-  /* start primary service discovery for HID service */
-  Uuid pri_srvc = Uuid::From16Bit(UUID_SERVCLASS_LE_HID);
-  BTA_GATTC_ServiceSearchRequest(p_cb->conn_id, pri_srvc);
-  return;
+  log::debug("Waiting for DIS result before starting HoGP service discovery");
 }
 
 /*******************************************************************************
