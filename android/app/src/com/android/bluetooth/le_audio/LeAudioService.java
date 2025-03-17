@@ -348,7 +348,7 @@ public class LeAudioService extends ProfileService {
             mLostLeadDeviceWhileStreaming = null;
             mCurrentLeadDevice = null;
             mInbandRingtoneEnabled = isInbandRingtoneEnabled;
-            mAvailableContexts = Flags.leaudioUnicastNoAvailableContexts() ? null : 0;
+            mAvailableContexts = null;
             mInputSelectableConfig = new ArrayList<>();
             mOutputSelectableConfig = new ArrayList<>();
             mInactivatedDueToContextType = false;
@@ -4342,8 +4342,7 @@ public class LeAudioService extends ProfileService {
             if (getConnectedPeerDevices(groupId).isEmpty()) {
                 descriptor.mIsConnected = false;
                 descriptor.mAutoActiveModeEnabled = true;
-                descriptor.mAvailableContexts =
-                        Flags.leaudioUnicastNoAvailableContexts() ? null : 0;
+                descriptor.mAvailableContexts = null;
                 if (descriptor.isActive()) {
                     /* Notify Native layer */
                     removeActiveDevice(hasFallbackDevice);
