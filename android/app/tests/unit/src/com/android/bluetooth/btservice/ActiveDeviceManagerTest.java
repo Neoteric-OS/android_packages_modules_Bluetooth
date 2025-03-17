@@ -1387,7 +1387,6 @@ public class ActiveDeviceManagerTest {
      * and selected as active. First LE Audio device disconnects with fallback to new one.
      */
     @Test
-    @EnableFlags(Flags.FLAG_ADM_VERIFY_ACTIVE_FALLBACK_DEVICE)
     public void sameDeviceAsAshaAndLeAudio_noFallbackOnSwitch() {
         /* Dual mode ASHA/LeAudio device from group 1 */
         when(mLeAudioService.getGroupId(mHearingAidDevice)).thenReturn(1);
@@ -1425,7 +1424,6 @@ public class ActiveDeviceManagerTest {
      * and selected as active. First ASHA device disconnects with fallback to new one.
      */
     @Test
-    @EnableFlags(Flags.FLAG_ADM_VERIFY_ACTIVE_FALLBACK_DEVICE)
     public void sameDeviceAsLeAudioAndAsha_noFallbackOnSwitch() {
         // Turn on the dual mode audio flag so the A2DP won't disconnect LE Audio
         when(mAudioManager.getMode()).thenReturn(AudioManager.MODE_NORMAL);
