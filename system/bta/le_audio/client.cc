@@ -6228,6 +6228,17 @@ public:
       }
     }
 
+    if (LeAudioBroadcaster::IsLeAudioBroadcasterRunning() &&
+        LeAudioBroadcaster::Get()->IsLeAudioBroadcastActive() &&
+        group->IsStreaming() && !group->IsReleasingOrIdle() &&
+        new_config_context == LeAudioContextType::MEDIA) {
+      log::info(
+              "Broadcast is active, current configuration context is {}. "
+              "Not reconfig to {} right now.",
+              ToString(configuration_context_type_), ToString(new_config_context));
+      new_config_context = configuration_context_type_;
+    }
+
     /* Note that the remote device metadata was so far unfiltered when it comes
      * to group context availability, or multiple contexts support flag, so that
      * we could choose the correct configuration for the use case. Now we can
