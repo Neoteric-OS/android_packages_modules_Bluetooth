@@ -435,11 +435,11 @@ public class GattClientTest {
         BluetoothGatt gatt2 = device.connectGatt(mContext, false, gattCallback2);
 
         try {
-            gatt.disconnect();
-            gatt.close();
-
             verify(gattCallback2, timeout(1000))
                     .onConnectionStateChange(eq(gatt2), eq(GATT_SUCCESS), eq(STATE_CONNECTED));
+
+            gatt.disconnect();
+            gatt.close();
         } finally {
             gatt2.disconnect();
             gatt2.close();
