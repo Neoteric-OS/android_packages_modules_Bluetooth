@@ -128,3 +128,13 @@ flag {
         purpose: PURPOSE_BUGFIX
     }
 }
+
+flag {
+    name: "simpler_hid_connection_policy"
+    namespace: "bluetooth"
+    description: "Simplify native HID host connection policy enforcement"
+    bug: "404590499"
+    metadata {
+        purpose: PURPOSE_BUGFIX
+    }
+}
