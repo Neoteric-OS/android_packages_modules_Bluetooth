@@ -126,6 +126,7 @@ void Stack::StartEverything() {
   }
 
   is_running_ = true;
+  log::info("GD stack is running");
 
   std::promise<void> promise;
   auto future = promise.get_future();
@@ -175,6 +176,7 @@ void Stack::Stop() {
 
   log::assert_that(is_running_, "Gd stack not running");
   is_running_ = false;
+  log::info("GD stack is not running");
 
   stack_handler_->Clear();
   if(com::android::bluetooth::flags::same_handler_for_all_modules()) {
