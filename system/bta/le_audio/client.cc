@@ -1561,11 +1561,6 @@ public:
         defer_sink_suspend_ = false;
         OnLocalAudioSinkSuspend();
       }
-    } else {
-      if (!IsInCall()) {
-        log::debug(": call_audio_route_ not set to Bluetooth, as already Call ended.");
-        call_audio_route_ = -1;
-      }
     }
   }
 
@@ -1612,7 +1607,6 @@ public:
       local_metadata_context_types_.source.clear();
       reconfigure = true;
     } else {
-      call_audio_route_ = -1;
       if (configuration_context_type_ == LeAudioContextType::CONVERSATIONAL) {
         log::info("Call is ended, speed up reconfiguration for media");
         if (in_call_metadata_context_types_.sink.none() &&
@@ -1642,7 +1636,6 @@ public:
         }
       } else {
         ReconfigureOrUpdateRemote(group, bluetooth::le_audio::types::kLeAudioDirectionSink);
-        UpdateCallAudioRoute(call_audio_route_);
       }
     }
   }
