@@ -695,7 +695,6 @@ public class GattClientTest {
 
     // Check if we can have 100 simultaneous clients
     @Test
-    @RequiresFlagsEnabled(Flags.FLAG_GATT_CLIENT_DYNAMIC_ALLOCATION)
     public void connectGatt_multipleClients() {
         registerGattService();
 
