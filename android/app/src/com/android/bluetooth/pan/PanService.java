@@ -50,7 +50,6 @@ import com.android.bluetooth.Utils;
 import com.android.bluetooth.btservice.AdapterService;
 import com.android.bluetooth.btservice.ProfileService;
 import com.android.bluetooth.btservice.storage.DatabaseManager;
-import com.android.bluetooth.flags.Flags;
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.modules.utils.HandlerExecutor;
 
@@ -99,9 +98,7 @@ public class PanService extends ProfileService {
                         Log.e(TAG, "Error setting up tether interface: " + error);
                         for (BluetoothDevice device : mPanDevices.keySet()) {
                             mNativeInterface.disconnect(
-                                    Flags.panUseIdentityAddress()
-                                            ? Utils.getByteBrEdrAddress(mAdapterService, device)
-                                            : Utils.getByteAddress(device));
+                                    Utils.getByteBrEdrAddress(mAdapterService, device));
                         }
                         mPanDevices.clear();
                         mIsTethering = false;
@@ -500,10 +497,7 @@ public class PanService extends ProfileService {
                             "handlePanDeviceStateChange BT tethering is off/Local role"
                                     + " is PANU drop the connection");
                     mPanDevices.remove(device);
-                    mNativeInterface.disconnect(
-                            Flags.panUseIdentityAddress()
-                                    ? Utils.getByteBrEdrAddress(mAdapterService, device)
-                                    : Utils.getByteAddress(device));
+                    mNativeInterface.disconnect(Utils.getByteBrEdrAddress(mAdapterService, device));
                     return;
                 }
                 Log.d(TAG, "handlePanDeviceStateChange LOCAL_NAP_ROLE:REMOTE_PANU_ROLE");
