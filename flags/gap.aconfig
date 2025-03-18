@@ -50,13 +50,6 @@ flag {
 }
 
 flag {
-    name: "gatt_client_dynamic_allocation"
-    namespace: "bluetooth"
-    description: "Allocate GATT clients in heap to unlimit the number of clients"
-    bug: "348559823"
-}
-
-flag {
     name: "android_os_identifier"
     namespace: "bluetooth"
     description: "Add a custom service to provide Android OS identifier"
