@@ -16,10 +16,11 @@
 
 package com.android.bluetooth.le_audio;
 
+import static com.android.bluetooth.TestUtils.MockitoRule;
+import static com.android.bluetooth.TestUtils.getTestDevice;
 
 import static org.mockito.Mockito.verify;
 
-import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothLeAudio;
 import android.bluetooth.BluetoothLeAudioCodecConfig;
@@ -33,28 +34,22 @@ import android.content.AttributionSource;
 import android.os.ParcelUuid;
 import android.platform.test.flag.junit.SetFlagsRule;
 
-import com.android.bluetooth.TestUtils;
-
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
 
 import java.util.UUID;
 
 public class LeAudioBinderTest {
     @Rule public final SetFlagsRule mSetFlagsRule = new SetFlagsRule();
-    @Rule public MockitoRule mockitoRule = MockitoJUnit.rule();
+    @Rule public final MockitoRule mMockitoRule = new MockitoRule();
 
     @Mock private LeAudioService mService;
 
     private static final String TEST_BROADCAST_NAME = "TEST";
     private static final int TEST_QUALITY = BluetoothLeBroadcastSubgroupSettings.QUALITY_STANDARD;
-
-    private final BluetoothAdapter mAdapter = BluetoothAdapter.getDefaultAdapter();
 
     private LeAudioService.BluetoothLeAudioBinder mBinder;
 
@@ -65,7 +60,7 @@ public class LeAudioBinderTest {
 
     @Test
     public void connect() {
-        BluetoothDevice device = TestUtils.getTestDevice(mAdapter, 0);
+        BluetoothDevice device = getTestDevice(0);
         AttributionSource source = new AttributionSource.Builder(0).build();
 
         mBinder.connect(device, source);
@@ -74,7 +69,7 @@ public class LeAudioBinderTest {
 
     @Test
     public void disconnect() {
-        BluetoothDevice device = TestUtils.getTestDevice(mAdapter, 0);
+        BluetoothDevice device = getTestDevice(0);
         AttributionSource source = new AttributionSource.Builder(0).build();
 
         mBinder.disconnect(device, source);
@@ -109,7 +104,7 @@ public class LeAudioBinderTest {
 
     @Test
     public void getConnectionState() {
-        BluetoothDevice device = TestUtils.getTestDevice(mAdapter, 0);
+        BluetoothDevice device = getTestDevice(0);
         AttributionSource source = new AttributionSource.Builder(0).build();
 
         mBinder.getConnectionState(device, source);
@@ -118,7 +113,7 @@ public class LeAudioBinderTest {
 
     @Test
     public void setActiveDevice() {
-        BluetoothDevice device = TestUtils.getTestDevice(mAdapter, 0);
+        BluetoothDevice device = getTestDevice(0);
         AttributionSource source = new AttributionSource.Builder(0).build();
 
         mBinder.setActiveDevice(device, source);
@@ -143,7 +138,7 @@ public class LeAudioBinderTest {
 
     @Test
     public void getAudioLocation() {
-        BluetoothDevice device = TestUtils.getTestDevice(mAdapter, 0);
+        BluetoothDevice device = getTestDevice(0);
         AttributionSource source = new AttributionSource.Builder(0).build();
 
         mBinder.getAudioLocation(device, source);
@@ -152,7 +147,7 @@ public class LeAudioBinderTest {
 
     @Test
     public void setConnectionPolicy() {
-        BluetoothDevice device = TestUtils.getTestDevice(mAdapter, 0);
+        BluetoothDevice device = getTestDevice(0);
         int connectionPolicy = BluetoothProfile.CONNECTION_POLICY_UNKNOWN;
         AttributionSource source = new AttributionSource.Builder(0).build();
 
@@ -162,7 +157,7 @@ public class LeAudioBinderTest {
 
     @Test
     public void getConnectionPolicy() {
-        BluetoothDevice device = TestUtils.getTestDevice(mAdapter, 0);
+        BluetoothDevice device = getTestDevice(0);
         AttributionSource source = new AttributionSource.Builder(0).build();
 
         mBinder.getConnectionPolicy(device, source);
@@ -182,7 +177,7 @@ public class LeAudioBinderTest {
 
     @Test
     public void getGroupId() {
-        BluetoothDevice device = TestUtils.getTestDevice(mAdapter, 0);
+        BluetoothDevice device = getTestDevice(0);
         AttributionSource source = new AttributionSource.Builder(0).build();
 
         mBinder.getGroupId(device, source);
@@ -192,7 +187,7 @@ public class LeAudioBinderTest {
     @Test
     public void groupAddNode() {
         int groupId = 1;
-        BluetoothDevice device = TestUtils.getTestDevice(mAdapter, 0);
+        BluetoothDevice device = getTestDevice(0);
         AttributionSource source = new AttributionSource.Builder(0).build();
 
         mBinder.groupAddNode(groupId, device, source);
@@ -210,7 +205,7 @@ public class LeAudioBinderTest {
 
     @Test
     public void setInactiveForHfpHandover() {
-        BluetoothDevice device = TestUtils.getTestDevice(mAdapter, 0);
+        BluetoothDevice device = getTestDevice(0);
         AttributionSource source = new AttributionSource.Builder(0).build();
 
         mBinder.setInactiveForHfpHandover(device, source);
@@ -220,7 +215,7 @@ public class LeAudioBinderTest {
     @Test
     public void groupRemoveNode() {
         int groupId = 1;
-        BluetoothDevice device = TestUtils.getTestDevice(mAdapter, 0);
+        BluetoothDevice device = getTestDevice(0);
         AttributionSource source = new AttributionSource.Builder(0).build();
 
         mBinder.groupRemoveNode(groupId, device, source);

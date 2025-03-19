@@ -296,6 +296,7 @@ cc_test {
         "liblog",
         "libutils",
         "server_configurable_flags",
+        "libxml2",
     ],
     static_libs: [
         "aics",
@@ -358,6 +359,7 @@ cc_test {
                 "android.system.suspend-V1-ndk",
                 "android.system.suspend.control-V1-ndk",
                 "libexpresslog",
+                "libperfetto_client_experimental",
                 "libstatslog_express",
                 "libtextclassifier_hash_static",
             ],
@@ -588,6 +590,7 @@ cc_test {
         "liblog",
         "libutils",
         "server_configurable_flags",
+        "libxml2",
     ],
     static_libs: [
         "android.hardware.audio.common@5.0",
@@ -710,6 +713,7 @@ cc_test {
         "liblog",
         "libutils",
         "server_configurable_flags",
+        "libxml2",
     ],
     static_libs: [
         "android.hardware.audio.common@5.0",

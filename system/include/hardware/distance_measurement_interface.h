@@ -14,11 +14,18 @@
  * limitations under the License.
  */
 
+/*
+ * Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
+ * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
+ */
+
 #ifndef ANDROID_INCLUDE_DISTANCE_MEASUREMENT_INTERFACE_H
 #define ANDROID_INCLUDE_DISTANCE_MEASUREMENT_INTERFACE_H
 
 #include <stdint.h>
-#include <raw_address.h>
+
+#include "types/raw_address.h"
 
 /**
  * Distance measurement callbacks related callbacks invoked from from the
@@ -41,10 +48,14 @@ public:
 class DistanceMeasurementInterface {
 public:
   virtual ~DistanceMeasurementInterface() = default;
-  virtual void RegisterDistanceMeasurementCallbacks(DistanceMeasurementCallbacks* callbacks) = 0;
-  virtual void StartDistanceMeasurement(RawAddress raw_address, uint16_t interval,
-                                        uint8_t method) = 0;
-  virtual void StopDistanceMeasurement(RawAddress raw_address, uint8_t method) = 0;
+  virtual void RegisterDistanceMeasurementCallbacks(
+      DistanceMeasurementCallbacks* callbacks) = 0;
+  virtual void StartDistanceMeasurement(RawAddress raw_address,
+                                        uint16_t interval, uint8_t method) = 0;
+  virtual void StopDistanceMeasurement(RawAddress raw_address,
+                                       uint8_t method) = 0;
+  virtual void SetCsParams(RawAddress raw_address, int mSightType, int mLocationType,
+                   int mCsSecurityLevel, int mFrequency, int mDuration) = 0;
 };
 
 #endif /* ANDROID_INCLUDE_DISTANCE_MEASUREMENT_INTERFACE_H */

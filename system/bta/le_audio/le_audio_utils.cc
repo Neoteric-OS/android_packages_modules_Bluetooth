@@ -545,7 +545,7 @@ static bool IsCodecConfigSupported(
         const types::LeAudioCodecId codec, const types::LeAudioLtvMap& pacs,
         const types::LeAudioLtvMap& reqs, uint8_t channel_cnt_per_ase,
         const types::LeAudioLtvMap& pacs_metadata,
-        std::optional<::bluetooth::le_audio::types::CodecMetadataSetting> vendor_metadata,
+        std::optional<types::CodecMetadataSetting> vendor_metadata,
         LeAudioContextType context_type) {
   log::info("codec.coding_format: {}, codec.vendor_company_id: {}, codec.vendor_codec_id: {}",
             codec.coding_format, codec.vendor_company_id, codec.vendor_codec_id);
@@ -869,7 +869,7 @@ static bool IsCodecConfigSupported(
 static bool IsCodecConfigSettingSupported(
         const types::acs_ac_record& pac,
         const types::CodecConfigSetting& codec_config_setting,
-        std::optional<::bluetooth::le_audio::types::CodecMetadataSetting> vendor_metadata,
+        std::optional<types::CodecMetadataSetting> vendor_metadata,
         LeAudioContextType context_type) {
   const auto& codec_id = codec_config_setting.id;
   if (codec_id != pac.codec_id) {
@@ -893,7 +893,7 @@ static bool IsCodecConfigSettingSupported(
 const struct types::acs_ac_record* GetConfigurationSupportedPac(
         const types::PublishedAudioCapabilities& pacs,
         const types::CodecConfigSetting& codec_config_setting,
-        std::optional<const ::bluetooth::le_audio::types::CodecMetadataSetting> vendor_metadata,
+        std::optional<types::CodecMetadataSetting> vendor_metadata,
         LeAudioContextType context_type) {
   for (const auto& pac_tuple : pacs) {
     for (const auto& pac : std::get<1>(pac_tuple)) {

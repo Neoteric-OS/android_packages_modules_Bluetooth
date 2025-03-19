@@ -30,6 +30,7 @@
 #include "hci/include/packet_fragmenter.h"
 #include "main/shim/entry.h"
 #include "osi/include/allocator.h"
+#include "osi/include/properties.h"
 #include "packet/raw_builder.h"
 #include "stack/include/bt_hdr.h"
 #include "stack/include/bt_types.h"
@@ -406,7 +407,9 @@ void bluetooth::shim::hci_on_reset_complete() {
     cpp::register_le_event(subevent_code);
   }
 
-  cpp::register_vs_event();
+  if (!osi_property_get_bool("persist.vendor.qcom.bluetooth.vsc_enabled", false)) {
+    cpp::register_vs_event();
+  }
   cpp::register_for_iso();
 }
 

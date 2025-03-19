@@ -260,8 +260,9 @@ public class HeadsetService extends ProfileService {
     }
 
     @Override
-    public void stop() {
-        Log.i(TAG, "stop()");
+    public void cleanup() {
+        Log.i(TAG, "Cleanup Headset Service");
+
         // Step 7: Tear down broadcast receivers
         unregisterReceiver(mHeadsetReceiver);
 
@@ -326,12 +327,6 @@ public class HeadsetService extends ProfileService {
 
         // Step 1: Clear
         setComponentAvailable(HFP_AG_IN_CALL_SERVICE, false);
-    }
-
-    @Override
-    public void cleanup() {
-        Log.i(TAG, "cleanup");
-        clearPendingCallStates();
     }
 
     /**
@@ -808,25 +803,6 @@ public class HeadsetService extends ProfileService {
 
             service.enforceCallingOrSelfPermission(MODIFY_PHONE_STATE, null);
             service.phoneStateChangedInternal(numActive, numHeld, callState, number, type, name, false);
-        }
-
-        @Override
-        public void clccResponse(
-                int index,
-                int direction,
-                int status,
-                int mode,
-                boolean mpty,
-                String number,
-                int type,
-                AttributionSource source) {
-            HeadsetService service = getService(source);
-            if (service == null) {
-                return;
-            }
-
-            service.enforceCallingOrSelfPermission(MODIFY_PHONE_STATE, null);
-            service.clccResponse(index, direction, status, mode, mpty, number, type);
         }
 
         @Override
@@ -2356,7 +2332,7 @@ public class HeadsetService extends ProfileService {
         }
     }
 
-    void clccResponse(
+    public void clccResponse(
             int index, int direction, int status, int mode, boolean mpty, String number, int type) {
         mPendingClccResponses.add(
                 stateMachine ->

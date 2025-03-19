@@ -1117,8 +1117,13 @@ void btm_sco_connection_failed(tHCI_STATUS hci_status, const RawAddress& bda, ui
             p->state = SCO_ST_PEND_ROLECHANGE;
             break;
           case HCI_ERR_LMP_ERR_TRANS_COLLISION:
-            /* Avoid calling disconnect callback because of sco creation race
+            /* Call disconnect callback to allow SCO state machine move to proper state.
+             * In case of LMP_ERR_TRANS_COLLISION, SCO state machine remains stuck in
+             * SCO_ST_CONNECTING (BTA state machine in SCO_OPENING_ST).
+             * Need to call SCO disconnect callback in such case to recover SCO states.
              */
+            p->state = SCO_ST_UNUSED;
+            (*p->p_disc_cb)(xx);
             break;
           default: /* Notify client about SCO failure */
             p->state = SCO_ST_UNUSED;
@@ -1364,6 +1369,30 @@ const RawAddress* BTM_ReadScoBdAddr(uint16_t sco_inx) {
   } else {
     return NULL;
   }
+}
+
+/*******************************************************************************
+ *
+ * Function         BTM_ReadScoBdAddrByHandle
+ *
+ * Description      This function is read the remote BD Address by a specific
+ *                  SCO connection handle.
+ *
+ * Returns          pointer to BD address or NULL if not known
+ *
+ ******************************************************************************/
+const RawAddress* BTM_ReadScoBdAddrByHandle(uint16_t hci_handle) {
+  tSCO_CONN* p = &btm_cb.sco_cb.sco_db[0];
+
+  for (int xx = 0; xx < BTM_MAX_SCO_LINKS; xx++, p++) {
+    if ((p->state != SCO_ST_UNUSED) && (p->state != SCO_ST_LISTENING) &&
+        (p->hci_handle == hci_handle) && p->rem_bd_known) {
+      log::debug("BTM_ReadScoBdAddrByHandle handle={:#x}, addr={}",
+          hci_handle, p->esco.data.bd_addr);
+      return &(p->esco.data.bd_addr);
+    }
+  }
+  return NULL;
 }
 
 /*******************************************************************************

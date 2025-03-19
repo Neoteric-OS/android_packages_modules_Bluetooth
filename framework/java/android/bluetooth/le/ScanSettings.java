@@ -358,7 +358,7 @@ public final class ScanSettings implements Parcelable {
         private int mMatchMode = MATCH_MODE_AGGRESSIVE;
         private int mNumOfMatchesPerFilter = MATCH_NUM_MAX_ADVERTISEMENT;
         private boolean mLegacy = true;
-        private int mPhy = PHY_LE_ALL_SUPPORTED;
+        private int mPhy = BluetoothDevice.PHY_LE_1M;
         private int mRssiHighThreshold = Byte.MIN_VALUE;
         private int mRssiLowThreshold = Byte.MIN_VALUE;
 

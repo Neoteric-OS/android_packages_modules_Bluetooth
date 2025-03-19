@@ -12,6 +12,10 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
+ * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
 #pragma once
@@ -45,15 +49,29 @@ struct VendorSpecificCharacteristic {
 
 struct ChannelSoundingRawData {
   uint8_t num_antenna_paths_;
+  long timestampMs_;
+  std::vector<uint16_t> step_mode_;
   std::vector<uint8_t> step_channel_;
+  std::vector<int8_t> init_packet_rssi_;
+  std::vector<int8_t> refl_packet_rssi_;
+  std::vector<int16_t> measured_freq_offset_;
+  std::vector<uint16_t> frequency_compensation_;
   std::vector<std::vector<std::complex<double>>> tone_pct_initiator_;
   std::vector<std::vector<std::complex<double>>> tone_pct_reflector_;
   std::vector<std::vector<uint8_t>> tone_quality_indicator_initiator_;
   std::vector<std::vector<uint8_t>> tone_quality_indicator_reflector_;
-  std::vector<int8_t> packet_quality_initiator;
-  std::vector<int8_t> packet_quality_reflector;
+  std::vector<uint8_t> antenna_permutation_index_initiator_;
+  std::vector<uint8_t> antenna_permutation_index_reflector_;
+  std::vector<int8_t> packet_quality_initiator_;
+  std::vector<int8_t> packet_quality_reflector_;
   std::vector<int16_t> toa_tod_initiators_;
   std::vector<int16_t> tod_toa_reflectors_;
+  std::vector<int8_t> packet_nadm_initiator_;
+  std::vector<int8_t> packet_nadm_reflector_;
+  int8_t initiator_reference_power_level;
+  int8_t reflector_reference_power_level;
+  std::vector<uint8_t> vendor_specific_cs_single_side_data;
+
 };
 
 // TODO: move to a utility file and add UT.
@@ -330,6 +348,7 @@ public:
                                   const ProcedureDataV2& procedure_data,
                                   uint16_t procedure_counter) = 0;
   virtual bool IsAbortedProcedureRequired(uint16_t connection_handle) = 0;
+  virtual void close(uint16_t connection_handle) = 0;
 };
 
 }  // namespace hal

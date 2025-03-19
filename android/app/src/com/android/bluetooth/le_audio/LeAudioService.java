@@ -662,10 +662,11 @@ public class LeAudioService extends ProfileService {
             };
 
     @Override
-    public void stop() {
-        Log.i(TAG, "stop()");
+    public void cleanup() {
+        Log.i(TAG, "Cleanup LeAudio Service");
+
         if (sLeAudioService == null) {
-            Log.w(TAG, "stop() called before start()");
+            Log.w(TAG, "cleanup() called before initialization");
             return;
         }
 
@@ -792,11 +793,6 @@ public class LeAudioService extends ProfileService {
         mVolumeControlService = null;
         mCsipSetCoordinatorService = null;
         mBassClientService = null;
-    }
-
-    @Override
-    public void cleanup() {
-        Log.i(TAG, "cleanup()");
     }
 
     public static synchronized LeAudioService getLeAudioService() {
@@ -2759,12 +2755,6 @@ public class LeAudioService extends ProfileService {
                 return false;
             }
             headsetService.setActiveDevice(null);
-
-            A2dpService a2dpservice = mServiceFactory.getA2dpService();
-            if (a2dpservice != null) {
-                Log.d(TAG, "a2dp setActiveDevice -> null");
-                a2dpservice.setActiveDevice(null);
-            }
         }
 
         return setActiveGroupWithDevice(device, false);
@@ -2999,6 +2989,7 @@ public class LeAudioService extends ProfileService {
     }
 
     private void handleGroupTransitToActive(int groupId) {
+        int currentlyActiveGroupId = getActiveGroupId();
         mGroupReadLock.lock();
         try {
             LeAudioGroupDescriptor descriptor = getGroupDescriptor(groupId);
@@ -3024,6 +3015,9 @@ public class LeAudioService extends ProfileService {
                                 notifyGroupStatusChanged(
                                         groupId, LeAudioStackEvent.GROUP_STATUS_ACTIVE));
                 updateInbandRingtoneForTheGroup(groupId);
+                if (currentlyActiveGroupId != LE_AUDIO_GROUP_ID_INVALID) {
+                    updateInbandRingtoneForTheGroup(currentlyActiveGroupId);
+                }
             }
         } finally {
             mGroupReadLock.unlock();
@@ -3293,6 +3287,12 @@ public class LeAudioService extends ProfileService {
             return;
         }
 
+        TbsService tbsService = getTbsService();
+        if (tbsService == null) {
+            Log.w(TAG, "updateInbandRingtoneForTheGroup, tbsService not available");
+            return;
+        }
+
         mGroupReadLock.lock();
         try {
             LeAudioGroupDescriptor groupDescriptor = getGroupDescriptor(groupId);
@@ -3301,69 +3301,67 @@ public class LeAudioService extends ProfileService {
                 return;
             }
 
-            boolean ringtoneContextAvailable;
+            boolean ringtoneContextAvailable = false;
             if (groupDescriptor.mAvailableContexts != null) {
                 ringtoneContextAvailable = ((groupDescriptor.mAvailableContexts &
                                             BluetoothLeAudio.CONTEXT_TYPE_RINGTONE) != 0);
-            } else {
-                ringtoneContextAvailable = false;
             }
 
-            Log.d(
-                    TAG,
-                    "groupId active state: "
-                            + groupDescriptor.mActiveState
-                            + " ringtone supported: "
-                            + ringtoneContextAvailable);
-
-            /* Enable ringtone for active Unciast group or in broadcast handover mode */
-            boolean isRingtoneEnabled =
-                    ((groupDescriptor.isActive()
-                                    || isPrimaryGroup(groupId)
-                                    || isBroadcastReadyToBeReActivated())
-                            && ringtoneContextAvailable);
-
-            Log.d(
-                    TAG,
-                    "updateInbandRingtoneForTheGroup old: "
-                            + groupDescriptor.mInbandRingtoneEnabled
-                            + " new: "
-                            + isRingtoneEnabled);
-
-            /* If at least one device from the group removes the Ringtone from available
-             * context types, the inband ringtone will be removed
+            /* Enables in-band ringtone only for the currently active device or
+             * primary device in broadcast scenarios.
+             * Devices are notified of its state over GTBS.
+             * When enabled, remote devices will not generate an internal ringtone upon
+             * receiving a GTBS incoming call notification. Instead, they will wait for a
+             * Unicast stream containing the in-band ringtone.
+             *
+             * Note: In-band ringtone is disabled if any device in the group removes "Ringtone"
+             *  from its available context types.
+             *
+             * Note: Sort out need of isBroadcastReadyToBeReActivated() check in b/395823561
              */
-            groupDescriptor.mInbandRingtoneEnabled = isRingtoneEnabled;
-            TbsService tbsService = getTbsService();
-            if (tbsService == null) {
-                Log.w(TAG, "updateInbandRingtoneForTheGroup, tbsService not available");
-                return;
-            }
+            boolean isRingtoneEnabled =
+                    ringtoneContextAvailable
+                            && (groupDescriptor.isActive()
+                                    || isPrimaryGroup(groupId)
+                                    || isBroadcastReadyToBeReActivated());
 
+            Log.i(
+                    TAG,
+                    "updateInbandRingtoneForTheGroup groupId: "
+                            + (groupId + ", active state: " + groupDescriptor.mActiveState)
+                            + (", ringtone supported: " + ringtoneContextAvailable)
+                            + (", is primary group: " + isPrimaryGroup(groupId))
+                            + (", isBroadcastReadyToBeReActivated: "
+                                    + isBroadcastReadyToBeReActivated())
+                            + (", state change: "
+                                    + groupDescriptor.mInbandRingtoneEnabled
+                                    + " -> "
+                                    + isRingtoneEnabled));
+
+            groupDescriptor.mInbandRingtoneEnabled = isRingtoneEnabled;
             for (Map.Entry<BluetoothDevice, LeAudioDeviceDescriptor> entry :
                     mDeviceDescriptors.entrySet()) {
                 if (entry.getValue().mGroupId == groupId) {
                     BluetoothDevice device = entry.getKey();
                     LeAudioDeviceDescriptor deviceDescriptor = entry.getValue();
-                    Log.i(
-                            TAG,
-                            "updateInbandRingtoneForTheGroup, setting inband ringtone to: "
-                                    + groupDescriptor.mInbandRingtoneEnabled
-                                    + " for "
-                                    + device
-                                    + " "
-                                    + deviceDescriptor.mDevInbandRingtoneEnabled);
                     if (Objects.equals(
                             groupDescriptor.mInbandRingtoneEnabled,
                             deviceDescriptor.mDevInbandRingtoneEnabled)) {
                         Log.d(
                                 TAG,
-                                "Device "
+                                "updateInbandRingtoneForTheGroup, "
                                         + device
-                                        + " has already set inband ringtone to "
+                                        + " has already set inband ringtone to: "
                                         + groupDescriptor.mInbandRingtoneEnabled);
                         continue;
                     }
+
+                    Log.i(
+                            TAG,
+                            "updateInbandRingtoneForTheGroup, setting group inband ringtone to: "
+                                    + groupDescriptor.mInbandRingtoneEnabled
+                                    + " to "
+                                    + device);
 
                     deviceDescriptor.mDevInbandRingtoneEnabled =
                             groupDescriptor.mInbandRingtoneEnabled;
@@ -3682,7 +3680,7 @@ public class LeAudioService extends ProfileService {
             int groupId = stackEvent.valueInt1;
             int nodeStatus = stackEvent.valueInt2;
 
-            Objects.requireNonNull(stackEvent.device);
+            requireNonNull(stackEvent.device);
 
             switch (nodeStatus) {
                 case LeAudioStackEvent.GROUP_NODE_ADDED:
@@ -3848,7 +3846,7 @@ public class LeAudioService extends ProfileService {
                 mGroupReadLock.unlock();
             }
         } else if (stackEvent.type == LeAudioStackEvent.EVENT_TYPE_SINK_AUDIO_LOCATION_AVAILABLE) {
-            Objects.requireNonNull(stackEvent.device);
+            requireNonNull(stackEvent.device);
 
             int sink_audio_location = stackEvent.valueInt1;
 
@@ -4920,7 +4918,7 @@ public class LeAudioService extends ProfileService {
         try {
             LeAudioDeviceDescriptor descriptor = getDeviceDescriptor(device);
             if (descriptor == null) {
-                Log.e(TAG, "getGroupId: No valid descriptor for device: " + device);
+                Log.v(TAG, "getGroupId: No valid descriptor for device: " + device);
                 return LE_AUDIO_GROUP_ID_INVALID;
             }
 
@@ -6028,29 +6026,16 @@ public class LeAudioService extends ProfileService {
                     return;
                 }
 
-                if (Flags.leaudioBroadcastDestroyAfterTimeout()) {
-                    LeAudioBroadcastSessionStats sessionStats =
-                            mBroadcastSessionStats.get(mBroadcastId);
-                    if (sessionStats != null) {
-                        sessionStats.updateSessionStatus(
-                                BluetoothStatsLog
-                                        .BROADCAST_AUDIO_SESSION_REPORTED__SESSION_SETUP_STATUS__SETUP_STATUS_STREAMING_FAILED);
-                        // log once destroyed
-                    }
-                    transitionFromBroadcastToUnicast();
-                    destroyBroadcast(mBroadcastId);
-                } else {
-                    if (mActiveBroadcastAudioDevice != null) {
-                        updateBroadcastActiveDevice(null, mActiveBroadcastAudioDevice, false);
-                    }
-
-                    mHandler.post(
-                            () -> notifyBroadcastStartFailed(BluetoothStatusCodes.ERROR_TIMEOUT));
-                    logBroadcastSessionStatsWithStatus(
-                            mBroadcastId,
+                LeAudioBroadcastSessionStats sessionStats =
+                        mBroadcastSessionStats.get(mBroadcastId);
+                if (sessionStats != null) {
+                    sessionStats.updateSessionStatus(
                             BluetoothStatsLog
                                     .BROADCAST_AUDIO_SESSION_REPORTED__SESSION_SETUP_STATUS__SETUP_STATUS_STREAMING_FAILED);
+                    // log once destroyed
                 }
+                transitionFromBroadcastToUnicast();
+                destroyBroadcast(mBroadcastId);
             }
         }
     }
@@ -6094,7 +6079,7 @@ public class LeAudioService extends ProfileService {
 
         @RequiresPermission(BLUETOOTH_CONNECT)
         private LeAudioService getServiceAndEnforceConnect(AttributionSource source) {
-            Objects.requireNonNull(source);
+            requireNonNull(source);
             // Cache mService because it can change while getService is called
             LeAudioService service = mService;
 
@@ -6127,8 +6112,8 @@ public class LeAudioService extends ProfileService {
 
         @Override
         public boolean connect(BluetoothDevice device, AttributionSource source) {
-            Objects.requireNonNull(device, "device cannot be null");
-            Objects.requireNonNull(source, "source cannot be null");
+            requireNonNull(device);
+            requireNonNull(source);
 
             LeAudioService service = getServiceAndEnforceConnect(source);
             if (service == null) {
@@ -6140,8 +6125,8 @@ public class LeAudioService extends ProfileService {
 
         @Override
         public boolean disconnect(BluetoothDevice device, AttributionSource source) {
-            Objects.requireNonNull(device, "device cannot be null");
-            Objects.requireNonNull(source, "source cannot be null");
+            requireNonNull(device);
+            requireNonNull(source);
 
             LeAudioService service = getServiceAndEnforceConnect(source);
             if (service == null) {
@@ -6153,7 +6138,7 @@ public class LeAudioService extends ProfileService {
 
         @Override
         public List<BluetoothDevice> getConnectedDevices(AttributionSource source) {
-            Objects.requireNonNull(source, "source cannot be null");
+            requireNonNull(source);
 
             LeAudioService service = getServiceAndEnforceConnect(source);
             if (service == null) {
@@ -6165,7 +6150,7 @@ public class LeAudioService extends ProfileService {
 
         @Override
         public BluetoothDevice getConnectedGroupLeadDevice(int groupId, AttributionSource source) {
-            Objects.requireNonNull(source, "source cannot be null");
+            requireNonNull(source);
 
             LeAudioService service = getServiceAndEnforceConnect(source);
             if (service == null) {
@@ -6178,7 +6163,7 @@ public class LeAudioService extends ProfileService {
         @Override
         public List<BluetoothDevice> getDevicesMatchingConnectionStates(
                 int[] states, AttributionSource source) {
-            Objects.requireNonNull(source, "source cannot be null");
+            requireNonNull(source);
 
             LeAudioService service = getServiceAndEnforceConnect(source);
             if (service == null) {
@@ -6190,8 +6175,8 @@ public class LeAudioService extends ProfileService {
 
         @Override
         public int getConnectionState(BluetoothDevice device, AttributionSource source) {
-            Objects.requireNonNull(device, "device cannot be null");
-            Objects.requireNonNull(source, "source cannot be null");
+            requireNonNull(device);
+            requireNonNull(source);
 
             LeAudioService service = getServiceAndEnforceConnect(source);
             if (service == null) {
@@ -6203,7 +6188,7 @@ public class LeAudioService extends ProfileService {
 
         @Override
         public boolean setActiveDevice(BluetoothDevice device, AttributionSource source) {
-            Objects.requireNonNull(source, "source cannot be null");
+            requireNonNull(source);
 
             LeAudioService service = getServiceAndEnforceConnect(source);
             if (service == null) {
@@ -6219,7 +6204,7 @@ public class LeAudioService extends ProfileService {
 
         @Override
         public List<BluetoothDevice> getActiveDevices(AttributionSource source) {
-            Objects.requireNonNull(source, "source cannot be null");
+            requireNonNull(source);
 
             LeAudioService service = getServiceAndEnforceConnect(source);
             if (service == null) {
@@ -6231,8 +6216,8 @@ public class LeAudioService extends ProfileService {
 
         @Override
         public int getAudioLocation(BluetoothDevice device, AttributionSource source) {
-            Objects.requireNonNull(device, "device cannot be null");
-            Objects.requireNonNull(source, "source cannot be null");
+            requireNonNull(device);
+            requireNonNull(source);
 
             LeAudioService service = getServiceAndEnforceConnect(source);
             if (service == null) {
@@ -6245,7 +6230,7 @@ public class LeAudioService extends ProfileService {
 
         @Override
         public boolean isInbandRingtoneEnabled(AttributionSource source, int groupId) {
-            Objects.requireNonNull(source, "source cannot be null");
+            requireNonNull(source);
 
             LeAudioService service = getServiceAndEnforceConnect(source);
             if (service == null) {
@@ -6259,8 +6244,8 @@ public class LeAudioService extends ProfileService {
         @Override
         public boolean setConnectionPolicy(
                 BluetoothDevice device, int connectionPolicy, AttributionSource source) {
-            Objects.requireNonNull(device, "device cannot be null");
-            Objects.requireNonNull(source, "source cannot be null");
+            requireNonNull(device);
+            requireNonNull(source);
 
             LeAudioService service = getServiceAndEnforceConnect(source);
             if (service == null) {
@@ -6273,8 +6258,8 @@ public class LeAudioService extends ProfileService {
 
         @Override
         public int getConnectionPolicy(BluetoothDevice device, AttributionSource source) {
-            Objects.requireNonNull(device, "device cannot be null");
-            Objects.requireNonNull(source, "source cannot be null");
+            requireNonNull(device);
+            requireNonNull(source);
 
             LeAudioService service = getServiceAndEnforceConnect(source);
             if (service == null) {
@@ -6288,8 +6273,8 @@ public class LeAudioService extends ProfileService {
         @Override
         public void setCcidInformation(
                 ParcelUuid userUuid, int ccid, int contextType, AttributionSource source) {
-            Objects.requireNonNull(userUuid, "userUuid cannot be null");
-            Objects.requireNonNull(source, "source cannot be null");
+            requireNonNull(userUuid);
+            requireNonNull(source);
 
             LeAudioService service = getServiceAndEnforceConnect(source);
             if (service == null) {
@@ -6302,8 +6287,8 @@ public class LeAudioService extends ProfileService {
 
         @Override
         public int getGroupId(BluetoothDevice device, AttributionSource source) {
-            Objects.requireNonNull(device, "device cannot be null");
-            Objects.requireNonNull(source, "source cannot be null");
+            requireNonNull(device);
+            requireNonNull(source);
 
             LeAudioService service = getServiceAndEnforceConnect(source);
             if (service == null) {
@@ -6315,8 +6300,8 @@ public class LeAudioService extends ProfileService {
 
         @Override
         public boolean groupAddNode(int groupId, BluetoothDevice device, AttributionSource source) {
-            Objects.requireNonNull(device, "device cannot be null");
-            Objects.requireNonNull(source, "source cannot be null");
+            requireNonNull(device);
+            requireNonNull(source);
 
             LeAudioService service = getServiceAndEnforceConnect(source);
             if (service == null) {
@@ -6329,7 +6314,7 @@ public class LeAudioService extends ProfileService {
 
         @Override
         public void setInCall(boolean inCall, AttributionSource source) {
-            Objects.requireNonNull(source, "source cannot be null");
+            requireNonNull(source);
 
             LeAudioService service = getServiceAndEnforceConnect(source);
             if (service == null) {
@@ -6343,7 +6328,7 @@ public class LeAudioService extends ProfileService {
         @Override
         public void setInactiveForHfpHandover(
                 BluetoothDevice hfpHandoverDevice, AttributionSource source) {
-            Objects.requireNonNull(source, "source cannot be null");
+            requireNonNull(source);
 
             LeAudioService service = getServiceAndEnforceConnect(source);
             if (service == null) {
@@ -6357,8 +6342,8 @@ public class LeAudioService extends ProfileService {
         @Override
         public boolean groupRemoveNode(
                 int groupId, BluetoothDevice device, AttributionSource source) {
-            Objects.requireNonNull(device, "device cannot be null");
-            Objects.requireNonNull(source, "source cannot be null");
+            requireNonNull(device);
+            requireNonNull(source);
 
             LeAudioService service = getServiceAndEnforceConnect(source);
             if (service == null) {
@@ -6371,7 +6356,7 @@ public class LeAudioService extends ProfileService {
 
         @Override
         public void setVolume(int volume, AttributionSource source) {
-            Objects.requireNonNull(source, "source cannot be null");
+            requireNonNull(source);
 
             LeAudioService service = getServiceAndEnforceConnect(source);
             if (service == null) {
@@ -6384,8 +6369,8 @@ public class LeAudioService extends ProfileService {
 
         @Override
         public void registerCallback(IBluetoothLeAudioCallback callback, AttributionSource source) {
-            Objects.requireNonNull(callback, "callback cannot be null");
-            Objects.requireNonNull(source, "source cannot be null");
+            requireNonNull(callback);
+            requireNonNull(source);
 
             LeAudioService service = getServiceAndEnforceConnect(source);
             if (service == null) {
@@ -6400,8 +6385,8 @@ public class LeAudioService extends ProfileService {
         @Override
         public void unregisterCallback(
                 IBluetoothLeAudioCallback callback, AttributionSource source) {
-            Objects.requireNonNull(callback, "callback cannot be null");
-            Objects.requireNonNull(source, "source cannot be null");
+            requireNonNull(callback);
+            requireNonNull(source);
 
             LeAudioService service = getServiceAndEnforceConnect(source);
             if (service == null) {
@@ -6416,8 +6401,8 @@ public class LeAudioService extends ProfileService {
         @Override
         public void registerLeBroadcastCallback(
                 IBluetoothLeBroadcastCallback callback, AttributionSource source) {
-            Objects.requireNonNull(callback, "callback cannot be null");
-            Objects.requireNonNull(source, "source cannot be null");
+            requireNonNull(callback);
+            requireNonNull(source);
 
             LeAudioService service = getServiceAndEnforceConnect(source);
             if (service == null) {
@@ -6431,8 +6416,8 @@ public class LeAudioService extends ProfileService {
         @Override
         public void unregisterLeBroadcastCallback(
                 IBluetoothLeBroadcastCallback callback, AttributionSource source) {
-            Objects.requireNonNull(callback, "callback cannot be null");
-            Objects.requireNonNull(source, "source cannot be null");
+            requireNonNull(callback);
+            requireNonNull(source);
 
             LeAudioService service = getServiceAndEnforceConnect(source);
             if (service == null) {

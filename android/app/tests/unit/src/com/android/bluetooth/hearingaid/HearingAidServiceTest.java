@@ -30,6 +30,9 @@ import static android.bluetooth.BluetoothProfile.STATE_DISCONNECTING;
 import static androidx.test.espresso.intent.matcher.IntentMatchers.hasAction;
 import static androidx.test.espresso.intent.matcher.IntentMatchers.hasExtra;
 
+import static com.android.bluetooth.TestUtils.MockitoRule;
+import static com.android.bluetooth.TestUtils.getTestDevice;
+
 import static com.google.common.truth.Truth.assertThat;
 
 import static org.mockito.Mockito.any;
@@ -41,7 +44,6 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothHearingAid;
 import android.bluetooth.BluetoothProfile;
@@ -75,8 +77,6 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.hamcrest.MockitoHamcrest;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
 
 import java.util.List;
 
@@ -84,7 +84,7 @@ import java.util.List;
 @RunWith(AndroidJUnit4.class)
 public class HearingAidServiceTest {
     @Rule public final SetFlagsRule mSetFlagsRule = new SetFlagsRule();
-    @Rule public MockitoRule mockitoRule = MockitoJUnit.rule();
+    @Rule public final MockitoRule mMockitoRule = new MockitoRule();
 
     @Mock private AdapterService mAdapterService;
     @Mock private ActiveDeviceManager mActiveDeviceManager;
@@ -92,10 +92,9 @@ public class HearingAidServiceTest {
     @Mock private HearingAidNativeInterface mNativeInterface;
     @Mock private AudioManager mAudioManager;
 
-    private final BluetoothAdapter mAdapter = BluetoothAdapter.getDefaultAdapter();
-    private final BluetoothDevice mLeftDevice = TestUtils.getTestDevice(mAdapter, 43);
-    private final BluetoothDevice mRightDevice = TestUtils.getTestDevice(mAdapter, 23);
-    private final BluetoothDevice mSingleDevice = TestUtils.getTestDevice(mAdapter, 13);
+    private final BluetoothDevice mLeftDevice = getTestDevice(43);
+    private final BluetoothDevice mRightDevice = getTestDevice(23);
+    private final BluetoothDevice mSingleDevice = getTestDevice(13);
 
     private HearingAidService mService;
     private HearingAidService.BluetoothHearingAidBinder mBinder;
@@ -130,7 +129,7 @@ public class HearingAidServiceTest {
 
     @After
     public void tearDown() {
-        mService.stop();
+        mService.cleanup();
         assertThat(HearingAidService.getHearingAidService()).isNull();
     }
 

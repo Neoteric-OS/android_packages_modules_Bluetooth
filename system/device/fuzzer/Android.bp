@@ -39,6 +39,7 @@ cc_fuzz {
         "libdl",
         "liblog",
         "server_configurable_flags",
+        "libxml2"
     ],
     static_libs: [
         "bluetooth_flags_c_lib",

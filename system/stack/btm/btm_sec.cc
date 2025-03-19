@@ -813,6 +813,9 @@ tBTM_STATUS BTM_SecBond(const RawAddress& bd_addr, tBLE_ADDR_TYPE addr_type,
   if ((transport == BT_TRANSPORT_LE && (dev_type & BT_DEVICE_TYPE_BLE) == 0) ||
       (transport == BT_TRANSPORT_BR_EDR && (dev_type & BT_DEVICE_TYPE_BREDR) == 0)) {
     log::warn("Requested transport and supported transport don't match");
+    bluetooth::os::LogMetricBluetoothEvent(ToGdAddress(bd_addr),
+                                           android::bluetooth::EventType::TRANSPORT_MATCH,
+                                           android::bluetooth::State::FAIL);
   }
 
   bluetooth::os::LogMetricBluetoothEvent(
@@ -2903,8 +2906,11 @@ void btm_simple_pair_complete(const RawAddress bd_addr, uint8_t status) {
   if (status == HCI_SUCCESS) {
     p_dev_rec->sec_rec.sec_flags |= BTM_SEC_AUTHENTICATED;
   } else if (status == HCI_ERR_PAIRING_NOT_ALLOWED) {
-    /* The test spec wants the peer device to get this failure code. */
-    btm_sec_cb.change_pairing_state(BTM_PAIR_STATE_WAIT_DISCONNECT);
+
+    if (btm_sec_cb.pairing_state != BTM_PAIR_STATE_IDLE) {
+      /* The test spec wants the peer device to get this failure code. */
+      btm_sec_cb.change_pairing_state(BTM_PAIR_STATE_WAIT_DISCONNECT);
+    }
 
     /* Change the timer to 1 second */
     alarm_set_on_mloop(btm_sec_cb.pairing_timer, BT_1SEC_TIMEOUT_MS, btm_sec_pairing_timeout, NULL);
@@ -3385,7 +3391,6 @@ void btm_sec_encrypt_change(uint16_t handle, tHCI_STATUS status, uint8_t encr_en
     if (status == HCI_ERR_KEY_MISSING) {
       log::info("Remote key missing - will report");
       bta_dm_remote_key_missing(p_dev_rec->ble.pseudo_addr);
-      bta_dm_remove_device(p_dev_rec->ble.pseudo_addr);
       if (com::android::bluetooth::flags::sec_disconnect_on_le_key_missing()) {
         btm_sec_send_hci_disconnect(p_dev_rec, HCI_ERR_HOST_REJECT_SECURITY,
                                     p_dev_rec->ble_hci_handle, "encryption_change:key_missing");

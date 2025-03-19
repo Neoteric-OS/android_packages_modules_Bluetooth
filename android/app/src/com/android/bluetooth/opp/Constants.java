@@ -55,7 +55,7 @@ import java.util.regex.Pattern;
 // Next tag value for ContentProfileErrorReportUtils.report(): 1
 public class Constants {
     /** Tag used for debugging/logging */
-    public static final String TAG = "BluetoothOpp";
+    static final String TAG = "BluetoothOpp";
 
     /** the permission required for others to send us handover broadcasts */
     static final String PERMISSION_ALLOWLIST_BLUETOOTH_DEVICE =
@@ -254,7 +254,7 @@ public class Constants {
         if (BluetoothShare.isStatusCompleted(status)) {
             Intent intent = new Intent(BluetoothShare.TRANSFER_COMPLETED_ACTION);
             intent.setClassName(context, BluetoothOppReceiver.class.getName());
-            intent.setDataAndNormalize(contentUri);
+            intent.setData(contentUri.normalizeScheme());
             context.sendBroadcast(intent);
         }
     }

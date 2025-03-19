@@ -94,6 +94,9 @@ enum tTRANSPORT_CHANNEL_TYPE : uint8_t {
 /*Delay report timer for remote response*/
 #define AVDT_DELAY_REPORT_TIMEOUT_MS (2 * 1000)
 
+/* timer to monitor initial AVDT delay report as INT */
+#define AVDT_INIT_DELAY_REPORT_TIMEOUT_MS (2 * 1000)
+
 /* maximum number of command retransmissions */
 #ifndef AVDT_RET_MAX
 #define AVDT_RET_MAX 1
@@ -442,7 +445,7 @@ class AvdtpScb {
 public:
   AvdtpScb()
       : transport_channel_timer(nullptr),
-        delay_report_timer(nullptr),
+        init_delay_report_timer(nullptr),
         p_pkt(nullptr),
         p_ccb(nullptr),
         media_seq(0),
@@ -489,8 +492,15 @@ public:
     curr_cfg.Reset();
     req_cfg.Reset();
 
-    alarm_free(transport_channel_timer);
-    transport_channel_timer = nullptr;
+    if (transport_channel_timer != nullptr) {
+      alarm_free(transport_channel_timer);
+      transport_channel_timer = nullptr;
+    }
+
+    if (init_delay_report_timer != nullptr) {
+      alarm_free(init_delay_report_timer);
+      init_delay_report_timer = nullptr;
+    }
 
     p_pkt = nullptr;
     p_ccb = nullptr;
@@ -517,7 +527,7 @@ public:
   AvdtpSepConfig curr_cfg;           // Current configuration
   AvdtpSepConfig req_cfg;            // Requested configuration
   alarm_t* transport_channel_timer;  // Transport channel connect timer
-  alarm_t* delay_report_timer;       // Delay report timer before Open
+  alarm_t* init_delay_report_timer;  // Timer to monitor initial AVDT delay report as INT
   BT_HDR* p_pkt;                     // Packet waiting to be sent
   AvdtpCcb* p_ccb;                   // CCB associated with this SCB
   uint16_t media_seq;                // Media packet sequence number
@@ -962,7 +972,7 @@ void avdt_ccb_idle_ccb_timer_timeout(void* data);
 void avdt_ccb_ret_ccb_timer_timeout(void* data);
 void avdt_ccb_rsp_ccb_timer_timeout(void* data);
 void avdt_scb_transport_channel_timer_timeout(void* data);
-void avdt_delay_report_timer_timeout(void* data);
+void avdt_init_delay_report_timer_timeout(void* data);
 
 /*****************************************************************************
  * macros

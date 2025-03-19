@@ -16,6 +16,8 @@
 
 package com.android.bluetooth.mapapi;
 
+import static com.android.bluetooth.TestUtils.MockitoRule;
+
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assertWithMessage;
 
@@ -37,7 +39,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
 
-import androidx.test.InstrumentationRegistry;
+import androidx.test.platform.app.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
 
 import org.junit.Before;
@@ -46,8 +48,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
 import org.mockito.Spy;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
 
 import java.time.Instant;
 import java.util.AbstractMap;
@@ -58,7 +58,6 @@ import java.util.Set;
 
 @RunWith(AndroidJUnit4.class)
 public class BluetoothMapIMProviderTest {
-
     private static final String TAG = "MapIMProviderTest";
 
     private static final String AUTHORITY = "com.test";
@@ -68,13 +67,13 @@ public class BluetoothMapIMProviderTest {
 
     private Context mContext;
 
-    @Rule public MockitoRule mockitoRule = MockitoJUnit.rule();
+    @Rule public final MockitoRule mMockitoRule = new MockitoRule();
 
     @Spy private BluetoothMapIMProvider mProvider = new TestBluetoothMapIMProvider();
 
     @Before
     public void setUp() throws Exception {
-        mContext = InstrumentationRegistry.getTargetContext();
+        mContext = InstrumentationRegistry.getInstrumentation().getTargetContext();
     }
 
     @Test

@@ -60,12 +60,11 @@ public class InitiatorFragment extends Fragment {
   private Button freqset;
   private Button durset;
   private Button methoddist;
-  private Button distancemarker;
+  private Button distancemarker;        // for storing the distance in the file
+  private Button distancemarkerlog;    //for adding marker in log
   private double curr_distance;
-  private EditText dur_text;
   private EditText dis_meas;
   private Spinner mSpinnerSecurityMode;
-  private Spinner mSpinnersetfrequency;
   private ArrayList<String> frequency;
   private TextView mDistanceText;
   private CanvasView mDistanceCanvasView;
@@ -92,8 +91,7 @@ public class InitiatorFragment extends Fragment {
     transaction.replace(R.id.init_ble_connection_container, bleConnectionFragment).commit();
     mSpinnerSecurityMode = (Spinner) root.findViewById(R.id.spinner_security_mode);
     distancemarker = (Button) root.findViewById(R.id.marker_dist);
-    mSpinnersetfrequency = (Spinner) root.findViewById(R.id.spinner_frequency);
-    dur_text = (EditText) root.findViewById(R.id.edittext_duration);
+    distancemarkerlog = (Button) root.findViewById(R.id.marker_log);
     dis_meas = (EditText) root.findViewById(R.id.distance_meas);
     mButtonCs = (Button) root.findViewById(R.id.btn_cs);
     mSpinnerDmMethod = (Spinner) root.findViewById(R.id.spinner_dm_method);
@@ -158,8 +156,6 @@ public class InitiatorFragment extends Fragment {
 
         List<String> frequency = Arrays.asList(
             "REPORT_FREQUENCY_LOW", "REPORT_FREQUENCY_MEDIUM", "REPORT_FREQUENCY_HIGH");
-        mSpinnersetfrequency.setAdapter(
-            new ArrayAdapter<>(getContext(), android.R.layout.simple_spinner_item, frequency));
 
         Conn_Interval = new ArrayList<>();
         Conn_Interval.add("Balanced");
@@ -214,6 +210,12 @@ public class InitiatorFragment extends Fragment {
 
         mDmMethodArrayAdapter.addAll(mInitiatorViewModel.getSupportedDmMethods());
         mFreqArrayAdapter.addAll(mInitiatorViewModel.getMeasurementFreqs());
+        mDurationArrayAdapter.addAll(mInitiatorViewModel.getMeasurementDurations());
+        int position = mDmMethodArrayAdapter.getPosition("Channel Sounding");
+        if (position != -1) {
+            printLog("Found method Channel Sounding");
+            mSpinnerDmMethod.setSelection(position);
+        }
 
         mButtonCs.setOnClickListener(v -> {
         if(!mBleConnectionViewModel.isconnected()) {
@@ -222,36 +224,25 @@ public class InitiatorFragment extends Fragment {
         }
           String methodName = mSpinnerDmMethod.getSelectedItem().toString();
           String freq = mSpinnerFreq.getSelectedItem().toString();
-          String opt_frequency = mSpinnersetfrequency.getSelectedItem().toString();
           String sec_mode_selected = mSpinnerSecurityMode.getSelectedItem().toString();
-          String duration_selected = dur_text.getText().toString();
+          int duration_selected = Integer.parseInt(mSpinnerDuration.getSelectedItem().toString());
           int conn_state = (int) mConnUpSpinner.getSelectedItemId();
           String conn_priority = mConnUpSpinner.getSelectedItem().toString();
           mBleConnectionViewModel.updateconnectioninterval(conn_priority);
-          if (!duration_selected.isEmpty()) {
-            if (Integer.parseInt(duration_selected) >= 60
-                && Integer.parseInt(duration_selected) <= 3600) {
-              if (TextUtils.isEmpty(methodName)) {
-                printLog("the device doesn't support any distance measurement methods.");
-              }
-              mInitiatorViewModel.toggleCsStartStop(
-                  methodName, freq, sec_mode_selected, opt_frequency, duration_selected);
-            } else {
-              printLog("Please enter the duration between 60 sec to 3600 sec");
-            }
-          } else {
-            if (TextUtils.isEmpty(methodName)) {
-              printLog("the device doesn't support any distance measurement methods.");
-            }
+          
             mInitiatorViewModel.toggleCsStartStop(
-                methodName, sec_mode_selected, opt_frequency, duration_selected);
-          }
+                methodName, freq, sec_mode_selected, "REPORT_FREQUENCY_LOW", duration_selected);
         });
 
         distancemarker.setOnClickListener(v -> {
           String dist_meas = dis_meas.getText().toString();
+          mInitiatorViewModel.actualDistance(dist_meas);
           FileAppender.appendToFile(
               getActivity(), "myfile.csv", "changing distance to " + dist_meas + "\n");
+        });
+
+        distancemarkerlog.setOnClickListener(v -> {
+          mInitiatorViewModel.logMarker();
         });
     }
 

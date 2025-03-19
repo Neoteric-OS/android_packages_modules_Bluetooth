@@ -146,6 +146,7 @@ cc_test {
         "libbase",
         "libbinder",
         "server_configurable_flags",
+        "libxml2",
     ],
     target: {
         android: {
@@ -154,6 +155,7 @@ cc_test {
                 "android.hardware.bluetooth@1.1",
                 "android.hardware.common-V2-ndk",
                 "android.hardware.common.fmq-V1-ndk",
+                "libperfetto_client_experimental",
             ],
         },
         host: {},

@@ -15,11 +15,13 @@
  */
 package com.android.bluetooth.hfp;
 
+import static com.android.bluetooth.TestUtils.MockitoRule;
+import static com.android.bluetooth.TestUtils.getTestDevice;
+
 import static org.junit.Assume.assumeTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
-import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.content.Context;
 import android.os.HandlerThread;
@@ -40,20 +42,17 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
 
 /** Unit test to verify various methods in {@link HeadsetPhoneState} */
 @MediumTest
 @RunWith(AndroidJUnit4.class)
 public class HeadsetPhoneStateTest {
-    @Rule public MockitoRule mockitoRule = MockitoJUnit.rule();
+    @Rule public final MockitoRule mMockitoRule = new MockitoRule();
 
     @Mock private HeadsetService mHeadsetService;
     @Mock private TelephonyManager mTelephonyManager;
     @Mock private SubscriptionManager mSubscriptionManager;
     private HeadsetPhoneState mHeadsetPhoneState;
-    private BluetoothAdapter mAdapter = BluetoothAdapter.getDefaultAdapter();
     private HandlerThread mHandlerThread;
     private boolean testIsRunning;
 
@@ -96,7 +95,7 @@ public class HeadsetPhoneStateTest {
     /** Verify that {@link PhoneStateListener#LISTEN_NONE} should result in no subscription */
     @Test
     public void testListenForPhoneState_NoneResultsNoListen() {
-        BluetoothDevice device1 = TestUtils.getTestDevice(mAdapter, 1);
+        BluetoothDevice device1 = getTestDevice(1);
         mHeadsetPhoneState.listenForPhoneState(device1, PhoneStateListener.LISTEN_NONE);
         verifyZeroInteractions(mTelephonyManager);
     }
@@ -107,7 +106,7 @@ public class HeadsetPhoneStateTest {
      */
     @Test
     public void testListenForPhoneState_ServiceOnly() {
-        BluetoothDevice device1 = TestUtils.getTestDevice(mAdapter, 1);
+        BluetoothDevice device1 = getTestDevice(1);
         mHeadsetPhoneState.listenForPhoneState(device1, PhoneStateListener.LISTEN_SERVICE_STATE);
         verify(mTelephonyManager).listen(any(), eq(PhoneStateListener.LISTEN_SERVICE_STATE));
         verify(mTelephonyManager)
@@ -121,7 +120,7 @@ public class HeadsetPhoneStateTest {
      */
     @Test
     public void testListenForPhoneState_ServiceAndSignalStrength() {
-        BluetoothDevice device1 = TestUtils.getTestDevice(mAdapter, 1);
+        BluetoothDevice device1 = getTestDevice(1);
         mHeadsetPhoneState.listenForPhoneState(
                 device1,
                 PhoneStateListener.LISTEN_SERVICE_STATE
@@ -142,7 +141,7 @@ public class HeadsetPhoneStateTest {
      */
     @Test
     public void testListenForPhoneState_ServiceAndSignalStrengthUpdateTurnOffSignalStrength() {
-        BluetoothDevice device1 = TestUtils.getTestDevice(mAdapter, 1);
+        BluetoothDevice device1 = getTestDevice(1);
         mHeadsetPhoneState.listenForPhoneState(
                 device1,
                 PhoneStateListener.LISTEN_SERVICE_STATE
@@ -166,7 +165,7 @@ public class HeadsetPhoneStateTest {
     /** Verify that completely disabling all updates should unsubscribe from everything */
     @Test
     public void testListenForPhoneState_ServiceAndSignalStrengthUpdateTurnOffAll() {
-        BluetoothDevice device1 = TestUtils.getTestDevice(mAdapter, 1);
+        BluetoothDevice device1 = getTestDevice(1);
         mHeadsetPhoneState.listenForPhoneState(
                 device1,
                 PhoneStateListener.LISTEN_SERVICE_STATE
@@ -193,8 +192,8 @@ public class HeadsetPhoneStateTest {
      */
     @Test
     public void testListenForPhoneState_MultiDevice_AllUpAllDown() {
-        BluetoothDevice device1 = TestUtils.getTestDevice(mAdapter, 1);
-        BluetoothDevice device2 = TestUtils.getTestDevice(mAdapter, 2);
+        BluetoothDevice device1 = getTestDevice(1);
+        BluetoothDevice device2 = getTestDevice(2);
         // Enabling updates from first device should trigger subscription
         mHeadsetPhoneState.listenForPhoneState(
                 device1,
@@ -230,8 +229,8 @@ public class HeadsetPhoneStateTest {
      */
     @Test
     public void testListenForPhoneState_MultiDevice_PartialUpPartialDown() {
-        BluetoothDevice device1 = TestUtils.getTestDevice(mAdapter, 1);
-        BluetoothDevice device2 = TestUtils.getTestDevice(mAdapter, 2);
+        BluetoothDevice device1 = getTestDevice(1);
+        BluetoothDevice device2 = getTestDevice(2);
         // Partially enabling updates from first device should trigger partial subscription
         mHeadsetPhoneState.listenForPhoneState(device1, PhoneStateListener.LISTEN_SERVICE_STATE);
         verify(mTelephonyManager).listen(any(), eq(PhoneStateListener.LISTEN_SERVICE_STATE));

@@ -46,6 +46,7 @@ using bluetooth::le_audio::types::AseConfiguration;
 using bluetooth::le_audio::types::AudioSetConfiguration;
 using bluetooth::le_audio::types::AudioSetConfigurations;
 using bluetooth::le_audio::types::CodecConfigSetting;
+using bluetooth::le_audio::types::CodecMetadataSetting;
 using bluetooth::le_audio::types::LeAudioCodecIdLc3;
 using bluetooth::le_audio::types::QosConfigSetting;
 using bluetooth::le_audio::types::LeAudioContextType;
@@ -363,7 +364,7 @@ private:
       log::error("No qos config matching key {} found", qos_source_key);
     }
 
-    types::CodecMetadataSetting metadata_sink;
+    CodecMetadataSetting metadata_sink;
     if (metadata_sink_cfg != nullptr) {
       metadata_sink.vendor_metadata_type = metadata_sink_cfg->type();
       auto ptr = metadata_sink_cfg->compound_value()->value()->data();
@@ -373,7 +374,7 @@ private:
       STREAM_TO_ARRAY(metadata_sink.vs_metadata.data(), ptr, size);
     }
 
-    types::CodecMetadataSetting metadata_source;
+    CodecMetadataSetting metadata_source;
     if (metadata_source_cfg != nullptr) {
       metadata_source.vendor_metadata_type = metadata_source_cfg->type();
       auto ptr = metadata_source_cfg->compound_value()->value()->data();
@@ -403,7 +404,7 @@ private:
       for (auto subconfig : *codec_cfg->subconfigurations()) {
         auto direction = subconfig->direction();
 
-        types::CodecMetadataSetting codec_metadata = (direction == le_audio::types::kLeAudioDirectionSink)
+        CodecMetadataSetting codec_metadata = (direction == le_audio::types::kLeAudioDirectionSink)
                                                       ? metadata_sink
                                                       : metadata_source;
 
@@ -428,7 +429,7 @@ private:
   void processSubconfig(const fbs::le_audio::AudioSetSubConfiguration& subconfig,
                         const QosConfigSetting& qos_setting,
                         std::vector<AseConfiguration>& subconfigs, types::CodecLocation location,
-                        types::CodecMetadataSetting metadata) {
+                        CodecMetadataSetting metadata) {
     SetConfigurationFromFlatSubconfig(&subconfig, qos_setting, subconfigs, location, metadata);
 
     // Recalculate some qos params based on the Core Codec Configuration

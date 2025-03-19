@@ -27,7 +27,6 @@
 #include "os/thread.h"
 
 using ::bluetooth::os::Thread;
-
 namespace bluetooth {
 namespace {
 

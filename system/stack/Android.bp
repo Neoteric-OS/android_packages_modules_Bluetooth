@@ -784,7 +784,7 @@ cc_test {
         "vendor.qti.hardware.bluetooth.audio-V1-ndk",
 	"vendor.qti.hardware.bluetooth_audio@2.1",
         "vendor.qti.hardware.bluetooth_audio@2.0",
-
+        "libxml2",
     ],
     static_libs: [
         "android.hardware.audio.common@5.0",
@@ -838,6 +838,7 @@ cc_test {
                 "android.hardware.bluetooth@1.0",
                 "android.hardware.bluetooth@1.1",
                 "libexpresslog",
+                "libperfetto_client_experimental",
                 "libstatslog_express",
                 "libtextclassifier_hash_static",
             ],
@@ -930,6 +931,9 @@ cc_test {
         android: {
             shared_libs: [
                 "libstatssocket",
+            ],
+            static_libs: [
+                "libperfetto_client_experimental",
             ],
         },
     },
@@ -1658,10 +1662,6 @@ cc_test {
         "packages/modules/Bluetooth/system/gd",
     ],
     srcs: [
-        ":BluetoothHalSources_hci_host",
-        ":BluetoothHalSources_ranging_host",
-        ":BluetoothHciFake",
-        ":BluetoothOsSources_host",
         ":OsiCompatSources",
         ":TestCommonMainHandler",
         ":TestCommonMockFunctions",
@@ -1723,7 +1723,6 @@ cc_test {
         "test/btm/sco_hci_test.cc",
         "test/btm/sco_pkt_status_test.cc",
         "test/btm/stack_btm_dev_test.cc",
-        "test/btm/stack_btm_inq_test.cc",
         "test/btm/stack_btm_power_mode_test.cc",
         "test/btm/stack_btm_regression_tests.cc",
         "test/btm/stack_btm_sec_test.cc",
@@ -1752,6 +1751,7 @@ cc_test {
         "liblog",
         "libosi",
         "libprotobuf-cpp-lite",
+        "libstatslog_bt",
         "libudrv-uipc",
     ],
     aidl: {
@@ -1763,7 +1763,18 @@ cc_test {
         "libcrypto",
         "libcutils",
         "server_configurable_flags",
+        "libxml2",
     ],
+    target: {
+        android: {
+            shared_libs: [
+                "libstatssocket",
+            ],
+            static_libs: [
+                "libperfetto_client_experimental",
+            ],
+        },
+    },
     sanitize: {
         address: true,
         all_undefined: true,
@@ -1813,6 +1824,7 @@ cc_test {
     ],
     shared_libs: [
         "libcrypto",
+        "libxml2",
     ],
     sanitize: {
         address: true,
@@ -1958,6 +1970,7 @@ cc_test {
         "libbinder",
         "libbinder_ndk",
         "libcrypto",
+        "libxml2",
     ],
     sanitize: {
         address: true,
@@ -2057,6 +2070,7 @@ cc_test {
         "libcrypto",
         "libcutils",
         "server_configurable_flags",
+        "libxml2",
     ],
     target: {
         android: {
@@ -2150,12 +2164,16 @@ cc_test {
         "libcrypto",
         "libcutils",
         "server_configurable_flags",
+        "libxml2",
     ],
     target: {
         android: {
             shared_libs: [
                 "libPlatformProperties",
                 "libstatssocket",
+            ],
+            static_libs: [
+                "libperfetto_client_experimental",
             ],
         },
     },
@@ -2245,6 +2263,7 @@ cc_test {
         "libbinder_ndk",
         "libcrypto",
         "server_configurable_flags",
+        "libxml2",
     ],
     target: {
         android: {
@@ -2285,10 +2304,6 @@ cc_test {
         "packages/modules/Bluetooth/system/gd",
     ],
     srcs: [
-        ":BluetoothHalSources_hci_host",
-        ":BluetoothHalSources_ranging_host",
-        ":BluetoothHciFake",
-        ":BluetoothOsSources_host",
         ":OsiCompatSources",
         ":TestCommonMainHandler",
         ":TestCommonMockFunctions",
@@ -2356,6 +2371,13 @@ cc_test {
         scs: true,
         diag: {
             undefined: true,
+        },
+    },
+    target: {
+        android: {
+            static_libs: [
+                "libperfetto_client_experimental",
+            ],
         },
     },
     header_libs: ["libbluetooth_headers"],

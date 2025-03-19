@@ -317,7 +317,9 @@ void parseVSMetadata(uint8_t total_len, std::vector<uint8_t> metadata,
           processed_len += static_cast<int> (sizeof(vs_meta_data));
           if (ase->state == AseState::BTA_LE_AUDIO_ASE_STATE_STREAMING) {
             LOG(INFO) << __func__ << ": straight away call UpdateEncoderParams ";
-            UpdateEncoderParams(cig_id, cis_id, vs_meta_data, 0xFF);
+            if (!osi_property_get_bool("persist.vendor.qcom.bluetooth.vsc_enabled", false)) {
+              UpdateEncoderParams(cig_id, cis_id, vs_meta_data, 0xFF);
+            }
           } else {
             LOG(INFO) << __func__ << ": Cache it untill encoder is up ";
             ase->vs_metadata = vs_meta_data;
@@ -947,8 +949,10 @@ public:
         }
       }
     }
-    send_vs_cmd(static_cast<uint16_t>(group->GetConfigurationContextType()),
+    if (!osi_property_get_bool("persist.vendor.qcom.bluetooth.vsc_enabled", false)) {
+      send_vs_cmd(static_cast<uint16_t>(group->GetConfigurationContextType()),
         cig_id, group->cig.cises.size(), conn_handles, group->IsLeXDevice());
+    }
     PrepareAndSendQoSToTheGroup(group);
   }
 
@@ -1056,7 +1060,7 @@ public:
       return;
     }
 
-    AddCisToStreamConfiguration(group, ase);
+    AddCisToStreamConfiguration(group, leAudioDevice, ase);
 
     if (group->GetState() == AseState::BTA_LE_AUDIO_ASE_STATE_STREAMING &&
         !group->GetFirstActiveDeviceByCisAndDataPathState(CisState::CONNECTED,
@@ -1741,8 +1745,12 @@ private:
                                 "WATCHDOG STARTED");
   }
 
-  void AddCisToStreamConfiguration(LeAudioDeviceGroup* group, const struct ase* ase) {
+  void AddCisToStreamConfiguration(LeAudioDeviceGroup* group, LeAudioDevice* leAudioDevice,
+                                   const struct ase* ase) {
     group->stream_conf.codec_id = ase->codec_config.id;
+
+    log::debug( ": coding_format = {}, vendor_codec_id = {}",
+                ase->codec_config.id.coding_format, ase->codec_config.id.vendor_codec_id);
 
     auto cis_conn_hdl = ase->cis_conn_hdl;
     auto& params = group->stream_conf.stream_params.get(ase->direction);
@@ -1762,9 +1770,21 @@ private:
 
     auto ase_audio_channel_allocation = ase->codec_config.GetAudioChannelAllocation();
     params.audio_channel_allocation |= ase_audio_channel_allocation;
-    params.stream_config.stream_map.emplace_back(ase->cis_conn_hdl, ase_audio_channel_allocation,
-                                                 true);
 
+    params.stream_config.bits_per_sample = ase->codec_config.GetBitsPerSample();
+
+    auto address_with_type = leAudioDevice->GetAddressWithType();
+    auto info = ::bluetooth::le_audio::stream_map_info(ase->cis_conn_hdl,
+                                                       ase_audio_channel_allocation, true);
+    info.codec_config = ase->codec_config;
+    info.target_latency = ase->target_latency;
+    info.target_phy = ase->qos_config.phy;
+    info.metadata = ase->metadata;
+    info.address = address_with_type.bda;
+    info.address_type = address_with_type.type;
+    params.stream_config.stream_map.push_back(info);
+
+    // Note that for the vendor codec some of the parameters will be missing
     auto core_config = ase->codec_config.params.GetAsCoreCodecConfig();
     if (params.stream_config.sampling_frequency_hz == 0) {
       params.stream_config.sampling_frequency_hz = core_config.GetSamplingFrequencyHz();
@@ -1802,7 +1822,8 @@ private:
                        core_config.GetFrameDurationUs());
     }
 
-    params.codec_spec_metadata = group->GetCodecVendorMetadata(ase->direction, context_type);
+
+    params.stream_config.codec_spec_metadata = group->GetCodecVendorMetadata(ase->direction, context_type);
 
     params.stream_config.peer_delay_ms = group->GetRemoteDelay(ase->direction);
 
@@ -3317,9 +3338,10 @@ private:
       bluetooth::le_audio::client_parser::ascs::PrepareAseCtpUpdateMetadata(confs, value);
       WriteToControlPoint(leAudioDevice, value);
 
-      send_vs_cmd(static_cast<uint16_t>(ctx_type.value()),
+      if (!osi_property_get_bool("persist.vendor.qcom.bluetooth.vsc_enabled", false)) {
+        send_vs_cmd(static_cast<uint16_t>(ctx_type.value()),
          leAudioDevice->group_id_, conn_handles.size(), conn_handles, leAudioDevice->isLeXDevice());
-
+      }
       log::info("group_id: {}, {}", leAudioDevice->group_id_, leAudioDevice->address_);
 
       log_history_->AddLogHistory(kLogControlPointCmd, leAudioDevice->group_id_,

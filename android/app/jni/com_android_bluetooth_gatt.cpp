@@ -84,6 +84,7 @@
 #include "hardware/distance_measurement_interface.h"
 #include "main/shim/le_scanning_manager.h"
 #include "rust/cxx.h"
+#include "src/core/ffi/module.h"
 #include "src/gatt/ffi.rs.h"
 #include "types/bluetooth/uuid.h"
 #include "types/raw_address.h"
@@ -625,6 +626,11 @@ static const btgatt_client_callbacks_t sGattClientCallbacks = {
  */
 
 void btgatts_register_app_cb(int status, int server_if, const Uuid& uuid) {
+  // TODO(b/356462170): Remove this when we have fixed the bug
+  if (!is_module_started(&rust_module)) {
+    log::error("Rust module isn't started! scan_manager_refactor={}",
+               com::android::bluetooth::flags::scan_manager_refactor());
+  }
   bluetooth::gatt::open_server(server_if);
   std::shared_lock<std::shared_mutex> lock(callbacks_mutex);
   CallbackEnv sCallbackEnv(__func__);
@@ -2804,13 +2810,20 @@ static void distanceMeasurementCleanupNative(JNIEnv* env, jobject /* object */) 
   }
 }
 
-static void startDistanceMeasurementNative(JNIEnv* env, jobject /* object */, jstring address,
-                                           jint interval, jint method) {
-  if (!sGattIf) {
-    return;
-  }
-  sGattIf->distance_measurement_manager->StartDistanceMeasurement(str2addr(env, address), interval,
-                                                                  method);
+void setCsParamsNative(JNIEnv* env, jobject /* object */,
+		     jstring address, jint mSightType, jint mLocationType,
+		     jint mCsSecurityLevel,
+		     jint mFrequency, jint mDuration) {
+  if (!sGattIf) return;
+  sGattIf->distance_measurement_manager->SetCsParams(
+	 str2addr(env, address), mSightType, mLocationType, mCsSecurityLevel, mFrequency, mDuration);
+}
+static void startDistanceMeasurementNative(JNIEnv* env, jobject /* object */,
+                                           jstring address, jint interval,
+                                           jint method) {
+  if (!sGattIf) return;
+  sGattIf->distance_measurement_manager->StartDistanceMeasurement(
+      str2addr(env, address), interval, method);
 }
 
 static void stopDistanceMeasurementNative(JNIEnv* env, jobject /* object */, jstring address,
@@ -2974,12 +2987,14 @@ static int register_com_android_bluetooth_gatt_periodic_scan(JNIEnv* env) {
 // JNI functions defined in DistanceMeasurementNativeInterface class.
 static int register_com_android_bluetooth_gatt_distance_measurement(JNIEnv* env) {
   const JNINativeMethod methods[] = {
-          {"initializeNative", "()V", (void*)distanceMeasurementInitializeNative},
-          {"cleanupNative", "()V", (void*)distanceMeasurementCleanupNative},
-          {"startDistanceMeasurementNative", "(Ljava/lang/String;II)V",
-           (void*)startDistanceMeasurementNative},
-          {"stopDistanceMeasurementNative", "(Ljava/lang/String;I)V",
-           (void*)stopDistanceMeasurementNative},
+      {"initializeNative", "()V", (void*)distanceMeasurementInitializeNative},
+      {"cleanupNative", "()V", (void*)distanceMeasurementCleanupNative},
+       {"setCsParamsNative", "(Ljava/lang/String;IIIII)V",
+       (void*)setCsParamsNative},
+      {"startDistanceMeasurementNative", "(Ljava/lang/String;II)V",
+       (void*)startDistanceMeasurementNative},
+      {"stopDistanceMeasurementNative", "(Ljava/lang/String;I)V",
+       (void*)stopDistanceMeasurementNative},
   };
   const int result = REGISTER_NATIVE_METHODS(
           env, "com/android/bluetooth/gatt/DistanceMeasurementNativeInterface", methods);

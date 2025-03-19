@@ -13,6 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+/*
+ * Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
+ * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
+ */
+
 #pragma once
 
 #include <bluetooth/log.h>
@@ -111,7 +117,8 @@ public:
                                  uint16_t conn_interval);
 
   static const ModuleFactory Factory;
-
+  void SetCsParams(const Address&, int mSightType, int mLocationType,
+                   int mCsSecurityLevel, int mFrequency, int mDuration);
 protected:
   void ListDependencies(ModuleList* list) const override;
 

@@ -626,12 +626,11 @@ int ParseSinglePac(std::vector<struct acs_ac_record>& pac_recs, uint16_t len,
   // To-DO: Remove once remote AAR4 pac records available
   TestLeXPacRecords(const_cast<uint8_t*>(value), rec.codec_id.vendor_codec_id);
 
-    if (!rec.metadata.Parse(value, metadata_len)) {
+  if (!rec.metadata.Parse(value, metadata_len)) {
     log::error("PAC record contains corrupted LTV formatted metadata: {}",
                base::HexEncode(value, metadata_len));
     return -1;
   }
-
   value += metadata_len;
   len -= metadata_len;
 
@@ -655,7 +654,7 @@ bool ParsePacs(std::vector<struct acs_ac_record>& pac_recs, uint16_t len, const 
     int remaining_len = ParseSinglePac(pac_recs, len, value);
     if (remaining_len < 0) {
       log::error("Error parsing PAC records.");
-      return false;
+      break;
     }
 
     value += (len - remaining_len);
