@@ -259,8 +259,6 @@ constexpr uint8_t  LTV_LEN_MAX_FT                       = 0X01;
 
 constexpr uint8_t  ENCODER_LIMITS_SUB_OP                = 0x24;
 
-constexpr uint8_t  CALL_AUDIO_ROUTE_OVER_BLUETOOTH      = 2;
-
 typedef struct {
   uint8_t cig_id;
   uint8_t cis_id;
@@ -519,9 +517,6 @@ public:
         defer_sink_suspend_ack_until_stop_(false),
         defer_source_suspend_ack_until_stop_(false),
         is_local_sink_metadata_available_(false),
-        defer_sink_suspend_(false),
-        defer_source_suspend_(false),
-        call_audio_route_(-1),
         le_audio_source_hal_client_(nullptr),
         le_audio_sink_hal_client_(nullptr),
         close_vbc_timeout_(alarm_new("LeAudioCloseVbcTimeout")),
@@ -1537,31 +1532,6 @@ public:
     group->SetPendingConfiguration();
     groupStateMachine_->StopStream(group);
     speed_start_setup(group->group_id_, configuration_context_type_, group->NumOfConnected(), true);
-  }
-
-  /* ROUTE_EARPIECE = 1
-  * ROUTE_BLUETOOTH = 2
-  * ROUTE_WIRED_HEADSET = 4
-  * ROUTE_SPEAKER = 8
-  * ROUTE_STREAMING = 16
-  * ROUTE_WIRED_OR_EARPIECE = ROUTE_EARPIECE | ROUTE_WIRED_HEADSET
-  */
-  void UpdateCallAudioRoute(int call_audio_route) override {
-    log::debug("call_audio_route: {}", call_audio_route);
-    call_audio_route_ = call_audio_route;
-    if (call_audio_route_ != CALL_AUDIO_ROUTE_OVER_BLUETOOTH) {
-      log::debug(": defer_sink_suspend_: {}, defer_source_suspend_: {}",
-                                defer_sink_suspend_, defer_source_suspend_);
-
-      if (defer_source_suspend_) {
-         defer_source_suspend_ = false;
-         OnLocalAudioSourceSuspend();
-      }
-      if (defer_sink_suspend_) {
-        defer_sink_suspend_ = false;
-        OnLocalAudioSinkSuspend();
-      }
-    }
   }
 
   void SetInCall(bool in_call) override {
@@ -5001,15 +4971,6 @@ public:
     switch (audio_sender_state_) {
       case AudioState::READY_TO_START:
       case AudioState::STARTED:
-        log::debug(": call_audio_route_: {}", call_audio_route_);
-
-        if (le_audio_source_hal_client_ &&
-            IsInCall() && (call_audio_route_ == CALL_AUDIO_ROUTE_OVER_BLUETOOTH)) {
-          log::info("CS call already ongoing, fake ack success");
-          le_audio_source_hal_client_->ConfirmSuspendRequest();
-          defer_source_suspend_ = true;
-          return;
-        }
         audio_sender_state_ = AudioState::READY_TO_RELEASE;
         break;
       case AudioState::RELEASING:
@@ -5281,15 +5242,6 @@ public:
     switch (audio_receiver_state_) {
       case AudioState::READY_TO_START:
       case AudioState::STARTED:
-        log::debug(": call_audio_route_: {}", call_audio_route_);
-
-        if (le_audio_sink_hal_client_ &&
-            IsInCall() && (call_audio_route_ == CALL_AUDIO_ROUTE_OVER_BLUETOOTH)) {
-          log::info("CS call already ongoing, fake ack success");
-          le_audio_sink_hal_client_->ConfirmSuspendRequest();
-          defer_sink_suspend_ = true;
-          return;
-        }
         audio_receiver_state_ = AudioState::READY_TO_RELEASE;
         break;
       case AudioState::RELEASING:
@@ -7170,12 +7122,6 @@ private:
   bool defer_source_suspend_ack_until_stop_;
   /* To know whether MM sent sink track update Metadata */
   bool  is_local_sink_metadata_available_;
-  /*To track whether sinkSuspend to be handled later*/
-  bool defer_sink_suspend_;
-  /*To track whether sourceSuspend to be handled later*/
-  bool defer_source_suspend_;
-  /*To track call audio route*/
-  int call_audio_route_;
 
   /* Reconnection mode */
   tBTM_BLE_CONN_TYPE reconnection_mode_;

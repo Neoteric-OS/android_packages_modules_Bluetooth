@@ -755,17 +755,6 @@ static void setGroupAllowedContextMaskNative(JNIEnv* /* env */, jobject /* objec
                                                       sourceContextTypes);
 }
 
-static void updateCallAudioRouteNative(JNIEnv* /* env */, jobject /* object */,
-                            jint callAudioRoute) {
-  std::shared_lock<std::shared_timed_mutex> lock(interface_mutex);
-  if (!sLeAudioClientInterface) {
-    log::error("Failed to get the Bluetooth LeAudio Interface");
-    return;
-  }
-
-  sLeAudioClientInterface->UpdateCallAudioRoute(callAudioRoute);
-}
-
 /* Le Audio Broadcaster */
 static jmethodID method_onBroadcastCreated;
 static jmethodID method_onBroadcastDestroyed;
@@ -1592,7 +1581,6 @@ int register_com_android_bluetooth_le_audio(JNIEnv* env) {
           {"setUnicastMonitorModeNative", "(IZ)V", (void*)setUnicastMonitorModeNative},
           {"sendAudioProfilePreferencesNative", "(IZZ)V", (void*)sendAudioProfilePreferencesNative},
           {"setGroupAllowedContextMaskNative", "(III)V", (void*)setGroupAllowedContextMaskNative},
-          {"updateCallAudioRouteNative", "(I)V", (void*)updateCallAudioRouteNative},
   };
 
   const int result = REGISTER_NATIVE_METHODS(
