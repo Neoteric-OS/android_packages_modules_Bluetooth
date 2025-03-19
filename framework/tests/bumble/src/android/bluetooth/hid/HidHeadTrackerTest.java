@@ -353,6 +353,7 @@ public class HidHeadTrackerTest {
                 BluetoothDevice.ACTION_UUID,
                 BluetoothDevice.ACTION_ACL_CONNECTED,
                 BluetoothDevice.ACTION_ACL_DISCONNECTED,
+                BluetoothHidHost.ACTION_CONNECTION_STATE_CHANGED,
                 BluetoothDevice.ACTION_FOUND);
     }
 
@@ -405,6 +406,7 @@ public class HidHeadTrackerTest {
         unregisterIntentActions(
                 BluetoothDevice.ACTION_UUID,
                 BluetoothDevice.ACTION_ACL_CONNECTED,
+                BluetoothHidHost.ACTION_CONNECTION_STATE_CHANGED,
                 BluetoothDevice.ACTION_FOUND);
     }
 
