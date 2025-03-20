@@ -2517,7 +2517,7 @@ struct DistanceMeasurementManager::impl : bluetooth::hal::RangingHalCallback {
         gettimeofday(&tv, NULL);
         curr_proc_complete_timestampMs  = tv.tv_sec*1e6*1ll + tv.tv_usec*1ll;
         raw_data.timestampMs_ = (long)(curr_proc_complete_timestampMs - proc_start_timestampMs);
-        log::verbose("timestampMs_: {} current_proc : {} proc start :{}",
+        log::info("timestampMs_: {} current_proc : {} proc start :{}",
                     raw_data.timestampMs_, curr_proc_complete_timestampMs,
                     proc_start_timestampMs);
 
