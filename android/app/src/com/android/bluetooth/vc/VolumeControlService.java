@@ -75,6 +75,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
 
 public class VolumeControlService extends ProfileService {
     private static final String TAG = VolumeControlService.class.getSimpleName();
@@ -115,6 +116,7 @@ public class VolumeControlService extends ProfileService {
     private final Map<Integer, Boolean> mGroupMuteCache = new ConcurrentHashMap<>();
     private final Map<BluetoothDevice, Integer> mDeviceVolumeCache = new ConcurrentHashMap<>();
     private final Map<BluetoothDevice, Boolean> mDeviceMuteCache = new ConcurrentHashMap<>();
+    private int mAudioMode = AudioManager.MODE_INVALID;
 
     private Boolean mIgnoreSetVolumeFromAF = false;
     private boolean mPtsTest = false;
@@ -158,6 +160,9 @@ public class VolumeControlService extends ProfileService {
             filter.addAction(ACTION_CHANGE_MUTE);
             registerReceiver(mVcTestReceiver, filter, Context.RECEIVER_EXPORTED);
         }
+        mBluetoothOnModeChangedListener = new BluetoothOnModeChangedListener();
+                mAudioManager.addOnModeChangedListener(
+                    Executors.newSingleThreadExecutor(), mBluetoothOnModeChangedListener);
         setVolumeControlService(this);
         mNativeInterface.init();
     }
@@ -208,6 +213,10 @@ public class VolumeControlService extends ProfileService {
         mGroupMuteCache.clear();
         mDeviceVolumeCache.clear();
         mDeviceMuteCache.clear();
+        if (mBluetoothOnModeChangedListener != null) {
+            mAudioManager.removeOnModeChangedListener(mBluetoothOnModeChangedListener);
+        }
+        mBluetoothOnModeChangedListener = null;
 
         synchronized (mCallbacks) {
             mCallbacks.kill();
@@ -221,6 +230,15 @@ public class VolumeControlService extends ProfileService {
     Map<BluetoothDevice, VolumeControlInputDescriptor> getAudioInputs() {
         return mAudioInputs;
     }
+
+    class BluetoothOnModeChangedListener implements AudioManager.OnModeChangedListener {
+        @Override
+        public void onModeChanged(int mode) {
+            mAudioMode = mode;
+        }
+    }
+
+    private BluetoothOnModeChangedListener mBluetoothOnModeChangedListener;
 
     /**
      * Get the VolumeControlService instance
@@ -1166,11 +1184,9 @@ public class VolumeControlService extends ProfileService {
 
     // Copied from AudioService.getBluetoothContextualVolumeStream() and modified it.
     int getBluetoothContextualVolumeStream() {
-        int mode = mAudioManager.getMode();
+        Log.d(TAG, "Volume mode:" + mAudioMode + "; Description: 0:normal, 1:ring, 2,3:call");
 
-        Log.d(TAG, "Volume mode:" + mode + "; Description: 0:normal, 1:ring, 2,3:call");
-
-        return switch (mode) {
+        return switch (mAudioMode) {
             case AudioManager.MODE_IN_CALL, AudioManager.MODE_IN_COMMUNICATION -> {
                 yield AudioManager.STREAM_VOICE_CALL;
             }

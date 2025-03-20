@@ -59,7 +59,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.HashMap;
 import java.util.Map;
-
+import java.util.concurrent.Executors;
 /**
  * The active device manager is responsible for keeping track of the connected
  * A2DP/HFP/AVRCP/HearingAid/LE audio devices and select which device is active (for each profile).
@@ -181,6 +181,7 @@ public class ActiveDeviceManager implements AdapterService.BluetoothStateCallbac
     private static final int METADATA_MEDIA          = 0x0004;
     private static final int METADATA_GAME           = 0x0008;
     private static final int METADATA_LIVE           = 0x0040;
+    private int mAudioMode = AudioManager.MODE_INVALID;
 
     // Dual mode map for context_type : <Audio_Mode_Output_Only, Audio_Mode_Duplex>
     private final static HashMap<Integer, Integer[]> contextToModeBundle =
@@ -333,7 +334,7 @@ public class ActiveDeviceManager implements AdapterService.BluetoothStateCallbac
                 // Activate A2DP if audio mode is normal or HFP is not supported or enabled.
                 if (mDbManager.getProfileConnectionPolicy(device, BluetoothProfile.HEADSET)
                                 != CONNECTION_POLICY_ALLOWED
-                        || mAudioManager.getMode() == AudioManager.MODE_NORMAL) {
+                        || mAudioMode == AudioManager.MODE_NORMAL) {
                     boolean a2dpMadeActive = setA2dpActiveDevice(device);
                     if (a2dpMadeActive && !Utils.isDualModeAudioEnabled()) {
                         setLeAudioActiveDevice(null, true);
@@ -403,7 +404,7 @@ public class ActiveDeviceManager implements AdapterService.BluetoothStateCallbac
                 // Activate HFP if audio mode is not normal or A2DP is not supported or enabled.
                 if (mDbManager.getProfileConnectionPolicy(device, BluetoothProfile.A2DP)
                                 != CONNECTION_POLICY_ALLOWED
-                        || mAudioManager.getMode() != AudioManager.MODE_NORMAL) {
+                        || mAudioMode != AudioManager.MODE_NORMAL) {
                     // Tries to make the device active for HFP
                     boolean hfpMadeActive = setHfpActiveDevice(device);
 
@@ -940,12 +941,23 @@ public class ActiveDeviceManager implements AdapterService.BluetoothStateCallbac
         }
     }
 
+    class BluetoothOnModeChangedListener implements AudioManager.OnModeChangedListener {
+         @Override
+        public void onModeChanged(int mode) {
+            mAudioMode = mode;
+        }
+    }
+
+    private BluetoothOnModeChangedListener mBluetoothOnModeChangedListener;
+
+
     ActiveDeviceManager(AdapterService service, ServiceFactory factory) {
         mAdapterService = service;
         mDbManager = mAdapterService.getDatabase();
         mFactory = factory;
         mAudioManager = service.getSystemService(AudioManager.class);
         mAudioManagerAudioDeviceCallback = new AudioManagerAudioDeviceCallback();
+        mBluetoothOnModeChangedListener = new BluetoothOnModeChangedListener();
     }
 
     void start() {
@@ -958,6 +970,8 @@ public class ActiveDeviceManager implements AdapterService.BluetoothStateCallbac
 
         mAudioManager.registerAudioDeviceCallback(mAudioManagerAudioDeviceCallback, mHandler);
         mAdapterService.registerBluetoothStateCallback((command) -> mHandler.post(command), this);
+        mAudioManager.addOnModeChangedListener(
+                    Executors.newSingleThreadExecutor(), mBluetoothOnModeChangedListener);
         LoadDualModePoliciesfromLocalStorage();
     }
 
@@ -975,6 +989,10 @@ public class ActiveDeviceManager implements AdapterService.BluetoothStateCallbac
             }
             mHandlerThread = null;
         }
+        if (mBluetoothOnModeChangedListener != null) {
+            mAudioManager.removeOnModeChangedListener(mBluetoothOnModeChangedListener);
+        }
+        mBluetoothOnModeChangedListener = null;
         resetState();
     }
 
@@ -1322,8 +1340,8 @@ public class ActiveDeviceManager implements AdapterService.BluetoothStateCallbac
                 }
             }
         }
-        Log.d(TAG, "Audio mode: " + mAudioManager.getMode());
-        switch (mAudioManager.getMode()) {
+        Log.d(TAG, "Audio mode: " + mAudioMode);
+        switch (mAudioMode) {
             case AudioManager.MODE_NORMAL:
                 if (a2dpFallbackDevice != null) {
                     connectedDevices.add(a2dpFallbackDevice);
@@ -1345,7 +1363,7 @@ public class ActiveDeviceManager implements AdapterService.BluetoothStateCallbac
             return false;
         }
         Log.d(TAG, "Most recently connected device: " + device);
-        if (mAudioManager.getMode() == AudioManager.MODE_NORMAL) {
+        if (mAudioMode == AudioManager.MODE_NORMAL) {
             if (Objects.equals(a2dpFallbackDevice, device)) {
                 Log.d(TAG, "Found an A2DP fallback device: " + device);
                 setA2dpActiveDevice(device);
