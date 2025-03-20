@@ -16,16 +16,6 @@ flag {
 }
 
 flag {
-    name: "improve_create_connection_for_already_connecting_device"
-    namespace: "bluetooth"
-    description: "Make sure to not stop controller with create connection cancel when not needed"
-    bug: "356593752"
-    metadata {
-        purpose: PURPOSE_BUGFIX
-    }
-}
-
-flag {
     name: "allow_gatt_connect_from_the_apps_without_making_leaudio_device_active"
     namespace: "bluetooth"
     description: "Allows for GATT connection without making LeAudio device active after connection"
