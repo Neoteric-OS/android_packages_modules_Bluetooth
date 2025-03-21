@@ -123,6 +123,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+/** Test cases for {@link LeAudioService}. */
 @MediumTest
 @RunWith(ParameterizedAndroidJunit4.class)
 public class LeAudioServiceTest {

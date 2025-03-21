@@ -86,7 +86,7 @@ import org.mockito.Mockito;
 
 import java.util.ArrayList;
 
-/** Tests for {@link HeadsetStateMachine} */
+/** Test cases for {@link HeadsetStateMachine}. */
 @MediumTest
 @RunWith(AndroidJUnit4.class)
 public class HeadsetStateMachineTest {
