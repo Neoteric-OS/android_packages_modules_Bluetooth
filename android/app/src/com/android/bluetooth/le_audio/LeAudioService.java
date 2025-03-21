@@ -3371,11 +3371,6 @@ public class LeAudioService extends ProfileService {
             boolean inputCodecOrFreqChanged) {
         Log.i(TAG, "notifyAudioFrameworkForCodecConfigUpdate groupId: " + groupId);
 
-        if (!Flags.leaudioCodecConfigCallbackOrderFix()) {
-            Log.d(TAG, "leaudio_codec_config_callback_order_fix is not enabled");
-            return;
-        }
-
         if (mActiveAudioOutDevice != null && outputCodecOrFreqChanged) {
             int volume = getAudioDeviceGroupVolume(groupId);
 

@@ -1332,11 +1332,6 @@ public:
 
     in_call_ = in_call;
 
-    if (!com::android::bluetooth::flags::leaudio_speed_up_reconfiguration_between_call()) {
-      log::debug("leaudio_speed_up_reconfiguration_between_call flag is not enabled");
-      return;
-    }
-
     if (active_group_id_ == bluetooth::groups::kGroupUnknown) {
       log::debug("There is no active group");
       return;
@@ -1794,14 +1789,10 @@ public:
     /* Reset sink and source listener notified status */
     sink_monitor_notified_status_ = std::nullopt;
     source_monitor_notified_status_ = std::nullopt;
-    if (com::android::bluetooth::flags::leaudio_codec_config_callback_order_fix()) {
-      SendAudioGroupSelectableCodecConfigChanged(group);
-      SendAudioGroupCurrentCodecConfigChanged(group);
-      callbacks_->OnGroupStatus(active_group_id_, GroupStatus::ACTIVE);
-    } else {
-      callbacks_->OnGroupStatus(active_group_id_, GroupStatus::ACTIVE);
-      SendAudioGroupSelectableCodecConfigChanged(group);
-    }
+
+    SendAudioGroupSelectableCodecConfigChanged(group);
+    SendAudioGroupCurrentCodecConfigChanged(group);
+    callbacks_->OnGroupStatus(active_group_id_, GroupStatus::ACTIVE);
   }
 
   void SetEnableState(const RawAddress& address, bool enabled) override {
@@ -5449,11 +5440,6 @@ public:
       remote_metadata.source.unset_all(all_bidirectional_contexts);
       remote_metadata.sink.set(LeAudioContextType::CONVERSATIONAL);
       remote_metadata.source.set(LeAudioContextType::CONVERSATIONAL);
-    }
-
-    if (!com::android::bluetooth::flags::leaudio_speed_up_reconfiguration_between_call()) {
-      UpdateSinkLocalMetadataContextTypes(remote_metadata.source);
-      UpdateSourceLocalMetadataContextTypes(remote_metadata.sink);
     }
 
     if (IsInVoipCall()) {
