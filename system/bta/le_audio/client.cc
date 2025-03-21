@@ -5120,8 +5120,9 @@ public:
      * enable op metadata(covsersational)
      */
 
-    if ((IsInCall() || IsInVoipCall()) &&
-        configuration_context_type_ != LeAudioContextType::CONVERSATIONAL) {
+    if (((IsInCall() || IsInVoipCall()) &&
+        configuration_context_type_ != LeAudioContextType::CONVERSATIONAL) || is_src_metadata_updated_before_resume) {
+      is_src_metadata_updated_before_resume = false;
       ReconfigureOrUpdateRemote(group, bluetooth::le_audio::types::kLeAudioDirectionSink);
     }
 
@@ -5711,7 +5712,11 @@ public:
   void OnLocalAudioSourceMetadataUpdate(
           const std::vector<struct playback_track_metadata_v7>& source_metadata, DsaMode dsa_mode) {
     /* Set the remote sink metadata context from the playback tracks metadata */
-    local_metadata_context_types_.source = GetAudioContextsFromSourceMetadata(source_metadata);
+    if (local_metadata_context_types_.source != GetAudioContextsFromSourceMetadata(source_metadata)) {
+       log::warn(", change of metadata received");
+       local_metadata_context_types_.source = GetAudioContextsFromSourceMetadata(source_metadata);
+       is_src_metadata_updated_before_resume = true;
+    }
 
     log::debug("local_metadata_context_types_.source= {}",
                ToString(local_metadata_context_types_.source));
@@ -7143,6 +7148,7 @@ private:
           "persist.bluetooth.leaudio.allow.multiple.contexts";
   BidirectionalPair<AudioContexts> in_call_metadata_context_types_;
   BidirectionalPair<AudioContexts> local_metadata_context_types_;
+  bool is_src_metadata_updated_before_resume;
   StreamSpeedTracker speed_tracker_;
   std::deque<StreamSpeedTracker> stream_speed_history_;
 
