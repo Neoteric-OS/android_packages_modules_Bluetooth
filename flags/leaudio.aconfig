@@ -51,28 +51,11 @@ flag {
 }
 
 flag {
-    name: "leaudio_mono_location_errata"
-    namespace: "bluetooth"
-    description: "Add mono location as per Bluetooth Assigned Numbers"
-    bug: "331139722"
-    metadata {
-        purpose: PURPOSE_BUGFIX
-    }
-}
-
-flag {
     name: "leaudio_mono_location_errata_api"
     is_exported: true
     namespace: "bluetooth"
     description: "Add mono location as per Bluetooth Assigned Numbers to API"
     bug: "372840605"
-}
-
-flag {
-    name: "le_audio_support_unidirectional_voice_assistant"
-    namespace: "bluetooth"
-    description: "Allow to create unidirectional stream for VOICEASSISTANT"
-    bug: "332510824"
 }
 
 flag {
@@ -131,26 +114,6 @@ flag {
     namespace: "bluetooth"
     description: "Helps sinks to resync to external broadcast when BIS or PA unsynced"
     bug: "363168099"
-    metadata {
-        purpose: PURPOSE_BUGFIX
-    }
-}
-
-flag {
-    name: "leaudio_unicast_no_available_contexts"
-    namespace: "bluetooth"
-    description: "Fix handling initial zero available contexts"
-    bug: "367325041"
-    metadata {
-        purpose: PURPOSE_BUGFIX
-    }
-}
-
-flag {
-    name: "leaudio_improve_switch_during_phone_call"
-    namespace: "bluetooth"
-    description: "Fix audio slip to speaker while switching bt audio device during phonecall"
-    bug: "369322905"
     metadata {
         purpose: PURPOSE_BUGFIX
     }

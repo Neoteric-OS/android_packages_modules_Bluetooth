@@ -1636,11 +1636,6 @@ public:
   }
 
   void PrepareStreamForAConversational(LeAudioDeviceGroup* group) {
-    if (!com::android::bluetooth::flags::leaudio_improve_switch_during_phone_call()) {
-      log::info("Flag leaudio_improve_switch_during_phone_call is not enabled");
-      return;
-    }
-
     log::debug("group_id: {}", group->group_id_);
 
     auto remote_direction = bluetooth::le_audio::types::kLeAudioDirectionSink;
