@@ -7051,6 +7051,11 @@ public:
           audio_receiver_state_ = AudioState::RELEASING;
         }
 
+        if (group && group->IsPendingConfiguration()) {
+          log::info("Releasing for reconfiguration, don't send anything on CISes");
+          SuspendedForReconfiguration();
+          group->SetSuspendedForReconfiguration();
+        }
         break;
       default:
         break;
