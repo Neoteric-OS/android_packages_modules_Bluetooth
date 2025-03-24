@@ -3986,7 +3986,9 @@ public class LeAudioService extends ProfileService {
             boolean success = stackEvent.valueBool1;
 
             if (leaudioBigDependsOnAudioState()) {
-                mCreateBroadcastQueue.remove();
+                if (!mCreateBroadcastQueue.isEmpty()) {
+                    mCreateBroadcastQueue.remove();
+                }
             }
 
             if (success) {
