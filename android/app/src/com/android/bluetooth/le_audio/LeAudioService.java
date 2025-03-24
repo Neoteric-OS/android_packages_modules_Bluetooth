@@ -3882,9 +3882,11 @@ public class LeAudioService extends ProfileService {
                     {
                         handleGroupTransitToActive(groupId);
 
-                        /* Clear possible exposed broadcast device after activating unicast */
-                        if (mActiveBroadcastAudioDevice != null) {
-                            updateBroadcastActiveDevice(null, mActiveBroadcastAudioDevice, true);
+                        if (!leaudioBigDependsOnAudioState()) {
+                            /* Clear possible exposed broadcast device after activating unicast */
+                            if (mActiveBroadcastAudioDevice != null) {
+                                updateBroadcastActiveDevice(null, mActiveBroadcastAudioDevice, true);
+                            }
                         }
                         break;
                     }

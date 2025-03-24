@@ -477,7 +477,7 @@ public class ActiveDeviceManager implements AdapterService.BluetoothStateCallbac
             }
 
             mLeAudioConnectedDevices.add(device);
-            if (isBroadcastingAudio()) {
+            if (!Flags.leaudioBigDependsOnAudioState() && isBroadcastingAudio()) {
                 Log.i(
                         TAG,
                         "LE Audio Broadcast is streaming, skip setting le audio device as active: "
