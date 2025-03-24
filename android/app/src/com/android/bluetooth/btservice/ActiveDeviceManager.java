@@ -614,6 +614,7 @@ public class ActiveDeviceManager implements AdapterService.BluetoothStateCallbac
 
             mLeAudioConnectedDevices.remove(device);
             mLeHearingAidConnectedDevices.remove(device);
+            leAudioService.deviceDisconnected(device, false);
 
             boolean hasFallbackDevice = false;
             boolean isA2dpActive = false;
@@ -641,8 +642,6 @@ public class ActiveDeviceManager implements AdapterService.BluetoothStateCallbac
                     }
                 }
             }
-            Log.d(TAG, "Going for Music Player Pause");
-            leAudioService.deviceDisconnected(device, false);
         }
     }
 
