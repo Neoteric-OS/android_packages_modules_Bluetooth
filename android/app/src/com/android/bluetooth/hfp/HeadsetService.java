@@ -1548,10 +1548,10 @@ public class HeadsetService extends ProfileService {
                     return true;
                 }
 
+                broadcastActiveDevice(mActiveDevice);
                 Log.i(TAG, "setActiveDevice: deferConnectAudio: " + deferConnectAudio);
                 if (!deferConnectAudio || !(SystemProperties.getBoolean(
                            "persist.bluetooth.leaudio.notify.idle.during.call", false))) {
-                    broadcastActiveDevice(mActiveDevice);
                     int connectStatus = connectAudio(mActiveDevice);
                     if (connectStatus != BluetoothStatusCodes.SUCCESS) {
                         Log.e(
