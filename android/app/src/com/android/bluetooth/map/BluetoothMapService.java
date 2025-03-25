@@ -569,7 +569,11 @@ public class BluetoothMapService extends ProfileService {
 
     private synchronized void setState(int state, int result) {
         if (state != mState) {
-            Log.d(TAG, "Map state " + mState + " -> " + state + ", result = " + result);
+            Log.d(TAG, "Map state " + mState + " -> " + state + ", result = " + result
+                    + " Device " + mRemoteDevice);
+            if (mRemoteDevice == null) {
+                return;
+            }
             int prevState = mState;
             mState = state;
             mAdapterService.updateProfileConnectionAdapterProperties(
