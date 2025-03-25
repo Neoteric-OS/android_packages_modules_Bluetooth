@@ -6092,6 +6092,11 @@ public:
           if (local_game_uplink_active && remote_game_uplink_available) {
             remote_metadata.source.clear();
             remote_metadata.source.set(LeAudioContextType::GAME);
+            log::debug("Align local metadata contexts also to game when vbc starts");
+            local_metadata_context_types_.sink.clear();
+            local_metadata_context_types_.source.clear();
+            local_metadata_context_types_.sink.set(LeAudioContextType::GAME);
+            local_metadata_context_types_.source.set(LeAudioContextType::GAME);
           } else {
             remote_metadata.get(remote_other_direction).unset_all(all_bidirectional_contexts);
             remote_metadata.get(remote_other_direction)
