@@ -942,41 +942,6 @@ public:
     }
   }
 
-  void UpdatePriorCodecTypeToHal(LeAudioDeviceGroup* group) {
-    if (configuration_context_type_ == LeAudioContextType::CONVERSATIONAL ||
-        configuration_context_type_ == LeAudioContextType::LIVE) {
-      auto id = group->GetConfiguration(
-       configuration_context_type_)->confs.source.at(0).codec.id;
-      auto bits = group->GetConfiguration(
-       configuration_context_type_)->confs.source.at(0).codec.GetBitsPerSample();
-      auto intvl = group->GetConfiguration(
-       configuration_context_type_)->confs.source.at(0).codec.GetDataIntervalUs();
-      auto freq = group->GetConfiguration(
-       configuration_context_type_)->confs.source.at(0).codec.GetSamplingFrequencyHz();
-      auto sdu = group->GetConfiguration(
-       configuration_context_type_)->confs.source.at(0).codec.GetOctetsPerFrame();
-      auto delay = group->GetRemoteDelay(
-       bluetooth::le_audio::types::kLeAudioDirectionSource);
-      bluetooth::le_audio::stream_config config = {
-          .stream_map = std::vector<bluetooth::le_audio::stream_map_info>{
-                bluetooth::le_audio::stream_map_info(0x00, 0x00, false)},
-          .codec_id = id,
-          .bits_per_sample = bits,
-          .sampling_frequency_hz = freq,
-          .frame_duration_us = intvl,
-          .octets_per_codec_frame = sdu,
-          .codec_frames_blocks_per_sdu = 1,
-          .peer_delay_ms = delay,
-          .mode = 0,
-          .delay = delay,
-          .codec_spec_metadata = std::vector<uint8_t>(),
-      };
-      if (le_audio_sink_hal_client_) {
-        le_audio_sink_hal_client_->UpdateAudioConfigToHal(config);
-      }
-    }
-  }
-
   void SuspendedForReconfiguration() {
     if (audio_sender_state_ > AudioState::IDLE) {
       LeAudioLogHistory::Get()->AddLogHistory(kLogBtCallAf, active_group_id_, RawAddress::kEmpty,
