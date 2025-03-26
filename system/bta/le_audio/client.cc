@@ -6935,6 +6935,43 @@ public:
               if (source_monitor_mode_) {
                 notifyAudioLocalSource(UnicastMonitorModeStatus::STREAMING_SUSPENDED);
               }
+
+              if (defer_source_suspend_ack_until_stop_) {
+                if (le_audio_source_hal_client_) {
+                  defer_source_suspend_ack_until_stop_ = false;
+                  log::info("calling source ConfirmSuspendRequest");
+                  le_audio_source_hal_client_->ConfirmSuspendRequest();
+                }
+              }
+
+              if (defer_sink_suspend_ack_until_stop_) {
+                if (le_audio_sink_hal_client_) {
+                  defer_sink_suspend_ack_until_stop_ = false;
+                  log::info("calling sink ConfirmSuspendRequest");
+                  le_audio_sink_hal_client_->ConfirmSuspendRequest();
+                }
+              }
+
+              log::info("active_group_id_: {}", active_group_id_);
+              if (defer_notify_active_until_stop_ && defer_notify_inactive_until_stop_) {
+                CheckAndNotifyGroupInactive(group_id);
+                CheckAndNotifyGroupActive(active_group_id_);
+                defer_notify_active_until_stop_ = false;
+                defer_notify_inactive_until_stop_ = false;
+              } else if (defer_notify_inactive_until_stop_) {
+                CheckAndNotifyGroupInactive(group_id);
+                defer_notify_inactive_until_stop_ = false;
+              }
+
+              if (group->IsSuspendedForReconfiguration()) {
+                reconfigurationComplete();
+              } else {
+                if (!((status == GroupStreamStatus::IDLE) &&
+                      (active_group_id_ != group->group_id_) &&
+                      (audio_sender_state_ == AudioState::STARTED))) {
+                  CancelStreamingRequest();
+                }
+              }
             }
           } else {
             if (!is_active_group_operation) {
@@ -6974,43 +7011,6 @@ public:
               log::info("Clear pending configuration flag for group {}", group->group_id_);
               group->ClearPendingConfiguration();
               reconfigurationComplete();
-            }
-
-            if (defer_source_suspend_ack_until_stop_) {
-              if (le_audio_source_hal_client_) {
-                defer_source_suspend_ack_until_stop_ = false;
-                log::info("calling source ConfirmSuspendRequest");
-                le_audio_source_hal_client_->ConfirmSuspendRequest();
-              }
-            }
-
-            if (defer_sink_suspend_ack_until_stop_) {
-              if (le_audio_sink_hal_client_) {
-                defer_sink_suspend_ack_until_stop_ = false;
-                log::info("calling sink ConfirmSuspendRequest");
-                le_audio_sink_hal_client_->ConfirmSuspendRequest();
-              }
-            }
-
-            log::info("active_group_id_: {}", active_group_id_);
-            if (defer_notify_active_until_stop_ && defer_notify_inactive_until_stop_) {
-              CheckAndNotifyGroupInactive(group_id);
-              CheckAndNotifyGroupActive(active_group_id_);
-              defer_notify_active_until_stop_ = false;
-              defer_notify_inactive_until_stop_ = false;
-            } else if (defer_notify_inactive_until_stop_) {
-              CheckAndNotifyGroupInactive(group_id);
-              defer_notify_inactive_until_stop_ = false;
-            }
-
-            if (group->IsSuspendedForReconfiguration()) {
-              reconfigurationComplete();
-            } else {
-              if (!((status == GroupStreamStatus::IDLE) &&
-                    (active_group_id_ != group->group_id_) &&
-                    (audio_sender_state_ == AudioState::STARTED))) {
-                CancelStreamingRequest();
-              }
             }
           }
         }
