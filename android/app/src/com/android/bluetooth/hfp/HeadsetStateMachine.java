@@ -77,7 +77,7 @@ import java.util.Scanner;
 /**
  * A Bluetooth Handset StateMachine (Disconnected) | ^ CONNECT | | DISCONNECTED V | (Connecting)
  * (Disconnecting) | ^ CONNECTED | | DISCONNECT V | (Connected) | ^ CONNECT_AUDIO | |
- * AUDIO_DISCONNECTED V | (AudioConnecting) (AudioDiconnecting) | ^ AUDIO_CONNECTED | |
+ * AUDIO_DISCONNECTED V | (AudioConnecting) (AudioDisconnecting) | ^ AUDIO_CONNECTED | |
  * DISCONNECT_AUDIO V | (AudioOn)
  */
 class HeadsetStateMachine extends StateMachine {
@@ -122,7 +122,7 @@ class HeadsetStateMachine extends StateMachine {
             new HeadsetAgIndicatorEnableState(true, true, true, true);
     private static final int INCOMING_CALL_IND_DELAY = 200;
     private int RETRY_SCO_CONNECTION_DELAY = 0;
-    private int SCO_RETRIAL_REQ_TIMEOUT = 5000;
+    private static final int SCO_RETRIAL_REQ_TIMEOUT = 5000;
     // maintain call states in state machine as well
     private final HeadsetCallState mStateMachineCallState =
                  new HeadsetCallState(0, 0, 0, "", 0, "");
@@ -801,7 +801,7 @@ class HeadsetStateMachine extends StateMachine {
     // Per HFP 1.7.1 spec page 23/144, Pending state needs to handle
     //      AT+BRSF, AT+CIND, AT+CMER, AT+BIND, AT+CHLD
     // commands during SLC establishment
-    // AT+CHLD=? will be handled by statck directly
+    // AT+CHLD=? will be handled by stack directly
     class Connecting extends HeadsetStateBase {
         @Override
         int getConnectionStateInt() {
@@ -1426,6 +1426,12 @@ class HeadsetStateMachine extends StateMachine {
                 // Reset audio disconnecting retry count. Either the disconnection was successful
                 // or the retry count reached MAX_RETRY_DISCONNECT_AUDIO.
                 mAudioDisconnectRetry = 0;
+            } else if (mPrevState == mAudioConnecting || mPrevState == mAudioOn) {
+                HeadsetService.logScoSessionMetric(
+                        mDevice,
+                        BluetoothStatsLog
+                                .BLUETOOTH_CROSS_LAYER_EVENT_REPORTED__STATE__SCO_LINK_LOSS,
+                        0);
             }
             if (mPrevState == mAudioConnecting || mPrevState == mAudioOn
                  || mPrevState == mAudioDisconnecting) {
@@ -1715,6 +1721,11 @@ class HeadsetStateMachine extends StateMachine {
                             mHeadsetService.getMainExecutor(), mAudioServerStateCallback);
 
             broadcastStateTransitions();
+            HeadsetService.logScoSessionMetric(
+                    mDevice,
+                    BluetoothStatsLog
+                            .BLUETOOTH_CROSS_LAYER_EVENT_REPORTED__STATE__SCO_AUDIO_CONNECTED,
+                    0);
         }
 
         @Override

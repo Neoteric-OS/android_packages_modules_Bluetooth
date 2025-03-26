@@ -9,9 +9,9 @@ flag {
 }
 
 flag {
-    name: "scan_manager_refactor"
+    name: "only_start_scan_during_ble_on"
     namespace: "bluetooth"
-    description: "Refactor scan manager as described in go/scan-manager-refactor"
+    description: "Instead of starting scan and gatt in ble_on, only start scan"
     bug: "313335632"
 }
 
@@ -310,6 +310,16 @@ flag {
     namespace: "bluetooth"
     description: "Makes scan controller operations run on one thread."
     bug: "397863857"
+    metadata {
+        purpose: PURPOSE_BUGFIX
+    }
+}
+
+flag {
+    name: "start_discover_service_changed"
+    namespace: "bluetooth"
+    description: "Start discovery again when service change indication arrives."
+    bug: "400828637"
     metadata {
         purpose: PURPOSE_BUGFIX
     }

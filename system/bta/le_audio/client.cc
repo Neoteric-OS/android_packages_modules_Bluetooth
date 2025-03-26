@@ -935,11 +935,14 @@ public:
     }
   }
 
-  void UpdateLocationsAndContextsAvailability(LeAudioDeviceGroup* group, bool force = false) {
+  void UpdateLocationsAndContextsAvailability(LeAudioDeviceGroup* group,
+                                              bool available_contexts_changed = false) {
     bool group_conf_changed = group->ReloadAudioLocations();
     group_conf_changed |= group->ReloadAudioDirections();
-    group_conf_changed |= group->UpdateAudioContextAvailability();
-    if (group_conf_changed || force) {
+
+    log::verbose("group_id: {}, group_conf_changed: {} available_contexts_changed: {}",
+                 group->group_id_, group_conf_changed, available_contexts_changed);
+    if (group_conf_changed || available_contexts_changed) {
       /* All the configurations should be recalculated for the new conditions */
       group->InvalidateCachedConfigurations();
       group->InvalidateGroupStrategy();
@@ -2707,6 +2710,12 @@ public:
         return;
       }
 
+      AudioContexts current_group_contexts;
+
+      if (group) {
+        current_group_contexts = group->GetAvailableContexts();
+      }
+
       leAudioDevice->SetAvailableContexts(contexts);
       btif_storage_set_leaudio_supported_context_types(
           leAudioDevice->address_, contexts.sink.value(),
@@ -2727,11 +2736,13 @@ public:
         return;
       }
 
+      /* Whenever context type change, notify user about that.
+       * Note: GetAvailableContexts() add streaming context as well
+       */
+      UpdateLocationsAndContextsAvailability(
+              group, current_group_contexts != group->GetAvailableContexts());
+
       if (!group->IsStreaming()) {
-        /* Group is not streaming. Device does not have to be attach to the
-         * stream, and we can update context availability for the group
-         */
-        UpdateLocationsAndContextsAvailability(group);
         return;
       }
 
@@ -2745,7 +2756,7 @@ public:
         leAudioDevice->SetSupportedContexts(supp_audio_contexts);
       }
     } else if (hdl == leAudioDevice->ctp_hdls_.val_hdl) {
-      groupStateMachine_->ProcessGattCtpNotification(group, value, len);
+      groupStateMachine_->ProcessGattCtpNotification(group, leAudioDevice, value, len);
     } else if (hdl == leAudioDevice->tmap_role_hdl_) {
       bluetooth::le_audio::client_parser::tmap::ParseTmapRole(leAudioDevice->tmap_role_, len,
                                                               value);

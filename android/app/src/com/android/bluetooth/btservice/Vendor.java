@@ -85,7 +85,7 @@ import java.util.UUID;
 
 final class Vendor {
     private static final String TAG = "BluetoothVendorService";
-    private AdapterService mService;
+    private final AdapterService mService;
     private String socName;
     private String a2dpOffloadCap;
     private boolean isPowerBackoffEnabled = false;

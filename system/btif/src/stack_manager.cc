@@ -329,7 +329,7 @@ static void event_start_up_stack(bluetooth::core::CoreInterface* interface,
     return;
   }
 
-  if (!com::android::bluetooth::flags::scan_manager_refactor()) {
+  if (!com::android::bluetooth::flags::only_start_scan_during_ble_on()) {
     info("Starting rust module");
     module_start_up(get_local_module(RUST_MODULE));
   }
@@ -356,7 +356,7 @@ static void event_shut_down_stack(ProfileStopCallback stopProfiles) {
   hack_future = local_hack_future;
   stack_is_running = false;
 
-  if (!com::android::bluetooth::flags::scan_manager_refactor()) {
+  if (!com::android::bluetooth::flags::only_start_scan_during_ble_on()) {
     info("Stopping rust module");
     module_shut_down(get_local_module(RUST_MODULE));
   }

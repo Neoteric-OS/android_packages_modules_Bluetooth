@@ -32,13 +32,6 @@ import com.android.internal.annotations.VisibleForTesting;
 public class DistanceMeasurementNativeInterface {
     private static final String TAG = DistanceMeasurementNativeInterface.class.getSimpleName();
 
-    @GuardedBy("INSTANCE_LOCK")
-    private static DistanceMeasurementNativeInterface sInstance;
-
-    private static final Object INSTANCE_LOCK = new Object();
-
-    private DistanceMeasurementManager mDistanceMeasurementManager;
-
     /**
      * Do not modify without updating distance_measurement_manager.h match up with
      * DistanceMeasurementErrorCode enum of distance_measurement_manager.h
@@ -52,6 +45,13 @@ public class DistanceMeasurementNativeInterface {
     private static final int REASON_NO_LE_CONNECTION = 5;
     private static final int REASON_INVALID_PARAMETERS = 6;
     private static final int REASON_INTERNAL_ERROR = 7;
+
+    private static final Object INSTANCE_LOCK = new Object();
+
+    @GuardedBy("INSTANCE_LOCK")
+    private static DistanceMeasurementNativeInterface sInstance;
+
+    private DistanceMeasurementManager mDistanceMeasurementManager;
 
     private DistanceMeasurementNativeInterface() {}
 
@@ -99,12 +99,15 @@ public class DistanceMeasurementNativeInterface {
     }
 
     void onDistanceMeasurementStarted(String address, int method) {
-        mDistanceMeasurementManager.onDistanceMeasurementStarted(address, method);
+        mDistanceMeasurementManager.postOnDistanceMeasurementThread(
+                () -> mDistanceMeasurementManager.onDistanceMeasurementStarted(address, method));
     }
 
     void onDistanceMeasurementStopped(String address, int reason, int method) {
-        mDistanceMeasurementManager.onDistanceMeasurementStopped(
-                address, convertErrorCode(reason), method);
+        mDistanceMeasurementManager.postOnDistanceMeasurementThread(
+                () ->
+                        mDistanceMeasurementManager.onDistanceMeasurementStopped(
+                                address, convertErrorCode(reason), method));
     }
 
     void onDistanceMeasurementResult(
@@ -121,20 +124,22 @@ public class DistanceMeasurementNativeInterface {
             int detectedAttackLevel,
             double velocityMetersPerSecond,
             int method) {
-        mDistanceMeasurementManager.onDistanceMeasurementResult(
-                address,
-                centimeter,
-                errorCentimeter,
-                azimuthAngle,
-                errorAzimuthAngle,
-                altitudeAngle,
-                errorAltitudeAngle,
-                elapsedRealtimeNanos,
-                confidenceLevel,
-                delayedSpreadMeters,
-                detectedAttackLevel,
-                velocityMetersPerSecond,
-                method);
+        mDistanceMeasurementManager.postOnDistanceMeasurementThread(
+                () ->
+                        mDistanceMeasurementManager.onDistanceMeasurementResult(
+                                address,
+                                centimeter,
+                                errorCentimeter,
+                                azimuthAngle,
+                                errorAzimuthAngle,
+                                altitudeAngle,
+                                errorAltitudeAngle,
+                                elapsedRealtimeNanos,
+                                confidenceLevel,
+                                delayedSpreadMeters,
+                                detectedAttackLevel,
+                                velocityMetersPerSecond,
+                                method));
     }
 
     private static int convertErrorCode(int errorCode) {
