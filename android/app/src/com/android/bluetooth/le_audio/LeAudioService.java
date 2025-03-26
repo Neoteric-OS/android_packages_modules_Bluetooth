@@ -97,7 +97,6 @@ import com.android.bluetooth.btservice.storage.DatabaseManager;
 import com.android.bluetooth.csip.CsipSetCoordinatorService;
 import com.android.bluetooth.flags.Flags;
 import com.android.bluetooth.hap.HapClientService;
-import com.android.bluetooth.hearingaid.HearingAidService;
 import com.android.bluetooth.hfp.HeadsetService;
 import com.android.bluetooth.mcp.McpService;
 import com.android.bluetooth.tbs.TbsGatt;
@@ -2405,8 +2404,14 @@ public class LeAudioService extends ProfileService {
                         + newDevice
                         + ", previousDevice: "
                         + previousDevice);
+        int volume = IBluetoothVolumeControl.VOLUME_CONTROL_UNKNOWN_VOLUME;
+        if (newDevice != null) {
+            int groupId = (getActiveGroupId() != LE_AUDIO_GROUP_ID_INVALID) ?
+                    getActiveGroupId() : mUnicastGroupIdDeactivatedForBroadcastTransition;
+            volume = getAudioDeviceGroupVolume(groupId);
+        }
         mAudioManager.handleBluetoothActiveDeviceChanged(
-                newDevice, previousDevice, getBroadcastProfile(suppressNoisyIntent));
+                newDevice, previousDevice, getBroadcastProfile(suppressNoisyIntent, volume));
     }
 
     /**
@@ -2620,6 +2625,8 @@ public class LeAudioService extends ProfileService {
                         + groupId
                         + ", currentlyActiveGroupId = "
                         + currentlyActiveGroupId
+                        + ", mUnicastGroupIdDeactivatedForBroadcastTransition = "
+                        + mUnicastGroupIdDeactivatedForBroadcastTransition
                         + ", device: "
                         + device
                         + ", hasFallbackDevice: "
@@ -2632,7 +2639,8 @@ public class LeAudioService extends ProfileService {
         /* Replace fallback unicast and monitoring input device if device is active local
          * broadcaster.
          */
-        if (isAnyBroadcastInStreamingState()) {
+        if (isAnyBroadcastInStreamingState() &&
+                mUnicastGroupIdDeactivatedForBroadcastTransition != LE_AUDIO_GROUP_ID_INVALID) {
             LeAudioGroupDescriptor fallbackGroupDescriptor = getGroupDescriptor(groupId);
             // If broadcast is ongoing and need to update unicast fallback active group
             // we need to update the cached group id and skip changing the active device
@@ -2863,11 +2871,11 @@ public class LeAudioService extends ProfileService {
         }
     }
 
-    BluetoothProfileConnectionInfo getBroadcastProfile(boolean suppressNoisyIntent) {
+    BluetoothProfileConnectionInfo getBroadcastProfile(boolean suppressNoisyIntent, int volume) {
         Parcel parcel = Parcel.obtain();
         parcel.writeInt(BluetoothProfile.LE_AUDIO_BROADCAST);
         parcel.writeBoolean(suppressNoisyIntent);
-        parcel.writeInt(-1 /* mVolume */);
+        parcel.writeInt(volume /* mVolume */);
         parcel.writeBoolean(true /* mIsLeOutput */);
         parcel.setDataPosition(0);
 
@@ -2927,49 +2935,17 @@ public class LeAudioService extends ProfileService {
         }
     }
 
-    private void disableLeAudioAndFallbackToLegacyAudioProfiles(int groupId) {
-        Log.i(
-                TAG,
-                "Disabling LE Audio for group: "
-                        + groupId
-                        + " and falling back to legacy profiles");
-        A2dpService a2dpService = mServiceFactory.getA2dpService();
-        HeadsetService hsService = mServiceFactory.getHeadsetService();
-        HearingAidService hearingAidService = mServiceFactory.getHearingAidService();
-        boolean isDualMode = Utils.isDualModeAudioEnabled();
-
-        List<BluetoothDevice> leAudioActiveGroupDevices = getGroupDevices(groupId);
-
-        for (BluetoothDevice activeGroupDevice : leAudioActiveGroupDevices) {
-            Log.d(TAG, "Disable LE_AUDIO for the device: " + activeGroupDevice);
-            final ParcelUuid[] uuids = mAdapterService.getRemoteUuids(activeGroupDevice);
-
-            setConnectionPolicy(activeGroupDevice, CONNECTION_POLICY_FORBIDDEN);
-            if (hsService != null && !isDualMode && Utils.arrayContains(uuids, BluetoothUuid.HFP)) {
-                Log.d(TAG, "Enable HFP for the device: " + activeGroupDevice);
-                hsService.setConnectionPolicy(activeGroupDevice, CONNECTION_POLICY_ALLOWED);
-            }
-            if (a2dpService != null
-                    && !isDualMode
-                    && (Utils.arrayContains(uuids, BluetoothUuid.A2DP_SINK)
-                            || Utils.arrayContains(uuids, BluetoothUuid.ADV_AUDIO_DIST))) {
-                Log.d(TAG, "Enable A2DP for the device: " + activeGroupDevice);
-                a2dpService.setConnectionPolicy(activeGroupDevice, CONNECTION_POLICY_ALLOWED);
-            }
-            if (hearingAidService != null
-                    && Utils.arrayContains(uuids, BluetoothUuid.HEARING_AID)) {
-                Log.d(TAG, "Enable ASHA for the device: " + activeGroupDevice);
-                hearingAidService.setConnectionPolicy(activeGroupDevice, CONNECTION_POLICY_ALLOWED);
-            }
-        }
-    }
-
     private void handleGroupHealthAction(int groupId, int action) {
-        Log.d(TAG, "handleGroupHealthAction: groupId: " + groupId + " action: " + action);
+        Log.d(
+                TAG,
+                "handleGroupHealthAction: groupId: "
+                        + groupId
+                        + " action: "
+                        + action
+                        + ", not implemented");
         BluetoothDevice device = getLeadDeviceForTheGroup(groupId);
         switch (action) {
-            case com.android.bluetooth.le_audio.LeAudioStackEvent
-                    .HEALTH_RECOMMENDATION_ACTION_DISABLE:
+            case LeAudioStackEvent.HEALTH_RECOMMENDATION_ACTION_DISABLE:
                 MetricsLogger.getInstance()
                         .count(
                                 mAdapterService.isLeAudioAllowed(device)
@@ -2978,7 +2954,6 @@ public class LeAudioService extends ProfileService {
                                         : BluetoothProtoEnums
                                                 .LE_AUDIO_NONALLOWLIST_GROUP_HEALTH_STATUS_BAD,
                                 1);
-                disableLeAudioAndFallbackToLegacyAudioProfiles(groupId);
                 break;
             case LeAudioStackEvent.HEALTH_RECOMMENDATION_ACTION_CONSIDER_DISABLING:
                 MetricsLogger.getInstance()
@@ -3913,9 +3888,11 @@ public class LeAudioService extends ProfileService {
                     {
                         handleGroupTransitToActive(groupId);
 
-                        /* Clear possible exposed broadcast device after activating unicast */
-                        if (mActiveBroadcastAudioDevice != null) {
-                            updateBroadcastActiveDevice(null, mActiveBroadcastAudioDevice, true);
+                        if (!leaudioBigDependsOnAudioState()) {
+                            /* Clear possible exposed broadcast device after activating unicast */
+                            if (mActiveBroadcastAudioDevice != null) {
+                                updateBroadcastActiveDevice(null, mActiveBroadcastAudioDevice, true);
+                            }
                         }
                         break;
                     }
@@ -4032,8 +4009,10 @@ public class LeAudioService extends ProfileService {
                 if (mAudioManagerAddedOutDevice == null) {
                     startBroadcast(broadcastId);
                 } else {
-                    Log.d(TAG, "Audio out device is still not removed, pending start broadcast");
-                    mBroadcastIdPendingStart = Optional.of(broadcastId);
+                    if (!leaudioBigDependsOnAudioState()) {
+                        Log.d(TAG, "Audio out device is still not removed, pending start broadcast");
+                        mBroadcastIdPendingStart = Optional.of(broadcastId);
+                    }
                 }
             } else {
                 // TODO: Improve reason reporting or extend the native stack event with reason code
@@ -5923,16 +5902,6 @@ public class LeAudioService extends ProfileService {
             return null;
         }
         return getConnectedGroupLeadDevice(groupId);
-    }
-
-    public void updateCallAudioRoute(int callAudioRoute) {
-        Log.d(TAG, "updateCallAudioRoute(" + callAudioRoute + ")");
-
-        if (!mLeAudioNativeIsInitialized) {
-            Log.e(TAG, "Le Audio not initialized properly.");
-            return;
-        }
-        mNativeInterface.updateCallAudioRoute(callAudioRoute);
     }
 
     /**

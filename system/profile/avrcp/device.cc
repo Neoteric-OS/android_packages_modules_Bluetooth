@@ -930,7 +930,10 @@ void Device::GetElementAttributesResponse(uint8_t label,
                                           SongInfo info) {
   auto get_element_attributes_pkt = pkt;
   auto attributes_requested = get_element_attributes_pkt->GetAttributesRequested();
-  bool all_attributes_flag = com::android::bluetooth::flags::get_all_element_attributes_empty();
+  bool all_attributes_flag =
+           osi_property_get_bool("persist.vendor.bt.a2dp.all_attributes_flag", false);
+  log::info(" Size of attributes_requested: {} all_attributes_flag: {}",
+                 attributes_requested.size(), all_attributes_flag);
 
   // To Pass PTS TC AVCTP/TG/FRA/BV-02-C
   /* After AVCTP connection is established with remote,
@@ -961,15 +964,25 @@ void Device::GetElementAttributesResponse(uint8_t label,
 
   if (attributes_requested.size() != 0) {
     for (const auto& attribute : attributes_requested) {
+      log::verbose("requested attribute: {}", AttributeText(attribute));
       if (info.attributes.find(attribute) != info.attributes.end()) {
-        response->AddAttributeEntry(*info.attributes.find(attribute));
+        if (info.attributes.find(attribute)->value().empty() && all_attributes_flag) {
+          log::verbose("Empty attribute found, add string Unavailable");
+          response->AddAttributeEntry(attribute, "Unavailable");
+        } else {
+          log::verbose("Add attribute value");
+          response->AddAttributeEntry(*info.attributes.find(attribute));
+        }
       } else if (all_attributes_flag) {
-        response->AddAttributeEntry(attribute, std::string());
+        log::info(" Attribute not found, add string Unavailable");
+        response->AddAttributeEntry(attribute, "Unavailable");
       }
     }
   } else {  // zero attributes requested which means all attributes requested
+    // Todo: Add condition !all_attributes_flag once flag is enabled by default
     if (!all_attributes_flag) {
       for (const auto& attribute : info.attributes) {
+        log::info(" Add attribute value");
         response->AddAttributeEntry(attribute);
       }
     } else {
@@ -983,11 +996,19 @@ void Device::GetElementAttributesResponse(uint8_t label,
                                                Attribute::DEFAULT_COVER_ART};
       for (const auto& attribute : all_attributes) {
         if (info.attributes.find(attribute) != info.attributes.end()) {
-          response->AddAttributeEntry(*info.attributes.find(attribute));
+          log::verbose("requested attribute: {}", AttributeText(attribute));
+          if (info.attributes.find(attribute)->value().empty() && all_attributes_flag) {
+            log::verbose("Empty attribute found, add string Unavailable");
+            response->AddAttributeEntry(attribute, "Unavailable");
+          } else {
+            log::info(" Add attribute value");
+            response->AddAttributeEntry(*info.attributes.find(attribute));
+          }
         } else {
           // If all attributes were requested, we send a response even for attributes that we don't
           // have a value for.
-          response->AddAttributeEntry(attribute, std::string());
+          log::info(" Attribute not found, add string Unavailable");
+          response->AddAttributeEntry(attribute, "Unavailable");
         }
       }
     }

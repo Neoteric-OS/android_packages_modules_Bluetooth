@@ -451,9 +451,6 @@ public:
   /* Set allowed to stream context */
   virtual void SetGroupAllowedContextMask(int group_id, int sink_context_types,
                                           int source_context_types) = 0;
-
-  /* Update Call Audio route*/
-  virtual void UpdateCallAudioRoute(int callAudioRoute) = 0;
 };
 
 /* Represents the broadcast source state. */
