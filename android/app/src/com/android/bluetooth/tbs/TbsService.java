@@ -311,15 +311,6 @@ public class TbsService extends ProfileService {
                 service.currentCallsList(ccid, calls);
             }
         }
-
-        @Override
-        public void networkStateChanged(
-                int ccid, String providerName, int technology, AttributionSource source) {
-            TbsService service = getService(source);
-            if (service != null) {
-                service.networkStateChanged(ccid, providerName, technology);
-            }
-        }
     }
 
     @VisibleForTesting
@@ -393,20 +384,6 @@ public class TbsService extends ProfileService {
         Log.d(TAG, "currentCallsList: ccid=" + ccid + " calls=" + calls);
 
         mTbsGeneric.currentCallsList(ccid, calls);
-    }
-
-    @VisibleForTesting
-    void networkStateChanged(int ccid, String providerName, int technology) {
-        Log.d(
-                TAG,
-                "networkStateChanged: ccid="
-                        + ccid
-                        + " providerName="
-                        + providerName
-                        + " technology="
-                        + technology);
-
-        mTbsGeneric.networkStateChanged(ccid, providerName, technology);
     }
 
     @Override

@@ -219,7 +219,7 @@ public class A2dpStateMachineTest {
         testProcessCodecConfigEventCase(true);
     }
 
-    /** Helper methold to test processCodecConfigEvent() */
+    /** Helper method to test processCodecConfigEvent() */
     public void testProcessCodecConfigEventCase(boolean offloadEnabled) {
         doNothing()
                 .when(mService)

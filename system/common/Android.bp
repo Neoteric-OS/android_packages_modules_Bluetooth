@@ -36,7 +36,6 @@ cc_library_static {
     target: {
         android: {
             srcs: [
-                ":bluetooth-metrics-proto",
                 "metrics.cc",
             ],
             static_libs: ["libstatslog_bt"],
@@ -54,6 +53,7 @@ cc_library_static {
     header_libs: ["libbluetooth_headers"],
     static_libs: [
         "libbluetooth_crypto_toolbox",
+        "libbluetooth_hci_pdl",
         "libbluetooth_log",
         "libbt-platform-protos-lite",
     ],
@@ -89,7 +89,6 @@ cc_test {
     ],
     target: {
         android: {
-            srcs: ["metrics_unittest.cc"],
             shared_libs: ["libstatssocket"],
         },
     },
@@ -101,7 +100,7 @@ cc_test {
     static_libs: [
         "libbluetooth-types",
         "libbluetooth_crypto_toolbox",
-        "libbluetooth_log",
+        "libbluetooth_hci_pdl",
         "libbluetooth_log",
         "libbt-common",
         "libbt-platform-protos-lite",

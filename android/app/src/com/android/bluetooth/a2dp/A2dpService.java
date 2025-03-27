@@ -120,7 +120,7 @@ public class A2dpService extends ProfileService {
     private static final int MAX_A2DP_STATE_MACHINES = 50;
     // A2DP Offload Enabled in platform
     private final boolean mA2dpOffloadEnabled;
-    private boolean mAlsDisabled;
+    private final boolean mAlsDisabled;
 
     // Head tracker available
     private static final long HEAD_TRACKER_AVAILABLE_MASK = 0x00300000;
