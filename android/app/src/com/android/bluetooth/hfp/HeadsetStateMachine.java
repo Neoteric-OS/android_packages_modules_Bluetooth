@@ -164,7 +164,7 @@ class HeadsetStateMachine extends StateMachine {
     private static final int MAX_RETRY_CONNECT_COUNT = 2;
 
     //ConcurrentLinkeQueue is used so that it is threadsafe
-    private ConcurrentLinkedQueue<HeadsetCallState> mDelayedCSCallStates =
+    private final ConcurrentLinkedQueue<HeadsetCallState> mDelayedCSCallStates =
                              new ConcurrentLinkedQueue<HeadsetCallState>();
     /* Retry outgoing connection after this time if the first attempt fails */
     private static final int RETRY_CONNECT_TIME_MSEC = 2500;
