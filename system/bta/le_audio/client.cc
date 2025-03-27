@@ -259,6 +259,10 @@ constexpr uint8_t  LTV_LEN_MAX_FT                       = 0X01;
 
 constexpr uint8_t  ENCODER_LIMITS_SUB_OP                = 0x24;
 
+constexpr uint8_t  IN_CALL_TRUE_UPDATE_FROM_BT_APP      = 0x01;
+constexpr uint8_t  IN_CALL_UPDATE_METADATA_FROM_BT_HAL  = 0x02;
+constexpr uint8_t  IN_CALL_UPDATE_FROM_BT_APP_AND_BT_HAL= 0x03;
+
 typedef struct {
   uint8_t cig_id;
   uint8_t cis_id;
@@ -504,6 +508,7 @@ public:
         configuration_context_type_(LeAudioContextType::UNINITIALIZED),
         in_call_metadata_context_types_({.sink = AudioContexts(), .source = AudioContexts()}),
         local_metadata_context_types_({.sink = AudioContexts(), .source = AudioContexts()}),
+        is_src_metadata_updated_before_resume_(false),
         audio_receiver_state_(AudioState::IDLE),
         audio_sender_state_(AudioState::IDLE),
         in_call_(false),
@@ -517,6 +522,8 @@ public:
         defer_sink_suspend_ack_until_stop_(false),
         defer_source_suspend_ack_until_stop_(false),
         is_local_sink_metadata_available_(false),
+        track_in_call_update_(0),
+        defer_reconfig_complete_update_(false),
         le_audio_source_hal_client_(nullptr),
         le_audio_sink_hal_client_(nullptr),
         close_vbc_timeout_(alarm_new("LeAudioCloseVbcTimeout")),
@@ -928,52 +935,20 @@ public:
     }
   }
 
-  void UpdateLocationsAndContextsAvailability(LeAudioDeviceGroup* group, bool force = false) {
+  void UpdateLocationsAndContextsAvailability(LeAudioDeviceGroup* group,
+                                              bool available_contexts_changed = false) {
     bool group_conf_changed = group->ReloadAudioLocations();
     group_conf_changed |= group->ReloadAudioDirections();
-    group_conf_changed |= group->UpdateAudioContextAvailability();
-    if (group_conf_changed || force) {
+
+    log::verbose("group_id: {}, group_conf_changed: {} available_contexts_changed: {}",
+                 group->group_id_, group_conf_changed, available_contexts_changed);
+    if (group_conf_changed || available_contexts_changed) {
       /* All the configurations should be recalculated for the new conditions */
       group->InvalidateCachedConfigurations();
       group->InvalidateGroupStrategy();
       callbacks_->OnAudioConf(group->audio_directions_, group->group_id_,
                               group->audio_locations_.sink, group->audio_locations_.source,
                               group->GetAvailableContexts().value());
-    }
-  }
-
-  void UpdatePriorCodecTypeToHal(LeAudioDeviceGroup* group) {
-    if (configuration_context_type_ == LeAudioContextType::CONVERSATIONAL ||
-        configuration_context_type_ == LeAudioContextType::LIVE) {
-      auto id = group->GetConfiguration(
-       configuration_context_type_)->confs.source.at(0).codec.id;
-      auto bits = group->GetConfiguration(
-       configuration_context_type_)->confs.source.at(0).codec.GetBitsPerSample();
-      auto intvl = group->GetConfiguration(
-       configuration_context_type_)->confs.source.at(0).codec.GetDataIntervalUs();
-      auto freq = group->GetConfiguration(
-       configuration_context_type_)->confs.source.at(0).codec.GetSamplingFrequencyHz();
-      auto sdu = group->GetConfiguration(
-       configuration_context_type_)->confs.source.at(0).codec.GetOctetsPerFrame();
-      auto delay = group->GetRemoteDelay(
-       bluetooth::le_audio::types::kLeAudioDirectionSource);
-      bluetooth::le_audio::stream_config config = {
-          .stream_map = std::vector<bluetooth::le_audio::stream_map_info>{
-                bluetooth::le_audio::stream_map_info(0x00, 0x00, false)},
-          .codec_id = id,
-          .bits_per_sample = bits,
-          .sampling_frequency_hz = freq,
-          .frame_duration_us = intvl,
-          .octets_per_codec_frame = sdu,
-          .codec_frames_blocks_per_sdu = 1,
-          .peer_delay_ms = delay,
-          .mode = 0,
-          .delay = delay,
-          .codec_spec_metadata = std::vector<uint8_t>(),
-      };
-      if (le_audio_sink_hal_client_) {
-        le_audio_sink_hal_client_->UpdateAudioConfigToHal(config);
-      }
     }
   }
 
@@ -1597,6 +1572,8 @@ public:
     log::debug("reconfigure: {} ", reconfigure);
     if (reconfigure) {
       if (in_call_) {
+        track_in_call_update_ |= IN_CALL_TRUE_UPDATE_FROM_BT_APP;
+        log::debug("set track_in_call_update_: {} ", track_in_call_update_);
         if (((audio_sender_state_ == AudioState::IDLE) &&
              (audio_receiver_state_ == AudioState::IDLE)) ||
             (audio_sender_state_ > AudioState::IDLE)) {
@@ -1605,6 +1582,8 @@ public:
           ReconfigureOrUpdateRemote(group, bluetooth::le_audio::types::kLeAudioDirectionSource);
         }
       } else {
+        track_in_call_update_ = 0;
+        defer_reconfig_complete_update_ = false;
         ReconfigureOrUpdateRemote(group, bluetooth::le_audio::types::kLeAudioDirectionSink);
       }
     }
@@ -2731,6 +2710,12 @@ public:
         return;
       }
 
+      AudioContexts current_group_contexts;
+
+      if (group) {
+        current_group_contexts = group->GetAvailableContexts();
+      }
+
       leAudioDevice->SetAvailableContexts(contexts);
       btif_storage_set_leaudio_supported_context_types(
           leAudioDevice->address_, contexts.sink.value(),
@@ -2751,11 +2736,13 @@ public:
         return;
       }
 
+      /* Whenever context type change, notify user about that.
+       * Note: GetAvailableContexts() add streaming context as well
+       */
+      UpdateLocationsAndContextsAvailability(
+              group, current_group_contexts != group->GetAvailableContexts());
+
       if (!group->IsStreaming()) {
-        /* Group is not streaming. Device does not have to be attach to the
-         * stream, and we can update context availability for the group
-         */
-        UpdateLocationsAndContextsAvailability(group);
         return;
       }
 
@@ -2769,7 +2756,7 @@ public:
         leAudioDevice->SetSupportedContexts(supp_audio_contexts);
       }
     } else if (hdl == leAudioDevice->ctp_hdls_.val_hdl) {
-      groupStateMachine_->ProcessGattCtpNotification(group, value, len);
+      groupStateMachine_->ProcessGattCtpNotification(group, leAudioDevice, value, len);
     } else if (hdl == leAudioDevice->tmap_role_hdl_) {
       bluetooth::le_audio::client_parser::tmap::ParseTmapRole(leAudioDevice->tmap_role_, len,
                                                               value);
@@ -5074,9 +5061,13 @@ public:
      * enable op metadata(covsersational)
      */
 
+    log::debug("is_src_metadata_updated_before_resume_: {}",
+                                            is_src_metadata_updated_before_resume_);
+
     if (((IsInCall() || IsInVoipCall()) &&
-        configuration_context_type_ != LeAudioContextType::CONVERSATIONAL) || is_src_metadata_updated_before_resume) {
-      is_src_metadata_updated_before_resume = false;
+        configuration_context_type_ != LeAudioContextType::CONVERSATIONAL) ||
+        is_src_metadata_updated_before_resume_) {
+      is_src_metadata_updated_before_resume_ = false;
       ReconfigureOrUpdateRemote(group, bluetooth::le_audio::types::kLeAudioDirectionSink);
     }
 
@@ -5657,10 +5648,13 @@ public:
   void OnLocalAudioSourceMetadataUpdate(
           const std::vector<struct playback_track_metadata_v7>& source_metadata, DsaMode dsa_mode) {
     /* Set the remote sink metadata context from the playback tracks metadata */
-    if (local_metadata_context_types_.source != GetAudioContextsFromSourceMetadata(source_metadata)) {
-       log::warn(", change of metadata received");
+    log::debug("Current local_metadata_context_types_.source= {}",
+                                   ToString(local_metadata_context_types_.source));
+    if (local_metadata_context_types_.source !=
+                               GetAudioContextsFromSourceMetadata(source_metadata)) {
+       log::debug("Change of metadata received before resume");
        local_metadata_context_types_.source = GetAudioContextsFromSourceMetadata(source_metadata);
-       is_src_metadata_updated_before_resume = true;
+       is_src_metadata_updated_before_resume_ = true;
     }
 
     log::debug("local_metadata_context_types_.source= {}",
@@ -5694,6 +5688,29 @@ public:
             group->group_id_, ToString(group->GetState()), ToString(group->GetTargetState()),
             ToString(audio_receiver_state_), ToString(audio_sender_state_),
             static_cast<int>(dsa_mode));
+
+    if (IsInCall()) {
+      if (local_metadata_context_types_.source.test(LeAudioContextType::CONVERSATIONAL) ||
+          local_metadata_context_types_.source.test(LeAudioContextType::RINGTONE)) {
+        track_in_call_update_ |= IN_CALL_UPDATE_METADATA_FROM_BT_HAL;
+        log::debug("set track_in_call_update_= {}", track_in_call_update_);
+      }
+
+      log::debug("check track_in_call_update_= {}, defer_reconfig_complete_update_: {}",
+                 track_in_call_update_, defer_reconfig_complete_update_);
+
+      if (track_in_call_update_ == IN_CALL_UPDATE_FROM_BT_APP_AND_BT_HAL &&
+          defer_reconfig_complete_update_) {
+        log::warn("Both BT App and UpdateMetadata received for call,"
+                  " send reconfigurationComplete to BT HAL");
+        reconfigurationComplete();
+        track_in_call_update_ = 0;
+        defer_reconfig_complete_update_ = false;
+      } else {
+        log::warn("Both BT App and UpdateMetadata received for call b2b,"
+                  " Don't send reconfigurationComplete to BT HAL now");
+      }
+    }
 
     if (IsReconfigurationTimeoutRunning(group->group_id_)) {
       log::info("Skip it as group is reconfiguring");
@@ -6873,7 +6890,23 @@ public:
         break;
       case GroupStreamStatus::CONFIGURED_BY_USER:
         if (is_active_group_operation) {
-          reconfigurationComplete();
+          log::warn("track_in_call_update_: {}, defer_reconfig_complete_update_:{}",
+                    track_in_call_update_, defer_reconfig_complete_update_);
+          if (IsInCall()) {
+            if (track_in_call_update_ == IN_CALL_UPDATE_FROM_BT_APP_AND_BT_HAL) {
+              log::warn("Both BT App and UpdateMetadata received for call,"
+                        " send reconfigurationComplete to BT HAL");
+              reconfigurationComplete();
+              track_in_call_update_ = 0;
+              defer_reconfig_complete_update_ = false;
+            } else {
+              defer_reconfig_complete_update_ = true;
+              log::warn("Both BT App and UpdateMetadata not received for call,"
+                        " Don't send reconfigurationComplete to BT HAL now");
+            }
+          } else {
+            reconfigurationComplete();
+          }
         }
         break;
       case GroupStreamStatus::CONFIGURED_AUTONOMOUS:
@@ -6912,6 +6945,43 @@ public:
               log::info("source_monitor_mode_: {}", source_monitor_mode_);
               if (source_monitor_mode_) {
                 notifyAudioLocalSource(UnicastMonitorModeStatus::STREAMING_SUSPENDED);
+              }
+
+              if (defer_source_suspend_ack_until_stop_) {
+                if (le_audio_source_hal_client_) {
+                  defer_source_suspend_ack_until_stop_ = false;
+                  log::info("calling source ConfirmSuspendRequest");
+                  le_audio_source_hal_client_->ConfirmSuspendRequest();
+                }
+              }
+
+              if (defer_sink_suspend_ack_until_stop_) {
+                if (le_audio_sink_hal_client_) {
+                  defer_sink_suspend_ack_until_stop_ = false;
+                  log::info("calling sink ConfirmSuspendRequest");
+                  le_audio_sink_hal_client_->ConfirmSuspendRequest();
+                }
+              }
+
+              log::info("active_group_id_: {}", active_group_id_);
+              if (defer_notify_active_until_stop_ && defer_notify_inactive_until_stop_) {
+                CheckAndNotifyGroupInactive(group_id);
+                CheckAndNotifyGroupActive(active_group_id_);
+                defer_notify_active_until_stop_ = false;
+                defer_notify_inactive_until_stop_ = false;
+              } else if (defer_notify_inactive_until_stop_) {
+                CheckAndNotifyGroupInactive(group_id);
+                defer_notify_inactive_until_stop_ = false;
+              }
+
+              if (group->IsSuspendedForReconfiguration()) {
+                reconfigurationComplete();
+              } else {
+                if (!((status == GroupStreamStatus::IDLE) &&
+                      (active_group_id_ != group->group_id_) &&
+                      (audio_sender_state_ == AudioState::STARTED))) {
+                  CancelStreamingRequest();
+                }
               }
             }
           } else {
@@ -6952,43 +7022,6 @@ public:
               log::info("Clear pending configuration flag for group {}", group->group_id_);
               group->ClearPendingConfiguration();
               reconfigurationComplete();
-            }
-
-            if (defer_source_suspend_ack_until_stop_) {
-              if (le_audio_source_hal_client_) {
-                defer_source_suspend_ack_until_stop_ = false;
-                log::info("calling source ConfirmSuspendRequest");
-                le_audio_source_hal_client_->ConfirmSuspendRequest();
-              }
-            }
-
-            if (defer_sink_suspend_ack_until_stop_) {
-              if (le_audio_sink_hal_client_) {
-                defer_sink_suspend_ack_until_stop_ = false;
-                log::info("calling sink ConfirmSuspendRequest");
-                le_audio_sink_hal_client_->ConfirmSuspendRequest();
-              }
-            }
-
-            log::info("active_group_id_: {}", active_group_id_);
-            if (defer_notify_active_until_stop_ && defer_notify_inactive_until_stop_) {
-              CheckAndNotifyGroupInactive(group_id);
-              CheckAndNotifyGroupActive(active_group_id_);
-              defer_notify_active_until_stop_ = false;
-              defer_notify_inactive_until_stop_ = false;
-            } else if (defer_notify_inactive_until_stop_) {
-              CheckAndNotifyGroupInactive(group_id);
-              defer_notify_inactive_until_stop_ = false;
-            }
-
-            if (group->IsSuspendedForReconfiguration()) {
-              reconfigurationComplete();
-            } else {
-              if (!((status == GroupStreamStatus::IDLE) &&
-                    (active_group_id_ != group->group_id_) &&
-                    (audio_sender_state_ == AudioState::STARTED))) {
-                CancelStreamingRequest();
-              }
             }
           }
         }
@@ -7098,7 +7131,7 @@ private:
           "persist.bluetooth.leaudio.allow.multiple.contexts";
   BidirectionalPair<AudioContexts> in_call_metadata_context_types_;
   BidirectionalPair<AudioContexts> local_metadata_context_types_;
-  bool is_src_metadata_updated_before_resume;
+  bool is_src_metadata_updated_before_resume_;
   StreamSpeedTracker speed_tracker_;
   std::deque<StreamSpeedTracker> stream_speed_history_;
 
@@ -7125,8 +7158,12 @@ private:
   /*To track MM issued suspend progress */
   bool defer_sink_suspend_ack_until_stop_;
   bool defer_source_suspend_ack_until_stop_;
-  /* To know whether MM sent sink track update Metadata */
-  bool  is_local_sink_metadata_available_;
+  /*To know whether MM sent sink track update Metadata */
+  bool is_local_sink_metadata_available_;
+  /*To track in call updates from BT app and BT HAL*/
+  uint8_t track_in_call_update_;
+  /*To track reconfig competle update sent to BT HAL*/
+  bool defer_reconfig_complete_update_;
 
   /* Reconnection mode */
   tBTM_BLE_CONN_TYPE reconnection_mode_;

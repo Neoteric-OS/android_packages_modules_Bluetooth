@@ -100,11 +100,11 @@ public final class BluetoothGatt implements BluetoothProfile {
     private static final boolean DBG = true;
     private static final boolean VDBG = false;
 
-    @UnsupportedAppUsage private IBluetoothGatt mService;
+    @UnsupportedAppUsage private final IBluetoothGatt mService;
     @UnsupportedAppUsage private volatile BluetoothGattCallback mCallback;
     private Handler mHandler;
     @UnsupportedAppUsage private int mClientIf;
-    private BluetoothDevice mDevice;
+    private final BluetoothDevice mDevice;
     @UnsupportedAppUsage private boolean mAutoConnect;
 
     @UnsupportedAppUsage(maxTargetSdk = Build.VERSION_CODES.P, trackingBug = 115609023)
@@ -118,10 +118,10 @@ public final class BluetoothGatt implements BluetoothProfile {
     private Boolean mDeviceBusy = false;
 
     @UnsupportedAppUsage(maxTargetSdk = Build.VERSION_CODES.R, trackingBug = 170729553)
-    private int mTransport;
+    private final int mTransport;
 
-    private int mPhy;
-    private boolean mOpportunistic;
+    private final int mPhy;
+    private final boolean mOpportunistic;
     private final AttributionSource mAttributionSource;
 
     private static final int AUTH_RETRY_STATE_IDLE = 0;
@@ -137,7 +137,7 @@ public final class BluetoothGatt implements BluetoothProfile {
     // Max length of an attribute value, defined in gatt_api.h
     private static final int GATT_MAX_ATTR_LEN = 512;
 
-    private CopyOnWriteArrayList<BluetoothGattService> mServices;
+    private final CopyOnWriteArrayList<BluetoothGattService> mServices;
 
     /** A GATT operation completed successfully */
     public static final int GATT_SUCCESS = 0;
