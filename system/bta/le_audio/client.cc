@@ -557,6 +557,30 @@ public:
     DeviceGroups::Get()->Initialize(device_group_callbacks);
   }
 
+  /* Helper function for update source local and in_call context metadata (if in call) */
+  void UpdateSourceLocalMetadataContextTypes(AudioContexts contexts) {
+    /* Update cached fallback contexts */
+    if (IsInCall()) {
+      in_call_metadata_context_types_.source = contexts;
+    }
+
+    if (local_metadata_context_types_.source != contexts) {
+       log::debug("Change of metadata received before resume");
+       local_metadata_context_types_.source = contexts;
+       is_src_metadata_updated_before_resume_ = true;
+    }
+  }
+
+  /* Helper function for update sink local and in_call context metadata (if in call) */
+  void UpdateSinkLocalMetadataContextTypes(AudioContexts contexts) {
+    /* Update cached fallback contexts */
+    if (IsInCall()) {
+      in_call_metadata_context_types_.sink = contexts;
+    }
+
+    local_metadata_context_types_.sink = contexts;
+  }
+
   void ReconfigureAfterVbcClose() {
     log::debug("VBC close timeout");
 
@@ -591,7 +615,7 @@ public:
             group->GetAvailableContexts(bluetooth::le_audio::types::kLeAudioDirectionSink);
     if (local_metadata_context_types_.source.none()) {
       log::warn("invalid/unknown context metadata, using 'MEDIA' instead");
-      local_metadata_context_types_.source = AudioContexts(LeAudioContextType::MEDIA);
+      UpdateSourceLocalMetadataContextTypes(AudioContexts(LeAudioContextType::MEDIA));
     }
 
     /* Choose the right configuration context */
@@ -1554,6 +1578,9 @@ public:
     } else {
       if (configuration_context_type_ == LeAudioContextType::CONVERSATIONAL) {
         log::info("Call is ended, speed up reconfiguration for media");
+        // Preemptively remove conversational context for reconfiguration speed up
+        in_call_metadata_context_types_.sink.unset(LeAudioContextType::CONVERSATIONAL);
+        in_call_metadata_context_types_.source.unset(LeAudioContextType::CONVERSATIONAL);
         if (in_call_metadata_context_types_.sink.none() &&
             in_call_metadata_context_types_.source.none()) {
           log::debug("No metadata, set default Media");
@@ -5650,12 +5677,8 @@ public:
     /* Set the remote sink metadata context from the playback tracks metadata */
     log::debug("Current local_metadata_context_types_.source= {}",
                                    ToString(local_metadata_context_types_.source));
-    if (local_metadata_context_types_.source !=
-                               GetAudioContextsFromSourceMetadata(source_metadata)) {
-       log::debug("Change of metadata received before resume");
-       local_metadata_context_types_.source = GetAudioContextsFromSourceMetadata(source_metadata);
-       is_src_metadata_updated_before_resume_ = true;
-    }
+
+    UpdateSourceLocalMetadataContextTypes(GetAudioContextsFromSourceMetadata(source_metadata));
 
     log::debug("local_metadata_context_types_.source= {}",
                ToString(local_metadata_context_types_.source));
@@ -6006,8 +6029,8 @@ public:
     }
 
     if (!com::android::bluetooth::flags::leaudio_speed_up_reconfiguration_between_call()) {
-      local_metadata_context_types_.sink = remote_metadata.source;
-      local_metadata_context_types_.source = remote_metadata.sink;
+      UpdateSinkLocalMetadataContextTypes(remote_metadata.source);
+      UpdateSourceLocalMetadataContextTypes(remote_metadata.sink);
     }
 
     if (IsInVoipCall()) {
