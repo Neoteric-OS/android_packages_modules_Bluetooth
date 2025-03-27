@@ -155,6 +155,15 @@
         "One-OneChan-SnkAse-Lc3_32_2-One-OneChan-SrcAse-Lc3_32_2_Low_Latency",
         "One-OneChan-SnkAse-Lc3_16_2-One-OneChan-SrcAse-Lc3_16_2_Low_Latency",
         "One-OneChan-SnkAse-Lc3_16_1-One-OneChan-SrcAse-Lc3_16_1_Low_Latency",
+        "One-OneChan-SnkAse-Lc3_32_1-One-OneChan-SrcAse-Lc3_16_1_Low_Latency",
+        "One-OneChan-SnkAse-Lc3_32_2-One-OneChan-SrcAse-Lc3_16_2_Low_Latency",
+        "One-OneChan-SnkAse-Lc3_48_1-One-OneChan-SrcAse-Lc3_16_1_Low_Latency",
+        "One-OneChan-SnkAse-Lc3_48_2-One-OneChan-SrcAse-Lc3_16_2_Low_Latency",
+        "One-OneChan-SnkAse-Lc3_32_1-One-OneChan-SrcAse-Lc3_32_1_Low_Latency",
+        "One-OneChan-SnkAse-Lc3_48_1-One-OneChan-SrcAse-Lc3_32_1_Low_Latency",
+        "One-OneChan-SnkAse-Lc3_48_2-One-OneChan-SrcAse-Lc3_32_2_Low_Latency",
+        "One-OneChan-SnkAse-Lc3_48_1-One-OneChan-SrcAse-Lc3_48_1_Low_Latency",
+        "One-OneChan-SnkAse-Lc3_48_2-One-OneChan-SrcAse-Lc3_48_2_Low_Latency",
         "VND_Two-OneChan-SnkAse-Lc3_48_2_155octs_R5_L20",
         "Two-OneChan-SnkAse-Lc3_48_2_Low_Latency",
         "Two-OneChan-SnkAse-Lc3_48_3_Low_Latency",
@@ -191,7 +200,11 @@
         "One-OneChan-SrcAse-Lc3_24_2_Low_Latency",
         "One-OneChan-SrcAse-Lc3_24_1_Low_Latency",
         "One-OneChan-SrcAse-Lc3_16_2_Low_Latency",
-        "One-OneChan-SrcAse-Lc3_16_1_Low_Latency"
+        "One-OneChan-SrcAse-Lc3_16_1_Low_Latency",
+        "One-OneChan-SnkAse-Lc3_32_1_Low_Latency",
+        "One-OneChan-SnkAse-Lc3_32_2_Low_Latency",
+        "One-OneChan-SnkAse-Lc3_48_1_Low_Latency",
+        "One-OneChan-SnkAse-Lc3_48_2_Low_Latency"
       ]
     },
     {
