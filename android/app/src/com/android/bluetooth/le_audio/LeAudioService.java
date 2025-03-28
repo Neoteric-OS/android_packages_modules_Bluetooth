@@ -3932,7 +3932,7 @@ public class LeAudioService extends ProfileService {
                     {
                         handleGroupTransitToActive(groupId);
 
-                        if (!leaudioBigDependsOnAudioState()) {
+                        if (!leaudioBigDependsOnAudioState() || areBroadcastsAllStopped()) {
                             /* Clear possible exposed broadcast device after activating unicast */
                             if (mActiveBroadcastAudioDevice != null) {
                                 updateBroadcastActiveDevice(null, mActiveBroadcastAudioDevice, true);
@@ -5654,6 +5654,13 @@ public class LeAudioService extends ProfileService {
             Log.d(TAG, "Skip updateFallbackUnicastGroupIdForBroadcast, already is primary");
             return;
         }
+
+        // Skip update fallback unicast device, keep unicast active while broadcast enabled
+        if (leaudioBigDependsOnAudioState()) {
+            Log.d(TAG, "Skip updateFallbackUnicastGroupIdForBroadcast, not deactivate unicast for Broadcast");
+            return;
+        }
+
         Log.i(
                 TAG,
                 "Update unicast fallback active group from: "
