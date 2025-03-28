@@ -63,7 +63,14 @@
 #include "stack/include/btm_vendor_types.h"
 
 /* The Media Type offset within the codec info byte array */
-#define A2DP_MEDIA_TYPE_OFFSET 1
+#define A2DP_MEDIA_TYPE_OFFSET 1  
+
+bool aptx_adaptive_offload = false;
+bool aptxtws_offload = false;
+bool aptx_adaptive_sw = false;
+bool aptxadaptiver2_1_supported = false;
+bool aptxadaptiver2_2_supported = false;
+bool a2dp_aptxadaptive_src_split_tx_supported = false;
 
 namespace bluetooth::a2dp {
 
@@ -1741,4 +1748,94 @@ uint16_t A2DP_VendorCodecGetCodecId(const uint8_t* p_codec_info) {
   uint16_t codec_id = (p[0] & 0x00ff) | ((p[1] << 8) & 0xff00);
 
   return codec_id;
+}
+
+bool A2DP_IsCodecEnabledInOffload(btav_a2dp_codec_index_t codec_index) {
+  bool codec_status = false;
+  log::info("codec_index: {}", codec_index);
+  switch (codec_index) {
+  case BTAV_A2DP_CODEC_INDEX_SOURCE_APTX_ADAPTIVE:
+    codec_status = aptx_adaptive_offload;
+    log::info("aptx_adaptive_offload: {}", aptx_adaptive_offload);
+    break;
+  case BTAV_A2DP_CODEC_INDEX_SOURCE_APTX_TWS:
+    codec_status = aptxtws_offload;
+    break;
+  case BTAV_A2DP_CODEC_INDEX_SOURCE_EXT_MIN:
+  case BTAV_A2DP_CODEC_INDEX_SINK_MAX:
+  default:
+    break;
+  }
+  return codec_status;
+}
+
+bool check_mm_supports_offload_codec(std::vector<btav_a2dp_codec_config_t>
+        offload_enabled_codecs_config, btav_a2dp_codec_index_t codecIndex) {
+  for (auto offload_codec_config: offload_enabled_codecs_config) {
+    if (codecIndex == offload_codec_config.codec_type)
+      return true;
+  }
+  return false;
+}
+
+bool A2DP_Get_Aptx_AdaptiveR2_1_Supported() {
+    return aptxadaptiver2_1_supported;
+}
+
+bool A2DP_Get_Aptx_AdaptiveR2_2_Supported() {
+    return aptxadaptiver2_2_supported;
+}
+
+bool A2DP_Get_Source_Aptx_Adaptive_SplitTx_Supported() {
+    return a2dp_aptxadaptive_src_split_tx_supported;
+}
+
+void A2DP_SetAptxADSupport(
+  const std::vector<btav_a2dp_codec_config_t> offload_enabled_codecs_config,
+  uint8_t soc_add_on_features_len, bool isSplitTxSupported,
+  bool isSplitA2dpSourceSupported) {
+  log::info("");
+  char adaptive_value[PROPERTY_VALUE_MAX] = {'\0'};
+  osi_property_get("persist.vendor.qcom.bluetooth.aptxadaptiver2_1_support",
+                                                      adaptive_value, "false");
+  if (!(strcmp(adaptive_value,"true"))) {
+    log::info("Aptx-adaptive R2.1 is supported");
+    aptxadaptiver2_1_supported = true;
+  }
+  if (soc_add_on_features_len != 0 && isSplitTxSupported) {
+    a2dp_aptxadaptive_src_split_tx_supported = true;
+    log::info("Split TX is supported");
+    osi_property_get("persist.vendor.qcom.bluetooth.aptxadaptiver2_2_support",
+                                                      adaptive_value, "false");
+    if (!(strcmp(adaptive_value,"true"))) {
+      log::info("Aptx-adaptive R2.2 is supported");
+      aptxadaptiver2_2_supported = true;
+    }
+  }
+
+  if(soc_add_on_features_len == 0) {
+    log::warn("BT controller doesn't have add on features");
+  }
+
+  for (int i = BTAV_A2DP_CODEC_INDEX_MIN; i < BTAV_A2DP_CODEC_INDEX_MAX; i++) {
+    btav_a2dp_codec_index_t codec_index = static_cast<btav_a2dp_codec_index_t>(i);
+    switch (codec_index) {
+      case BTAV_A2DP_CODEC_INDEX_SOURCE_APTX_ADAPTIVE:
+        if (((soc_add_on_features_len == 0) || isSplitA2dpSourceSupported) &&
+            check_mm_supports_offload_codec (offload_enabled_codecs_config,
+                                                                codec_index)) {
+          log::debug("Setting aptx_adaptive_offload");
+          aptx_adaptive_offload = true;
+          aptx_adaptive_sw = false;
+        } else { // TODO to check for SOC capability
+          log::debug("Setting aptx_adaptive_sw");
+          aptx_adaptive_sw = true;
+          aptx_adaptive_offload = false;
+        }
+        break;
+      case BTAV_A2DP_CODEC_INDEX_SOURCE_EXT_MAX:
+      default:
+        break;
+    }
+  }
 }

@@ -17,6 +17,7 @@
 
 #include "a2dp_encoding_aidl.h"
 #include "btif/include/btif_av.h"
+#include "btif/include/btif_av_co.h"
 
 #include <bluetooth/log.h>
 #include <com_android_bluetooth_flags.h>
@@ -29,6 +30,9 @@
 #include "codec_status_aidl.h"
 #include "hardware/audio.h"
 #include "transport_instance.h"
+#include "a2dp_sbc.h"
+#include "a2dp_vendor_ldac_constants.h"
+#include <a2dp_vendor.h>
 
 /*****************************************************************************
  *  Local type definitions
@@ -419,6 +423,11 @@ bool is_low_latency_mode_allowed = false;
 
 bool a2dp_get_selected_hal_codec_config(A2dpCodecConfig* a2dp_config, uint16_t peer_mtu,
                                         CodecConfiguration* codec_config) {
+  uint8_t p_codec_info[AVDT_CODEC_SIZE];
+  if (a2dp_config == nullptr) {
+    log::warn("failure to get A2DP codec config");
+    return false;
+  }
   btav_a2dp_codec_config_t current_codec = a2dp_config->getCodecConfig();
   switch (current_codec.codec_type) {
     case BTAV_A2DP_CODEC_INDEX_SOURCE_SBC:
@@ -468,8 +477,56 @@ bool a2dp_get_selected_hal_codec_config(A2dpCodecConfig* a2dp_config, uint16_t p
       log::error("Unknown codec_type={}", current_codec.codec_type);
       return false;
   }
+#if 0
   codec_config->encodedAudioBitrate = a2dp_config->getTrackBitRate();
-  codec_config->peerMtu = peer_mtu;
+  // Obtain the MTU
+  RawAddress peer_addr = btif_av_source_active_peer();
+  tA2DP_ENCODER_INIT_PEER_PARAMS peer_param;
+  bta_av_co_get_peer_params(peer_addr, &peer_param);
+  int effectiveMtu = bta_av_co_get_encoder_effective_frame_size();
+  if (effectiveMtu > 0 && effectiveMtu < peer_param.peer_mtu) {
+    codec_config->peerMtu = effectiveMtu;
+  } else {
+    codec_config->peerMtu = peer_param.peer_mtu;
+  }
+  if (current_codec.codec_type == BTAV_A2DP_CODEC_INDEX_SOURCE_SBC &&
+      codec_config->config.get<CodecConfiguration::CodecSpecific::sbcConfig>()
+              .maxBitpool <= A2DP_SBC_BITPOOL_MIDDLE_QUALITY) {
+    codec_config->peerMtu = MAX_2MBPS_AVDTP_MTU;
+  } else if (codec_config->peerMtu > MAX_3MBPS_AVDTP_MTU) {
+    codec_config->peerMtu = MAX_3MBPS_AVDTP_MTU;
+  }
+#endif
+  RawAddress peer_addr = btif_av_source_active_peer();
+  tA2DP_ENCODER_INIT_PEER_PARAMS peer_param;
+  bta_av_co_get_peer_params(peer_addr, &peer_param);
+  // Obtain the MTU
+  memset(p_codec_info, 0, AVDT_CODEC_SIZE);
+  if (!a2dp_config->copyOutOtaCodecConfig(p_codec_info))
+  {
+    log::error("AIDL No valid codec config");
+    return false;
+  }
+  uint8_t codec_type;
+  uint32_t bitrate = 0;
+  codec_type = A2DP_GetCodecType((const uint8_t*)p_codec_info);
+  codec_config->peerMtu = peer_param.peer_mtu - A2DP_HEADER_SIZE;
+  if (A2DP_MEDIA_CT_SBC == codec_type) {
+    bitrate = A2DP_GetBitrateSbc();
+    log::info("AIDL SBC bitrate: {}", bitrate);
+    codec_config->encodedAudioBitrate = bitrate * 1000;
+  }  else if (A2DP_MEDIA_CT_NON_A2DP == codec_type) {
+    int samplerate = A2DP_GetTrackSampleRate(p_codec_info);
+    if ((A2DP_VendorCodecGetVendorId(p_codec_info)) == A2DP_LDAC_VENDOR_ID) {
+      codec_config->encodedAudioBitrate = a2dp_config->getTrackBitRate();
+      log::info("AIDL LDAC bitrate: {}", codec_config->encodedAudioBitrate);
+    } else {
+      /* BR = (Sampl_Rate * PCM_DEPTH * CHNL)/Compression_Ratio */
+      int bits_per_sample = 16; // TODO
+      codec_config->encodedAudioBitrate = (samplerate * bits_per_sample * 2)/4;
+      log::info("AIDL Aptx bitrate: {}", codec_config->encodedAudioBitrate);
+    }
+  }
   log::info("CodecConfiguration={}", codec_config->toString());
   return true;
 }
