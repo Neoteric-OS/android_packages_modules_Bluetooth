@@ -42,6 +42,7 @@
 #include "btm_ble_api_types.h"
 #include "btm_iso_api.h"
 #include "btm_iso_api_types.h"
+#include "client_parser.h"
 #include "com_android_bluetooth_flags.h"
 #include "common/strings.h"
 #include "gatt_api.h"
@@ -459,6 +460,14 @@ LeAudioDevice* LeAudioDeviceGroup::GetNextActiveDevice(LeAudioDevice* leAudioDev
   return (iter == leAudioDevices_.end()) ? nullptr : (iter->lock()).get();
 }
 
+int LeAudioDeviceGroup::GetNumOfActiveDevices(void) const {
+  int result = 0;
+  for (auto dev = GetFirstActiveDevice(); dev; dev = GetNextActiveDevice(dev)) {
+    result++;
+  }
+  return result;
+}
+
 LeAudioDevice* LeAudioDeviceGroup::GetFirstActiveDeviceByCisAndDataPathState(
         CisState cis_state, DataPathState data_path_state) const {
   auto iter = std::find_if(
@@ -827,13 +836,6 @@ uint16_t LeAudioDeviceGroup::GetRemoteDelay(uint8_t direction) const {
   return remote_delay_ms;
 }
 
-bool LeAudioDeviceGroup::UpdateAudioContextAvailability(void) {
-  log::debug("{}", group_id_);
-  auto old_contexts = GetAvailableContexts();
-  SetAvailableContexts(GetLatestAvailableContexts());
-  return old_contexts != GetAvailableContexts();
-}
-
 CodecManager::UnicastConfigurationRequirements
 LeAudioDeviceGroup::GetAudioSetConfigurationRequirements(types::LeAudioContextType ctx_type) const {
   auto new_req = CodecManager::UnicastConfigurationRequirements{
@@ -1058,7 +1060,7 @@ void LeAudioDeviceGroup::ResetPreferredAudioSetConfiguration(void) const {
 void LeAudioDeviceGroup::InvalidateCachedConfigurations(void) {
   log::info("Group id: {}", group_id_);
   context_to_configuration_cache_map_.clear();
-  ResetPreferredAudioSetConfiguration();
+  context_to_preferred_configuration_cache_map_.clear();
 }
 
 types::BidirectionalPair<AudioContexts> LeAudioDeviceGroup::GetLatestAvailableContexts() const {

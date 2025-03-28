@@ -153,7 +153,7 @@ public class ActiveDeviceManager implements AdapterService.BluetoothStateCallbac
     private final List<BluetoothDevice> mLeHearingAidConnectedDevices = new ArrayList<>();
 
     @GuardedBy("mLock")
-    private List<BluetoothDevice> mPendingLeHearingAidActiveDevice = new ArrayList<>();
+    private final List<BluetoothDevice> mPendingLeHearingAidActiveDevice = new ArrayList<>();
 
     @GuardedBy("mLock")
     private BluetoothDevice mA2dpActiveDevice = null;
@@ -183,7 +183,7 @@ public class ActiveDeviceManager implements AdapterService.BluetoothStateCallbac
     private static final int METADATA_LIVE           = 0x0040;
 
     // Dual mode map for context_type : <Audio_Mode_Output_Only, Audio_Mode_Duplex>
-    private static HashMap<Integer, Integer[]> contextToModeBundle =
+    private final static HashMap<Integer, Integer[]> contextToModeBundle =
         new HashMap<Integer, Integer[]>();
 
     // Timeout for state machine thread join, to prevent potential ANR.
@@ -1501,7 +1501,7 @@ public class ActiveDeviceManager implements AdapterService.BluetoothStateCallbac
             return false;
         }
 
-        if (leAudioService.getAllBroadcastMetadata().isEmpty()) {
+        if (!leAudioService.isBroadcastStarted()) {
             Log.d(TAG, "isBroadcastingAudio: false - getAllBroadcastMetadata is empty");
             return false;
         }

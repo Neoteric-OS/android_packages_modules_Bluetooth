@@ -70,6 +70,7 @@ struct Stack::impl {
   Acl* acl_ = nullptr;
   metrics::CounterMetrics* counter_metrics_ = nullptr;
   storage::StorageModule* storage_ = nullptr;
+  hal::SnoopLogger* snoop_logger_ = nullptr;
 };
 
 Stack::Stack() { pimpl_ = std::make_shared<Stack::impl>(); }
@@ -91,6 +92,7 @@ void Stack::StartEverything() {
 
     pimpl_->counter_metrics_ = new metrics::CounterMetrics(new Handler(stack_thread_));
     pimpl_->storage_ = new storage::StorageModule(new Handler(stack_thread_));
+    pimpl_->snoop_logger_ = new hal::SnoopLogger(new Handler(stack_thread_));
 
 #if TARGET_FLOSS
     modules.add<sysprops::SyspropsModule>();
@@ -117,11 +119,12 @@ void Stack::StartEverything() {
     WakelockManager::Get().Acquire();
   }
 
+  is_running_ = true;
+
   std::promise<void> promise;
   auto future = promise.get_future();
   management_handler_->Post(common::BindOnce(&Stack::handle_start_up, common::Unretained(this),
                                              &modules, std::move(promise)));
-  is_running_ = true;
   auto init_status = future.wait_for(
           std::chrono::milliseconds(get_gd_stack_timeout_ms(/* is_start = */ true)));
 
@@ -227,6 +230,12 @@ storage::StorageModule* Stack::GetStorage() const {
   return pimpl_->storage_;
 }
 
+hal::SnoopLogger* Stack::GetSnoopLogger() const {
+  std::lock_guard<std::recursive_mutex> lock(mutex_);
+  log::assert_that(is_running_, "assert failed: is_running_");
+  return pimpl_->snoop_logger_;
+}
+
 os::Handler* Stack::GetHandler() {
   std::lock_guard<std::recursive_mutex> lock(mutex_);
   log::assert_that(is_running_, "assert failed: is_running_");
@@ -253,12 +262,14 @@ void Stack::Dump(int fd, std::promise<void> promise) const {
 void Stack::handle_start_up(ModuleList* modules, std::promise<void> promise) {
   pimpl_->counter_metrics_->Start();
   pimpl_->storage_->Start();
-  registry_.Start(modules, stack_thread_);
+  pimpl_->snoop_logger_->Start();
+  registry_.Start(modules, stack_thread_, stack_handler_);
   promise.set_value();
 }
 
 void Stack::handle_shut_down(std::promise<void> promise) {
   registry_.StopAll();
+  pimpl_->snoop_logger_->Stop();
   pimpl_->storage_->Stop();
   pimpl_->counter_metrics_->Stop();
   promise.set_value();

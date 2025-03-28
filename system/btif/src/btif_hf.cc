@@ -56,7 +56,6 @@
 #include "btif/include/btif_util.h"
 #include "btif_storage.h"
 #include "btm_api_types.h"
-#include "common/metrics.h"
 #include "device/include/device_iot_conf_defs.h"
 #include "device/include/device_iot_config.h"
 #include "device/include/interop.h"
@@ -443,8 +442,6 @@ static void btif_hf_upstreams_evt(uint16_t event, char* p_param) {
         btif_hf_cb[idx].state = BTHF_CONNECTION_STATE_CONNECTED;
         btif_hf_cb[idx].peer_feat = 0;
         clear_phone_state_multihf(&btif_hf_cb[idx]);
-        bluetooth::common::BluetoothMetricsLogger::GetInstance()->LogHeadsetProfileRfcConnection(
-                p_data->open.service_id);
         bt_hf_callbacks->ConnectionStateCallback(btif_hf_cb[idx].state,
                                                  &btif_hf_cb[idx].connected_bda);
       } else {

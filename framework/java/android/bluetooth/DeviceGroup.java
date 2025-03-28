@@ -49,11 +49,11 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 public final class DeviceGroup implements Parcelable {
     /** Identifier of the Device Group */
-    private int mGroupId;
+    private final int mGroupId;
     /** Size of the Device Group. */
-    private int mSize;
+    private final int mSize;
     /** List of all group devices {@link BluetoothDevice} */
-    private CopyOnWriteArrayList <BluetoothDevice> mGroupDevices
+    private final CopyOnWriteArrayList <BluetoothDevice> mGroupDevices
                                   = new CopyOnWriteArrayList<BluetoothDevice>();
     /** Primary Service UUID which has included required Device Group service*/
     private final ParcelUuid mIncludingSrvcUUID;
