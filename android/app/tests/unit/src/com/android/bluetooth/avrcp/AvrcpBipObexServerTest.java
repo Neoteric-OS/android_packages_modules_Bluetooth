@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 The Android Open Source Project
+ * Copyright (C) 2020 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -47,6 +47,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
 
+/** Test cases for {@link AvrcpBipObexServer}. */
 @RunWith(AndroidJUnit4.class)
 public class AvrcpBipObexServerTest {
     private static final String TYPE_GET_LINKED_THUMBNAIL = "x-bt/img-thm";
