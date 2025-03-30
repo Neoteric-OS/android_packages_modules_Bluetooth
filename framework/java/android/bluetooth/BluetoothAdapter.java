@@ -3615,13 +3615,13 @@ public final class BluetoothAdapter {
         BiFunction<Context, BluetoothAdapter, BluetoothProfile> constructor =
                 PROFILE_CONSTRUCTORS.get(profile);
 
-        BluetoothProfile profileProxy = constructor.apply(context, this);
-        ProfileConnection connection = new ProfileConnection(profile, listener, executor);
-
         if (constructor == null) {
             Log.e(TAG, "getProfileProxy(): Unknown profile " + profile);
             return false;
         }
+
+        BluetoothProfile profileProxy = constructor.apply(context, this);
+        ProfileConnection connection = new ProfileConnection(profile, listener, executor);
 
         synchronized (sProfileLock) {
             // Synchronize with the binder callback to prevent performing the
@@ -3873,6 +3873,9 @@ public final class BluetoothAdapter {
                             }
                             if (mBluetoothLeScanner != null) {
                                 mBluetoothLeScanner.cleanup();
+                            }
+                            if (mDistanceMeasurementManager != null) {
+                                mDistanceMeasurementManager.cleanup();
                             }
                         }
                     } finally {

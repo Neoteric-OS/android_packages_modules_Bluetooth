@@ -1,0 +1,84 @@
+1b730f522da (<bbadour@google.com>        2021-02-12 17:58:26 -0800  1) package {
+1b730f522da (<bbadour@google.com>        2021-02-12 17:58:26 -0800  2)     default_applicable_licenses: ["Android-Apache-2.0"],
+1b730f522da (<bbadour@google.com>        2021-02-12 17:58:26 -0800  3) }
+1b730f522da (<bbadour@google.com>        2021-02-12 17:58:26 -0800  4) 
+66c73d50eab (<wescande@google.com>       2025-02-21 16:37:20 -0800  5) android_test {
+66c73d50eab (<wescande@google.com>       2025-02-21 16:37:20 -0800  6)     name: "BluetoothJavaUnitTests",
+2256094a11f (<wescande@google.com>       2024-09-18 16:44:36 -0700  7)     defaults: [
+2256094a11f (<wescande@google.com>       2024-09-18 16:44:36 -0700  8)         "bluetooth_errorprone_rules",
+2256094a11f (<wescande@google.com>       2024-09-18 16:44:36 -0700  9)     ],
+4de3211f469 (<zachoverflow@google.com>   2019-11-19 14:03:43 -0800 10) 
+fbf7c90fa50 (<wescande@google.com>       2025-02-01 16:22:57 -0800 11)     sdk_version: "module_current",
+4de3211f469 (<zachoverflow@google.com>   2019-11-19 14:03:43 -0800 12)     libs: [
+1e83ff01f96 (<jihoonkang@google.com>     2024-08-30 00:29:54 +0000 13)         "android.test.base.stubs",
+1e83ff01f96 (<jihoonkang@google.com>     2024-08-30 00:29:54 +0000 14)         "android.test.mock.stubs",
+1e83ff01f96 (<jihoonkang@google.com>     2024-08-30 00:29:54 +0000 15)         "android.test.runner.stubs",
+fbf7c90fa50 (<wescande@google.com>       2025-02-01 16:22:57 -0800 16)         "framework-annotations-lib",
+fbf7c90fa50 (<wescande@google.com>       2025-02-01 16:22:57 -0800 17)         "framework-configinfrastructure.stubs.module_lib",
+fbf7c90fa50 (<wescande@google.com>       2025-02-01 16:22:57 -0800 18)         "framework-connectivity.stubs.module_lib",
+fbf7c90fa50 (<wescande@google.com>       2025-02-01 16:22:57 -0800 19)         "framework-location.stubs.module_lib",
+fbf7c90fa50 (<wescande@google.com>       2025-02-01 16:22:57 -0800 20)         "framework-mediaprovider.stubs.module_lib",
+fbf7c90fa50 (<wescande@google.com>       2025-02-01 16:22:57 -0800 21)         "framework-tethering.stubs.module_lib",
+1e83ff01f96 (<jihoonkang@google.com>     2024-08-30 00:29:54 +0000 22)         "javax.obex.stubs",
+e02ec316ec8 (<wescande@google.com>       2023-04-07 05:48:18 -0700 23)         "libprotobuf-java-micro",
+4de3211f469 (<zachoverflow@google.com>   2019-11-19 14:03:43 -0800 24)     ],
+4de3211f469 (<zachoverflow@google.com>   2019-11-19 14:03:43 -0800 25) 
+4de3211f469 (<zachoverflow@google.com>   2019-11-19 14:03:43 -0800 26)     static_libs: [
+66c73d50eab (<wescande@google.com>       2025-02-21 16:37:20 -0800 27)         "BluetoothLib",
+e02ec316ec8 (<wescande@google.com>       2023-04-07 05:48:18 -0700 28)         "PlatformProperties",
+8359beb5ead (<okamil@google.com>         2025-01-24 11:41:49 -0800 29)         "TestParameterInjector",
+a6a262d4063 (<aarthibc@google.com>       2024-11-11 20:13:04 +0000 30)         "android.media.audio-aconfig-exported-java",
+6c377f517f0 (<kihongs@google.com>        2022-11-15 06:23:31 +0000 31)         "androidx.media_media",
+4de3211f469 (<zachoverflow@google.com>   2019-11-19 14:03:43 -0800 32)         "androidx.room_room-migration",
+4de3211f469 (<zachoverflow@google.com>   2019-11-19 14:03:43 -0800 33)         "androidx.room_room-runtime",
+4de3211f469 (<zachoverflow@google.com>   2019-11-19 14:03:43 -0800 34)         "androidx.room_room-testing",
+e02ec316ec8 (<wescande@google.com>       2023-04-07 05:48:18 -0700 35)         "androidx.test.espresso.intents",
+7306f2a2e97 (<ofy@google.com>            2025-03-14 14:25:22 +0000 36)         "androidx.test.ext.junit",
+e02ec316ec8 (<wescande@google.com>       2023-04-07 05:48:18 -0700 37)         "androidx.test.ext.truth",
+e02ec316ec8 (<wescande@google.com>       2023-04-07 05:48:18 -0700 38)         "androidx.test.rules",
+a6ea2539079 (<thebestguy@google.com>     2023-04-18 02:50:03 +0000 39)         "androidx.test.uiautomator_uiautomator",
+06fc6c1f245 (<wescande@google.com>       2024-11-22 15:08:58 -0800 40)         "bluetooth_flags_java_lib",
+16f2a5b02f2 (<quic_phaneend@quicinc.com> 2023-06-12 15:25:01 +0530 41)         "com.android.sysprop.bluetooth",
+61db89ba4b4 (<slobdell@google.com>       2024-01-12 18:26:13 +0000 42)         "flag-junit",
+e02ec316ec8 (<wescande@google.com>       2023-04-07 05:48:18 -0700 43)         "framework-bluetooth-pre-jarjar",
+9d8a27678eb (<krzysio@google.com>        2022-08-26 18:48:17 +0000 44)         "gson",
+0b7dd7fca71 (<wescande@google.com>       2025-02-19 16:00:51 -0800 45)         "guava-android-testlib",
+fbf7c90fa50 (<wescande@google.com>       2025-02-01 16:22:57 -0800 46)         "mmslib",
+7306f2a2e97 (<ofy@google.com>            2025-03-14 14:25:22 +0000 47)         "mockito-kotlin2",
+66c73d50eab (<wescande@google.com>       2025-02-21 16:37:20 -0800 48)         "mockito-target-extended",
+7b8ba731e85 (<zhidou@google.com>         2025-02-04 13:13:18 +0000 49)         "modules-utils-handlerexecutor",
+88ef7de9b13 (<wescande@google.com>       2024-05-28 23:39:44 -0700 50)         "platform-parametric-runner-lib",
+535a8104be1 (<wescande@google.com>       2023-12-06 19:30:03 -0800 51)         "platform-test-annotations",
+371452feb3d (<krzysio@google.com>        2023-10-07 00:48:16 +0000 52)         "truth",
+4de3211f469 (<zachoverflow@google.com>   2019-11-19 14:03:43 -0800 53)     ],
+4de3211f469 (<zachoverflow@google.com>   2019-11-19 14:03:43 -0800 54) 
+66c73d50eab (<wescande@google.com>       2025-02-21 16:37:20 -0800 55)     // these are needed for Extended Mockito
+66c73d50eab (<wescande@google.com>       2025-02-21 16:37:20 -0800 56)     jni_libs: [
+66c73d50eab (<wescande@google.com>       2025-02-21 16:37:20 -0800 57)         "libdexmakerjvmtiagent",
+66c73d50eab (<wescande@google.com>       2025-02-21 16:37:20 -0800 58)         "libstaticjvmtiagent",
+66c73d50eab (<wescande@google.com>       2025-02-21 16:37:20 -0800 59)     ],
+66c73d50eab (<wescande@google.com>       2025-02-21 16:37:20 -0800 60) 
+9e8859a8008 (<wescande@google.com>       2024-10-24 16:48:52 -0700 61)     jarjar_rules: ":bluetooth-jarjar-rules",
+4de3211f469 (<zachoverflow@google.com>   2019-11-19 14:03:43 -0800 62)     asset_dirs: ["src/com/android/bluetooth/btservice/storage/schemas"],
+4de3211f469 (<zachoverflow@google.com>   2019-11-19 14:03:43 -0800 63) 
+7306f2a2e97 (<ofy@google.com>            2025-03-14 14:25:22 +0000 64)     // Include all test java and kotlin files.
+7306f2a2e97 (<ofy@google.com>            2025-03-14 14:25:22 +0000 65)     srcs: [
+7306f2a2e97 (<ofy@google.com>            2025-03-14 14:25:22 +0000 66)         "src/**/*.java",
+7306f2a2e97 (<ofy@google.com>            2025-03-14 14:25:22 +0000 67)         "src/**/*.kt",
+725ef4e75d9 (<slobdell@google.com>       2025-03-27 13:08:44 +0000 68)     ]
+4de3211f469 (<zachoverflow@google.com>   2019-11-19 14:03:43 -0800 69) 
+aadf1dbd3b1 (<eruffieux@google.com>      2022-05-12 01:44:40 +0000 70)     test_suites: [
+1096bf87cff (<fzakrzewski@google.com>    2024-12-13 12:10:18 -0800 71)         "automotive-general-tests",
+4350b5e4aa2 (<licorne@google.com>        2023-10-30 17:26:30 +0000 72)         "general-tests",
+aadf1dbd3b1 (<eruffieux@google.com>      2022-05-12 01:44:40 +0000 73)         "mts-bluetooth",
+2310169d46d (<wescande@google.com>       2024-12-26 10:28:15 -0800 74)         "mts-bt",
+aadf1dbd3b1 (<eruffieux@google.com>      2022-05-12 01:44:40 +0000 75)     ],
+535e013baf1 (<deyaoren@google.com>       2022-08-31 21:46:10 +0000 76)     enabled: false,
+4de3211f469 (<zachoverflow@google.com>   2019-11-19 14:03:43 -0800 77) }
+021205ce462 (<licorne@google.com>        2022-11-15 00:08:45 +0000 78) 
+66c73d50eab (<wescande@google.com>       2025-02-21 16:37:20 -0800 79) // TODO delete this filegroup to replace by a shadow looper
+66c73d50eab (<wescande@google.com>       2025-02-21 16:37:20 -0800 80) filegroup {
+66c73d50eab (<wescande@google.com>       2025-02-21 16:37:20 -0800 81)     name: "bluetooth_test_looper",
+66c73d50eab (<wescande@google.com>       2025-02-21 16:37:20 -0800 82)     srcs: ["src/com/android/bluetooth/TestLooper.java"],
+66c73d50eab (<wescande@google.com>       2025-02-21 16:37:20 -0800 83)     visibility: ["//packages/modules/Bluetooth/android/app/tests:__subpackages__"],
+021205ce462 (<licorne@google.com>        2022-11-15 00:08:45 +0000 84) }

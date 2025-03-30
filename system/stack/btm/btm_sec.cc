@@ -38,7 +38,6 @@
 #include "bta/dm/bta_dm_act.h"
 #include "bta/dm/bta_dm_sec_int.h"
 #include "btif/include/btif_storage.h"
-#include "common/metrics.h"
 #include "common/time_util.h"
 #include "device/include/device_iot_config.h"
 #include "device/include/interop.h"
@@ -47,7 +46,9 @@
 #include "main/shim/acl_api.h"
 #include "main/shim/entry.h"
 #include "main/shim/helpers.h"
+#include "main/shim/metrics_api.h"
 #include "metrics/bluetooth_event.h"
+#include "os/metrics.h"
 #include "osi/include/allocator.h"
 #include "osi/include/properties.h"
 #include "stack/btm/btm_ble_int.h"
@@ -75,7 +76,6 @@
 #include "stack/include/main_thread.h"
 #include "stack/include/rnr_interface.h"
 #include "stack/include/smp_api.h"
-#include "stack/include/stack_metrics_logging.h"
 #include "types/bt_transport.h"
 #include "types/raw_address.h"
 
@@ -1947,10 +1947,9 @@ static void btm_sec_bond_cancel_complete(void) {
 void btm_create_conn_cancel_complete(uint8_t status, const RawAddress bd_addr) {
   log::verbose("btm_create_conn_cancel_complete(): in State: {}  status:{}",
                tBTM_SEC_CB::btm_pair_state_descr(btm_sec_cb.pairing_state), status);
-  log_link_layer_connection_event(
-          &bd_addr, bluetooth::common::kUnknownConnectionHandle,
-          android::bluetooth::DIRECTION_OUTGOING, android::bluetooth::LINK_TYPE_ACL,
-          android::bluetooth::hci::CMD_CREATE_CONNECTION_CANCEL,
+  bluetooth::shim::LogMetricLinkLayerConnectionEvent(
+          &bd_addr, bluetooth::os::kUnknownConnectionHandle, android::bluetooth::DIRECTION_OUTGOING,
+          android::bluetooth::LINK_TYPE_ACL, android::bluetooth::hci::CMD_CREATE_CONNECTION_CANCEL,
           android::bluetooth::hci::EVT_COMMAND_COMPLETE, android::bluetooth::hci::BLE_EVT_UNKNOWN,
           status, android::bluetooth::hci::STATUS_UNKNOWN);
 
@@ -2467,8 +2466,7 @@ void btm_io_capabilities_req(RawAddress p) {
 
     /* If device is bonded, and encrypted it's upgrading security and it's ok.
      * If it's bonded and not encrypted, it's remote missing keys scenario */
-    if (!p_dev_rec->sec_rec.is_device_encrypted() &&
-        com::android::bluetooth::flags::key_missing_classic_device()) {
+    if (!p_dev_rec->sec_rec.is_device_encrypted()) {
       log::warn("Incoming bond request, but {} is already bonded (notifying user)", p);
       bta_dm_remote_key_missing(p);
       btm_sec_disconnect(p_dev_rec->hci_handle, HCI_ERR_AUTH_FAILURE,
@@ -2666,8 +2664,7 @@ void btm_io_capabilities_rsp(const tBTM_SP_IO_RSP evt_data) {
 
   /* If device is bonded, and encrypted it's upgrading security and it's ok.
    * If it's bonded and not encrypted, it's remote missing keys scenario */
-  if (btm_sec_is_a_bonded_dev(evt_data.bd_addr) && !p_dev_rec->sec_rec.is_device_encrypted() &&
-      com::android::bluetooth::flags::key_missing_classic_device()) {
+  if (btm_sec_is_a_bonded_dev(evt_data.bd_addr) && !p_dev_rec->sec_rec.is_device_encrypted()) {
     log::warn("Incoming bond request, but {} is already bonded (notifying user)", evt_data.bd_addr);
     bta_dm_remote_key_missing(evt_data.bd_addr);
     btm_sec_disconnect(p_dev_rec->hci_handle, HCI_ERR_AUTH_FAILURE,
@@ -3069,8 +3066,7 @@ void btm_sec_auth_complete(uint16_t handle, tHCI_STATUS status) {
             p_dev_rec->sec_rec.classic_link, p_dev_rec->bd_addr,
             reinterpret_cast<char const*>(p_dev_rec->sec_bd_name));
 
-    if (status == HCI_ERR_KEY_MISSING &&
-        com::android::bluetooth::flags::key_missing_classic_device()) {
+    if (status == HCI_ERR_KEY_MISSING) {
       log::warn("auth_complete KEY_MISSING {} is already bonded (notifying user)",
                 p_dev_rec->bd_addr);
       bta_dm_remote_key_missing(p_dev_rec->bd_addr);
@@ -3171,12 +3167,12 @@ void btm_sec_auth_complete(uint16_t handle, tHCI_STATUS status) {
     p_dev_rec->sec_rec.security_required &= ~BTM_SEC_OUT_AUTHENTICATE;
 
     if (status != HCI_SUCCESS) {
-      if ((status != HCI_ERR_PEER_USER) && (status != HCI_ERR_CONN_CAUSE_LOCAL_HOST)) {
+      if (status != HCI_ERR_PEER_USER && status != HCI_ERR_CONN_CAUSE_LOCAL_HOST) {
         btm_sec_send_hci_disconnect(
                 p_dev_rec, HCI_ERR_PEER_USER, p_dev_rec->hci_handle,
                 "stack::btm::btm_sec::btm_sec_auth_retry Auth fail while bonding");
       }
-    } else {
+    } else if (!com::android::bluetooth::flags::immediate_encryption_after_pairing()) {
       BTM_LogHistory(kBtmLogTag, p_dev_rec->bd_addr, "Bonding completed",
                      hci_error_code_text(status));
 
@@ -3200,6 +3196,11 @@ void btm_sec_auth_complete(uint16_t handle, tHCI_STATUS status) {
         }
       }
 
+      l2cu_start_post_bond_timer(p_dev_rec->hci_handle);
+    } else {
+      BTM_LogHistory(kBtmLogTag, p_dev_rec->bd_addr, "Bonding completed",
+                     hci_error_code_text(status));
+      BTM_SetEncryption(p_dev_rec->bd_addr, BT_TRANSPORT_BR_EDR, NULL, NULL, BTM_BLE_SEC_NONE);
       l2cu_start_post_bond_timer(p_dev_rec->hci_handle);
     }
 
@@ -3359,10 +3360,8 @@ void btm_sec_encrypt_change(uint16_t handle, tHCI_STATUS status, uint8_t encr_en
     if (status == HCI_ERR_KEY_MISSING) {
       log::info("Remote key missing - will report");
       bta_dm_remote_key_missing(p_dev_rec->ble.pseudo_addr);
-      if (com::android::bluetooth::flags::sec_disconnect_on_le_key_missing()) {
-        btm_sec_send_hci_disconnect(p_dev_rec, HCI_ERR_HOST_REJECT_SECURITY,
-                                    p_dev_rec->ble_hci_handle, "encryption_change:key_missing");
-      }
+      btm_sec_send_hci_disconnect(p_dev_rec, HCI_ERR_HOST_REJECT_SECURITY,
+                                  p_dev_rec->ble_hci_handle, "encryption_change:key_missing");
       return;
     }
 
