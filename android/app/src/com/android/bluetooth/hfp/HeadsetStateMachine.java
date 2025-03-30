@@ -219,6 +219,9 @@ class HeadsetStateMachine extends StateMachine {
                 BluetoothAssignedNumbers.GOOGLE);
     }
 
+    @VisibleForTesting
+    static final String HFP_VOLUME_CONTROL_ENABLED = "bluetooth.hfp_volume_control.enabled";
+
     private HeadsetStateMachine(
             BluetoothDevice device,
             Looper looper,
@@ -1166,7 +1169,8 @@ class HeadsetStateMachine extends StateMachine {
                                             + " is not currentDevice");
                             break;
                         }
-                        if (!mNativeInterface.startVoiceRecognition(mDevice)) {
+                        if (!mNativeInterface.startVoiceRecognition(
+                                mDevice, /* sendResult */ true)) {
                             stateLogW("Failed to start voice recognition");
                             break;
                         }
@@ -1293,6 +1297,9 @@ class HeadsetStateMachine extends StateMachine {
                                         ? HeadsetHalConstants.AT_RESPONSE_OK
                                         : HeadsetHalConstants.AT_RESPONSE_ERROR,
                                 0);
+                        if (Utils.isScoManagedByAudioEnabled()) {
+                            mNativeInterface.startVoiceRecognition(mDevice, /* sendResult */ false);
+                        }
                         break;
                     }
                 case DIALING_OUT_RESULT:
@@ -2236,7 +2243,10 @@ class HeadsetStateMachine extends StateMachine {
         }
         if (volumeType == HeadsetHalConstants.VOLUME_TYPE_SPK) {
             mSpeakerVolume = volume;
-            int flag = (mCurrentState == mAudioOn) ? AudioManager.FLAG_SHOW_UI : 0;
+            boolean showVolume =
+                    !Flags.hfpVolumeControlProperty()
+                            || com.android.bluetooth.util.SystemProperties.getBoolean(HFP_VOLUME_CONTROL_ENABLED, true);
+            int flag = showVolume && (mCurrentState == mAudioOn) ? AudioManager.FLAG_SHOW_UI : 0;
             int volStream =
                     deprecateStreamBtSco()
                             ? AudioManager.STREAM_VOICE_CALL

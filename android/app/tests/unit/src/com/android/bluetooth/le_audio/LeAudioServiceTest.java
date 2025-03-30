@@ -76,12 +76,12 @@ import android.os.ParcelUuid;
 import android.os.RemoteException;
 import android.platform.test.annotations.DisableFlags;
 import android.platform.test.annotations.EnableFlags;
+import android.platform.test.flag.junit.FlagsParameterization;
 import android.platform.test.flag.junit.SetFlagsRule;
 import android.sysprop.BluetoothProperties;
 
 import androidx.test.filters.MediumTest;
 import androidx.test.platform.app.InstrumentationRegistry;
-import androidx.test.runner.AndroidJUnit4;
 
 import com.android.bluetooth.TestUtils;
 import com.android.bluetooth.bass_client.BassClientService;
@@ -113,15 +113,21 @@ import org.mockito.Mockito;
 import org.mockito.Spy;
 import org.mockito.hamcrest.MockitoHamcrest;
 
+import platform.test.runner.parameterized.ParameterizedAndroidJunit4;
+import platform.test.runner.parameterized.Parameters;
+
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 
+/** Test cases for {@link LeAudioService}. */
 @MediumTest
-@RunWith(AndroidJUnit4.class)
+@RunWith(ParameterizedAndroidJunit4.class)
 public class LeAudioServiceTest {
-    @Rule public final SetFlagsRule mSetFlagsRule = new SetFlagsRule();
+    @Rule public final SetFlagsRule mSetFlagsRule;
     @Rule public final MockitoRule mMockitoRule = new MockitoRule();
 
     @Mock private AdapterService mAdapterService;
@@ -201,6 +207,18 @@ public class LeAudioServiceTest {
 
     private InOrder mInOrder;
 
+    @Parameters(name = "{0}")
+    public static List<FlagsParameterization> getParams() {
+        return FlagsParameterization.progressionOf(
+                Flags.FLAG_LEAUDIO_BROADCAST_PRIMARY_GROUP_SELECTION,
+                Flags.FLAG_LEAUDIO_BROADCAST_API_MANAGE_PRIMARY_GROUP,
+                Flags.FLAG_DO_NOT_HARDCODE_TMAP_ROLE_MASK);
+    }
+
+    public LeAudioServiceTest(FlagsParameterization flags) {
+        mSetFlagsRule = new SetFlagsRule(flags);
+    }
+
     @Before
     public void setUp() throws Exception {
         mInOrder = inOrder(mAdapterService);
@@ -211,11 +229,9 @@ public class LeAudioServiceTest {
         doReturn(mTargetContext.getContentResolver()).when(mAdapterService).getContentResolver();
         doReturn(MAX_LE_AUDIO_CONNECTIONS).when(mAdapterService).getMaxConnectedAudioDevices();
 
-        doReturn(
-                        (long) (1 << BluetoothProfile.LE_AUDIO_BROADCAST)
-                                | (1 << BluetoothProfile.LE_AUDIO))
-                .when(mAdapterService)
-                .getSupportedProfilesBitMask();
+        injectSupportedProfilesBitMask(
+                Set.of(BluetoothProfile.LE_AUDIO_BROADCAST, BluetoothProfile.LE_AUDIO));
+
         doReturn(new ParcelUuid[] {BluetoothUuid.LE_AUDIO})
                 .when(mAdapterService)
                 .getRemoteUuids(any(BluetoothDevice.class));
@@ -278,6 +294,43 @@ public class LeAudioServiceTest {
         mBondedDevices.clear();
         mService.cleanup();
         assertThat(LeAudioService.getLeAudioService()).isNull();
+    }
+
+    @Test
+    @EnableFlags(Flags.FLAG_DO_NOT_HARDCODE_TMAP_ROLE_MASK)
+    public void testTmapRoleMask() {
+        List<Set<Integer>> powerSet =
+                List.of(
+                        Set.of(BluetoothProfile.LE_CALL_CONTROL),
+                        Set.of(BluetoothProfile.MCP_SERVER),
+                        Set.of(BluetoothProfile.LE_CALL_CONTROL, BluetoothProfile.MCP_SERVER),
+                        Set.of(BluetoothProfile.LE_AUDIO_BROADCAST),
+                        Set.of(
+                                BluetoothProfile.LE_AUDIO_BROADCAST,
+                                BluetoothProfile.LE_CALL_CONTROL),
+                        Set.of(BluetoothProfile.LE_AUDIO_BROADCAST, BluetoothProfile.MCP_SERVER),
+                        Set.of(
+                                BluetoothProfile.LE_AUDIO_BROADCAST,
+                                BluetoothProfile.LE_CALL_CONTROL,
+                                BluetoothProfile.MCP_SERVER));
+
+        List<Integer> tmapMasks =
+                powerSet.stream()
+                        .map(
+                                set -> {
+                                    injectSupportedProfilesBitMask(set);
+                                    LeAudioService service =
+                                            new LeAudioService(mAdapterService, mNativeInterface);
+                                    return service.getTmapRoleMask();
+                                })
+                        .collect(Collectors.toList());
+
+        List<Integer> expectedMasks =
+                powerSet.stream()
+                        .map(LeAudioServiceTest::constructTmapRoleMask)
+                        .collect(Collectors.toList());
+
+        assertThat(tmapMasks).containsExactly(expectedMasks.toArray()).inOrder();
     }
 
     /** Test getting LeAudio Service: getLeAudioService() */
@@ -1299,7 +1352,11 @@ public class LeAudioServiceTest {
 
     /** Test update unicast fallback active group when broadcast is ongoing */
     @Test
-    @DisableFlags(Flags.FLAG_LEAUDIO_BROADCAST_PRIMARY_GROUP_SELECTION)
+    @DisableFlags({
+        Flags.FLAG_LEAUDIO_BROADCAST_PRIMARY_GROUP_SELECTION,
+        Flags.FLAG_LEAUDIO_BROADCAST_API_MANAGE_PRIMARY_GROUP,
+        Flags.FLAG_LEAUDIO_USE_AUDIO_RECORDING_LISTENER
+    })
     public void testUpdateUnicastFallbackActiveDeviceGroupDuringBroadcast() {
         List<BluetoothDevice> devices = new ArrayList<>();
         int groupId = 1;
@@ -1763,7 +1820,6 @@ public class LeAudioServiceTest {
     /** Test native interface group status message handling */
     @Test
     public void testMessageFromNativeGroupCodecConfigChangedNonActiveDevice() {
-        mSetFlagsRule.enableFlags(Flags.FLAG_LEAUDIO_CODEC_CONFIG_CALLBACK_ORDER_FIX);
         onGroupCodecConfChangedCallbackCalled = false;
 
         injectLocalCodecConfigCapaChanged(INPUT_CAPABILITIES_CONFIG, OUTPUT_CAPABILITIES_CONFIG);
@@ -1849,7 +1905,6 @@ public class LeAudioServiceTest {
     /** Test native interface group status message handling */
     @Test
     public void testMessageFromNativeGroupCodecConfigChangedActiveDevice_DifferentConfiguration() {
-        mSetFlagsRule.enableFlags(Flags.FLAG_LEAUDIO_CODEC_CONFIG_CALLBACK_ORDER_FIX);
         onGroupCodecConfChangedCallbackCalled = false;
 
         injectLocalCodecConfigCapaChanged(INPUT_CAPABILITIES_CONFIG, OUTPUT_CAPABILITIES_CONFIG);
@@ -2758,7 +2813,6 @@ public class LeAudioServiceTest {
      * </pre>
      */
     @Test
-    @EnableFlags(Flags.FLAG_LEAUDIO_UNICAST_NO_AVAILABLE_CONTEXTS)
     public void testActivateGroupWhenAvailableContextAreBack_Scenario1() {
         int groupId = 1;
         /* AUDIO_DIRECTION_OUTPUT_BIT = 0x01 */
@@ -2842,7 +2896,6 @@ public class LeAudioServiceTest {
      * </pre>
      */
     @Test
-    @EnableFlags(Flags.FLAG_LEAUDIO_UNICAST_NO_AVAILABLE_CONTEXTS)
     public void testActivateDeviceWhenAvailableContextAreBack_Scenario2() {
         int groupId = 1;
         /* AUDIO_DIRECTION_OUTPUT_BIT = 0x01 */
@@ -2940,7 +2993,6 @@ public class LeAudioServiceTest {
      *  4. The available contexts are updated with non-zero value. Group becomes active.
      */
     @Test
-    @EnableFlags(Flags.FLAG_LEAUDIO_UNICAST_NO_AVAILABLE_CONTEXTS)
     public void testActivateDeviceWhenAvailableContextAreBack_Scenario3() {
         int groupId = 1;
         /* AUDIO_DIRECTION_OUTPUT_BIT = 0x01 */
@@ -3189,5 +3241,31 @@ public class LeAudioServiceTest {
         mInOrder.verify(mAdapterService, timeout(2000))
                 .sendBroadcastAsUser(
                         MockitoHamcrest.argThat(AllOf.allOf(matchers)), any(), any(), any());
+    }
+
+    private void injectSupportedProfilesBitMask(Set<Integer> profiles) {
+        long mask = 0;
+        for (int profile : profiles) {
+            mask |= (long) (1 << profile);
+        }
+        doReturn(mask).when(mAdapterService).getSupportedProfilesBitMask();
+    }
+
+    private static int constructTmapRoleMask(Set<Integer> profiles) {
+        int mask = 0;
+        for (int profile : profiles) {
+            switch (profile) {
+                case BluetoothProfile.LE_CALL_CONTROL:
+                    mask |= LeAudioTmapGattServer.TMAP_ROLE_FLAG_CG;
+                    break;
+                case BluetoothProfile.MCP_SERVER:
+                    mask |= LeAudioTmapGattServer.TMAP_ROLE_FLAG_UMS;
+                    break;
+                case BluetoothProfile.LE_AUDIO_BROADCAST:
+                    mask |= LeAudioTmapGattServer.TMAP_ROLE_FLAG_BMS;
+                    break;
+            }
+        }
+        return mask;
     }
 }

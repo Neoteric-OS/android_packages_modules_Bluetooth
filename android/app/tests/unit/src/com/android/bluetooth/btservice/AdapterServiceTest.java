@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 The Android Open Source Project
+ * Copyright (C) 2017 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -113,6 +113,7 @@ import java.util.Map;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 
+/** Test cases for {@link AdapterService}. */
 @MediumTest
 @RunWith(ParameterizedAndroidJunit4.class)
 public class AdapterServiceTest {
@@ -906,10 +907,6 @@ public class AdapterServiceTest {
         // Create device properties
         RemoteDevices remoteDevices = mAdapterService.getRemoteDevices();
         remoteDevices.addDeviceProperties(Utils.getBytesFromAddress((TEST_BT_ADDR_1)));
-        String identityAddress = mAdapterService.getIdentityAddress(TEST_BT_ADDR_1);
-        if (!Flags.identityAddressNullIfNotKnown()) {
-            assertThat(identityAddress).isEqualTo(TEST_BT_ADDR_1);
-        }
 
         // Trigger address consolidate callback
         remoteDevices.addressConsolidateCallback(
@@ -917,7 +914,7 @@ public class AdapterServiceTest {
                 Utils.getBytesFromAddress(TEST_BT_ADDR_2));
 
         // Verify we can get correct identity address
-        identityAddress = mAdapterService.getIdentityAddress(TEST_BT_ADDR_1);
+        String identityAddress = mAdapterService.getIdentityAddress(TEST_BT_ADDR_1);
         assertThat(identityAddress).isEqualTo(TEST_BT_ADDR_2);
         assertThat(mLooper.nextMessage()).isNull();
     }
@@ -954,7 +951,6 @@ public class AdapterServiceTest {
     }
 
     @Test
-    @EnableFlags(Flags.FLAG_IDENTITY_ADDRESS_NULL_IF_NOT_KNOWN)
     public void testIdentityAddressNullIfUnknown() {
         BluetoothDevice device = getTestDevice(0);
 
