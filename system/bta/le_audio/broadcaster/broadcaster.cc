@@ -1067,6 +1067,9 @@ private:
 
         instance->broadcasts_[broadcast_id] = std::move(*pending_broadcast);
       } else {
+        if (instance->le_audio_source_hal_client_) {
+          instance->le_audio_source_hal_client_->Stop();
+        }
         log::error("Failed creating broadcast!");
       }
       instance->pending_broadcasts_.erase(pending_broadcast);
