@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 The Android Open Source Project
+ * Copyright (C) 2017 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -45,6 +45,7 @@ import org.mockito.Mock;
 import java.io.IOException;
 import java.io.InputStream;
 
+/** Test cases for {@link PbapStateMachine}. */
 @MediumTest
 @RunWith(AndroidJUnit4.class)
 public class PbapStateMachineTest {

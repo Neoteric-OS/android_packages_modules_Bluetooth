@@ -24,6 +24,8 @@ import static android.bluetooth.BluetoothProfile.STATE_CONNECTING;
 import static android.bluetooth.BluetoothProfile.STATE_DISCONNECTED;
 import static android.bluetooth.BluetoothProfile.STATE_DISCONNECTING;
 
+import static com.android.bluetooth.Utils.BD_ADDR_LEN;
+
 import android.annotation.NonNull;
 import android.app.BroadcastOptions;
 import android.bluetooth.BluetoothA2dp;
@@ -53,7 +55,6 @@ import androidx.annotation.VisibleForTesting;
 import com.android.bluetooth.BluetoothStatsLog;
 import com.android.bluetooth.Utils;
 import com.android.bluetooth.btservice.RemoteDevices.DeviceProperties;
-import com.android.bluetooth.flags.Flags;
 import com.android.modules.utils.build.SdkLevel;
 
 import java.io.FileDescriptor;
@@ -79,7 +80,6 @@ class AdapterProperties {
 
     private static final long DEFAULT_DISCOVERY_TIMEOUT_MS = 12800;
     @VisibleForTesting static final int BLUETOOTH_NAME_MAX_LENGTH_BYTES = 248;
-    private static final int BD_ADDR_LEN = 6; // in bytes
     private static final int SYSTEM_CONNECTION_LATENCY_METRIC = 65536;
 
     private volatile String mName;
@@ -530,10 +530,7 @@ class AdapterProperties {
 
     void cleanupPrevBondRecordsFor(BluetoothDevice device) {
         String address = device.getAddress();
-        String identityAddress =
-                Flags.identityAddressNullIfNotKnown()
-                        ? Utils.getBrEdrAddress(device, mService)
-                        : mService.getIdentityAddress(address);
+        String identityAddress = Utils.getBrEdrAddress(device, mService);
         int deviceType = mRemoteDevices.getDeviceProperties(device).getDeviceType();
         debugLog("cleanupPrevBondRecordsFor: " + device + ", device type: " + deviceType);
         if (identityAddress == null) {
@@ -546,10 +543,7 @@ class AdapterProperties {
 
         for (BluetoothDevice existingDevice : mBondedDevices) {
             String existingAddress = existingDevice.getAddress();
-            String existingIdentityAddress =
-                    Flags.identityAddressNullIfNotKnown()
-                            ? Utils.getBrEdrAddress(existingDevice, mService)
-                            : mService.getIdentityAddress(existingAddress);
+            String existingIdentityAddress = Utils.getBrEdrAddress(existingDevice, mService);
             int existingDeviceType =
                     mRemoteDevices.getDeviceProperties(existingDevice).getDeviceType();
 
@@ -1110,10 +1104,7 @@ class AdapterProperties {
         StringBuilder sb = new StringBuilder();
         for (BluetoothDevice device : mBondedDevices) {
             String address = device.getAddress();
-            String brEdrAddress =
-                    Flags.identityAddressNullIfNotKnown()
-                            ? Utils.getBrEdrAddress(device)
-                            : mService.getIdentityAddress(address);
+            String brEdrAddress = Utils.getBrEdrAddress(device);
             if (brEdrAddress.equals(address)) {
                 writer.println(
                         "    "
