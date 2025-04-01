@@ -56,8 +56,15 @@ void GmapClient::DebugDump(std::stringstream &stream) {
 bool GmapClient::IsGmapClientEnabled() {
   bool flag = com::android::bluetooth::flags::leaudio_gmap_client();
   bool system_prop = osi_property_get_bool("bluetooth.profile.gmap.enabled", false);
+  bool pts_gmap = osi_property_get_bool("persist.vendor.qcom.bluetooth.pts_gmap", false);
+  log::info(" pts_gmap: {}", pts_gmap);
 
-  bool result = flag && system_prop && is_offloader_support_gmap_;
+  bool result = false;
+  if(pts_gmap) {
+    result = true;
+  } else {
+    result = flag && system_prop && is_offloader_support_gmap_;
+  }
   log::info("GmapClientEnabled={}, flag={}, system_prop={}, offloader_support={}", result, flag,
             system_prop, GmapClient::is_offloader_support_gmap_);
   return result;
