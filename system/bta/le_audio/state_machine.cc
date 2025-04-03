@@ -2251,12 +2251,20 @@ private:
 
   static void ReleaseDataPath(LeAudioDeviceGroup* group) {
     LeAudioDevice* leAudioDevice = group->GetFirstActiveDevice();
-    log::assert_that(leAudioDevice, "Shouldn't be called without an active device.");
-
-    auto ase = leAudioDevice->GetFirstActiveAseByCisAndDataPathState(CisState::CONNECTED,
-                                                                     DataPathState::CONFIGURED);
-    log::assert_that(ase, "Shouldn't be called without an active ASE.");
-    RemoveDataPathByCisHandle(leAudioDevice, ase->cis_conn_hdl);
+    while (leAudioDevice){
+      leAudioDevice->HaveAllActiveAsesCisEst();
+      leAudioDevice->HaveAllActiveAsesSameDataPathState(DataPathState::CONFIGURED);
+      auto ase = leAudioDevice->GetFirstActiveAseByCisAndDataPathState(
+        CisState::CONNECTED, DataPathState::CONFIGURED);
+      if (ase){
+        log::info("{} is the first device with active ase", leAudioDevice->address_);
+        RemoveDataPathByCisHandle(leAudioDevice, ase->cis_conn_hdl);
+        break;
+      } else {
+        log::info("{} has no active ase, search next device", leAudioDevice->address_);
+        leAudioDevice = group->GetNextActiveDevice(leAudioDevice);
+      }
+    }
   }
 
   static uint8_t audioContextToUseCase(const LeAudioContextType& context) {
