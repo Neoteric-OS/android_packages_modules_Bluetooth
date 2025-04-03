@@ -1463,6 +1463,7 @@ class BluetoothManagerService {
                             TAG,
                             ("MESSAGE_HANDLE_DISABLE_DELAYED(disabling=" + disabling + ")")
                                     + (": mAdapter=" + mAdapter));
+                    handleDisableDelayed(disabling);
                     break;
 
                 case MESSAGE_RESTORE_USER_SETTING_OFF:
