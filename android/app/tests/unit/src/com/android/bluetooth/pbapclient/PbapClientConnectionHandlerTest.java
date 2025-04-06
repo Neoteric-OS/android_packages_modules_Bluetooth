@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 The Android Open Source Project
+ * Copyright (C) 2022 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,7 +29,6 @@ import static org.mockito.Mockito.when;
 
 import android.bluetooth.BluetoothDevice;
 import android.content.ContentResolver;
-import android.content.res.Resources;
 import android.os.HandlerThread;
 import android.os.Looper;
 
@@ -45,15 +44,15 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 
+/** Test cases for {@link PbapClientConnectionHandler}. */
 @SmallTest
 @RunWith(AndroidJUnit4.class)
 public class PbapClientConnectionHandlerTest {
-    private static final String TAG = "ConnHandlerTest";
+    private static final String TAG = PbapClientConnectionHandlerTest.class.getSimpleName();
 
     @Rule public final MockitoRule mMockitoRule = new MockitoRule();
 
     @Mock private PbapClientService mService;
-    @Mock private Resources mMockResources;
     @Mock private ContentResolver mMockContentResolver;
     @Mock private PbapClientStateMachineOld mStateMachine;
 
@@ -79,8 +78,7 @@ public class PbapClientConnectionHandlerTest {
 
         doReturn(mService).when(mStateMachine).getContext();
         doReturn(mMockContentResolver).when(mService).getContentResolver();
-        doReturn(mMockResources).when(mService).getResources();
-        doReturn("com.android.bluetooth.pbapclient").when(mMockResources).getString(anyInt());
+        doReturn("com.android.bluetooth.pbapclient").when(mService).getString(anyInt());
 
         mHandler =
                 new PbapClientConnectionHandler.Builder()

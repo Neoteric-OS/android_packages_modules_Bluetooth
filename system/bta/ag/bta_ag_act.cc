@@ -358,9 +358,7 @@ void bta_ag_rfc_fail(tBTA_AG_SCB* p_scb, const tBTA_AG_DATA& /* data */) {
   log::info("reset p_scb with index={}", bta_ag_scb_to_idx(p_scb));
   RawAddress peer_addr = p_scb->peer_addr;
   /* reinitialize stuff */
-  if (com::android::bluetooth::flags::reset_ag_state_on_collision()) {
-    p_scb->state = BTA_AG_INIT_ST;
-  }
+  p_scb->state = BTA_AG_INIT_ST;
   p_scb->conn_handle = 0;
   p_scb->conn_service = 0;
   p_scb->peer_features = 0;
@@ -406,7 +404,6 @@ void bta_ag_rfc_close(tBTA_AG_SCB* p_scb, const tBTA_AG_DATA& /* data */) {
   p_scb->codec_updated = false;
   p_scb->codec_fallback = false;
   p_scb->trying_cvsd_safe_settings = false;
-  p_scb->retransmission_effort_retries = 0;
   p_scb->codec_msbc_settings = BTA_AG_SCO_MSBC_SETTINGS_T2;
   p_scb->codec_cvsd_settings = BTA_AG_SCO_CVSD_SETTINGS_S4;
   p_scb->codec_aptx_settings = BTA_AG_SCO_APTX_SWB_SETTINGS_Q0;
@@ -901,17 +898,8 @@ void bta_ag_setcodec(tBTA_AG_SCB* p_scb, const tBTA_AG_DATA& data) {
   (*bta_ag_cb.p_cback)(BTA_AG_CODEC_EVT, (tBTA_AG*)&val);
 }
 
-static void bta_ag_collision_timer_cback(void* data) {
-  if (data == nullptr) {
-    log::error("data should never be null in a timer callback");
-    return;
-  }
-  /* If the peer haven't opened AG connection     */
-  /* we will restart opening process.             */
-  bta_ag_resume_open(static_cast<tBTA_AG_SCB*>(data));
-}
-
-void bta_ag_handle_collision(tBTA_AG_SCB* p_scb, const tBTA_AG_DATA& /* data */) {
+void bta_ag_handle_collision(tBTA_AG_SCB* p_scb,
+                             const tBTA_AG_DATA& /* data */) {
   /* Cancel SDP if it had been started. */
   if (p_scb->p_disc_db) {
     if (!get_legacy_stack_sdp_api()->service.SDP_CancelServiceSearch(p_scb->p_disc_db)) {
@@ -920,13 +908,17 @@ void bta_ag_handle_collision(tBTA_AG_SCB* p_scb, const tBTA_AG_DATA& /* data */)
     bta_ag_free_db(p_scb, tBTA_AG_DATA::kEmpty);
   }
 
+  RawAddress peer_addr = p_scb->peer_addr;
+  p_scb->peer_addr = RawAddress::kEmpty;
+  log::verbose("sending RFCOMM fail event to btif for dev: {}",
+            peer_addr);
+  bta_ag_cback_open(p_scb, peer_addr, BTA_AG_FAIL_RFCOMM);
+
   /* reopen registered servers */
   /* Collision may be detected before or after we close servers. */
   if (bta_ag_is_server_closed(p_scb)) {
     bta_ag_start_servers(p_scb, p_scb->reg_services);
   }
 
-  /* Start timer to han */
-  alarm_set_on_mloop(p_scb->collision_timer, BTA_AG_COLLISION_TIMEOUT_MS,
-                     bta_ag_collision_timer_cback, p_scb);
+  /* connection is retried from apps, no need for connection attempt again */
 }

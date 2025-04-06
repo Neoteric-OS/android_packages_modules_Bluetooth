@@ -37,7 +37,7 @@ import java.util.Arrays;
 public class LeAudioNativeInterface {
     private static final String TAG = LeAudioNativeInterface.class.getSimpleName();
 
-    private BluetoothAdapter mAdapter;
+    private final BluetoothAdapter mAdapter;
 
     @GuardedBy("INSTANCE_LOCK")
     private static LeAudioNativeInterface sInstance;
@@ -69,14 +69,14 @@ public class LeAudioNativeInterface {
         }
     }
 
-    private byte[] getByteAddress(BluetoothDevice device) {
+    private static byte[] getByteAddress(BluetoothDevice device) {
         if (device == null) {
             return Utils.getBytesFromAddress("00:00:00:00:00:00");
         }
         return Utils.getBytesFromAddress(device.getAddress());
     }
 
-    private void sendMessageToService(LeAudioStackEvent event) {
+    private static void sendMessageToService(LeAudioStackEvent event) {
         LeAudioService service = LeAudioService.getLeAudioService();
         if (service != null) {
             service.messageFromNative(event);
@@ -92,7 +92,7 @@ public class LeAudioNativeInterface {
     // Callbacks from the native stack back into the Java framework.
     // All callbacks are routed via the Service which will disambiguate which
     // state machine the message should be routed to.
-    private void onInitialized() {
+    private static void onInitialized() {
         LeAudioStackEvent event =
                 new LeAudioStackEvent(LeAudioStackEvent.EVENT_TYPE_NATIVE_INITIALIZED);
 
@@ -428,11 +428,6 @@ public class LeAudioNativeInterface {
         setGroupAllowedContextMaskNative(groupId, sinkContextTypes, sourceContextTypes);
     }
 
-    public void updateCallAudioRoute(int callAudioRoute) {
-        Log.d(TAG, "updateCallAudioRoute callAudioRoute: " + callAudioRoute);
-        updateCallAudioRouteNative(callAudioRoute);
-    }
-
     // Native methods that call into the JNI interface
     private native void initNative(BluetoothLeAudioCodecConfig[] codecConfigOffloading);
 
@@ -469,6 +464,4 @@ public class LeAudioNativeInterface {
 
     private native void setGroupAllowedContextMaskNative(
             int groupId, int sinkContextTypes, int sourceContextTypes);
-
-    private native void updateCallAudioRouteNative(int callAudioRoute);
 }

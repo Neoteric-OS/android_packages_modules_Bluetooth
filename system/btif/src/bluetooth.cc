@@ -41,6 +41,7 @@
 #include <utility>
 #include <vector>
 
+#include "bta/gatt/bta_gattc_int.h"
 #include "bta/hh/bta_hh_int.h"
 #include "bta/include/bta_api.h"
 #include "bta/include/bta_ar_api.h"
@@ -53,6 +54,7 @@
 #include "bta/include/bta_le_audio_broadcaster_api.h"
 #include "bta/include/bta_vc_api.h"
 #include "btif/avrcp/avrcp_service.h"
+#include "btif/include/bluetooth.h"
 #include "btif/include/btif_a2dp.h"
 #include "btif/include/btif_a2dp_source.h"
 #include "btif/include/btif_api.h"
@@ -62,23 +64,24 @@
 #include "btif/include/btif_config.h"
 #include "btif/include/btif_debug_conn.h"
 #include "btif/include/btif_dm.h"
+#include "btif/include/btif_gatt.h"
 #include "btif/include/btif_hd.h"
 #include "btif/include/btif_hearing_aid.h"
 #include "btif/include/btif_hf.h"
 #include "btif/include/btif_hf_client.h"
 #include "btif/include/btif_hh.h"
 #include "btif/include/btif_keystore.h"
-#include "btif/include/btif_metrics_logging.h"
+#include "btif/include/btif_le_audio.h"
 #include "btif/include/btif_pan.h"
 #include "btif/include/btif_profile_storage.h"
 #include "btif/include/btif_rc.h"
+#include "btif/include/btif_sdp.h"
 #include "btif/include/btif_sock.h"
 #include "btif/include/btif_sock_logging.h"
 #include "btif/include/btif_storage.h"
 #include "btif/include/core_callbacks.h"
 #include "btif/include/stack_manager_t.h"
 #include "common/address_obfuscator.h"
-#include "common/metrics.h"
 #include "common/os_utils.h"
 #include "device/include/device_iot_config.h"
 #include "device/include/esco_parameters.h"
@@ -96,6 +99,7 @@
 #include "hardware/bt_vc.h"
 #include "internal_include/bt_target.h"
 #include "main/shim/dumpsys.h"
+#include "main/shim/metric_id_api.h"
 #include "os/parameter_provider.h"
 #include "osi/include/alarm.h"
 #include "osi/include/allocator.h"
@@ -130,9 +134,6 @@
 #include "types/bt_transport.h"
 #include "types/raw_address.h"
 
-// TODO(b/369381361) Enfore -Wmissing-prototypes
-#pragma GCC diagnostic ignored "-Wmissing-prototypes"
-
 using bluetooth::csis::CsisClientInterface;
 using bluetooth::has::HasClientInterface;
 using bluetooth::le_audio::LeAudioBroadcasterInterface;
@@ -163,11 +164,11 @@ tBT_TRANSPORT to_bt_transport(int val) {
  ******************************************************************************/
 
 static bt_callbacks_t* bt_hal_cbacks = NULL;
-bool restricted_mode = false;
-bool common_criteria_mode = false;
-const int CONFIG_COMPARE_ALL_PASS = 0b11;
-int common_criteria_config_compare_result = CONFIG_COMPARE_ALL_PASS;
-bool is_local_device_atv = false;
+static bool restricted_mode = false;
+static bool common_criteria_mode = false;
+static constexpr int CONFIG_COMPARE_ALL_PASS = 0b11;
+static int common_criteria_config_compare_result = CONFIG_COMPARE_ALL_PASS;
+static bool is_local_device_atv = false;
 
 /*******************************************************************************
  *  Externs
@@ -436,7 +437,7 @@ static void set_adapter_index(int adapter) { global_hci_adapter = adapter; }
 int GetAdapterIndex() { return global_hci_adapter; }
 #else
 int GetAdapterIndex() { return 0; }  // Unsupported outside of FLOSS
-#endif
+#endif  // TARGET_FLOSS
 
 static int init(bt_callbacks_t* callbacks, bool start_restricted, bool is_common_criteria_mode,
                 int config_compare_result, bool is_atv) {
@@ -584,7 +585,7 @@ static int set_adapter_property(const bt_property_t* property) {
   return BT_STATUS_SUCCESS;
 }
 
-int get_remote_device_properties(RawAddress* remote_addr) {
+static int get_remote_device_properties(RawAddress* remote_addr) {
   if (!btif_is_enabled()) {
     return BT_STATUS_NOT_READY;
   }
@@ -593,7 +594,7 @@ int get_remote_device_properties(RawAddress* remote_addr) {
   return BT_STATUS_SUCCESS;
 }
 
-int get_remote_device_property(RawAddress* remote_addr, bt_property_type_t type) {
+static int get_remote_device_property(RawAddress* remote_addr, bt_property_type_t type) {
   if (!btif_is_enabled()) {
     return BT_STATUS_NOT_READY;
   }
@@ -602,7 +603,7 @@ int get_remote_device_property(RawAddress* remote_addr, bt_property_type_t type)
   return BT_STATUS_SUCCESS;
 }
 
-int set_remote_device_property(RawAddress* remote_addr, const bt_property_t* property) {
+static int set_remote_device_property(RawAddress* remote_addr, const bt_property_t* property) {
   if (!btif_is_enabled()) {
     return BT_STATUS_NOT_READY;
   }
@@ -616,7 +617,7 @@ int set_remote_device_property(RawAddress* remote_addr, const bt_property_t* pro
   return BT_STATUS_SUCCESS;
 }
 
-int get_remote_services(RawAddress* remote_addr, int transport) {
+static int get_remote_services(RawAddress* remote_addr, int transport) {
   if (!interface_ready()) {
     return BT_STATUS_NOT_READY;
   }
@@ -926,10 +927,6 @@ static void dump(int fd, const char** /*arguments*/) {
   log::debug("Finished bluetooth dumpsys");
 }
 
-static void dumpMetrics(std::string* output) {
-  bluetooth::common::BluetoothMetricsLogger::GetInstance()->WriteString(output);
-}
-
 static int get_remote_pbap_pce_version(const RawAddress* bd_addr) {
   // Read and restore the PCE version from local storage
   uint16_t pce_version = 0;
@@ -1030,7 +1027,7 @@ static const void* get_profile_interface(const char* profile_id) {
   return NULL;
 }
 
-int dut_mode_configure(uint8_t enable) {
+static int dut_mode_configure(uint8_t enable) {
   if (!interface_ready()) {
     return BT_STATUS_NOT_READY;
   }
@@ -1042,7 +1039,7 @@ int dut_mode_configure(uint8_t enable) {
   return BT_STATUS_SUCCESS;
 }
 
-int dut_mode_send(uint16_t opcode, uint8_t* buf, uint8_t len) {
+static int dut_mode_send(uint16_t opcode, uint8_t* buf, uint8_t len) {
   if (!interface_ready()) {
     return BT_STATUS_NOT_READY;
   }
@@ -1062,7 +1059,7 @@ int dut_mode_send(uint16_t opcode, uint8_t* buf, uint8_t len) {
   return BT_STATUS_SUCCESS;
 }
 
-int le_test_mode(uint16_t opcode, uint8_t* buf, uint8_t len) {
+static int le_test_mode(uint16_t opcode, uint8_t* buf, uint8_t len) {
   if (!interface_ready()) {
     return BT_STATUS_NOT_READY;
   }
@@ -1138,7 +1135,7 @@ static std::string obfuscate_address(const RawAddress& address) {
 }
 
 static int get_metric_id(const RawAddress& address) {
-  return allocate_metric_id_from_metric_id_allocator(address);
+  return bluetooth::shim::AllocateIdFromMetricIdAllocator(address);
 }
 
 static int set_dynamic_audio_buffer_size(int codec, int size) {
@@ -1280,7 +1277,6 @@ EXPORT_SYMBOL bt_interface_t bluetoothInterface = {
         .set_os_callouts = set_os_callouts,
         .read_energy_info = read_energy_info,
         .dump = dump,
-        .dumpMetrics = dumpMetrics,
         .config_clear = config_clear,
         .interop_database_clear = interop_database_clear,
         .interop_database_add = interop_database_add,
@@ -1317,7 +1313,7 @@ EXPORT_SYMBOL bt_interface_t bluetoothInterface = {
 
 // callback reporting helpers
 
-bt_property_t* property_deep_copy_array(int num_properties, bt_property_t* properties) {
+static bt_property_t* property_deep_copy_array(int num_properties, bt_property_t* properties) {
   bt_property_t* copy = nullptr;
   if (num_properties > 0) {
     size_t content_len = 0;
@@ -1576,5 +1572,4 @@ void invoke_encryption_change_cb(bt_encryption_change_evt encryption_change) {
 
 namespace bluetooth::testing {
 void set_hal_cbacks(bt_callbacks_t* callbacks) { ::set_hal_cbacks(callbacks); }
-
 }  // namespace bluetooth::testing

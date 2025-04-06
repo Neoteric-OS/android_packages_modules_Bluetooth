@@ -64,6 +64,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 // Describes the phone policy
 //
@@ -77,7 +78,8 @@ import java.util.List;
 // will try to connect other profiles on the same device. This is to avoid collision if devices
 // somehow end up trying to connect at same time or general connection issues.
 public class PhonePolicy implements AdapterService.BluetoothStateCallback {
-    private static final String TAG = "BluetoothPhonePolicy";
+    private static final String TAG =
+            Utils.TAG_PREFIX_BLUETOOTH + PhonePolicy.class.getSimpleName();
 
     private static final int MESSAGE_AUTO_CONNECT_PROFILES = 50;
 
@@ -103,12 +105,24 @@ public class PhonePolicy implements AdapterService.BluetoothStateCallback {
     private final AdapterService mAdapterService;
     private final ServiceFactory mFactory;
     private final Handler mHandler;
-    private final HashSet<BluetoothDevice> mHeadsetRetrySet = new HashSet<>();
-    private final HashSet<BluetoothDevice> mA2dpRetrySet = new HashSet<>();
-    private final HashSet<BluetoothDevice> mConnectOtherProfilesDeviceSet = new HashSet<>();
+    private final Set<BluetoothDevice> mHeadsetRetrySet = new HashSet<>();
+    private final Set<BluetoothDevice> mA2dpRetrySet = new HashSet<>();
+    private final Set<BluetoothDevice> mConnectOtherProfilesDeviceSet = new HashSet<>();
 
     @VisibleForTesting boolean mAutoConnectProfilesSupported;
     @VisibleForTesting boolean mLeAudioEnabledByDefault;
+
+    PhonePolicy(AdapterService service, Looper looper, ServiceFactory factory) {
+        mAdapterService = service;
+        mDatabaseManager = requireNonNull(service.getDatabase());
+        mFactory = factory;
+        mHandler = new Handler(looper);
+        mAutoConnectProfilesSupported =
+                SystemProperties.getBoolean(AUTO_CONNECT_PROFILES_PROPERTY, false);
+        mLeAudioEnabledByDefault =
+                SystemProperties.getBoolean(LE_AUDIO_CONNECTION_BY_DEFAULT_PROPERTY, true);
+        mAdapterService.registerBluetoothStateCallback(mHandler::post, this);
+    }
 
     @Override
     public void onBluetoothStateChange(int prevState, int newState) {
@@ -121,7 +135,7 @@ public class PhonePolicy implements AdapterService.BluetoothStateCallback {
     }
 
 
-     private boolean isConnectTimeoutDelayApplicable(BluetoothDevice device) {
+     private static boolean isConnectTimeoutDelayApplicable(BluetoothDevice device) {
         if (device == null) return false;
 
         boolean matched = InteropUtil.interopMatchAddrOrName(
@@ -131,7 +145,7 @@ public class PhonePolicy implements AdapterService.BluetoothStateCallback {
         return matched;
      }
 
-     private boolean isConnectReducedTimeoutDelayApplicable(BluetoothDevice device) {
+     private static boolean isConnectReducedTimeoutDelayApplicable(BluetoothDevice device) {
         if (device == null) return false;
 
         boolean matched = InteropUtil.interopMatchAddrOrName(
@@ -170,18 +184,6 @@ public class PhonePolicy implements AdapterService.BluetoothStateCallback {
     public void cleanup() {
         mAdapterService.unregisterBluetoothStateCallback(this);
         resetStates();
-    }
-
-    PhonePolicy(AdapterService service, Looper looper, ServiceFactory factory) {
-        mAdapterService = service;
-        mDatabaseManager = requireNonNull(service.getDatabase());
-        mFactory = factory;
-        mHandler = new Handler(looper);
-        mAutoConnectProfilesSupported =
-                SystemProperties.getBoolean(AUTO_CONNECT_PROFILES_PROPERTY, false);
-        mLeAudioEnabledByDefault =
-                SystemProperties.getBoolean(LE_AUDIO_CONNECTION_BY_DEFAULT_PROPERTY, true);
-        mAdapterService.registerBluetoothStateCallback(mHandler::post, this);
     }
 
     boolean isLeAudioOnlyGroup(BluetoothDevice device) {
@@ -1075,9 +1077,8 @@ public class PhonePolicy implements AdapterService.BluetoothStateCallback {
                 List<BluetoothDevice> connectedDevices = hapClientService.getConnectedDevices();
                 if (!connectedDevices.contains(device)
                         && (hapClientService.getConnectionPolicy(device)
-                                == BluetoothProfile.CONNECTION_POLICY_ALLOWED)
-                        && (hapClientService.getConnectionState(device)
-                                == BluetoothProfile.STATE_DISCONNECTED)) {
+                                == CONNECTION_POLICY_ALLOWED)
+                        && (hapClientService.getConnectionState(device) == STATE_DISCONNECTED)) {
                     Log.d(TAG, log + "Retrying HAP connection");
                     hapClientService.connect(device);
                 }
@@ -1124,11 +1125,10 @@ public class PhonePolicy implements AdapterService.BluetoothStateCallback {
                 profileId < BluetoothProfile.MAX_PROFILE_ID;
                 profileId++) {
             if (mAdapterService.getDatabase().getProfileConnectionPolicy(device, profileId)
-                    == BluetoothProfile.CONNECTION_POLICY_ALLOWED) {
+                    == CONNECTION_POLICY_ALLOWED) {
                 mAdapterService
                         .getDatabase()
-                        .setProfileConnectionPolicy(
-                                device, profileId, BluetoothProfile.CONNECTION_POLICY_FORBIDDEN);
+                        .setProfileConnectionPolicy(device, profileId, CONNECTION_POLICY_FORBIDDEN);
             }
         }
     }

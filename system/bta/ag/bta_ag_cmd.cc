@@ -19,6 +19,7 @@
 #define LOG_TAG "bta_ag_cmd"
 
 #include <bluetooth/log.h>
+#include <com_android_bluetooth_flags.h>
 #include <string.h>
 
 #include <cctype>
@@ -47,6 +48,8 @@
 #include "btif/include/btif_storage.h"
 #include "device/include/interop.h"
 #include "internal_include/bt_target.h"
+#include "main/shim/helpers.h"
+#include "main/shim/metrics_api.h"
 #include "osi/include/compat.h"
 #include "osi/include/properties.h"
 #include "stack/btm/btm_sco_hfp_hal.h"
@@ -55,6 +58,7 @@
 #include "stack/include/port_api.h"
 
 using namespace bluetooth;
+using namespace bluetooth::shim;
 
 /*****************************************************************************
  *  Constants
@@ -1193,7 +1197,12 @@ void bta_ag_at_hfp_cback(tBTA_AG_SCB* p_scb, uint16_t cmd, uint8_t arg_type, cha
 
       if (p_scb->peer_version < HFP_VERSION_1_7 &&
           !osi_property_get_bool("vendor.bt.pts.certification", false)) {
-        p_scb->masked_features &= HFP_1_6_FEAT_MASK;
+        if (!(com::android::bluetooth::flags::check_peer_hf_indicator() &&
+              p_scb->peer_version == HFP_HSP_VERSION_UNKNOWN &&
+              (p_scb->peer_features & BTA_AG_PEER_FEAT_HF_IND))) {
+          p_scb->masked_features &= HFP_1_6_FEAT_MASK;
+        }
+
       }
 
       if (interop_match_addr_or_name(INTEROP_DISABLE_CODEC_NEGOTIATION, &p_scb->peer_addr,
@@ -1203,6 +1212,7 @@ void bta_ag_at_hfp_cback(tBTA_AG_SCB* p_scb, uint16_t cmd, uint8_t arg_type, cha
         p_scb->peer_features = p_scb->peer_features & ~(BTA_AG_PEER_FEAT_CODEC);
       }
 
+      LogMetricHfpAgVersion(ToGdAddress(p_scb->peer_addr), p_scb->peer_version);
       log::verbose("BRSF HF: 0x{:x}, phone: 0x{:x}", p_scb->peer_features, p_scb->masked_features);
 
       /* send BRSF, send OK */
@@ -1397,6 +1407,13 @@ void bta_ag_at_hfp_cback(tBTA_AG_SCB* p_scb, uint16_t cmd, uint8_t arg_type, cha
       break;
     }
     case BTA_AG_LOCAL_EVT_BCC: {
+      if (!bta_ag_is_call_present(&p_scb->peer_addr)) {
+        log::warn(
+            "NOT opening SCO for EVT {} as {} does not have call, call setup",
+            "BTA_AG_LOCAL_EVT_BCC", p_scb->peer_addr.ToStringForLogging());
+        bta_ag_send_error(p_scb, BTA_AG_ERR_OP_NOT_ALLOWED);
+        break;
+      }
       if (!bta_ag_sco_is_active_device(p_scb->peer_addr)) {
         log::warn("NOT opening SCO for EVT {} as {} is not the active HFP device",
                   "BTA_AG_LOCAL_EVT_BCC", p_scb->peer_addr.ToStringForLogging());
@@ -2079,6 +2096,8 @@ void bta_ag_send_ring(tBTA_AG_SCB* p_scb, const tBTA_AG_DATA& /* data */) {
               p_scb->callsetup_ind);
     return;
   }
+  log::info("exiting sniff for sending RING");
+  bta_sys_busy(BTA_ID_AG, p_scb->app_id, p_scb->peer_addr);
   /* send RING */
   bta_ag_send_result(p_scb, BTA_AG_LOCAL_RES_RING, nullptr, 0);
 
@@ -2089,6 +2108,9 @@ void bta_ag_send_ring(tBTA_AG_SCB* p_scb, const tBTA_AG_DATA& /* data */) {
 
   bta_sys_start_timer(p_scb->ring_timer, BTA_AG_RING_TIMEOUT_MS, BTA_AG_RING_TIMEOUT_EVT,
                       bta_ag_scb_to_idx(p_scb));
+
+  log::info("resetting idle timer after sending RING");
+  bta_sys_idle(BTA_ID_AG, p_scb->app_id, p_scb->peer_addr);
 }
 
 /*******************************************************************************

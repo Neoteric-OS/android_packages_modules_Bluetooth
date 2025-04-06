@@ -48,6 +48,7 @@ import android.util.Log;
 
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -61,7 +62,7 @@ import java.util.Map;
  * @see AdvertiseData
  */
 public final class BluetoothLeAdvertiser {
-    private static final String TAG = "BluetoothLeAdvertiser";
+    private static final String TAG = BluetoothLeAdvertiser.class.getSimpleName();
 
     private static final int MAX_LEGACY_ADVERTISING_DATA_BYTES = 31;
     // Each fields need one byte for field length and another byte for field type.
@@ -74,16 +75,16 @@ public final class BluetoothLeAdvertiser {
      */
     private static final int ENCRYPTION_OVERHEAD_BYTES = 11;
 
-    private final BluetoothAdapter mBluetoothAdapter;
-    private final AttributionSource mAttributionSource;
-
-    private final Handler mHandler;
     private final Map<AdvertiseCallback, AdvertisingSetCallback> mLegacyAdvertisers =
             new HashMap<>();
     private final Map<AdvertisingSetCallback, IAdvertisingSetCallback> mCallbackWrappers =
             Collections.synchronizedMap(new HashMap<>());
     private final Map<Integer, AdvertisingSet> mAdvertisingSets =
             Collections.synchronizedMap(new HashMap<>());
+
+    private final BluetoothAdapter mBluetoothAdapter;
+    private final AttributionSource mAttributionSource;
+    private final Handler mHandler;
 
     /**
      * Use BluetoothAdapter.getLeAdvertiser() instead.
@@ -289,7 +290,7 @@ public final class BluetoothLeAdvertiser {
      *     three bytes will be added for flags.
      * @param scanResponse Scan response associated with the advertisement data. Size must not
      *     exceed {@link BluetoothAdapter#getLeMaximumAdvertisingDataLength}.
-     * @param periodicParameters periodic advertisng parameters. If null, periodic advertising will
+     * @param periodicParameters periodic advertising parameters. If null, periodic advertising will
      *     not be started.
      * @param periodicData Periodic advertising data. Size must not exceed {@link
      *     BluetoothAdapter#getLeMaximumAdvertisingDataLength}.
@@ -339,7 +340,7 @@ public final class BluetoothLeAdvertiser {
      *     three bytes will be added for flags.
      * @param scanResponse Scan response associated with the advertisement data. Size must not
      *     exceed {@link BluetoothAdapter#getLeMaximumAdvertisingDataLength}.
-     * @param periodicParameters periodic advertisng parameters. If null, periodic advertising will
+     * @param periodicParameters periodic advertising parameters. If null, periodic advertising will
      *     not be started.
      * @param periodicData Periodic advertising data. Size must not exceed {@link
      *     BluetoothAdapter#getLeMaximumAdvertisingDataLength}.
@@ -391,7 +392,7 @@ public final class BluetoothLeAdvertiser {
      *     three bytes will be added for flags.
      * @param scanResponse Scan response associated with the advertisement data. Size must not
      *     exceed {@link BluetoothAdapter#getLeMaximumAdvertisingDataLength}.
-     * @param periodicParameters periodic advertisng parameters. If null, periodic advertising will
+     * @param periodicParameters periodic advertising parameters. If null, periodic advertising will
      *     not be started.
      * @param periodicData Periodic advertising data. Size must not exceed {@link
      *     BluetoothAdapter#getLeMaximumAdvertisingDataLength}.
@@ -448,7 +449,7 @@ public final class BluetoothLeAdvertiser {
      *     three bytes will be added for flags.
      * @param scanResponse Scan response associated with the advertisement data. Size must not
      *     exceed {@link BluetoothAdapter#getLeMaximumAdvertisingDataLength}
-     * @param periodicParameters Periodic advertisng parameters. If null, periodic advertising will
+     * @param periodicParameters Periodic advertising parameters. If null, periodic advertising will
      *     not be started.
      * @param periodicData Periodic advertising data. Size must not exceed {@link
      *     BluetoothAdapter#getLeMaximumAdvertisingDataLength}
@@ -515,7 +516,7 @@ public final class BluetoothLeAdvertiser {
      *     three bytes will be added for flags.
      * @param scanResponse Scan response associated with the advertisement data. Size must not
      *     exceed {@link BluetoothAdapter#getLeMaximumAdvertisingDataLength}
-     * @param periodicParameters Periodic advertisng parameters. If null, periodic advertising will
+     * @param periodicParameters Periodic advertising parameters. If null, periodic advertising will
      *     not be started.
      * @param periodicData Periodic advertising data. Size must not exceed {@link
      *     BluetoothAdapter#getLeMaximumAdvertisingDataLength}
@@ -619,7 +620,6 @@ public final class BluetoothLeAdvertiser {
         }
 
         IBluetoothAdvertise advertise = mBluetoothAdapter.getBluetoothAdvertise();
-
         if (advertise == null) {
             Log.e(TAG, "Bluetooth Advertise is null");
             postStartSetFailure(
@@ -705,66 +705,9 @@ public final class BluetoothLeAdvertiser {
         boolean encryptionBytesAdded = false;
         // Flags field is omitted if the advertising is not connectable.
         int size = (isFlagsIncluded) ? FLAGS_FIELD_BYTES : 0;
+        size += calculateUuidsSize(data.getServiceUuids());
+        size += calculateUuidsSize(data.getServiceSolicitationUuids());
 
-        if (data.getServiceUuids() != null) {
-            int num16BitUuids = 0;
-            int num32BitUuids = 0;
-            int num128BitUuids = 0;
-            for (ParcelUuid uuid : data.getServiceUuids()) {
-                if (BluetoothUuid.is16BitUuid(uuid)) {
-                    ++num16BitUuids;
-                } else if (BluetoothUuid.is32BitUuid(uuid)) {
-                    ++num32BitUuids;
-                } else {
-                    ++num128BitUuids;
-                }
-            }
-            // 16 bit service uuids are grouped into one field when doing advertising.
-            if (num16BitUuids != 0) {
-                size += OVERHEAD_BYTES_PER_FIELD + num16BitUuids * BluetoothUuid.UUID_BYTES_16_BIT;
-            }
-            // 32 bit service uuids are grouped into one field when doing advertising.
-            if (num32BitUuids != 0) {
-                size += OVERHEAD_BYTES_PER_FIELD + num32BitUuids * BluetoothUuid.UUID_BYTES_32_BIT;
-            }
-            // 128 bit service uuids are grouped into one field when doing advertising.
-            if (num128BitUuids != 0) {
-                size +=
-                        OVERHEAD_BYTES_PER_FIELD
-                                + num128BitUuids * BluetoothUuid.UUID_BYTES_128_BIT;
-            }
-            encryptionBytesAdded |= data.getServiceUuidsEnc();
-        }
-        if (data.getServiceSolicitationUuids() != null) {
-            int num16BitUuids = 0;
-            int num32BitUuids = 0;
-            int num128BitUuids = 0;
-            for (ParcelUuid uuid : data.getServiceSolicitationUuids()) {
-                if (BluetoothUuid.is16BitUuid(uuid)) {
-                    ++num16BitUuids;
-                } else if (BluetoothUuid.is32BitUuid(uuid)) {
-                    ++num32BitUuids;
-                } else {
-                    ++num128BitUuids;
-                }
-            }
-            // 16 bit service uuids are grouped into one field when doing advertising.
-            if (num16BitUuids != 0) {
-                size += OVERHEAD_BYTES_PER_FIELD + num16BitUuids * BluetoothUuid.UUID_BYTES_16_BIT;
-            }
-            // 32 bit service uuids are grouped into one field when doing advertising.
-            if (num32BitUuids != 0) {
-                size += OVERHEAD_BYTES_PER_FIELD + num32BitUuids * BluetoothUuid.UUID_BYTES_32_BIT;
-            }
-            // 128 bit service uuids are grouped into one field when doing advertising.
-            if (num128BitUuids != 0) {
-                size +=
-                        OVERHEAD_BYTES_PER_FIELD
-                                + num128BitUuids * BluetoothUuid.UUID_BYTES_128_BIT;
-            }
-
-            encryptionBytesAdded |= data.getServiceSolicitationUuidsEnc();
-        }
         for (TransportDiscoveryData transportDiscoveryData : data.getTransportDiscoveryData()) {
             size += OVERHEAD_BYTES_PER_FIELD + transportDiscoveryData.totalBytes();
         }
@@ -777,6 +720,12 @@ public final class BluetoothLeAdvertiser {
                     OVERHEAD_BYTES_PER_FIELD
                             + uuidLen
                             + byteLength(data.getServiceData().get(uuid));
+        }
+        for (Map.Entry<ParcelUuid, byte[]> entry : data.getServiceData().entrySet()) {
+            final ParcelUuid uuid = entry.getKey();
+            final byte[] serviceData = entry.getValue();
+            final int uuidLen = BluetoothUuid.uuidToBytes(uuid).length;
+            size += OVERHEAD_BYTES_PER_FIELD + uuidLen + byteLength(serviceData);
         }
         if (!data.getServiceData().isEmpty()) {
             encryptionBytesAdded |= data.getServiceDataEnc();
@@ -807,7 +756,37 @@ public final class BluetoothLeAdvertiser {
         return size;
     }
 
-    private int byteLength(byte[] array) {
+    private static int calculateUuidsSize(List<ParcelUuid> uuids) {
+        if (uuids == null) return 0;
+        int num16BitUuids = 0;
+        int num32BitUuids = 0;
+        int num128BitUuids = 0;
+        for (ParcelUuid uuid : uuids) {
+            if (BluetoothUuid.is16BitUuid(uuid)) {
+                ++num16BitUuids;
+            } else if (BluetoothUuid.is32BitUuid(uuid)) {
+                ++num32BitUuids;
+            } else {
+                ++num128BitUuids;
+            }
+        }
+        int size = 0;
+        // 16 bit service uuids are grouped into one field when doing advertising.
+        if (num16BitUuids != 0) {
+            size += OVERHEAD_BYTES_PER_FIELD + num16BitUuids * BluetoothUuid.UUID_BYTES_16_BIT;
+        }
+        // 32 bit service uuids are grouped into one field when doing advertising.
+        if (num32BitUuids != 0) {
+            size += OVERHEAD_BYTES_PER_FIELD + num32BitUuids * BluetoothUuid.UUID_BYTES_32_BIT;
+        }
+        // 128 bit service uuids are grouped into one field when doing advertising.
+        if (num128BitUuids != 0) {
+            size += OVERHEAD_BYTES_PER_FIELD + num128BitUuids * BluetoothUuid.UUID_BYTES_128_BIT;
+        }
+        return size;
+    }
+
+    private static int byteLength(byte[] array) {
         return array == null ? 0 : array.length;
     }
 
@@ -923,38 +902,19 @@ public final class BluetoothLeAdvertiser {
     }
 
     @SuppressLint("AndroidFrameworkBluetoothPermission")
-    private void postStartSetFailure(
+    private static void postStartSetFailure(
             Handler handler, final AdvertisingSetCallback callback, final int error) {
-        handler.post(
-                new Runnable() {
-                    @Override
-                    public void run() {
-                        callback.onAdvertisingSetStarted(null, 0, error);
-                    }
-                });
+        handler.post(() -> callback.onAdvertisingSetStarted(null, 0, error));
     }
 
     @SuppressLint("AndroidFrameworkBluetoothPermission")
     private void postStartFailure(final AdvertiseCallback callback, final int error) {
-        mHandler.post(
-                new Runnable() {
-                    @Override
-                    public void run() {
-                        callback.onStartFailure(error);
-                    }
-                });
+        mHandler.post(() -> callback.onStartFailure(error));
     }
 
     @SuppressLint("AndroidFrameworkBluetoothPermission")
     private void postStartSuccess(
             final AdvertiseCallback callback, final AdvertiseSettings settings) {
-        mHandler.post(
-                new Runnable() {
-
-                    @Override
-                    public void run() {
-                        callback.onStartSuccess(settings);
-                    }
-                });
+        mHandler.post(() -> callback.onStartSuccess(settings));
     }
 }

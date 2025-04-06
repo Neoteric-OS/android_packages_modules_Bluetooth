@@ -28,6 +28,7 @@
 #include "btif/include/btif_hf.h"
 #include "btif/include/btif_storage.h"
 #include "device/include/interop.h"
+#include "btif/include/btif_av.h"
 #include "internal_include/stack_config.h"
 #include "l2cdefs.h"
 #include "osi/include/properties.h"
@@ -44,13 +45,6 @@
 #include "types/raw_address.h"
 #include "btif/include/btif_config.h"
 #include "storage/config_keys.h"
-
-// TODO(b/369381361) Enfore -Wmissing-prototypes
-#pragma GCC diagnostic ignored "-Wmissing-prototypes"
-
-extern bool btif_av_peer_is_connected_sink(const RawAddress& peer_address);
-extern bool btif_av_both_enable(void);
-extern bool btif_av_src_sink_coexist_enabled(void);
 
 template <>
 struct std::formatter<bluetooth::avrcp::PlayState> : enum_formatter<bluetooth::avrcp::PlayState> {};
@@ -147,7 +141,7 @@ bool Device::HasCoverArtSupport() const {
   return coverart_supported;
 }
 
-void filter_cover_art(SongInfo& s) {
+static void filter_cover_art(SongInfo& s) {
   for (auto it = s.attributes.begin(); it != s.attributes.end(); it++) {
     if (it->attribute() == Attribute::DEFAULT_COVER_ART) {
       s.attributes.erase(it);
@@ -936,7 +930,10 @@ void Device::GetElementAttributesResponse(uint8_t label,
                                           SongInfo info) {
   auto get_element_attributes_pkt = pkt;
   auto attributes_requested = get_element_attributes_pkt->GetAttributesRequested();
-  bool all_attributes_flag = com::android::bluetooth::flags::get_all_element_attributes_empty();
+  bool all_attributes_flag =
+           osi_property_get_bool("persist.vendor.bt.a2dp.all_attributes_flag", false);
+  log::info(" Size of attributes_requested: {} all_attributes_flag: {}",
+                 attributes_requested.size(), all_attributes_flag);
 
   // To Pass PTS TC AVCTP/TG/FRA/BV-02-C
   /* After AVCTP connection is established with remote,
@@ -967,15 +964,25 @@ void Device::GetElementAttributesResponse(uint8_t label,
 
   if (attributes_requested.size() != 0) {
     for (const auto& attribute : attributes_requested) {
+      log::verbose("requested attribute: {}", AttributeText(attribute));
       if (info.attributes.find(attribute) != info.attributes.end()) {
-        response->AddAttributeEntry(*info.attributes.find(attribute));
+        if (info.attributes.find(attribute)->value().empty() && all_attributes_flag) {
+          log::verbose("Empty attribute found, add string Unavailable");
+          response->AddAttributeEntry(attribute, "Unavailable");
+        } else {
+          log::verbose("Add attribute value");
+          response->AddAttributeEntry(*info.attributes.find(attribute));
+        }
       } else if (all_attributes_flag) {
-        response->AddAttributeEntry(attribute, std::string());
+        log::info(" Attribute not found, add string Unavailable");
+        response->AddAttributeEntry(attribute, "Unavailable");
       }
     }
   } else {  // zero attributes requested which means all attributes requested
+    // Todo: Add condition !all_attributes_flag once flag is enabled by default
     if (!all_attributes_flag) {
       for (const auto& attribute : info.attributes) {
+        log::info(" Add attribute value");
         response->AddAttributeEntry(attribute);
       }
     } else {
@@ -989,11 +996,19 @@ void Device::GetElementAttributesResponse(uint8_t label,
                                                Attribute::DEFAULT_COVER_ART};
       for (const auto& attribute : all_attributes) {
         if (info.attributes.find(attribute) != info.attributes.end()) {
-          response->AddAttributeEntry(*info.attributes.find(attribute));
+          log::verbose("requested attribute: {}", AttributeText(attribute));
+          if (info.attributes.find(attribute)->value().empty() && all_attributes_flag) {
+            log::verbose("Empty attribute found, add string Unavailable");
+            response->AddAttributeEntry(attribute, "Unavailable");
+          } else {
+            log::info(" Add attribute value");
+            response->AddAttributeEntry(*info.attributes.find(attribute));
+          }
         } else {
           // If all attributes were requested, we send a response even for attributes that we don't
           // have a value for.
-          response->AddAttributeEntry(attribute, std::string());
+          log::info(" Attribute not found, add string Unavailable");
+          response->AddAttributeEntry(attribute, "Unavailable");
         }
       }
     }
@@ -1611,8 +1626,8 @@ void Device::GetMediaPlayerListResponse(uint8_t label, std::shared_ptr<GetFolder
   send_message(label, true, std::move(builder));
 }
 
-std::set<AttributeEntry> filter_attributes_requested(const SongInfo& song,
-                                                     const std::vector<Attribute>& attrs) {
+static std::set<AttributeEntry> filter_attributes_requested(const SongInfo& song,
+                                                            const std::vector<Attribute>& attrs) {
   std::set<AttributeEntry> result;
   for (const auto& attr : attrs) {
     if (song.attributes.find(attr) != song.attributes.end()) {

@@ -38,9 +38,6 @@
 #include "stack/include/hcimsgs.h"
 #include "stack/include/main_thread.h"
 
-// TODO(b/369381361) Enfore -Wmissing-prototypes
-#pragma GCC diagnostic ignored "-Wmissing-prototypes"
-
 using namespace bluetooth;
 
 /**
@@ -181,16 +178,16 @@ static void register_vs_event() {
           handler->Bind(cpp::qbce_link_power_ctrl_vse_cb));
 }
 
-void OnTransmitPacketCommandComplete(command_complete_cb complete_callback, void* context,
-                                     bluetooth::hci::CommandCompleteView view) {
+static void OnTransmitPacketCommandComplete(command_complete_cb complete_callback, void* context,
+                                            bluetooth::hci::CommandCompleteView view) {
   log::debug("Received cmd complete for {}", bluetooth::hci::OpCodeText(view.GetCommandOpCode()));
   BT_HDR* response = WrapPacketAndCopy(MSG_HC_TO_STACK_HCI_EVT, &view);
   complete_callback(response, context);
 }
 
-void OnTransmitPacketStatus(command_status_cb status_callback, void* context,
-                            std::unique_ptr<OsiObject> command,
-                            bluetooth::hci::CommandStatusView view) {
+static void OnTransmitPacketStatus(command_status_cb status_callback, void* context,
+                                   std::unique_ptr<OsiObject> command,
+                                   bluetooth::hci::CommandStatusView view) {
   log::debug("Received cmd status {} for {}", bluetooth::hci::ErrorCodeText(view.GetStatus()),
              bluetooth::hci::OpCodeText(view.GetCommandOpCode()));
   uint8_t status = static_cast<uint8_t>(view.GetStatus());

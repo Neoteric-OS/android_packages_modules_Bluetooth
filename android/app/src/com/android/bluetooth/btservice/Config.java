@@ -48,12 +48,12 @@ import com.android.bluetooth.pbapclient.PbapClientService;
 import com.android.bluetooth.sap.SapService;
 import com.android.bluetooth.tbs.TbsService;
 import com.android.bluetooth.vc.VolumeControlService;
-import com.android.internal.annotations.VisibleForTesting;
 
 import java.util.Arrays;
 
 public class Config {
-    private static final String TAG = "AdapterServiceConfig";
+    private static final String TAG =
+            AdapterService.class.getSimpleName() + Config.class.getSimpleName();
 
     private static final String LE_AUDIO_DYNAMIC_SWITCH_PROPERTY =
             "ro.bluetooth.leaudio_switcher.supported";
@@ -67,7 +67,7 @@ public class Config {
 
     private static class ProfileConfig {
         boolean mSupported;
-        int mProfileId;
+        final int mProfileId;
 
         ProfileConfig(boolean supported, int profileId) {
             mSupported = supported;
@@ -125,9 +125,11 @@ public class Config {
                         LeAudioService.isBroadcastEnabled(), BluetoothProfile.LE_AUDIO_BROADCAST),
             };
 
-    /** A test function to allow for dynamic enabled */
-    @VisibleForTesting
-    public static void setProfileEnabled(int profileId, boolean enabled) {
+    /**
+     * A test function to allow for dynamic enabled TODO: b/402559309 Remove non test usages
+     * (LeAudio)
+     */
+    static void setProfileEnabled(int profileId, boolean enabled) {
         for (ProfileConfig profile : PROFILE_SERVICES_AND_FLAGS) {
             if (profileId == profile.mProfileId) {
                 profile.mSupported = enabled;

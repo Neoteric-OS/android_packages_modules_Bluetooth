@@ -172,7 +172,6 @@ cc_defaults {
     static_libs: [
         "libaconfig_storage_read_api_cc",
         "libbase",
-        "libbluetooth-protos",
         "libbluetooth-types",
         "libbluetooth_crypto_toolbox",
         "libbluetooth_log",
@@ -200,7 +199,7 @@ cc_library_static {
         "packages/modules/Bluetooth/system",
     ],
     apex_available: ["com.android.bt"],
-    min_sdk_version: "31",
+    min_sdk_version: "33",
     static_libs: [
         "bluetooth_flags_c_lib",
         "libchrome",
@@ -365,8 +364,8 @@ cc_test {
     srcs: [
         ":BluetoothPacketTestSources",
         ":TestCommonMockFunctions",
+        ":TestMockMainShim",
         ":TestMockMainShimEntry",
-        ":TestMockStackMetrics",
         "common/bidi_queue_unittest.cc",
         "common/blocking_queue_unittest.cc",
         "common/byte_array_test.cc",
@@ -397,6 +396,7 @@ cc_test {
         "hci/class_of_device_unittest.cc",
         "hci/controller_test.cc",
         "hci/controller_unittest.cc",
+        "hci/distance_measurement_manager_test.cc",
         "hci/hci_layer_fake.cc",
         "hci/hci_layer_test.cc",
         "hci/hci_layer_unittest.cc",
@@ -422,10 +422,12 @@ cc_test {
         "storage/mutation_test.cc",
         "storage/storage_module_test.cc",
     ],
+    cflags: [
+        "-DUSE_FAKE_TIMERS",
+    ],
     static_libs: [
         "bluetooth_flags_c_lib_for_test",
         "libbase",
-        "libbluetooth-protos",
         "libbluetooth-types",
         "libbluetooth_crypto_toolbox",
         "libbluetooth_gd_unit_tests",
@@ -443,11 +445,13 @@ cc_test {
         "libgmock",
         "libosi",
         "server_configurable_flags",
+        "libbtdevice",
     ],
     shared_libs: [
         "libPlatformProperties",
         "libaconfig_storage_read_api_cc",
         "libcrypto",
+        "libxml2",
     ],
     sanitize: {
         address: true,
@@ -517,7 +521,6 @@ cc_defaults {
     ],
     static_libs: [
         "bluetooth_flags_c_lib",
-        "libbluetooth-protos",
         "libbluetooth-types",
         "libbluetooth_crypto_toolbox",
         "libbluetooth_gd_fuzzing",
@@ -543,6 +546,7 @@ cc_defaults {
     cflags: [
         "-DFUZZ_TARGET",
         "-DUSE_FAKE_TIMERS",
+        "-Wno-missing-prototypes",
     ],
     target: {
         android: {
@@ -590,11 +594,12 @@ cc_fuzz {
     defaults: ["gd_fuzz_defaults"],
     srcs: [
         ":TestCommonMockFunctions",
-        ":TestMockStackMetrics",
+        ":TestMockMainShim",
         "hci/fuzz/acl_manager_fuzz_test.cc",
     ],
     include_dirs: [
         "packages/modules/Bluetooth/system",
+        "packages/modules/Bluetooth/system/include",
     ],
     static_libs: [
         "libbt-platform-protos-lite",

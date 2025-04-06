@@ -71,7 +71,7 @@ import java.io.IOException;
  */
 @SuppressLint("AndroidFrameworkBluetoothPermission")
 public final class BluetoothServerSocket implements Closeable {
-    private static final String TAG = "BluetoothServerSocket";
+    private static final String TAG = BluetoothServerSocket.class.getSimpleName();
 
     private static final boolean DBG = Log.isLoggable(TAG, Log.DEBUG);
 
@@ -85,7 +85,7 @@ public final class BluetoothServerSocket implements Closeable {
 
     // BluetoothSocket.getConnectionType() will hide L2CAP_LE.
     // Therefore a new variable need to be maintained here.
-    private int mType;
+    private final int mType;
 
     /**
      * Construct a socket for incoming connections.

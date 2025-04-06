@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 The Android Open Source Project
+ * Copyright (C) 2024 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,11 +31,13 @@ import android.util.Log;
 
 import androidx.annotation.RequiresApi;
 
+import com.android.bluetooth.Utils;
 import com.android.internal.annotations.VisibleForTesting;
 
 @RequiresApi(Build.VERSION_CODES.VANILLA_ICE_CREAM)
 public class AdapterSuspend {
-    private static final String TAG = "BtAdapterSuspend";
+    private static final String TAG =
+            Utils.TAG_PREFIX_BLUETOOTH + AdapterSuspend.class.getSimpleName();
 
     // Event mask bits corresponding to specific HCI events
     // as defined in Bluetooth core v5.4, Vol 4, Part E, 7.3.1.

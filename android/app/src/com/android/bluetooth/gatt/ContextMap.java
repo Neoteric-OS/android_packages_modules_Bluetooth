@@ -50,7 +50,8 @@ import java.util.function.Predicate;
  * @param <C> the callback type for this map
  */
 public class ContextMap<C> {
-    private static final String TAG = GattServiceConfig.TAG_PREFIX + "ContextMap";
+    private static final String TAG =
+            GattServiceConfig.TAG_PREFIX + ContextMap.class.getSimpleName();
 
     private static final DateTimeFormatter sDateFormat =
             DateTimeFormatter.ofPattern("MM-dd HH:mm:ss").withZone(ZoneId.systemDefault());
@@ -98,7 +99,7 @@ public class ContextMap<C> {
         public Boolean isCongested = false;
 
         /** Internal callback info queue, waiting to be send on congestion clear */
-        private List<CallbackInfo> mCongestionQueue = new ArrayList<>();
+        private final List<CallbackInfo> mCongestionQueue = new ArrayList<>();
 
         /** Creates a new app context. */
         App(UUID uuid, C callback, int appUid, String name, AttributionSource attrSource) {
@@ -181,7 +182,7 @@ public class ContextMap<C> {
     private final Object mAppsLock = new Object();
 
     @GuardedBy("mAppsLock")
-    private List<App> mApps = new ArrayList<>();
+    private final List<App> mApps = new ArrayList<>();
 
     @GuardedBy("mAppsLock")
     private final List<AppRecord> mOngoingRecords = new ArrayList<>();
@@ -190,7 +191,7 @@ public class ContextMap<C> {
     private final List<AppRecord> mLastRecords = new ArrayList<>();
 
     /** Internal list of connected devices */
-    private List<Connection> mConnections = new ArrayList<>();
+    private final List<Connection> mConnections = new ArrayList<>();
 
     private final Object mConnectionsLock = new Object();
 
@@ -404,13 +405,13 @@ public class ContextMap<C> {
 
     /** Returns connect device map with addr and appid */
     Map<Integer, String> getConnectedMap() {
-        Map<Integer, String> connectedmap = new HashMap<Integer, String>();
+        Map<Integer, String> connectedMap = new HashMap<Integer, String>();
         synchronized (mConnectionsLock) {
             for (Connection conn : mConnections) {
-                connectedmap.put(conn.appId, conn.address);
+                connectedMap.put(conn.appId, conn.address);
             }
         }
-        return connectedmap;
+        return connectedMap;
     }
 
     /** Logs debug information. */

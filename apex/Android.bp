@@ -53,8 +53,6 @@ android_app_certificate {
 apex {
     name: "com.android.bt",
     defaults: ["b-launched-apex-module"],
-    // TODO b/356727632: remove min_sdk_version as this is set from b-launched-apex-module
-    min_sdk_version: "35",
     manifest: "manifest.json",
     bootclasspath_fragments: ["com.android.bt-bootclasspath-fragment"],
     systemserverclasspath_fragments: ["com.android.bt-systemserverclasspath-fragment"],
@@ -87,7 +85,6 @@ apex {
     ],
     key: "com.android.bt.key",
     certificate: ":com.android.bt.certificate",
-    updatable: true,
     compressible: false,
     visibility: ["//packages/modules/common/build"],
 }
@@ -124,7 +121,6 @@ bootclasspath_fragment {
     // Additional hidden API flag files to override the defaults. This must only be
     // modified by the Soong or platform compat team.
     hidden_api: {
-        max_target_o_low_priority: ["hiddenapi/hiddenapi-max-target-o-low-priority.txt"],
         max_target_r_low_priority: ["hiddenapi/hiddenapi-max-target-r-low-priority.txt"],
         unsupported: ["hiddenapi/hiddenapi-unsupported.txt"],
 

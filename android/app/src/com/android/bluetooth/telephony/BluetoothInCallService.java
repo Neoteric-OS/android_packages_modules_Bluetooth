@@ -20,17 +20,13 @@
 
 package com.android.bluetooth.telephony;
 
-import static android.Manifest.permission.BLUETOOTH_CONNECT;
-import static android.Manifest.permission.MODIFY_PHONE_STATE;
 
 import static java.util.Objects.requireNonNull;
 import static java.util.Objects.requireNonNullElseGet;
 
 import android.annotation.NonNull;
-import android.annotation.RequiresPermission;
 import android.annotation.SuppressLint;
 import android.bluetooth.BluetoothAdapter;
-import android.bluetooth.BluetoothHeadset;
 import android.bluetooth.BluetoothLeCall;
 import android.bluetooth.BluetoothLeCallControl;
 import android.bluetooth.BluetoothManager;
@@ -70,11 +66,8 @@ import androidx.annotation.VisibleForTesting;
 
 import com.android.bluetooth.Utils;
 import com.android.bluetooth.flags.Flags;
-import com.android.bluetooth.hfp.BluetoothHeadsetProxy;
 import com.android.bluetooth.hfp.HeadsetService;
 import com.android.bluetooth.tbs.BluetoothLeCallControlProxy;
-import com.android.bluetooth.le_audio.LeAudioService;
-import com.android.bluetooth.btservice.ServiceFactory;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -100,17 +93,52 @@ import java.util.concurrent.Executors;
  * the service triggering InCallActivity (via CallList) to finish soon after.
  */
 public class BluetoothInCallService extends InCallService {
-    private static final String TAG = "BluetoothInCallService";
+    private static final String TAG = BluetoothInCallService.class.getSimpleName();
 
     // match up with bthf_call_state_t of bt_hf.h
-    private static final int CALL_STATE_ACTIVE = 0;
-    private static final int CALL_STATE_HELD = 1;
-    private static final int CALL_STATE_DIALING = 2;
-    private static final int CALL_STATE_ALERTING = 3;
-    private static final int CALL_STATE_INCOMING = 4;
-    private static final int CALL_STATE_WAITING = 5;
-    private static final int CALL_STATE_IDLE = 6;
-    private static final int CALL_STATE_DISCONNECTED = 7;
+    private static class CallState {
+        private CallState() {}
+
+        static final int ACTIVE = 0;
+        static final int HELD = 1;
+        static final int DIALING = 2;
+        static final int ALERTING = 3;
+        static final int INCOMING = 4;
+        static final int WAITING = 5;
+        static final int IDLE = 6;
+        static final int DISCONNECTED = 7;
+    }
+
+    @VisibleForTesting
+    static class TerminationReason {
+        private TerminationReason() {}
+
+        static final int INVALID_URI = 0x00;
+        static final int FAIL = 0x01;
+        static final int REMOTE_HANGUP = 0x02;
+        static final int SERVER_HANGUP = 0x03;
+        static final int LINE_BUSY = 0x04;
+        static final int NETWORK_CONGESTION = 0x05;
+        static final int CLIENT_HANGUP = 0x06;
+        static final int NO_SERVICE = 0x07;
+        static final int NO_ANSWER = 0x08;
+    }
+
+    public static class Result {
+        private Result() {}
+
+        public static final int SUCCESS = 0;
+        public static final int ERROR_UNKNOWN_CALL_ID = 1;
+        public static final int ERROR_INVALID_URI = 2;
+        public static final int ERROR_APPLICATION = 3;
+    }
+
+    public static class Capability {
+        private Capability() {}
+
+        public static final int HOLD_CALL = 0x00000001;
+        public static final int JOIN_CALLS = 0x00000002;
+    }
 
     private InCallHandler mHandler = null;
     private HandlerThread mHandlerThread;
@@ -123,7 +151,7 @@ public class BluetoothInCallService extends InCallService {
     private static final int OUTGOING_DISCONNECTION = 5;
     private static final int DSDS_EVENT = 6;
 
-    public int mLastBtHeadsetState = CALL_STATE_IDLE;
+    public int mLastBtHeadsetState = CallState.IDLE;
 
     // match up with bthf_call_state_t of bt_hf.h
     // Terminate all held or set UDUB("busy") to a waiting call
@@ -141,12 +169,11 @@ public class BluetoothInCallService extends InCallService {
     private int mNumActiveCalls = 0;
     private int mNumHeldCalls = 0;
     private int mNumChildrenOfActiveCall = 0;
-    private int mBluetoothCallState = CALL_STATE_IDLE;
+    private int mBluetoothCallState = CallState.IDLE;
     private String mRingingAddress = "";
     private int mRingingAddressType = DEFAULT_RINGING_ADDRESS_TYPE;
     private BluetoothCall mOldHeldCall = null;
     private boolean mHeadsetUpdatedRecently = false;
-    private boolean mIsDisconnectedTonePlaying = false;
 
     //count variables for held and active calls for dsda
     public int mDsdaTotalcalls = 0;
@@ -154,7 +181,7 @@ public class BluetoothInCallService extends InCallService {
     public int mDsdaIncomingCalls = 0;
     public int mDsDaHeldCalls = 0;
     public int mDsDaOutgoingCalls = 0;
-    public int mDsDaCallState = CALL_STATE_IDLE;
+    public int mDsDaCallState = CallState.IDLE;
     public String mDsDaRingingAddress = null;
     public int mDsDaRingingAddressType = DEFAULT_RINGING_ADDRESS_TYPE;
     public String mDsDaRingingName = null;
@@ -183,14 +210,8 @@ public class BluetoothInCallService extends InCallService {
 
     private static final Object LOCK = new Object();
 
-    private final ServiceFactory mFactory = new ServiceFactory();
-
-    private LeAudioService mLeAudioService;
-
-    @VisibleForTesting BluetoothHeadsetProxy mBluetoothHeadset;
-
     @VisibleForTesting BluetoothLeCallControlProxy mBluetoothLeCallControl;
-    private ExecutorService mExecutor;
+    private final ExecutorService mExecutor;
 
     private TelephonyManager mTelephonyManager;
     private TelecomManager mTelecomManager;
@@ -224,7 +245,7 @@ public class BluetoothInCallService extends InCallService {
     private static final String ENABLE_DSDA_SUPPORT =
           "persist.bluetooth.init.dsda.support";
 
-    private final String EXTRAS_MSIM_VOICE_CAPABILITY = "MsimVoiceCapability";
+    private static final String EXTRAS_MSIM_VOICE_CAPABILITY = "MsimVoiceCapability";
 
     private static final String ACTION_MSIM_VOICE_CAPABILITY_CHANGED =
         "org.codeaurora.intent.action.MSIM_VOICE_CAPABILITY_CHANGED";
@@ -234,33 +255,23 @@ public class BluetoothInCallService extends InCallService {
     private final BluetoothProfile.ServiceListener mProfileListener =
             new BluetoothProfile.ServiceListener() {
                 @Override
-                @RequiresPermission(allOf = {BLUETOOTH_CONNECT, MODIFY_PHONE_STATE})
                 public void onServiceConnected(int profile, BluetoothProfile proxy) {
                     Log.d(TAG, "onServiceConnected for profile: " + profile);
                     synchronized (LOCK) {
-                        if (profile == BluetoothProfile.HEADSET) {
-                            mBluetoothHeadset = new BluetoothHeadsetProxy((BluetoothHeadset) proxy);
-                            if (!mEnableDsdaMode) {
-                              updateHeadsetWithCallState(true /* force */);
-                            } else {
-                              updateHeadsetWithDSDACallState(true, DSDS_EVENT);
-                            }
-                        } else {
-                            mBluetoothLeCallControl =
-                                    new BluetoothLeCallControlProxy((BluetoothLeCallControl) proxy);
+                        mBluetoothLeCallControl =
+                                new BluetoothLeCallControlProxy((BluetoothLeCallControl) proxy);
 
-                            boolean isBearerRegistered =
-                                    mBluetoothLeCallControl.registerBearer(
-                                            TAG,
-                                            List.of("tel"),
-                                            BluetoothLeCallControl.CAPABILITY_HOLD_CALL,
-                                            getNetworkOperator(),
-                                            getBearerTechnology(),
-                                            mExecutor,
-                                            mBluetoothLeCallControlCallback);
-                            Log.d(TAG, "isBearerRegistered: " + isBearerRegistered);
-                            sendTbsCurrentCallsList();
-                        }
+                        boolean isBearerRegistered =
+                                mBluetoothLeCallControl.registerBearer(
+                                        TAG,
+                                        List.of("tel"),
+                                        Capability.HOLD_CALL,
+                                        getNetworkOperator(),
+                                        getBearerTechnology(),
+                                        mExecutor,
+                                        mBluetoothLeCallControlCallback);
+                        Log.d(TAG, "isBearerRegistered: " + isBearerRegistered);
+                        sendTbsCurrentCallsList();
                     }
                     Log.d(TAG, "Calls updated for profile: " + profile);
                 }
@@ -269,11 +280,7 @@ public class BluetoothInCallService extends InCallService {
                 public void onServiceDisconnected(int profile) {
                     Log.d(TAG, "onServiceDisconnected: profile: " + profile);
                     synchronized (LOCK) {
-                        if (profile == BluetoothProfile.HEADSET) {
-                            mBluetoothHeadset = null;
-                        } else {
-                            mBluetoothLeCallControl = null;
-                        }
+                        mBluetoothLeCallControl = null;
                     }
                 }
             };
@@ -286,7 +293,7 @@ public class BluetoothInCallService extends InCallService {
                         intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, BluetoothAdapter.ERROR);
                 Log.d(TAG, "Bluetooth Adapter state: " + state);
                 if (state == BluetoothAdapter.STATE_ON) {
-                    queryPhoneState();
+                    queryPhoneState(HeadsetService.getHeadsetService());
                 } else if (state == BluetoothAdapter.STATE_TURNING_OFF) {
                     clear();
                 }
@@ -300,7 +307,7 @@ public class BluetoothInCallService extends InCallService {
                             for (int i=0; i < mTelephonyManager.getActiveModemCount(); i++){
                                 int subId = mTelephonyManager.getSubscriptionId();
                                 TelephonyManager tm = mTelephonyManager.createForSubscriptionId(subId);
-                                if (tm.getCallStateForSubscription() == CALL_STATE_IDLE) {
+                                if (tm.getCallStateForSubscription() == CallState.IDLE) {
                                     dsdsTransition = true;
                                 }
                             }
@@ -343,7 +350,6 @@ public class BluetoothInCallService extends InCallService {
             return mLastState;
         }
 
-        @RequiresPermission(allOf = {BLUETOOTH_CONNECT, MODIFY_PHONE_STATE})
         void onStateChanged(BluetoothCall call, int state) {
             if (mCallInfo.isNullCall(call)) {
                 return;
@@ -393,40 +399,42 @@ public class BluetoothInCallService extends InCallService {
             }
             mLastState = state;
             if (!mEnableDsdaMode) {
-               updateHeadsetWithCallState(false /* force */);
+               updateHeadsetWithCallState(HeadsetService.getHeadsetService(), false /* force */);
             } else {
               processOnStateChanged(call);
             }
         }
 
         @Override
-        @RequiresPermission(allOf = {BLUETOOTH_CONNECT, MODIFY_PHONE_STATE})
         public void onStateChanged(Call call, int state) {
             super.onStateChanged(call, state);
             onStateChanged(getBluetoothCallById(System.identityHashCode(call)), state);
         }
 
-        @RequiresPermission(allOf = {BLUETOOTH_CONNECT, MODIFY_PHONE_STATE})
-        void onDetailsChanged(BluetoothCall call, Call.Details details) {
+        @VisibleForTesting
+        void onDetailsChanged(
+                HeadsetService headsetService, BluetoothCall call, Call.Details details) {
             if (mCallInfo.isNullCall(call)) {
                 return;
             }
             if (call.isExternalCall()) {
-                onCallRemoved(call, false /* forceRemoveCallback */);
+                onCallRemoved(headsetService, call, false /* forceRemoveCallback */);
             } else {
-                onCallAdded(call);
+                onCallAdded(headsetService, call);
             }
         }
 
         @Override
-        @RequiresPermission(allOf = {BLUETOOTH_CONNECT, MODIFY_PHONE_STATE})
         public void onDetailsChanged(Call call, Call.Details details) {
             super.onDetailsChanged(call, details);
-            onDetailsChanged(getBluetoothCallById(System.identityHashCode(call)), details);
+            onDetailsChanged(
+                    HeadsetService.getHeadsetService(),
+                    getBluetoothCallById(System.identityHashCode(call)),
+                    details);
         }
 
-        @RequiresPermission(allOf = {BLUETOOTH_CONNECT, MODIFY_PHONE_STATE})
-        void onParentChanged(BluetoothCall call) {
+        @VisibleForTesting
+        void onParentChanged(HeadsetService headsetService, BluetoothCall call) {
             if (mCallInfo.isNullCall(call) || call.isExternalCall()) {
                 Log.w(TAG, "null call or external call");
                 return;
@@ -439,18 +447,20 @@ public class BluetoothInCallService extends InCallService {
                         "Ignoring onIsConferenceChanged from child BluetoothCall with new parent");
                 return;
             }
-            updateHeadsetWithCallState(false /* force */);
+            updateHeadsetWithCallState(headsetService, false /* force */);
         }
 
         @Override
-        @RequiresPermission(allOf = {BLUETOOTH_CONNECT, MODIFY_PHONE_STATE})
         public void onParentChanged(Call call, Call parent) {
             super.onParentChanged(call, parent);
-            onParentChanged(getBluetoothCallById(System.identityHashCode(call)));
+            onParentChanged(
+                    HeadsetService.getHeadsetService(),
+                    getBluetoothCallById(System.identityHashCode(call)));
         }
 
-        @RequiresPermission(allOf = {BLUETOOTH_CONNECT, MODIFY_PHONE_STATE})
-        void onChildrenChanged(BluetoothCall call, List<BluetoothCall> children) {
+        @VisibleForTesting
+        void onChildrenChanged(
+                HeadsetService headsetService, BluetoothCall call, List<BluetoothCall> children) {
             if (mCallInfo.isNullCall(call) || call.isExternalCall()) {
                 Log.w(TAG, "null call or external call");
                 return;
@@ -463,14 +473,14 @@ public class BluetoothInCallService extends InCallService {
                 Log.d(TAG, "Ignoring onIsConferenceChanged from parent with only one child call");
                 return;
             }
-            updateHeadsetWithCallState(false /* force */);
+            updateHeadsetWithCallState(headsetService, false /* force */);
         }
 
         @Override
-        @RequiresPermission(allOf = {BLUETOOTH_CONNECT, MODIFY_PHONE_STATE})
         public void onChildrenChanged(Call call, List<Call> children) {
             super.onChildrenChanged(call, children);
             onChildrenChanged(
+                    HeadsetService.getHeadsetService(),
                     getBluetoothCallById(System.identityHashCode(call)),
                     getBluetoothCallsByIds(BluetoothCall.getIds(children)));
         }
@@ -502,10 +512,8 @@ public class BluetoothInCallService extends InCallService {
     BluetoothInCallService(
             Context context,
             CallInfo callInfo,
-            BluetoothHeadsetProxy headset,
             BluetoothLeCallControlProxy leCallControl) {
         this(callInfo);
-        mBluetoothHeadset = headset;
         mBluetoothLeCallControl = leCallControl;
         attachBaseContext(context);
     }
@@ -527,11 +535,11 @@ public class BluetoothInCallService extends InCallService {
             int numActiveCalls        = mCallInfo.isNullCall(activeCall) ? 0 : 1;
             BluetoothCall dailingCall = mCallInfo.getOutgoingCall();
             int numOutgoingCalls      = mCallInfo.isNullCall(dailingCall) ? 0 : 1;
-            int updateheldCalls       = 0;
-            if (numHeldCalls == 0)
-               updateheldCalls = 0;
-            else
-               updateheldCalls = 1;
+            // int updateheldCalls       = 0;
+            // if (numHeldCalls == 0)
+            //    updateheldCalls = 0;
+            // else
+            //    updateheldCalls = 1;
 
             mDsDaEventsHadlingInProgress = true;
             switch (msg.what) {
@@ -545,65 +553,71 @@ public class BluetoothInCallService extends InCallService {
                      if (numRingingCalls > 0) {
                        //Outgoing became active and incoming call is present
                        //Send the active call update and then send waiting call update
-                       if (mBluetoothHeadset != null) {
-                         mBluetoothHeadset.phoneStateChanged(
-                            numActiveCalls,
-                            updateheldCalls,
-                            CALL_STATE_IDLE,
-                            mDsDaRingingAddress,
-                            mDsDaRingingAddressType,
-                            mDsDaRingingName);
-                            mDsDaOutgoingCalls--;
-                            mDsdaActiveCalls++;
-                            handlerThreadSleep(DELAY_DSDA_CALL_INDICATORS);
-                         mBluetoothHeadset.phoneStateChanged(
-                            numActiveCalls,
-                            updateheldCalls,
-                            CALL_STATE_INCOMING,
-                            mDsDaRingingAddress,
-                            mDsDaRingingAddressType,
-                            mDsDaRingingName);
-                       }
-                       mLastBtHeadsetState = CALL_STATE_INCOMING;
+                       phoneStateChanged(HeadsetService.getHeadsetService(), CallState.IDLE, mDsDaRingingName);
+                       mDsDaOutgoingCalls--;
+                       mDsdaActiveCalls++;
+                       handlerThreadSleep(DELAY_DSDA_CALL_INDICATORS);
+                       phoneStateChanged(HeadsetService.getHeadsetService(), CallState.INCOMING, mDsDaRingingName);
+                    //    if (mBluetoothHeadset != null) {
+                    //      phoneStateChanged()
+                    //      mBluetoothHeadset.phoneStateChanged(
+                    //         numActiveCalls,
+                    //         updateheldCalls,
+                    //         CallState.IDLE,
+                    //         mDsDaRingingAddress,
+                    //         mDsDaRingingAddressType,
+                    //         mDsDaRingingName);
+                    //         mDsDaOutgoingCalls--;
+                    //         mDsdaActiveCalls++;
+                    //         handlerThreadSleep(DELAY_DSDA_CALL_INDICATORS);
+                    //      mBluetoothHeadset.phoneStateChanged(
+                    //         numActiveCalls,
+                    //         updateheldCalls,
+                    //         CallState.INCOMING,
+                    //         mDsDaRingingAddress,
+                    //         mDsDaRingingAddressType,
+                    //         mDsDaRingingName);
+                    //    }
+                       mLastBtHeadsetState = CallState.INCOMING;
                     }
                    }
                  } else if (mDsdaIncomingCalls != numRingingCalls) {
                    //Incoming calls changed
                    //incoming call became active. Outgoing call should be disconnected
                    //if Outgoing disconnected event has not yet received, fake the params
-                   BluetoothCall ringingCall = getBluetoothCallById(mFirstIncomingCallId);
-                   if (mBluetoothHeadset != null) {
-                     getDSDARingingAddress(null);
-                     mBluetoothHeadset.phoneStateChanged(
-                        0,
-                        updateheldCalls,
-                        CALL_STATE_IDLE,
-                        mDsDaRingingAddress,
-                        mDsDaRingingAddressType,
-                        mDsDaRingingName);
-                     //sending the incoming setup
-                     getDSDARingingAddress(ringingCall);
-                     handlerThreadSleep(DELAY_DSDA_CALL_INDICATORS);
-                     mBluetoothHeadset.phoneStateChanged(
-                        0,
-                        updateheldCalls,
-                        CALL_STATE_INCOMING,
-                        mDsDaRingingAddress,
-                        mDsDaRingingAddressType,
-                        mDsDaRingingName);
-                      //sending active update
-                      handlerThreadSleep(DELAY_DSDA_CALL_INDICATORS);
-                      getDSDARingingAddress(null);
-                      mBluetoothHeadset.phoneStateChanged(
-                         numActiveCalls,
-                         updateheldCalls,
-                         CALL_STATE_IDLE,
-                         mDsDaRingingAddress,
-                         mDsDaRingingAddressType,
-                         mDsDaRingingAddress);
-                      mDsdaIncomingCalls--;
-                      mLastBtHeadsetState = CALL_STATE_IDLE;
-                   }
+                //   BluetoothCall ringingCall = getBluetoothCallById(mFirstIncomingCallId);
+                //    if (mBluetoothHeadset != null) {
+                //      getDSDARingingAddress(null);
+                //      mBluetoothHeadset.phoneStateChanged(
+                //         0,
+                //         updateheldCalls,
+                //         CallState.IDLE,
+                //         mDsDaRingingAddress,
+                //         mDsDaRingingAddressType,
+                //         mDsDaRingingName);
+                //      //sending the incoming setup
+                //      getDSDARingingAddress(ringingCall);
+                //      handlerThreadSleep(DELAY_DSDA_CALL_INDICATORS);
+                //      mBluetoothHeadset.phoneStateChanged(
+                //         0,
+                //         updateheldCalls,
+                //         CallState.INCOMING,
+                //         mDsDaRingingAddress,
+                //         mDsDaRingingAddressType,
+                //         mDsDaRingingName);
+                //       //sending active update
+                //       handlerThreadSleep(DELAY_DSDA_CALL_INDICATORS);
+                //       getDSDARingingAddress(null);
+                //       mBluetoothHeadset.phoneStateChanged(
+                //          numActiveCalls,
+                //          updateheldCalls,
+                //          CallState.IDLE,
+                //          mDsDaRingingAddress,
+                //          mDsDaRingingAddressType,
+                //          mDsDaRingingAddress);
+                //       mDsdaIncomingCalls--;
+                //       mLastBtHeadsetState = CallState.IDLE;
+                //    }
                  }
              break;
              case MULTI_INCOMING:
@@ -612,111 +626,111 @@ public class BluetoothInCallService extends InCallService {
                    Log.d(TAG, "multiple ringing calls, 1 ringing moved to active");
                    if ((numActiveCalls == 1) && (mDsdaActiveCalls == 0)) {
                      if (mFirstIncomingCallId == activeCall.getId()) {
-                       BluetoothCall ringingCall = getBluetoothCallById(mSecondIncomingCallId);
+                    //   BluetoothCall ringingCall = getBluetoothCallById(mSecondIncomingCallId);
                        //1st call moved to active
                        //2nd call need to be updated as waiting call
-                       if (mBluetoothHeadset != null) {
-                         getDSDARingingAddress(null);
-                         mBluetoothHeadset.phoneStateChanged(
-                            numActiveCalls,
-                            updateheldCalls,
-                            CALL_STATE_IDLE,
-                            mDsDaRingingAddress,
-                            mDsDaRingingAddressType,
-                            mDsDaRingingName);
-                         handlerThreadSleep(DELAY_DSDA_CALL_INDICATORS);
-                         mFirstIncomingCallId = mSecondIncomingCallId;
-                         mSecondIncomingCallId = -1;
-                         mDsdaIncomingCalls--;
-                         mDsDaTwoIncomingCallsFlag = 0;
-                         //waiting call of 2nd incoming call
-                         getDSDARingingAddress(ringingCall);
-                         mBluetoothHeadset.phoneStateChanged(
-                            numActiveCalls,
-                            updateheldCalls,
-                            CALL_STATE_INCOMING,
-                            mDsDaRingingAddress,
-                            mDsDaRingingAddressType,
-                            mDsDaRingingName);
-                         mLastBtHeadsetState = CALL_STATE_INCOMING;
-                       }
+                    //    if (mBluetoothHeadset != null) {
+                    //      getDSDARingingAddress(null);
+                    //      mBluetoothHeadset.phoneStateChanged(
+                    //         numActiveCalls,
+                    //         updateheldCalls,
+                    //         CallState.IDLE,
+                    //         mDsDaRingingAddress,
+                    //         mDsDaRingingAddressType,
+                    //         mDsDaRingingName);
+                    //      handlerThreadSleep(DELAY_DSDA_CALL_INDICATORS);
+                    //      mFirstIncomingCallId = mSecondIncomingCallId;
+                    //      mSecondIncomingCallId = -1;
+                    //      mDsdaIncomingCalls--;
+                    //      mDsDaTwoIncomingCallsFlag = 0;
+                    //      //waiting call of 2nd incoming call
+                    //      getDSDARingingAddress(ringingCall);
+                    //      mBluetoothHeadset.phoneStateChanged(
+                    //         numActiveCalls,
+                    //         updateheldCalls,
+                    //         CallState.INCOMING,
+                    //         mDsDaRingingAddress,
+                    //         mDsDaRingingAddressType,
+                    //         mDsDaRingingName);
+                    //      mLastBtHeadsetState = CallState.INCOMING;
+                    //    }
                      } else if (mSecondIncomingCallId == activeCall.getId()) {
                        Log.d(TAG, "2nd incoming call became active");
-                       BluetoothCall ringingCall = getBluetoothCallById(mSecondIncomingCallId);
+                    //   BluetoothCall ringingCall = getBluetoothCallById(mSecondIncomingCallId);
                        mDsDaTwoIncomingCallsFlag = 0;
-                       if (mBluetoothHeadset != null) {
-                         Log.d(TAG, "1st setup end");
-                         getDSDARingingAddress(null);
-                         mBluetoothHeadset.phoneStateChanged(
-                            0, //No Active calls
-                            updateheldCalls,
-                            CALL_STATE_IDLE,
-                            mDsDaRingingAddress,
-                            mDsDaRingingAddressType,
-                            mDsDaRingingName);
-                         handlerThreadSleep(DELAY_DSDA_CALL_INDICATORS);
-                         //incoming call of 2nd incoming call
-                         Log.d(TAG, "2nd setup");
-                         getDSDARingingAddress(ringingCall);
-                         mBluetoothHeadset.phoneStateChanged(
-                            0, //No active calls
-                            updateheldCalls,
-                            CALL_STATE_INCOMING,
-                            mDsDaRingingAddress,
-                            mDsDaRingingAddressType,
-                            mDsDaRingingName);
-                         handlerThreadSleep(DELAY_DSDA_CALL_INDICATORS);
-                         Log.d(TAG, "2nd active");
-                         mDsdaActiveCalls = 1;
-                         getDSDARingingAddress(null);
-                         mBluetoothHeadset.phoneStateChanged(
-                            numActiveCalls,
-                            updateheldCalls,
-                            CALL_STATE_IDLE,
-                            mDsDaRingingAddress,
-                            mDsDaRingingAddressType,
-                            mDsDaRingingName);
-                         Log.d(TAG, "waiting 1st");
-                         ringingCall = getBluetoothCallById(mFirstIncomingCallId);
-                         getDSDARingingAddress(ringingCall);
-                         handlerThreadSleep(DELAY_DSDA_CALL_INDICATORS);
-                         mBluetoothHeadset.phoneStateChanged(
-                            numActiveCalls,
-                            updateheldCalls,
-                            CALL_STATE_INCOMING,
-                            mDsDaRingingAddress,
-                            mDsDaRingingAddressType,
-                            mDsDaRingingName);
-                          mLastBtHeadsetState = CALL_STATE_INCOMING;
-                            mDsdaIncomingCalls--;
-                            mSecondIncomingCallId = -1;
-                       }
+                    //    if (mBluetoothHeadset != null) {
+                    //      Log.d(TAG, "1st setup end");
+                    //      getDSDARingingAddress(null);
+                    //      mBluetoothHeadset.phoneStateChanged(
+                    //         0, //No Active calls
+                    //         updateheldCalls,
+                    //         CallState.IDLE,
+                    //         mDsDaRingingAddress,
+                    //         mDsDaRingingAddressType,
+                    //         mDsDaRingingName);
+                    //      handlerThreadSleep(DELAY_DSDA_CALL_INDICATORS);
+                    //      //incoming call of 2nd incoming call
+                    //      Log.d(TAG, "2nd setup");
+                    //      getDSDARingingAddress(ringingCall);
+                    //      mBluetoothHeadset.phoneStateChanged(
+                    //         0, //No active calls
+                    //         updateheldCalls,
+                    //         CallState.INCOMING,
+                    //         mDsDaRingingAddress,
+                    //         mDsDaRingingAddressType,
+                    //         mDsDaRingingName);
+                    //      handlerThreadSleep(DELAY_DSDA_CALL_INDICATORS);
+                    //      Log.d(TAG, "2nd active");
+                    //      mDsdaActiveCalls = 1;
+                    //      getDSDARingingAddress(null);
+                    //      mBluetoothHeadset.phoneStateChanged(
+                    //         numActiveCalls,
+                    //         updateheldCalls,
+                    //         CallState.IDLE,
+                    //         mDsDaRingingAddress,
+                    //         mDsDaRingingAddressType,
+                    //         mDsDaRingingName);
+                    //      Log.d(TAG, "waiting 1st");
+                    //      ringingCall = getBluetoothCallById(mFirstIncomingCallId);
+                    //      getDSDARingingAddress(ringingCall);
+                    //      handlerThreadSleep(DELAY_DSDA_CALL_INDICATORS);
+                    //      mBluetoothHeadset.phoneStateChanged(
+                    //         numActiveCalls,
+                    //         updateheldCalls,
+                    //         CallState.INCOMING,
+                    //         mDsDaRingingAddress,
+                    //         mDsDaRingingAddressType,
+                    //         mDsDaRingingName);
+                    //       mLastBtHeadsetState = CallState.INCOMING;
+                    //         mDsdaIncomingCalls--;
+                    //         mSecondIncomingCallId = -1;
+                    //    }
                      }
                    } else if ((mNumActiveCalls ==0)  && (mDsdaActiveCalls == 0)) {
                      //one of the 2 ringing calls would have been disconnected
                      BluetoothCall ringingCall = mCallInfo.getRingingOrSimulatedRingingCall();
                      if (ringingCall.getId() == mSecondIncomingCallId) {
-                       if (mBluetoothHeadset != null) {
-                         getDSDARingingAddress(null);
-                         mBluetoothHeadset.phoneStateChanged(
-                            0,
-                            updateheldCalls,
-                            CALL_STATE_IDLE,
-                            mDsDaRingingAddress,
-                            mDsDaRingingAddressType,
-                            mDsDaRingingName);
-                         handlerThreadSleep(DELAY_DSDA_CALL_INDICATORS);
-                         //incoming call of 2nd incoming call
-                         getDSDARingingAddress(ringingCall);
-                         mBluetoothHeadset.phoneStateChanged(
-                            0,
-                            updateheldCalls,
-                            CALL_STATE_INCOMING,
-                            mDsDaRingingAddress,
-                            mDsDaRingingAddressType,
-                            mDsDaRingingName);
-                         mLastBtHeadsetState = CALL_STATE_INCOMING;
-                       }
+                    //    if (mBluetoothHeadset != null) {
+                    //      getDSDARingingAddress(null);
+                    //      mBluetoothHeadset.phoneStateChanged(
+                    //         0,
+                    //         updateheldCalls,
+                    //         CallState.IDLE,
+                    //         mDsDaRingingAddress,
+                    //         mDsDaRingingAddressType,
+                    //         mDsDaRingingName);
+                    //      handlerThreadSleep(DELAY_DSDA_CALL_INDICATORS);
+                    //      //incoming call of 2nd incoming call
+                    //      getDSDARingingAddress(ringingCall);
+                    //      mBluetoothHeadset.phoneStateChanged(
+                    //         0,
+                    //         updateheldCalls,
+                    //         CallState.INCOMING,
+                    //         mDsDaRingingAddress,
+                    //         mDsDaRingingAddressType,
+                    //         mDsDaRingingName);
+                    //      mLastBtHeadsetState = CallState.INCOMING;
+                    //    }
                      } else if (ringingCall.getId() == mFirstIncomingCallId) {
                        //2nd incoming call state is not updated.
                        //No need to update the disconnection state
@@ -731,75 +745,75 @@ public class BluetoothInCallService extends InCallService {
                      //when multi held calls come,
                      //we have to fake the indicators in such a way as if,
                      //they are conferencely held.
-                     int temp_callState = CALL_STATE_IDLE;
+                     int temp_callState = CallState.IDLE;
                      if (numRingingCalls > 0) {
-                       temp_callState = CALL_STATE_INCOMING;
+                       temp_callState = CallState.INCOMING;
                        BluetoothCall ringingCall = mCallInfo.getRingingOrSimulatedRingingCall();
                        getDSDARingingAddress(ringingCall);
                      }
                      if (numActiveCalls == 0) {
-                       mBluetoothHeadset.phoneStateChanged(
-                          1,
-                          0,
-                          temp_callState,
-                          mDsDaRingingAddress,
-                          mDsDaRingingAddressType,
-                          mDsDaRingingName);
+                    //    mBluetoothHeadset.phoneStateChanged(
+                    //       1,
+                    //       0,
+                    //       temp_callState,
+                    //       mDsDaRingingAddress,
+                    //       mDsDaRingingAddressType,
+                    //       mDsDaRingingName);
                        handlerThreadSleep(DELAY_DSDA_CALL_INDICATORS);
-                       mBluetoothHeadset.phoneStateChanged(
-                           0,
-                           1,
-                           temp_callState,
-                           mDsDaRingingAddress,
-                           mDsDaRingingAddressType,
-                           mDsDaRingingName);
+                    //    mBluetoothHeadset.phoneStateChanged(
+                    //        0,
+                    //        1,
+                    //        temp_callState,
+                    //        mDsDaRingingAddress,
+                    //        mDsDaRingingAddressType,
+                    //        mDsDaRingingName);
                            mDsDaHeldCalls++;
                            mDsdaActiveCalls = numActiveCalls;
                      } else {
-                       mBluetoothHeadset.phoneStateChanged(
-                          1,
-                          0,
-                          temp_callState,
-                          mDsDaRingingAddress,
-                          mDsDaRingingAddressType,
-                          mDsDaRingingName);
+                    //    mBluetoothHeadset.phoneStateChanged(
+                    //       1,
+                    //       0,
+                    //       temp_callState,
+                    //       mDsDaRingingAddress,
+                    //       mDsDaRingingAddressType,
+                    //       mDsDaRingingName);
                        handlerThreadSleep(DELAY_DSDA_CALL_INDICATORS);
-                       mBluetoothHeadset.phoneStateChanged(
-                          0,
-                          1,
-                          temp_callState,
-                          mDsDaRingingAddress,
-                          mDsDaRingingAddressType,
-                          mDsDaRingingName);
+                    //    mBluetoothHeadset.phoneStateChanged(
+                    //       0,
+                    //       1,
+                    //       temp_callState,
+                    //       mDsDaRingingAddress,
+                    //       mDsDaRingingAddressType,
+                    //       mDsDaRingingName);
                        handlerThreadSleep(DELAY_DSDA_CALL_INDICATORS);
-                       mBluetoothHeadset.phoneStateChanged(
-                          1,
-                          1,
-                          temp_callState,
-                          mDsDaRingingAddress,
-                          mDsDaRingingAddressType,
-                          mDsDaRingingName);
+                    //    mBluetoothHeadset.phoneStateChanged(
+                    //       1,
+                    //       1,
+                    //       temp_callState,
+                    //       mDsDaRingingAddress,
+                    //       mDsDaRingingAddressType,
+                    //       mDsDaRingingName);
                           mDsDaHeldCalls++;
                           mDsdaActiveCalls = numActiveCalls;
                      }
                      mLastBtHeadsetState = temp_callState;
                      if (mDelayOutgoingUpdate == 1) {
-                        mBluetoothHeadset.phoneStateChanged(
-                          0,
-                          1,
-                          CALL_STATE_DIALING,
-                          mDsDaRingingAddress,
-                          mDsDaRingingAddressType,
-                          mDsDaRingingName);
-                        mBluetoothHeadset.phoneStateChanged(
-                          0,
-                          1,
-                          CALL_STATE_ALERTING,
-                          mDsDaRingingAddress,
-                          mDsDaRingingAddressType,
-                          mDsDaRingingName);
+                        // mBluetoothHeadset.phoneStateChanged(
+                        //   0,
+                        //   1,
+                        //   CALL_STATE_DIALING,
+                        //   mDsDaRingingAddress,
+                        //   mDsDaRingingAddressType,
+                        //   mDsDaRingingName);
+                        // mBluetoothHeadset.phoneStateChanged(
+                        //   0,
+                        //   1,
+                        //   CallState.ALERTING,
+                        //   mDsDaRingingAddress,
+                        //   mDsDaRingingAddressType,
+                        //   mDsDaRingingName);
                           mDsDaOutgoingCalls++;
-                        mLastBtHeadsetState =  CALL_STATE_ALERTING;
+                        mLastBtHeadsetState =  CallState.ALERTING;
                         mDelayOutgoingUpdate = 0;
                      }
                    }
@@ -823,57 +837,57 @@ public class BluetoothInCallService extends InCallService {
              case MULTI_RINGING_DISCONNECTION:
                  Log.d(TAG, "MULTI_RINGING_DISCONNECTION event");
                  getDSDARingingAddress(null);
-                 if (mBluetoothHeadset != null) {
-                   mBluetoothHeadset.phoneStateChanged(
-                      numActiveCalls,
-                      updateheldCalls,
-                      CALL_STATE_IDLE,
-                      mDsDaRingingAddress,
-                      mDsDaRingingAddressType,
-                      mDsDaRingingName);
-                   getDSDARingingAddress(getBluetoothCallById(mSecondIncomingCallId));
-                   mFirstIncomingCallId = mSecondIncomingCallId;
-                   mSecondIncomingCallId = -1;
-                   mDsDaTwoIncomingCallsFlag = 0;
-                   mDsdaIncomingCalls--;
-                   handlerThreadSleep(DELAY_DSDA_CALL_INDICATORS);
-                   mBluetoothHeadset.phoneStateChanged(
-                      numActiveCalls,
-                      updateheldCalls,
-                      CALL_STATE_INCOMING,
-                      mDsDaRingingAddress,
-                      mDsDaRingingAddressType,
-                      mDsDaRingingName);
-                   mLastBtHeadsetState = CALL_STATE_INCOMING;
-                 }
+                //  if (mBluetoothHeadset != null) {
+                //    mBluetoothHeadset.phoneStateChanged(
+                //       numActiveCalls,
+                //       updateheldCalls,
+                //       CallState.IDLE,
+                //       mDsDaRingingAddress,
+                //       mDsDaRingingAddressType,
+                //       mDsDaRingingName);
+                //    getDSDARingingAddress(getBluetoothCallById(mSecondIncomingCallId));
+                //    mFirstIncomingCallId = mSecondIncomingCallId;
+                //    mSecondIncomingCallId = -1;
+                //    mDsDaTwoIncomingCallsFlag = 0;
+                //    mDsdaIncomingCalls--;
+                //    handlerThreadSleep(DELAY_DSDA_CALL_INDICATORS);
+                //    mBluetoothHeadset.phoneStateChanged(
+                //       numActiveCalls,
+                //       updateheldCalls,
+                //       CallState.INCOMING,
+                //       mDsDaRingingAddress,
+                //       mDsDaRingingAddressType,
+                //       mDsDaRingingName);
+                //    mLastBtHeadsetState = CallState.INCOMING;
+                //  }
              break;
              case OUTGOING_DISCONNECTION:
                 Log.d(TAG, "OUTGOING_DISCONNECTION event");
                  if (numRingingCalls > 0) {
                    getDSDARingingAddress(getBluetoothCallById(null));
                    mDsDaOutgoingCalls--;
-                   mBluetoothHeadset.phoneStateChanged(
-                      numActiveCalls,
-                      updateheldCalls,
-                      CALL_STATE_IDLE,
-                      mDsDaRingingAddress,
-                      mDsDaRingingAddressType,
-                      mDsDaRingingName);
+                //    mBluetoothHeadset.phoneStateChanged(
+                //       numActiveCalls,
+                //       updateheldCalls,
+                //       CallState.IDLE,
+                //       mDsDaRingingAddress,
+                //       mDsDaRingingAddressType,
+                //       mDsDaRingingName);
                    handlerThreadSleep(DELAY_DSDA_CALL_INDICATORS);
                    getDSDARingingAddress(getBluetoothCallById(mFirstIncomingCallId));
-                   mBluetoothHeadset.phoneStateChanged(
-                      numActiveCalls,
-                      updateheldCalls,
-                      CALL_STATE_INCOMING,
-                      mDsDaRingingAddress,
-                      mDsDaRingingAddressType,
-                      mDsDaRingingName);
-                   mLastBtHeadsetState = CALL_STATE_INCOMING;
+                //    mBluetoothHeadset.phoneStateChanged(
+                //       numActiveCalls,
+                //       updateheldCalls,
+                //       CallState.INCOMING,
+                //       mDsDaRingingAddress,
+                //       mDsDaRingingAddressType,
+                //       mDsDaRingingName);
+                   mLastBtHeadsetState = CallState.INCOMING;
                  }
              break;
              case DSDS_EVENT:
                 Log.d(TAG, "DSDS_EVENT event");
-                updateHeadsetWithCallState(false);
+                updateHeadsetWithCallState(HeadsetService.getHeadsetService(), false);
              break;
              default:
               break;
@@ -882,7 +896,7 @@ public class BluetoothInCallService extends InCallService {
         }
     };
 
-    private void handlerThreadSleep(long millisecs) {
+    private static void handlerThreadSleep(long millisecs) {
       try {
         Log.d(TAG, "wait for" + millisecs + "msecs");
         Thread.sleep(millisecs);
@@ -984,7 +998,7 @@ public class BluetoothInCallService extends InCallService {
     }
 
     /**
-     * Gets the brearer technology.
+     * Gets the bearer technology.
      *
      * @return bearer technology as defined in Bluetooth Assigned Numbers
      */
@@ -1065,7 +1079,7 @@ public class BluetoothInCallService extends InCallService {
             mHeadsetUpdatedRecently = false;
 
             if (logQuery) {
-                Log.i(TAG, "listcurrentCalls");
+                Log.i(TAG, "listCurrentCalls");
             }
 
             sendListOfCalls(headsetService, logQuery);
@@ -1073,12 +1087,11 @@ public class BluetoothInCallService extends InCallService {
         }
     }
 
-    @RequiresPermission(allOf = {BLUETOOTH_CONNECT, MODIFY_PHONE_STATE})
-    public boolean queryPhoneState() {
+    public boolean queryPhoneState(HeadsetService headsetService) {
         synchronized (LOCK) {
             Log.i(TAG, "queryPhoneState");
             if (!mEnableDsdaMode) {
-              updateHeadsetWithCallState(true);
+              updateHeadsetWithCallState(headsetService, true);
             } else {
               updateHeadsetWithDSDACallState(true, DSDS_EVENT);
             }
@@ -1119,20 +1132,20 @@ public class BluetoothInCallService extends InCallService {
         return isHighDef;
     }
 
-    public boolean processChld(int chld) {
+    public boolean processChld(HeadsetService headsetService, int chld) {
         synchronized (LOCK) {
             final long token = Binder.clearCallingIdentity();
             try {
                 Log.i(TAG, "processChld " + chld);
-                return _processChld(chld);
+                return processChldLocked(headsetService, chld);
             } finally {
                 Binder.restoreCallingIdentity(token);
             }
         }
     }
 
-    @RequiresPermission(allOf = {BLUETOOTH_CONNECT, MODIFY_PHONE_STATE})
-    public void onCallAdded(BluetoothCall call) {
+    @VisibleForTesting
+    void onCallAdded(HeadsetService headsetService, BluetoothCall call) {
         synchronized (LOCK) {
             if (call.isExternalCall()) {
                 Log.d(TAG, "onCallAdded: external call");
@@ -1150,7 +1163,7 @@ public class BluetoothInCallService extends InCallService {
                 }
 
                 if (!mEnableDsdaMode) {
-                   updateHeadsetWithCallState(false /* force */);
+                   updateHeadsetWithCallState(headsetService, false /* force */);
                 } else {
                   processOnCallAdded(call);
                 }
@@ -1193,10 +1206,9 @@ public class BluetoothInCallService extends InCallService {
     }
 
     @Override
-    @RequiresPermission(allOf = {BLUETOOTH_CONNECT, MODIFY_PHONE_STATE})
     public void onCallAdded(Call call) {
         super.onCallAdded(call);
-        onCallAdded(new BluetoothCall(call));
+        onCallAdded(HeadsetService.getHeadsetService(), new BluetoothCall(call));
     }
 
     /**
@@ -1208,8 +1220,8 @@ public class BluetoothInCallService extends InCallService {
      *     callback when the {@code BluetoothCall} is external so that the call can be added back if
      *     no longer external.
      */
-    @RequiresPermission(allOf = {BLUETOOTH_CONNECT, MODIFY_PHONE_STATE})
-    public void onCallRemoved(BluetoothCall call, boolean forceRemoveCallback) {
+    public void onCallRemoved(
+            HeadsetService headsetService, BluetoothCall call, boolean forceRemoveCallback) {
         synchronized (LOCK) {
             Log.i(TAG, "onCallRemoved, forceRemoveCallback=" + forceRemoveCallback);
             CallStateCallback callback = getCallback(call);
@@ -1254,7 +1266,7 @@ public class BluetoothInCallService extends InCallService {
                 }
             }
 
-            updateHeadsetWithCallState(false /* force */);
+            updateHeadsetWithCallState(headsetService, false /* force */);
 
             if (Flags.maintainCallIndexAfterConference()
                     && mConferenceCallClccIndexMap.size() > 0) {
@@ -1267,7 +1279,7 @@ public class BluetoothInCallService extends InCallService {
             }
 
             if (!mEnableDsdaMode) {
-              updateHeadsetWithCallState(false /* force */);
+              updateHeadsetWithCallState(headsetService, false /* force */);
             } else {
               processOnCallRemoved(call);
             }
@@ -1281,7 +1293,6 @@ public class BluetoothInCallService extends InCallService {
     }
 
     @Override
-    @RequiresPermission(allOf = {BLUETOOTH_CONNECT, MODIFY_PHONE_STATE})
     public void onCallRemoved(Call call) {
         super.onCallRemoved(call);
         BluetoothCall bluetoothCall = getBluetoothCallById(System.identityHashCode(call));
@@ -1289,20 +1300,14 @@ public class BluetoothInCallService extends InCallService {
             Log.w(TAG, "onCallRemoved, BluetoothCall is removed before registered");
             return;
         }
-        onCallRemoved(bluetoothCall, true /* forceRemoveCallback */);
+        onCallRemoved(
+                HeadsetService.getHeadsetService(), bluetoothCall, true /* forceRemoveCallback */);
     }
 
     @Override
     public void onCallAudioStateChanged(CallAudioState audioState) {
         super.onCallAudioStateChanged(audioState);
         Log.d(TAG, "onCallAudioStateChanged, audioState == " + audioState);
-
-        mLeAudioService = mFactory.getLeAudioService();
-        if (mLeAudioService == null) {
-            Log.e(TAG, "leAudioService not available");
-            return;
-        }
-        mLeAudioService.updateCallAudioRoute(audioState.getRoute());
     }
 
     @Override
@@ -1313,7 +1318,6 @@ public class BluetoothInCallService extends InCallService {
             mAdapter = requireNonNull(getSystemService(BluetoothManager.class)).getAdapter();
             mTelephonyManager = requireNonNull(getSystemService(TelephonyManager.class));
             mTelecomManager = requireNonNull(getSystemService(TelecomManager.class));
-            mAdapter.getProfileProxy(this, mProfileListener, BluetoothProfile.HEADSET);
             mAdapter.getProfileProxy(this, mProfileListener, BluetoothProfile.LE_CALL_CONTROL);
             mBluetoothAdapterReceiver = new BluetoothAdapterReceiver();
             IntentFilter intentFilter = new IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED);
@@ -1387,10 +1391,6 @@ public class BluetoothInCallService extends InCallService {
            unregisterReceiver(mVoiceCapabilityChangeReceiver);
            mVoiceCapabilityChangeReceiver = null;
         }
-        if (mBluetoothHeadset != null) {
-            mBluetoothHeadset.closeBluetoothHeadsetProxy(mAdapter);
-            mBluetoothHeadset = null;
-        }
         if (mBluetoothLeCallControl != null) {
             mBluetoothLeCallControl.unregisterBearer();
             mBluetoothLeCallControl.closeBluetoothLeCallControlProxy(mAdapter);
@@ -1403,7 +1403,7 @@ public class BluetoothInCallService extends InCallService {
         mBluetoothCallQueue.clear();
         mMaxNumberOfCalls = 0;
         mDsdaActiveCalls = 0;
-        mDsDaCallState = CALL_STATE_IDLE;
+        mDsDaCallState = CallState.IDLE;
         mDsdaIncomingCalls = 0;
         mDsDaHeldCalls = 0;
         mDsDaOutgoingCalls = 0;
@@ -1482,7 +1482,7 @@ public class BluetoothInCallService extends InCallService {
                 }
 
                 int direction = inferredCall.isIncoming() ? 1 : 0;
-                int state = CALL_STATE_ACTIVE;
+                int state = CallState.ACTIVE;
                 boolean isPartOfConference = true;
                 final Uri addressUri;
                 if (inferredCall.getGatewayInfo() != null) {
@@ -1556,7 +1556,7 @@ public class BluetoothInCallService extends InCallService {
         boolean isPartOfConference = false;
         boolean isConferenceWithNoChildren = isConferenceWithNoChildren(call);
 
-        if (state == CALL_STATE_IDLE) {
+        if (state == CallState.IDLE) {
             return;
         }
 
@@ -1577,7 +1577,7 @@ public class BluetoothInCallService extends InCallService {
                 BluetoothCall activeChild =
                         getBluetoothCallById(
                                 conferenceCall.getGenericConferenceActiveChildCallId());
-                if (state == CALL_STATE_ACTIVE && !mCallInfo.isNullCall(activeChild)) {
+                if (state == CallState.ACTIVE && !mCallInfo.isNullCall(activeChild)) {
                     // Reevaluate state if we can MERGE or if we can SWAP without previously having
                     // MERGED.
                     boolean shouldReevaluateState =
@@ -1588,11 +1588,11 @@ public class BluetoothInCallService extends InCallService {
                     if (shouldReevaluateState) {
                         isPartOfConference = false;
                         if (call.equals(activeChild)) {
-                            state = CALL_STATE_ACTIVE;
+                            state = CallState.ACTIVE;
                         } else {
                             // At this point we know there is an "active" child and we know that it
                             // is not this call, so set it to HELD instead.
-                            state = CALL_STATE_HELD;
+                            state = CallState.HELD;
                         }
                     }
                 }
@@ -1602,7 +1602,7 @@ public class BluetoothInCallService extends InCallService {
                 // If the parent IMS CEP conference BluetoothCall is on hold, we should mark
                 // this BluetoothCall as being on hold regardless of what the other
                 // children are doing.
-                state = CALL_STATE_HELD;
+                state = CallState.HELD;
             }
         } else if (isConferenceWithNoChildren) {
             // Handle the special case of an IMS conference BluetoothCall without conference
@@ -1654,7 +1654,7 @@ public class BluetoothInCallService extends InCallService {
         if (mEnableDsdaMode) {
           int heldcalls = mCallInfo.getNumHeldCalls();
           if (isPartOfConference == false) {
-            if (state == CALL_STATE_HELD) {
+            if (state == CallState.HELD) {
               if ((heldcalls > 1) && (mCallSwapPending != 1)) {
                 isPartOfConference = true;
               }
@@ -1738,8 +1738,7 @@ public class BluetoothInCallService extends InCallService {
         return call.mClccIndex;
     }
 
-    @RequiresPermission(allOf = {BLUETOOTH_CONNECT, MODIFY_PHONE_STATE})
-    private boolean _processChld(int chld) {
+    private boolean processChldLocked(HeadsetService headsetService, int chld) {
         BluetoothCall activeCall = mCallInfo.getActiveCall();
         BluetoothCall ringingCall = mCallInfo.getRingingOrSimulatedRingingCall();
         if (mEnableDsdaMode) {
@@ -1805,7 +1804,7 @@ public class BluetoothInCallService extends InCallService {
                     && activeCall.can(Connection.CAPABILITY_SWAP_CONFERENCE)) {
                 activeCall.swapConference();
                 Log.i(TAG, "CDMA calls in conference swapped, updating headset");
-                updateHeadsetWithCallState(true /* force */);
+                updateHeadsetWithCallState(headsetService, true /* force */);
                 return true;
             } else if (!mCallInfo.isNullCall(ringingCall)) {
                 ringingCall.answer(VideoProfile.STATE_AUDIO_ONLY);
@@ -1854,8 +1853,12 @@ public class BluetoothInCallService extends InCallService {
      *     state have occurred, {@code false} if the state should only be sent if the state has
      *     changed.
      */
-    @RequiresPermission(allOf = {BLUETOOTH_CONNECT, MODIFY_PHONE_STATE})
-    private void updateHeadsetWithCallState(boolean force) {
+    private void updateHeadsetWithCallState(HeadsetService headsetService, boolean force) {
+        if (headsetService == null) {
+            Log.i(TAG, "updateHeadsetWithCallState skipped: No headset service");
+            return;
+        }
+
         BluetoothCall activeCall = mCallInfo.getActiveCall();
         BluetoothCall ringingCall = mCallInfo.getRingingOrSimulatedRingingCall();
         BluetoothCall heldCall = mCallInfo.getHeldCall();
@@ -1926,89 +1929,61 @@ public class BluetoothInCallService extends InCallService {
             }
         }
 
-        if (mBluetoothHeadset != null
-                && (force
-                        || (!callsPendingSwitch
-                                && (numActiveCalls != mNumActiveCalls
-                                        || numChildrenOfActiveCall != mNumChildrenOfActiveCall
-                                        || numHeldCalls != mNumHeldCalls
-                                        || bluetoothCallState != mBluetoothCallState
-                                        || !TextUtils.equals(ringingAddress, mRingingAddress)
-                                        || ringingAddressType != mRingingAddressType
-                                        || (!Objects.equals(heldCall, mOldHeldCall)
-                                                && !ignoreHeldCallChange))))) {
+        boolean callsDetailsChanged =
+                numActiveCalls != mNumActiveCalls
+                        || numChildrenOfActiveCall != mNumChildrenOfActiveCall
+                        || numHeldCalls != mNumHeldCalls
+                        || bluetoothCallState != mBluetoothCallState
+                        || !TextUtils.equals(ringingAddress, mRingingAddress)
+                        || ringingAddressType != mRingingAddressType
+                        || (!Objects.equals(heldCall, mOldHeldCall) && !ignoreHeldCallChange);
 
-            // If the BluetoothCall is transitioning into the alerting state, send DIALING first.
-            // Some devices expect to see a DIALING state prior to seeing an ALERTING state
-            // so we need to send it first.
-            boolean sendDialingFirst =
-                    mBluetoothCallState != bluetoothCallState
-                            && bluetoothCallState == CALL_STATE_ALERTING;
-
-            mOldHeldCall = heldCall;
-            mNumActiveCalls = numActiveCalls;
-            mNumChildrenOfActiveCall = numChildrenOfActiveCall;
-            mNumHeldCalls = numHeldCalls;
-            mBluetoothCallState = bluetoothCallState;
-            mRingingAddress = ringingAddress;
-            mRingingAddressType = ringingAddressType;
-
-            if (sendDialingFirst) {
-                // Log in full to make logs easier to debug.
-                Log.i(
-                        TAG,
-                        "updateHeadsetWithCallState "
-                                + "numActive "
-                                + mNumActiveCalls
-                                + ", "
-                                + "numHeld "
-                                + mNumHeldCalls
-                                + ", "
-                                + "callState "
-                                + CALL_STATE_DIALING
-                                + ", "
-                                + "ringing type "
-                                + mRingingAddressType);
-                mBluetoothHeadset.phoneStateChanged(
-                        mNumActiveCalls,
-                        mNumHeldCalls,
-                        CALL_STATE_DIALING,
-                        mRingingAddress,
-                        mRingingAddressType,
-                        ringingName);
-            }
-
-            Log.i(
-                    TAG,
-                    "updateHeadsetWithCallState "
-                            + "numActive "
-                            + mNumActiveCalls
-                            + ", "
-                            + "numHeld "
-                            + mNumHeldCalls
-                            + ", "
-                            + "callState "
-                            + mBluetoothCallState
-                            + ", "
-                            + "ringing type "
-                            + mRingingAddressType);
-
-            mBluetoothHeadset.phoneStateChanged(
-                    mNumActiveCalls,
-                    mNumHeldCalls,
-                    mBluetoothCallState,
-                    mRingingAddress,
-                    mRingingAddressType,
-                    ringingName);
-
-            mHeadsetUpdatedRecently = true;
-            mLastBtHeadsetState = bluetoothCallState;
-            mDsdaActiveCalls = mNumActiveCalls;
-            mDsDaHeldCalls = mNumHeldCalls;
-            Log.d(TAG, "LastBt Headset State is : "+ mLastBtHeadsetState);
-        } else {
+        mLastBtHeadsetState = bluetoothCallState;
+        mDsdaActiveCalls = mNumActiveCalls;
+        mDsDaHeldCalls = mNumHeldCalls;
+        Log.d(TAG, "LastBt Headset State is : "+ mLastBtHeadsetState);
+        if (!(force || (!callsPendingSwitch && callsDetailsChanged))) {
             Log.i(TAG, "updateHeadsetWithCallState skipped");
+            return;
         }
+
+        mOldHeldCall = heldCall;
+        mNumActiveCalls = numActiveCalls;
+        mNumChildrenOfActiveCall = numChildrenOfActiveCall;
+        mNumHeldCalls = numHeldCalls;
+        mRingingAddress = ringingAddress;
+        mRingingAddressType = ringingAddressType;
+
+        // If the BluetoothCall is transitioning into the alerting state, send DIALING first.
+        // Some devices expect to see a DIALING state prior to seeing an ALERTING state
+        // so we need to send it first.
+        if (mBluetoothCallState != bluetoothCallState && bluetoothCallState == CallState.ALERTING) {
+            phoneStateChanged(headsetService, CallState.DIALING, ringingName);
+        }
+
+        phoneStateChanged(headsetService, bluetoothCallState, ringingName);
+
+        mBluetoothCallState = bluetoothCallState;
+        mHeadsetUpdatedRecently = true;
+    }
+
+    private void phoneStateChanged(
+            HeadsetService headsetService, int callState, String ringingName) {
+        Log.i(
+                TAG,
+                "updateHeadsetWithCallState "
+                        + (" numActive=" + mNumActiveCalls)
+                        + (" numHeld=" + mNumHeldCalls)
+                        + (" callState=" + callState)
+                        + (" ringingType=" + mRingingAddressType));
+        headsetService.phoneStateChanged(
+                mNumActiveCalls,
+                mNumHeldCalls,
+                callState,
+                mRingingAddress,
+                mRingingAddressType,
+                ringingName,
+                false); // isVirtualCall
     }
 
     private int getBluetoothCallStateForUpdate() {
@@ -2018,60 +1993,59 @@ public class BluetoothInCallService extends InCallService {
 
         //
         // !! WARNING !!
-        // You will note that CALL_STATE_WAITING, CALL_STATE_HELD, and CALL_STATE_ACTIVE are not
-        // used in this version of the BluetoothCall state mappings.  This is on purpose.
-        // phone_state_change() in btif_hf.c is not written to handle these states. Only with the
-        // listCalls*() method are WAITING and ACTIVE used.
+        // You will note that WAITING, HELD, and ACTIVE are not used in this version of the
+        // BluetoothCall state mappings.
+        // This is on purpose.
+        // phone_state_change() in btif_hf.c is not written to handle these states.
+        // Only with the listCalls*() method are WAITING and ACTIVE used.
         // Using the unsupported states here caused problems with inconsistent state in some
         // bluetooth devices (like not getting out of ringing state after answering a call).
         //
-        int bluetoothCallState = CALL_STATE_IDLE;
+
+        int bluetoothCallState = CallState.IDLE;
         if (!mCallInfo.isNullCall(ringingCall)) {
-            bluetoothCallState = CALL_STATE_INCOMING;
+            bluetoothCallState = CallState.INCOMING;
         } else if (!mCallInfo.isNullCall(dialingCall)) {
-            bluetoothCallState = CALL_STATE_ALERTING;
-        } else if (hasOnlyDisconnectedCalls || mIsDisconnectedTonePlaying) {
+            bluetoothCallState = CallState.ALERTING;
+        } else if (hasOnlyDisconnectedCalls) {
             // Keep the DISCONNECTED state until the disconnect tone's playback is done
-            bluetoothCallState = CALL_STATE_DISCONNECTED;
+            bluetoothCallState = CallState.DISCONNECTED;
         }
         return bluetoothCallState;
     }
 
-    private int getBtCallState(BluetoothCall call, boolean isForeground) {
-        switch (call.getState()) {
-            case Call.STATE_NEW:
-            case Call.STATE_DISCONNECTED:
-            case Call.STATE_AUDIO_PROCESSING:
-                return CALL_STATE_IDLE;
+    private static int getBtCallState(BluetoothCall call, boolean isForeground) {
+        return switch (call.getState()) {
+            case Call.STATE_ACTIVE -> CallState.ACTIVE;
+            case Call.STATE_HOLDING -> CallState.HELD;
+            case Call.STATE_NEW, Call.STATE_DISCONNECTED, Call.STATE_AUDIO_PROCESSING ->
+                    CallState.IDLE;
 
-            case Call.STATE_ACTIVE:
-                return CALL_STATE_ACTIVE;
+            case Call.STATE_CONNECTING,
+                            Call.STATE_SELECT_PHONE_ACCOUNT,
+                            Call.STATE_DIALING,
+                            Call.STATE_PULLING_CALL ->
+                    // Yes, this is correctly returning ALERTING.
+                    // "Dialing" for BT means that we have sent information to the service provider
+                    // to place the BluetoothCall but there is no confirmation that the
+                    // BluetoothCall
+                    // is going through. When there finally is confirmation, the ringback is
+                    // played which is referred to as an "alert" tone, thus, ALERTING.
+                    // TODO: We should consider using the ALERTING terms in Telecom because that
+                    // seems to be more industry-standard.
+                    CallState.ALERTING;
 
-            case Call.STATE_CONNECTING:
-            case Call.STATE_SELECT_PHONE_ACCOUNT:
-            case Call.STATE_DIALING:
-            case Call.STATE_PULLING_CALL:
-                // Yes, this is correctly returning ALERTING.
-                // "Dialing" for BT means that we have sent information to the service provider
-                // to place the BluetoothCall but there is no confirmation that the BluetoothCall
-                // is going through. When there finally is confirmation, the ringback is
-                // played which is referred to as an "alert" tone, thus, ALERTING.
-                // TODO: We should consider using the ALERTING terms in Telecom because that
-                // seems to be more industry-standard.
-                return CALL_STATE_ALERTING;
-
-            case Call.STATE_HOLDING:
-                return CALL_STATE_HELD;
-
-            case Call.STATE_RINGING:
-            case Call.STATE_SIMULATED_RINGING:
-                if (isForeground) {
-                    return CALL_STATE_INCOMING;
+            case Call.STATE_RINGING, Call.STATE_SIMULATED_RINGING -> {
+                if (call.isSilentRingingRequested()) {
+                    yield CallState.IDLE;
+                } else if (isForeground) {
+                    yield CallState.INCOMING;
                 } else {
-                    return CALL_STATE_WAITING;
+                    yield CallState.WAITING;
                 }
-        }
-        return CALL_STATE_IDLE;
+            }
+            default -> CallState.IDLE;
+        };
     }
 
     private void processOnCallAdded(BluetoothCall call) {
@@ -2248,13 +2222,13 @@ public class BluetoothInCallService extends InCallService {
        Log.d(TAG, "ProcessOnStateChanged events");
 
        switch (bluetoothLastState) {
-          case CALL_STATE_ALERTING:
-          case CALL_STATE_INCOMING:
-            if ((btCallState == CALL_STATE_ALERTING) ||
-                (btCallState == CALL_STATE_INCOMING) ||
-                (btCallState == CALL_STATE_WAITING)) {
+          case CallState.ALERTING:
+          case CallState.INCOMING:
+            if ((btCallState == CallState.ALERTING) ||
+                (btCallState == CallState.INCOMING) ||
+                (btCallState == CallState.WAITING)) {
                //already updated incoming call no need to update
-            } else if (btCallState == CALL_STATE_ACTIVE) {
+            } else if (btCallState == CallState.ACTIVE) {
               //either incoming call/alerting call moved to active
 
               if (mDsDaOutgoingCalls > numOutgoingCalls) {
@@ -2301,7 +2275,7 @@ public class BluetoothInCallService extends InCallService {
                  }
               }
             }
-            else if (btCallState == CALL_STATE_HELD) {
+            else if (btCallState == CallState.HELD) {
               if ((numActiveCalls == 0) && (mDsdaActiveCalls == 1)) {
                 Log.d(TAG, "active call is made to held");
                 if (numHeldCalls > mDsDaHeldCalls) {
@@ -2318,11 +2292,11 @@ public class BluetoothInCallService extends InCallService {
               }
            }
          break;
-         case CALL_STATE_IDLE:
+         case CallState.IDLE:
             //so it can have active or held or no calls.cannot have incoming/alerting call
             Log.d(TAG, "previous bt state is idle:" + bluetoothLastState);
 
-            if (btCallState == CALL_STATE_HELD) { //received call event state
+            if (btCallState == CallState.HELD) { //received call event state
               Log.d(TAG, "recevied call event as held event");
               if (mDsDaHeldCalls < numHeldCalls) {
                 Log.d(TAG, "new held call is received from active");
@@ -2335,7 +2309,7 @@ public class BluetoothInCallService extends InCallService {
                         Log.i(TAG, "Concurrent Calls Not Possible: Not DSDA ");
                         Log.i(TAG, "Call swapping is in progress ");
                         mCallSwapPending = 1;
-                        updateHeadsetWithCallState(false);
+                        updateHeadsetWithCallState(HeadsetService.getHeadsetService(), false);
                         return;
                       }
                     }
@@ -2351,7 +2325,7 @@ public class BluetoothInCallService extends InCallService {
                 }
               }
             }
-            else if (btCallState == CALL_STATE_IDLE) {
+            else if (btCallState == CallState.IDLE) {
                //this means, received call state event can be in ringing state or disconnected
                //will be handled in call removed
                //this might be one of the held call would have been ended
@@ -2387,7 +2361,7 @@ public class BluetoothInCallService extends InCallService {
                    Log.d(TAG, "this ringing should not come will handle only after oncall added");
                }
            }
-           else if (btCallState == CALL_STATE_ACTIVE) {
+           else if (btCallState == CallState.ACTIVE) {
                if (mCallSwapPending == 1) {
                   updateHeadsetWithDSDACallState(true /* force */, DSDS_EVENT);
                   mCallSwapPending = 0;
@@ -2439,7 +2413,7 @@ public class BluetoothInCallService extends InCallService {
      @SuppressLint("AndroidFrameworkRequiresPermission")
      private void updateHeadsetWithDSDACallState(boolean force, int event) {
       if ((event == DSDS_EVENT) && (!mDsDaEventsHadlingInProgress)) {
-          updateHeadsetWithCallState(force);
+          updateHeadsetWithCallState(HeadsetService.getHeadsetService(), force);
       } else {
         Log.e(TAG, "handleDSDA events in separate thread.");
         Message msg = mHandler.obtainMessage();
@@ -2675,32 +2649,23 @@ public class BluetoothInCallService extends InCallService {
         }
     }
 
-    private Integer getTbsCallState(BluetoothCall call) {
-        switch (call.getState()) {
-            case Call.STATE_ACTIVE:
-                return BluetoothLeCall.STATE_ACTIVE;
+    private static Integer getTbsCallState(BluetoothCall call) {
+        return switch (call.getState()) {
+            case Call.STATE_ACTIVE -> BluetoothLeCall.STATE_ACTIVE;
+            case Call.STATE_HOLDING -> BluetoothLeCall.STATE_LOCALLY_HELD;
+            case Call.STATE_DIALING, Call.STATE_PULLING_CALL -> BluetoothLeCall.STATE_ALERTING;
+            case Call.STATE_CONNECTING, Call.STATE_SELECT_PHONE_ACCOUNT ->
+                    BluetoothLeCall.STATE_DIALING;
 
-            case Call.STATE_CONNECTING:
-            case Call.STATE_SELECT_PHONE_ACCOUNT:
-                return BluetoothLeCall.STATE_DIALING;
-
-            case Call.STATE_DIALING:
-            case Call.STATE_PULLING_CALL:
-                return BluetoothLeCall.STATE_ALERTING;
-
-            case Call.STATE_HOLDING:
-                return BluetoothLeCall.STATE_LOCALLY_HELD;
-
-            case Call.STATE_RINGING:
-            case Call.STATE_SIMULATED_RINGING:
+            case Call.STATE_RINGING, Call.STATE_SIMULATED_RINGING -> {
                 if (call.isSilentRingingRequested()) {
-                    mSilentRingingRequested = true;
-                    return null;
+                    yield null;
                 } else {
-                    return BluetoothLeCall.STATE_INCOMING;
+                    yield BluetoothLeCall.STATE_INCOMING;
                 }
-        }
-        return null;
+            }
+            default -> null;
+        };
     }
 
     @VisibleForTesting
@@ -2708,28 +2673,24 @@ public class BluetoothInCallService extends InCallService {
         DisconnectCause cause = call.getDisconnectCause();
         if (cause == null) {
             Log.w(TAG, " termination cause is null");
-            return BluetoothLeCallControl.TERMINATION_REASON_FAIL;
+            return TerminationReason.FAIL;
         }
 
-        switch (cause.getCode()) {
-            case DisconnectCause.BUSY:
-                return BluetoothLeCallControl.TERMINATION_REASON_LINE_BUSY;
-            case DisconnectCause.REMOTE:
-            case DisconnectCause.REJECTED:
-                return BluetoothLeCallControl.TERMINATION_REASON_REMOTE_HANGUP;
-            case DisconnectCause.LOCAL:
+        return switch (cause.getCode()) {
+            case DisconnectCause.BUSY -> TerminationReason.LINE_BUSY;
+            case DisconnectCause.ERROR -> TerminationReason.NETWORK_CONGESTION;
+            case DisconnectCause.CONNECTION_MANAGER_NOT_SUPPORTED -> TerminationReason.INVALID_URI;
+            case DisconnectCause.REMOTE, DisconnectCause.REJECTED ->
+                    TerminationReason.REMOTE_HANGUP;
+            case DisconnectCause.LOCAL -> {
                 if (mIsTerminatedByClient) {
                     mIsTerminatedByClient = false;
-                    return BluetoothLeCallControl.TERMINATION_REASON_CLIENT_HANGUP;
+                    yield TerminationReason.CLIENT_HANGUP;
                 }
-                return BluetoothLeCallControl.TERMINATION_REASON_SERVER_HANGUP;
-            case DisconnectCause.ERROR:
-                return BluetoothLeCallControl.TERMINATION_REASON_NETWORK_CONGESTION;
-            case DisconnectCause.CONNECTION_MANAGER_NOT_SUPPORTED:
-                return BluetoothLeCallControl.TERMINATION_REASON_INVALID_URI;
-            default:
-                return BluetoothLeCallControl.TERMINATION_REASON_FAIL;
-        }
+                yield TerminationReason.SERVER_HANGUP;
+            }
+            default -> TerminationReason.FAIL;
+        };
     }
 
     private BluetoothLeCall createTbsCall(BluetoothCall call) {
@@ -2826,10 +2787,10 @@ public class BluetoothInCallService extends InCallService {
                 public void onAcceptCall(int requestId, UUID callId) {
                     synchronized (LOCK) {
                         Log.i(TAG, "TBS - accept call=" + callId);
-                        int result = BluetoothLeCallControl.RESULT_SUCCESS;
+                        int result = Result.SUCCESS;
                         BluetoothCall call = mCallInfo.getCallByCallId(callId);
                         if (mCallInfo.isNullCall(call)) {
-                            result = BluetoothLeCallControl.RESULT_ERROR_UNKNOWN_CALL_ID;
+                            result = Result.ERROR_UNKNOWN_CALL_ID;
                         } else {
                             call.answer(VideoProfile.STATE_AUDIO_ONLY);
                         }
@@ -2841,10 +2802,10 @@ public class BluetoothInCallService extends InCallService {
                 public void onTerminateCall(int requestId, UUID callId) {
                     synchronized (LOCK) {
                         Log.i(TAG, "TBS - terminate call=" + callId);
-                        int result = BluetoothLeCallControl.RESULT_SUCCESS;
+                        int result = Result.SUCCESS;
                         BluetoothCall call = mCallInfo.getCallByCallId(callId);
                         if (mCallInfo.isNullCall(call)) {
-                            result = BluetoothLeCallControl.RESULT_ERROR_UNKNOWN_CALL_ID;
+                            result = Result.ERROR_UNKNOWN_CALL_ID;
                         } else {
                             mIsTerminatedByClient = true;
                             call.disconnect();
@@ -2857,10 +2818,10 @@ public class BluetoothInCallService extends InCallService {
                 public void onHoldCall(int requestId, UUID callId) {
                     synchronized (LOCK) {
                         Log.i(TAG, "TBS - hold call=" + callId);
-                        int result = BluetoothLeCallControl.RESULT_SUCCESS;
+                        int result = Result.SUCCESS;
                         BluetoothCall call = mCallInfo.getCallByCallId(callId);
                         if (mCallInfo.isNullCall(call)) {
-                            result = BluetoothLeCallControl.RESULT_ERROR_UNKNOWN_CALL_ID;
+                            result = Result.ERROR_UNKNOWN_CALL_ID;
                         } else {
                             call.hold();
                         }
@@ -2872,10 +2833,10 @@ public class BluetoothInCallService extends InCallService {
                 public void onUnholdCall(int requestId, UUID callId) {
                     synchronized (LOCK) {
                         Log.i(TAG, "TBS - unhold call=" + callId);
-                        int result = BluetoothLeCallControl.RESULT_SUCCESS;
+                        int result = Result.SUCCESS;
                         BluetoothCall call = mCallInfo.getCallByCallId(callId);
                         if (mCallInfo.isNullCall(call)) {
-                            result = BluetoothLeCallControl.RESULT_ERROR_UNKNOWN_CALL_ID;
+                            result = Result.ERROR_UNKNOWN_CALL_ID;
                         } else {
                             call.unhold();
                         }
@@ -2885,15 +2846,13 @@ public class BluetoothInCallService extends InCallService {
 
                 @Override
                 public void onPlaceCall(int requestId, UUID callId, String uri) {
-                    mBluetoothLeCallControl.requestResult(
-                            requestId, BluetoothLeCallControl.RESULT_ERROR_APPLICATION);
+                    mBluetoothLeCallControl.requestResult(requestId, Result.ERROR_APPLICATION);
                 }
 
                 @Override
                 public void onJoinCalls(int requestId, @NonNull List<UUID> callIds) {
                     synchronized (LOCK) {
                         Log.i(TAG, "TBS - onJoinCalls");
-                        int result = BluetoothLeCallControl.RESULT_SUCCESS;
                         List<UUID> alreadyJoinedCalls = new ArrayList<>();
                         BluetoothCall baseCallInstance = null;
 
@@ -2902,8 +2861,8 @@ public class BluetoothInCallService extends InCallService {
                                     TAG,
                                     "TBS - onJoinCalls, join call number is invalid: "
                                             + callIds.size());
-                            result = BluetoothLeCallControl.RESULT_ERROR_UNKNOWN_CALL_ID;
-                            mBluetoothLeCallControl.requestResult(requestId, result);
+                            mBluetoothLeCallControl.requestResult(
+                                    requestId, Result.ERROR_UNKNOWN_CALL_ID);
                             return;
                         }
 
@@ -2928,8 +2887,9 @@ public class BluetoothInCallService extends InCallService {
                             alreadyJoinedCalls.add(callToJoinUuid);
                         }
 
+                        int result = Result.SUCCESS;
                         if ((baseCallInstance == null) || (alreadyJoinedCalls.size() < 2)) {
-                            result = BluetoothLeCallControl.RESULT_ERROR_UNKNOWN_CALL_ID;
+                            result = Result.ERROR_UNKNOWN_CALL_ID;
                         }
 
                         mBluetoothLeCallControl.requestResult(requestId, result);

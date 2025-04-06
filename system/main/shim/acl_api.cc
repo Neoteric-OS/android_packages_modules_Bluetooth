@@ -60,19 +60,6 @@ void bluetooth::shim::ACL_CancelClassicConnection(const RawAddress& raw_address)
   Stack::GetInstance()->GetAcl()->CancelClassicConnection(address);
 }
 
-void bluetooth::shim::ACL_AcceptLeConnectionFrom(const tBLE_BD_ADDR& legacy_address_with_type,
-                                                 bool is_direct) {
-  BTM_LogHistory(kBtmLogTag, legacy_address_with_type, "Allow connection from", "Le");
-  bluetooth::shim::GetAclManager()->CreateLeConnection(
-          ToAddressWithTypeFromLegacy(legacy_address_with_type), is_direct);
-}
-
-void bluetooth::shim::ACL_IgnoreLeConnectionFrom(const tBLE_BD_ADDR& legacy_address_with_type) {
-  BTM_LogHistory(kBtmLogTag, legacy_address_with_type, "Ignore connection from", "Le");
-  bluetooth::shim::GetAclManager()->CancelLeConnect(
-          ToAddressWithTypeFromLegacy(legacy_address_with_type));
-}
-
 void bluetooth::shim::ACL_WriteData(uint16_t handle, BT_HDR* p_buf) {
   std::unique_ptr<bluetooth::packet::RawBuilder> packet =
           MakeUniquePacket(p_buf->data + p_buf->offset + HCI_DATA_PREAMBLE_SIZE,
@@ -128,10 +115,6 @@ void bluetooth::shim::ACL_Disconnect(uint16_t handle, bool is_classic, tHCI_STAT
 
 void bluetooth::shim::ACL_Shutdown() { Stack::GetInstance()->GetAcl()->Shutdown(); }
 
-void bluetooth::shim::ACL_IgnoreAllLeConnections() {
-  return Stack::GetInstance()->GetAcl()->ClearFilterAcceptList();
-}
-
 void bluetooth::shim::ACL_ReadConnectionAddress(uint16_t handle, RawAddress& conn_addr,
                                                 tBLE_ADDR_TYPE* p_addr_type, bool ota_address) {
   std::promise<bluetooth::hci::AddressWithType> promise;
@@ -182,12 +165,6 @@ void bluetooth::shim::ACL_ClearAddressResolution() {
 
 void bluetooth::shim::ACL_ClearFilterAcceptList() {
   Stack::GetInstance()->GetAcl()->ClearFilterAcceptList();
-}
-void bluetooth::shim::ACL_LeSetDefaultSubrate(uint16_t subrate_min, uint16_t subrate_max,
-                                              uint16_t max_latency, uint16_t cont_num,
-                                              uint16_t sup_tout) {
-  Stack::GetInstance()->GetAcl()->LeSetDefaultSubrate(subrate_min, subrate_max, max_latency,
-                                                      cont_num, sup_tout);
 }
 
 void bluetooth::shim::ACL_LeSubrateRequest(uint16_t hci_handle, uint16_t subrate_min,

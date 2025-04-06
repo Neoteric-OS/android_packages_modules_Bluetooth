@@ -226,7 +226,6 @@ public:
       // restart the session on the correct thread
       LOG(WARNING) << __func__ << ": posting restart request to worker thread  " << message_loop_;
       message_loop_->DoInThread(
-              FROM_HERE,
               base::BindOnce(&BluetoothAudioClientInterface::RenewAudioProviderAndSession,
                              base::Unretained(bluetooth_audio_clientif_)));
       LOG(WARNING) << __func__ << ": done with posting restart request";
