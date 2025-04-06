@@ -2692,7 +2692,8 @@ private:
           return;
         }
 
-        if (group->GetTargetState() == AseState::BTA_LE_AUDIO_ASE_STATE_CODEC_CONFIGURED) {
+        if (group->GetTargetState() == AseState::BTA_LE_AUDIO_ASE_STATE_CODEC_CONFIGURED &&
+            group->IsPendingConfiguration()) {
           log::info("Configured state completed");
 
           /* If all CISes are disconnected, notify upper layer about IDLE

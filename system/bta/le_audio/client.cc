@@ -6898,7 +6898,7 @@ public:
             if (is_active_group_operation) {
               reconfigurationComplete();
             }
-          } else /*if (is_active_group_operation)*/ {
+          } else if (is_active_group_operation) {
             log::info(
                     "sink_monitor_mode_: {}, defer_notify_inactive_until_stop_: {}, "
                     "defer_notify_active_until_stop_: {}, defer_source_suspend_ack_until_stop_: "
