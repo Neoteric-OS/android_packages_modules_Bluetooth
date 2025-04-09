@@ -549,9 +549,8 @@ public class ActiveDeviceManager implements AdapterService.BluetoothStateCallbac
                             + mA2dpActiveDevice);
             mA2dpConnectedDevices.remove(device);
             if (Objects.equals(mA2dpActiveDevice, device)) {
-                if (!setFallbackDeviceActiveLocked()) {
-                    setA2dpActiveDevice(null, false);
-                }
+                setA2dpActiveDevice(null, false);
+                setFallbackDeviceActiveLocked();
             }
         }
     }
@@ -1303,14 +1302,16 @@ public class ActiveDeviceManager implements AdapterService.BluetoothStateCallbac
                     setHearingAidActiveDevice(null, true);
                 } else {
                     Log.d(TAG, "Found a LE audio fallback device: " + device);
-                    if (!setLeAudioActiveDevice(device)) {
-                        return false;
-                    }
 
                     if (!Utils.isDualModeAudioEnabled()) {
                         setA2dpActiveDevice(null, true);
                         setHfpActiveDevice(null);
                     }
+
+                    if (!setLeAudioActiveDevice(device)) {
+                        return false;
+                    }
+
                     setHearingAidActiveDevice(null, true);
                 }
             } else {
