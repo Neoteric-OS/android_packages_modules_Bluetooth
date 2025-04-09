@@ -735,84 +735,37 @@ AudioConfiguration stream_config_to_hal_audio_config(
     return AudioConfiguration(ucast_config);
   }
 
-  bool lc3_codec_config_found = false;
-  for (auto& info : offload_config.stream_map) {
-    if (!lc3_codec_config_found &&
-        info.codec_config.id == ::bluetooth::le_audio::types::LeAudioCodecIdLc3) {
-      /* For now we have single configuration per directions, so this is enought to use
-       * configuration from the streaming cis. Find configuration and copy it.
-       */
-      log::verbose(
-              "Found LC3 config: bits_per_sample: {}, sampling_frequency_hz: {}, "
-              "frame_duration_us: {}, octets_per_codec_frame: {}, codec_frames_blocks_per_sdu: {}",
-              offload_config.bits_per_sample, offload_config.sampling_frequency_hz,
-              offload_config.frame_duration_us, offload_config.octets_per_codec_frame,
-              offload_config.codec_frames_blocks_per_sdu);
-
-      Lc3Configuration lc3_config{
-              .pcmBitDepth = static_cast<int8_t>(offload_config.bits_per_sample),
-              .samplingFrequencyHz = static_cast<int32_t>(offload_config.sampling_frequency_hz),
-              .frameDurationUs = static_cast<int32_t>(offload_config.frame_duration_us),
-              .octetsPerFrame = static_cast<int32_t>(offload_config.octets_per_codec_frame),
-              .blocksPerSdu = static_cast<int8_t>(offload_config.codec_frames_blocks_per_sdu),
-      };
-      ucast_config.leAudioCodecConfig = LeAudioCodecConfiguration(lc3_config);
-      ucast_config.codecType = CodecType::LC3;
-      lc3_codec_config_found = true;
-    }
-
-    LeAudioConfiguration::StreamMap::BluetoothDeviceAddress aidl_device_address;
-    // The address should be set only if stream is active
-    if (info.is_stream_active) {
-      aidl_device_address.deviceAddress = info.address.ToArray();
-      aidl_device_address.deviceAddressType =
-              (info.address_type == BLE_ADDR_PUBLIC || info.address_type == BLE_ADDR_PUBLIC_ID)
-                      ? LeAudioConfiguration::StreamMap::BluetoothDeviceAddress::DeviceAddressType::
-                                BLE_ADDRESS_PUBLIC
-                      : LeAudioConfiguration::StreamMap::BluetoothDeviceAddress::DeviceAddressType::
-                                BLE_ADDRESS_RANDOM;
-    }
-
-    LeAudioConfiguration::StreamMap map_entry = {
-            .streamHandle = info.stream_handle,
-            .audioChannelAllocation = static_cast<int32_t>(info.audio_channel_allocation),
-            .isStreamActive = info.is_stream_active,
-    };
-
-    // Add the additional codec extensibility data fields
-    if (IsUsingCodecExtensibility()) {
-      map_entry.aseConfiguration = GetAidlLeAudioAseConfigurationFromStackFormat(
-              info.codec_config, info.target_latency, info.target_phy, info.metadata);
-      map_entry.bluetoothDeviceAddress = aidl_device_address;
-    }
-
-    ucast_config.streamMap.push_back(map_entry);
-  }
-
-  if (!lc3_codec_config_found) {
-    auto id = offload_config.stream_map.at(0).codec_config.id;
-    log::info("Non LC3 Codec config is used. Format: {}, Vendor: {}, Company: {}", id.coding_format,
-              id.vendor_codec_id, id.vendor_company_id);
-  }
-  log::debug( ": coding_format = {}, vendor_codec_id = {}",
-              offload_config.codec_id.coding_format,
-              offload_config.codec_id.vendor_codec_id);
+  log::debug( ": stream_map size: {}", offload_config.stream_map.size());
 
   if (CodecManager::GetInstance()->IsUsingCodecExtensibility()) {
-    // In the legacy configuration we use the first ASE configuration as the source of truth.
-    if (offload_config.stream_map.at(0).codec_config.id ==
-        ::bluetooth::le_audio::types::LeAudioCodecIdLc3) {
-      Lc3Configuration lc3_config{
-              .pcmBitDepth = static_cast<int8_t>(offload_config.bits_per_sample),
-              .samplingFrequencyHz = static_cast<int32_t>(offload_config.sampling_frequency_hz),
-              .frameDurationUs = static_cast<int32_t>(offload_config.frame_duration_us),
-              .octetsPerFrame = static_cast<int32_t>(offload_config.octets_per_codec_frame),
-              .blocksPerSdu = static_cast<int8_t>(offload_config.codec_frames_blocks_per_sdu),
-      };
-      ucast_config.leAudioCodecConfig = LeAudioCodecConfiguration(lc3_config);
-    }
-
+    bool lc3_codec_config_found = false;
     for (auto& info : offload_config.stream_map) {
+      if (!lc3_codec_config_found &&
+          info.codec_config.id == ::bluetooth::le_audio::types::LeAudioCodecIdLc3) {
+        /* For now we have single configuration per directions, so this is enought to use
+         * configuration from the streaming cis. Find configuration and copy it.
+         */
+        log::verbose(
+                "Found LC3 config: bits_per_sample: {}, sampling_frequency_hz: {}, "
+                "frame_duration_us: {}, octets_per_codec_frame: {}, codec_frames_blocks_per_sdu: {}",
+                offload_config.bits_per_sample, offload_config.sampling_frequency_hz,
+                offload_config.frame_duration_us, offload_config.octets_per_codec_frame,
+                offload_config.codec_frames_blocks_per_sdu);
+
+        Lc3Configuration lc3_config{
+                .pcmBitDepth = static_cast<int8_t>(offload_config.bits_per_sample),
+                .samplingFrequencyHz = static_cast<int32_t>(offload_config.sampling_frequency_hz),
+                .frameDurationUs = static_cast<int32_t>(offload_config.frame_duration_us),
+                .octetsPerFrame = static_cast<int32_t>(offload_config.octets_per_codec_frame),
+                .blocksPerSdu = static_cast<int8_t>(offload_config.codec_frames_blocks_per_sdu),
+        };
+        ucast_config.leAudioCodecConfig = LeAudioCodecConfiguration(lc3_config);
+        ucast_config.codecType = CodecType::LC3;
+        lc3_codec_config_found = true;
+      }
+
+      log::debug( ": lc3_codec_config_found: {}", lc3_codec_config_found);
+
       LeAudioConfiguration::StreamMap::BluetoothDeviceAddress aidl_device_address;
       // The address should be set only if stream is active
       if (info.is_stream_active) {
@@ -825,15 +778,32 @@ AudioConfiguration stream_config_to_hal_audio_config(
                                   BLE_ADDRESS_RANDOM;
       }
 
-      ucast_config.streamMap.push_back({
+      LeAudioConfiguration::StreamMap map_entry = {
               .streamHandle = info.stream_handle,
               .audioChannelAllocation = static_cast<int32_t>(info.audio_channel_allocation),
               .isStreamActive = info.is_stream_active,
-              .aseConfiguration = GetAidlLeAudioAseConfigurationFromStackFormat(
-                      info.codec_config, info.target_latency, info.target_phy, info.metadata),
-              .bluetoothDeviceAddress = aidl_device_address,
-      });
+      };
+
+      // Add the additional codec extensibility data fields
+      if (IsUsingCodecExtensibility()) {
+        map_entry.aseConfiguration = GetAidlLeAudioAseConfigurationFromStackFormat(
+                info.codec_config, info.target_latency, info.target_phy, info.metadata);
+        map_entry.bluetoothDeviceAddress = aidl_device_address;
+      }
+
+      ucast_config.streamMap.push_back(map_entry);
+
     }
+
+    if (!lc3_codec_config_found) {
+      auto id = offload_config.stream_map.at(0).codec_config.id;
+      log::info("Non LC3 Codec config is used. Format: {}, Vendor: {}, Company: {}", id.coding_format,
+                id.vendor_codec_id, id.vendor_company_id);
+    }
+    log::debug( ": coding_format = {}, vendor_codec_id = {}",
+                offload_config.codec_id.coding_format,
+                offload_config.codec_id.vendor_codec_id);
+
     return AudioConfiguration(ucast_config);
   } else {
     if (offload_config.codec_id.coding_format ==
