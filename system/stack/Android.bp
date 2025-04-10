@@ -824,6 +824,7 @@ cc_test {
         ":TestMockStackBtm",
         ":TestMockStackL2capInterface",
         ":TestMockStackRfcommMetrics",
+        ":TestCommonStackConfig",
         "rfcomm/port_api.cc",
         "rfcomm/port_rfc.cc",
         "rfcomm/port_utils.cc",
