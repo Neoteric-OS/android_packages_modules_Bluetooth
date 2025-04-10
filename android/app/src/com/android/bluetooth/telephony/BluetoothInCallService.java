@@ -85,6 +85,9 @@ import java.util.TreeSet;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.ScheduledFuture;
 
 /**
  * Used to receive updates about calls from the Telecom component. This service is bound to Telecom
@@ -251,6 +254,12 @@ public class BluetoothInCallService extends InCallService {
         "org.codeaurora.intent.action.MSIM_VOICE_CAPABILITY_CHANGED";
 
     private BluetoothAdapter mAdapter = null;
+
+    public boolean isConferenceInProgress = false;
+
+    public final ScheduledExecutorService clccScheduler = Executors.newSingleThreadScheduledExecutor();
+
+    private volatile boolean isClccDelayScheduled = false;
 
     private final BluetoothProfile.ServiceListener mProfileListener =
             new BluetoothProfile.ServiceListener() {
@@ -1234,6 +1243,7 @@ public class BluetoothInCallService extends InCallService {
 
                 DisconnectCause cause = call.getDisconnectCause();
                 if (cause != null && cause.getCode() == DisconnectCause.OTHER) {
+                    isConferenceInProgress = true;
                     Log.d(TAG, "add inference call with reason: " + cause.getReason());
                     mBluetoothCallQueue.add(call.getId());
                     mBluetoothConferenceCallInference.put(call.getId(), call);
@@ -1260,6 +1270,7 @@ public class BluetoothInCallService extends InCallService {
                 }
                 // As there is at most 1 conference call, so clear inference when parent call ends
                 if (call.isConference()) {
+                    isConferenceInProgress = false;
                     Log.d(TAG, "conference call ends, clear inference");
                     mBluetoothConferenceCallInference.clear();
                     mBluetoothCallQueue.clear();
@@ -1426,6 +1437,21 @@ public class BluetoothInCallService extends InCallService {
 
         // either do conference call CLCC index inference or normal conference call
         BluetoothCall conferenceCallChildrenNotReady = null;
+       // add a delay for the case where AT+CLCC is received while the callList updation is
+       // in progress
+        if(calls.size() == 1 && isHostImsCall(calls.iterator().next()) && isConferenceInProgress) {
+            if(!isClccDelayScheduled) {
+                isClccDelayScheduled = true;
+                Log.w(TAG, "Delaying CLCC for potential host case");
+                ScheduledFuture<?> unused = clccScheduler.schedule(() -> {
+                      Log.w(TAG, "Re-invoking sendListOfCalls after 1050ms delay");
+                      isClccDelayScheduled = false;
+                      sendListOfCalls(headsetService, shouldLog);
+                       }, 1050, TimeUnit.MILLISECONDS);
+            } else {
+                Log.w(TAG, "CLCC delay already scheduled, skipping duplicate schedule");
+            }
+        }
         for (BluetoothCall call : calls) {
             // find the conference call parent among calls
             if (call.isConference() && !mBluetoothConferenceCallInference.isEmpty()) {
@@ -1546,6 +1572,25 @@ public class BluetoothInCallService extends InCallService {
             }
         }
         headsetService.clccResponse(0 /* index */, 0, 0, 0, false, null, 0); // End marker
+    }
+
+    private boolean isHostImsCall(BluetoothCall call) {
+        final Uri addressUri;
+        if (call.getGatewayInfo() != null) {
+            addressUri = call.getGatewayInfo().getOriginalAddress();
+        } else {
+            addressUri = call.getHandle();
+        }
+
+        String address = addressUri == null ? null : addressUri.getSchemeSpecificPart();
+        if (address != null) {
+            address = PhoneNumberUtils.stripSeparators(address);
+        }
+        String subsNum = getSubscriberNumber();
+        if(subsNum.equals(address)){
+            return true;
+        }
+        return false;
     }
 
     /** Sends a single clcc (C* List Current Calls) event for the specified call. */
@@ -2251,7 +2296,7 @@ public class BluetoothInCallService extends InCallService {
                      Log.d(TAG, "ringing call moved to active. DSDS");
                      mDsdaIncomingCalls--;
                      mDsdaActiveCalls = 1;
-                     updateHeadsetWithDSDACallState(true, DSDS_EVENT); 
+                     updateHeadsetWithDSDACallState(true, DSDS_EVENT);
                    }
                 }
                 else if((numRingingCalls == 1) && (mDsdaIncomingCalls == 2)) {
