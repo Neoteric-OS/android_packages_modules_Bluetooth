@@ -393,6 +393,8 @@ typedef enum {
   // disables stack's 'wait for LE service discovery' logic if LE advertising cannot be established.
   INTEROP_SKIP_WAIT_FOR_LE_SERVICE_SEARCH,
 
+  INTEROP_SKIP_GATT_DISCOVERY_OVER_LE,
+
   END_OF_INTEROP_LIST
 } interop_feature_t;
 
