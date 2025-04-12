@@ -1372,6 +1372,12 @@ public:
         StopAudio();
         ClientAudioInterfaceRelease();
       }
+      //Check below when device switch happens during call and enhance if required.
+      if (IsInCall()) {
+        log::debug("Clear cached call updates during group In-Active");
+        track_in_call_update_ = 0;
+        defer_reconfig_complete_update_ = false;
+      }
       callbacks_->OnGroupStatus(group_id, GroupStatus::INACTIVE);
     }
   }
@@ -1839,6 +1845,12 @@ public:
     log::info("defer_notify_inactive_until_stop_: {}", defer_notify_inactive_until_stop_);
 
     if (!defer_notify_inactive_until_stop_) {
+      //Check below when device switch happens during call and enhance if required.
+      if (IsInCall()) {
+        log::debug("Clear cached call updates during group In-Active");
+        track_in_call_update_ = 0;
+        defer_reconfig_complete_update_ = false;
+      }
       StopAudio();
       ClientAudioInterfaceRelease();
       callbacks_->OnGroupStatus(group_id_to_close, GroupStatus::INACTIVE);
@@ -2039,6 +2051,7 @@ public:
       /* For the fresh activated LeAudio device, do configuration ahead only when
        * phone is in a call.
        */
+      log::info("prepare_for_a_call {}", prepare_for_a_call);
       if (prepare_for_a_call) {
         PrepareStreamForAConversational(group);
       }
@@ -5656,10 +5669,10 @@ public:
             ChooseMetadataContextType(local_metadata_context_types_.source);
 
     if (active_group_id_ == bluetooth::groups::kGroupUnknown) {
-      log::warn(", cannot start streaming if no active group set");
+      log::warn("cannot start streaming if no active group set");
       return;
     } else if (defer_notify_inactive_until_stop_) {
-      log::warn(", cannot start streaming as active group is de-activating");
+      log::warn("cannot start streaming as active group is de-activating");
       return;
     }
 
@@ -5676,7 +5689,10 @@ public:
             ToString(audio_receiver_state_), ToString(audio_sender_state_),
             static_cast<int>(dsa_mode));
 
-    if (IsInCall()) {
+    log::debug("check track_in_call_update_= {}", track_in_call_update_);
+    //Assuming BT-App updates to BT-Stack before UpdateMetadata from BT-HAL
+    //during use-case switch to Call.
+    if (IsInCall() && track_in_call_update_ != 0) {
       if (local_metadata_context_types_.source.test(LeAudioContextType::CONVERSATIONAL) ||
           local_metadata_context_types_.source.test(LeAudioContextType::RINGTONE)) {
         track_in_call_update_ |= IN_CALL_UPDATE_METADATA_FROM_BT_HAL;
@@ -5691,8 +5707,6 @@ public:
         log::warn("Both BT App and UpdateMetadata received for call,"
                   " send reconfigurationComplete to BT HAL");
         reconfigurationComplete();
-        track_in_call_update_ = 0;
-        defer_reconfig_complete_update_ = false;
       } else {
         log::warn("Both BT App and UpdateMetadata received for call b2b,"
                   " Don't send reconfigurationComplete to BT HAL now");
@@ -6755,6 +6769,11 @@ public:
       previously_active_directions |= bluetooth::le_audio::types::kLeAudioDirectionSource;
     }
 
+    //make sure during reconfig completion clear the below flags,
+    //which were set during some other use-case to Call.
+    track_in_call_update_ = 0;
+    defer_reconfig_complete_update_ = false;
+
     /* We are done with reconfiguration.
      * Clean state and if Audio HAL is waiting, cancel the request
      * so Audio HAL can Resume again.
@@ -6875,16 +6894,19 @@ public:
           log::warn("track_in_call_update_: {}, defer_reconfig_complete_update_:{}",
                     track_in_call_update_, defer_reconfig_complete_update_);
           if (IsInCall()) {
-            if (track_in_call_update_ == IN_CALL_UPDATE_FROM_BT_APP_AND_BT_HAL) {
-              log::warn("Both BT App and UpdateMetadata received for call,"
-                        " send reconfigurationComplete to BT HAL");
-              reconfigurationComplete();
-              track_in_call_update_ = 0;
-              defer_reconfig_complete_update_ = false;
+            if(track_in_call_update_ != 0) {
+              if (track_in_call_update_ == IN_CALL_UPDATE_FROM_BT_APP_AND_BT_HAL) {
+                log::warn("Both BT App and UpdateMetadata received for call,"
+                          " send reconfigurationComplete to BT HAL");
+                reconfigurationComplete();
+              } else {
+                defer_reconfig_complete_update_ = true;
+                log::warn("Both BT App and UpdateMetadata not received for call,"
+                          " Don't send reconfigurationComplete to BT HAL now");
+              }
             } else {
-              defer_reconfig_complete_update_ = true;
-              log::warn("Both BT App and UpdateMetadata not received for call,"
-                        " Don't send reconfigurationComplete to BT HAL now");
+              log::warn("Wait for ases streaming notification from remote,"
+                        " as it is stand-alone call usecase");
             }
           } else {
             reconfigurationComplete();
@@ -6919,6 +6941,12 @@ public:
           // handleAsymmetricPhyForUnicast(group);
           UpdateLocationsAndContextsAvailability(group);
           if (!group->IsPendingConfiguration()) {
+            log::info("sink_monitor_mode_: {}, defer_notify_inactive_until_stop_: {}, "
+                      "defer_notify_active_until_stop_: {}, defer_source_suspend_ack_until_stop_: {}, "
+                      "defer_sink_suspend_ack_until_stop_: {}", sink_monitor_mode_,
+                      defer_notify_inactive_until_stop_, defer_notify_active_until_stop_,
+                      defer_source_suspend_ack_until_stop_, defer_sink_suspend_ack_until_stop_);
+
             if (sink_monitor_mode_) {
               notifyAudioLocalSink(UnicastMonitorModeStatus::STREAMING_SUSPENDED);
             }
