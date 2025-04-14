@@ -934,7 +934,7 @@ void Device::PlaybackStatusNotificationResponse(uint8_t label, bool interim,
     log::verbose("Send new playback Status CHANGED");
     auto newresponse =
         RegisterNotificationResponseBuilder::MakePlaybackStatusBuilder(
-            false, IsActive() ? status.state : PlayState::PAUSED);
+            false, IsActive() ? state_to_send : PlayState::PAUSED);
     send_message_cb_.Run(label, false, std::move(newresponse));
 
     active_labels_.erase(label);
@@ -946,7 +946,7 @@ void Device::PlaybackStatusNotificationResponse(uint8_t label, bool interim,
 
   auto response =
       RegisterNotificationResponseBuilder::MakePlaybackStatusBuilder(
-          interim, IsActive() ? status.state : PlayState::PAUSED);
+          interim, IsActive() ? state_to_send : PlayState::PAUSED);
   send_message_cb_.Run(label, false, std::move(response));
 
   if (!interim) {
