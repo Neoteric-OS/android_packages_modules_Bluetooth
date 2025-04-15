@@ -206,6 +206,7 @@ struct DistanceMeasurementManager::impl : bluetooth::hal::RangingHalCallback {
     CsRttType rtt_type = CsRttType::RTT_AA_ONLY;
     bool remote_support_phase_based_ranging = false;
     uint8_t remote_num_antennas_supported_ = 0x01;
+    uint8_t remote_num_config_supported_ = 0x01;
     uint8_t config_id = kInvalidConfigId;
     uint8_t selected_tx_power = 0;
     std::vector<CsProcedureData> procedure_data_list = {};
@@ -744,7 +745,23 @@ struct DistanceMeasurementManager::impl : bluetooth::hal::RangingHalCallback {
             handler_->BindOnceOn(this, &impl::on_cs_set_default_settings_complete));
   }
 
+  void send_le_cs_remove_config(uint16_t conn_handle,
+                                       uint8_t config_id) {
+    log::info("remove_config conn_handle: {} config_id: {}", conn_handle, config_id);
+    hci_layer_->EnqueueCommand(
+         LeCsRemoveConfigBuilder::Create(conn_handle, config_id),
+         handler_->BindOnceOn(this, &impl::on_le_cs_remove_config_complete));
+  }
+  void on_le_cs_remove_config_complete(CommandStatusView status_view){
+    log::info("remove_config complete");
+    ErrorCode status = status_view.GetStatus();
+    if (status != ErrorCode::SUCCESS) {
+      log::error("Invalid LeCsRemoveConfigStatus: {}", status);
+    }
+  }
   void send_le_cs_create_config(uint16_t connection_handle, uint8_t config_id) {
+
+    uint8_t KMaxAllowedConfigID = 4;
     if (cs_requester_trackers_.find(connection_handle) == cs_requester_trackers_.end()) {
       log::warn("no cs tracker found for {}", connection_handle);
     }
@@ -763,9 +780,18 @@ struct DistanceMeasurementManager::impl : bluetooth::hal::RangingHalCallback {
       for (int i = 0; i < CS_CHANNEL_MAP_SIZE; i++) {
         channel_map[i] = config_settings.channel_map[i];
       }
-      if(config_settings.config_id == 4) {
-          config_settings.config_id = config_settings.config_id - 1;
+
+      uint8_t remote_config_supported =
+                       cs_requester_trackers_[connection_handle].remote_num_config_supported_;
+      KMaxAllowedConfigID = (remote_config_supported > local_num_config_supported_) ?
+                             local_num_config_supported_ : remote_config_supported;
+
+      if (config_settings.config_id >= KMaxAllowedConfigID) {
+        log::info("config_settings.config_id: {} KMaxAllowedConfigID: {}",
+                   config_settings.config_id, KMaxAllowedConfigID);
+        config_settings.config_id = 0;
       }
+
       cs_requester_trackers_[connection_handle].config_id = config_settings.config_id;
       hci_layer_->EnqueueCommand(
             LeCsCreateConfigBuilder::Create(
@@ -982,6 +1008,7 @@ struct DistanceMeasurementManager::impl : bluetooth::hal::RangingHalCallback {
     }
     cs_subfeature_supported_ = complete_view.GetOptionalSubfeaturesSupported();
     num_antennas_supported_ = complete_view.GetNumAntennasSupported();
+    local_num_config_supported_ = complete_view.GetNumConfigSupported();
     local_support_phase_based_ranging_ = cs_subfeature_supported_.phase_based_ranging_ == 0x01;
   }
 
@@ -1015,14 +1042,16 @@ struct DistanceMeasurementManager::impl : bluetooth::hal::RangingHalCallback {
       log::info("Setup phase complete, connection_handle: {}, address: {}", connection_handle,
                 cs_requester_trackers_[connection_handle].address);
       req_it->second.retry_counter_for_create_config = 0;
+      req_it->second.remote_num_config_supported_ = event_view.GetNumConfigSupported();
       send_le_cs_create_config(connection_handle,
                                cs_requester_trackers_[connection_handle].config_id);
     }
     log::info(
-            "connection_handle:{}, num_antennas_supported:{}, max_antenna_paths_supported:{}, "
-            "roles_supported:{}, phase_based_ranging_supported: {}",
+            "connection_handle:{}, num_antennas_supported:{},  num_config_supported:{},"
+            "max_antenna_paths_supported:{}, roles_supported:{}, phase_based_ranging_supported: {}",
             event_view.GetConnectionHandle(), event_view.GetNumAntennasSupported(),
-            event_view.GetMaxAntennaPathsSupported(), event_view.GetRolesSupported().ToString(),
+            event_view.GetNumConfigSupported(), event_view.GetMaxAntennaPathsSupported(),
+            event_view.GetRolesSupported().ToString(),
             event_view.GetOptionalSubfeaturesSupported().phase_based_ranging_);
   }
 
@@ -2535,6 +2564,7 @@ struct DistanceMeasurementManager::impl : bluetooth::hal::RangingHalCallback {
   DistanceMeasurementCallbacks* distance_measurement_callbacks_;
   CsOptionalSubfeaturesSupported cs_subfeature_supported_;
   uint8_t num_antennas_supported_ = 0x01;
+  uint8_t local_num_config_supported_ = 0x01;
   bool local_support_phase_based_ranging_ = false;
   // A table that maps num_antennas_supported and remote_num_antennas_supported to Antenna
   // Configuration Index.
