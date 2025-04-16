@@ -26,6 +26,7 @@
 #include <com_android_bluetooth_flags.h>
 #include <math.h>
 
+#include <utils/SystemClock.h>
 #include <chrono>
 #include <complex>
 #include <unordered_map>
@@ -337,9 +338,7 @@ struct DistanceMeasurementManager::impl : bluetooth::hal::RangingHalCallback {
     }
     log::debug("address {}, resultMeters {}", cs_requester_trackers_[connection_handle].address,
                ranging_result.result_meters_);
-    using namespace std::chrono;
-    uint64_t elapsedRealtimeNanos =
-            duration_cast<nanoseconds>(steady_clock::now().time_since_epoch()).count();
+    uint64_t elapsedRealtimeNanos = ::android::elapsedRealtimeNano();
     if (is_hal_v2()) {
       elapsedRealtimeNanos = ranging_result.elapsed_timestamp_nanos_;
     }
