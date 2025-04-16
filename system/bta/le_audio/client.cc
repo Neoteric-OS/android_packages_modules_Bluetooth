@@ -6718,27 +6718,44 @@ class LeAudioClientImpl : public LeAudioClient {
         }
         break;
       }
+      case GroupStreamStatus::RELEASING_AUTONOMOUS:
+        /* Remote device releases all the ASEs autonomusly. This should not happen and not sure what
+         * is the remote device intention. If remote wants stop the stream then MCS shall be used to
+         * stop the stream in a proper way. For a phone call, GTBS shall be used. For now we assume
+         * this device has does not want to be used for streaming and mark it as Inactive.
+         */
+        log::warn("Group {} is doing autonomous release, make it inactive", group_id);
+        if (group) {
+          group->PrintDebugState();
+          groupSetAndNotifyInactive();
+        }
+        audio_sender_state_ = AudioState::IDLE;
+        audio_receiver_state_ = AudioState::IDLE;
+        break;
       case GroupStreamStatus::RELEASING:
       case GroupStreamStatus::SUSPENDING:
         log::debug(" defer_notify_inactive_until_stop_: {}",
                                    defer_notify_inactive_until_stop_);
         if (!defer_notify_inactive_until_stop_ &&
             active_group_id_ != bluetooth::groups::kGroupUnknown &&
-            (active_group_id_ == group->group_id_) &&
-            !group->IsPendingConfiguration() &&
+            (active_group_id_ == group->group_id_) && !group->IsPendingConfiguration() &&
             (audio_sender_state_ == AudioState::STARTED ||
-             audio_receiver_state_ == AudioState::STARTED)) {
+             audio_receiver_state_ == AudioState::STARTED) &&
+            group->GetTargetState() != AseState::BTA_LE_AUDIO_ASE_STATE_IDLE) {
           /* If releasing state is happening but it was not initiated either by
            * reconfiguration or Audio Framework actions either by the Active group change,
            * it means that it is some internal state machine error. This is very unlikely and
            * for now just Inactivate the group.
            */
-          log::error("Internal state machine error");
+          log::error("Internal state machine error for group {}", group_id);
           group->PrintDebugState();
           if (!group->IsReleasingOrIdle()) {
             defer_notify_inactive_until_stop_ = true;
           }
           groupSetAndNotifyInactive();
+          audio_sender_state_ = AudioState::IDLE;
+          audio_receiver_state_ = AudioState::IDLE;
+          return;
         }
 
         if (audio_sender_state_ != AudioState::IDLE)
