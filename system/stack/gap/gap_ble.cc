@@ -679,7 +679,7 @@ static bool accept_client_operation(const RawAddress& peer_bda, uint16_t uuid,
   }
 
   /* enqueue the request */
-  p_clcb->requests.push({.uuid = uuid, .p_cback = p_cback});
+  p_clcb->requests.push({.uuid = uuid, .op = GATTC_OPTYPE_READ, .p_cback = p_cback});
 
   if (p_clcb->connected && p_clcb->cl_op_uuid == 0) {
     return send_cl_read_request(*p_clcb);
@@ -706,14 +706,14 @@ bool accept_client_operation(const RawAddress& peer_bda, uint16_t uuid, uint16_t
   /* enqueue the request */
   if (op == GATTC_OPTYPE_READ) {
     /* enqueue the read request */
-    p_clcb->requests.push({.uuid = uuid, .handle = handle, .p_cback = p_cback});
+    p_clcb->requests.push({.uuid = uuid, .op = op, .handle = handle, .p_cback = p_cback});
   } else if (op == GATTC_OPTYPE_WRITE) {
     /* enqueue the write request */
-    p_clcb->requests.push({.handle = handle, .p_cback = p_cback});
+    p_clcb->requests.push({.op = op, .handle = handle, .p_cback = p_cback});
   } else if (op == GATTC_OPTYPE_DISCOVERY) {
     /* enqueue the disc request */
-    p_clcb->requests.push(
-            {.disc_type = static_cast<tGATT_DISC_TYPE>(disc_type), .p_cback = p_cback});
+    p_clcb->requests.push({.op = op, .disc_type = static_cast<tGATT_DISC_TYPE>(disc_type),
+                                                                     .p_cback = p_cback});
   }
 
   if (p_clcb->connected && p_clcb->cl_op_uuid == 0) {
