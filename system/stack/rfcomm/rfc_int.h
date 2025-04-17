@@ -156,9 +156,8 @@ typedef struct {
   MX_FRAME rx_frame;
   tL2CAP_APPL_INFO reg_info; /* L2CAP Registration info */
 
-  bool peer_rx_disabled;    /* If true peer sent FCOFF */
-  uint8_t last_mux;         /* Last mux allocated */
-  uint8_t last_port_index;  // Index of last port allocated in rfc_cb.port
+  bool peer_rx_disabled; /* If true peer sent FCOFF */
+  uint8_t last_mux;      /* Last mux allocated */
 } tRFCOMM_CB;
 
 /* Main Control Block for the RFCOMM Layer (PORT and RFC) */
