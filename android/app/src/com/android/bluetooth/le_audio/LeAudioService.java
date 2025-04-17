@@ -225,6 +225,7 @@ public class LeAudioService extends ProfileService {
     boolean mLeAudioSuspended = false;
     boolean mIsSinkStreamMonitorModeEnabled = false;
     boolean mIsBroadcastPausedFromOutside = false;
+    boolean mHasFallback = true;
     private byte[] mCachedArgs = null;
     private int mCachedOpcode = -1;
 
@@ -355,7 +356,6 @@ public class LeAudioService extends ProfileService {
             mActiveState = ACTIVE_STATE_INACTIVE;
             mAllowedSinkContexts = BluetoothLeAudio.CONTEXTS_ALL;
             mAllowedSourceContexts = BluetoothLeAudio.CONTEXTS_ALL;
-            mHasFallbackDeviceWhenGettingInactive = false;
             mDirection = AUDIO_DIRECTION_NONE;
             mCodecStatus = null;
             mLostLeadDeviceWhileStreaming = null;
@@ -370,7 +370,6 @@ public class LeAudioService extends ProfileService {
 
         final Integer mGroupId;
         Boolean mIsConnected;
-        Boolean mHasFallbackDeviceWhenGettingInactive;
         Integer mDirection;
         BluetoothLeAudioCodecStatus mCodecStatus;
         /* This can be non empty only for the streaming time */
@@ -735,6 +734,7 @@ public class LeAudioService extends ProfileService {
 
         clearCreateBroadcastTimeoutCallback();
 
+        setDisconnected(true);
         removeActiveDevice(false);
 
         if (mTmapGattServer == null) {
@@ -1007,6 +1007,7 @@ public class LeAudioService extends ProfileService {
             return false;
         }
 
+        setDisconnected(true);
         sm.sendMessage(LeAudioStateMachine.DISCONNECT);
 
         return true;
@@ -2696,6 +2697,7 @@ public class LeAudioService extends ProfileService {
                     LeAudioGroupDescriptor fallbackGroupDescriptor = getGroupDescriptor(groupId);
 
                     if (fallbackGroupDescriptor != null) {
+                        Log.d(TAG, "mHasFallback: " + mHasFallback);
                         if (groupId == LE_AUDIO_GROUP_ID_INVALID) {
                             /* In case of removing fallback unicast group, monitoring input device
                              * should be removed from active devices.
@@ -2705,7 +2707,7 @@ public class LeAudioService extends ProfileService {
                                     fallbackGroupDescriptor.mDirection,
                                     AUDIO_DIRECTION_INPUT_BIT,
                                     false,
-                                    fallbackGroupDescriptor.mHasFallbackDeviceWhenGettingInactive,
+                                    mHasFallback,
                                     true);
                         } else {
                             if (mActiveAudioInDevice != null) {
@@ -2714,8 +2716,7 @@ public class LeAudioService extends ProfileService {
                                         fallbackGroupDescriptor.mDirection,
                                         AUDIO_DIRECTION_INPUT_BIT,
                                         false,
-                                        fallbackGroupDescriptor
-                                                .mHasFallbackDeviceWhenGettingInactive,
+                                        mHasFallback,
                                         true);
                             }
                         }
@@ -2743,12 +2744,6 @@ public class LeAudioService extends ProfileService {
                 sendActiveDeviceChangeIntent(mExposedActiveDevice);
             }
             return true;
-        }
-
-        if (currentlyActiveGroupId != LE_AUDIO_GROUP_ID_INVALID
-                && (groupId != LE_AUDIO_GROUP_ID_INVALID || hasFallbackDevice)) {
-            Log.i(TAG, "Remember that device has FallbackDevice when become inactive active");
-            groupDescriptor.mHasFallbackDeviceWhenGettingInactive = true;
         }
 
         if (!mLeAudioNativeIsInitialized) {
@@ -3085,6 +3080,13 @@ public class LeAudioService extends ProfileService {
                 && isBroadcastAllowedToBeActivateInCurrentAudioMode();
     }
 
+    private void setDisconnected(boolean isDisconnected) {
+        Log.d(TAG, "setDisconnected: " + isDisconnected);
+        if(isDisconnected) {
+            mHasFallback = false;
+        }
+    }
+
     private void handleGroupTransitToInactive(int groupId) {
         mGroupReadLock.lock();
         try {
@@ -3133,16 +3135,17 @@ public class LeAudioService extends ProfileService {
                 updateInbandRingtoneForTheGroup(mUnicastGroupIdDeactivatedForBroadcastTransition);
             }
 
+            Log.d(TAG, "mHasFallback: " + mHasFallback);
             updateActiveDevices(
                     groupId,
                     descriptor.mDirection,
                     newDirections,
                     false,
-                    descriptor.mHasFallbackDeviceWhenGettingInactive,
+                    mHasFallback,
                     leaveConnectedInputDevice);
             /* Clear lost devices */
             Log.d(TAG, "Clear for group: " + groupId);
-            descriptor.mHasFallbackDeviceWhenGettingInactive = false;
+            mHasFallback = true;
             clearLostDevicesWhileStreaming(descriptor);
             mHandler.post(
                     () ->
@@ -4530,6 +4533,7 @@ public class LeAudioService extends ProfileService {
                     }
 
                     /* Notify Native layer */
+                    setDisconnected(true);
                     removeActiveDevice(hasFallbackDevice);
                     descriptor.setActiveState(ACTIVE_STATE_INACTIVE);
                     /* Update audio framework */
@@ -5856,7 +5860,7 @@ public class LeAudioService extends ProfileService {
                 boolean notifyAndUpdateInactiveOutDeviceOnly = false;
                 boolean hasFallbackDeviceWhenGettingInactive =
                         oldFallbackGroupDescriptor != null
-                                ? oldFallbackGroupDescriptor.mHasFallbackDeviceWhenGettingInactive
+                                ? mHasFallback
                                 : false;
                 if (groupId != LE_AUDIO_GROUP_ID_INVALID) {
                     newDirection = AUDIO_DIRECTION_INPUT_BIT;
