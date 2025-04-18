@@ -1108,6 +1108,14 @@ void Device::MessageReceived(uint8_t label, std::shared_ptr<Packet> pkt) {
         fast_rewinding_ = false;
       }
       log::verbose("fast_forwarding_: {}, fast_rewinding_: {}", fast_forwarding_, fast_rewinding_);
+
+      if(pass_through_packet->GetOperationId() == uint8_t(OperationID::STOP)) {
+        if (!bluetooth::headset::IsCallIdle()) {
+          log::warn("Ignore passthrough stop during active call");
+          return;
+        }
+      }
+
       media_interface_->GetPlayStatus(base::Bind(
           &Device::PlaybackStatusNotificationResponse,
           weak_ptr_factory_.GetWeakPtr(), play_status_changed_.second, false));
