@@ -316,18 +316,14 @@ public class DistanceMeasurementManager {
     }
 
     int getChannelSoundingMaxSupportedSecurityLevel(BluetoothDevice remoteDevice) {
-        checkThread();
-
-        if (mAdapterService.isLeChannelSoundingSupported()) {
+        if (mHasChannelSoundingFeature && mAdapterService.isLeChannelSoundingSupported()) {
             return ChannelSoundingParams.CS_SECURITY_LEVEL_ONE;
         }
         return ChannelSoundingParams.CS_SECURITY_LEVEL_UNKNOWN;
     }
 
     int getLocalChannelSoundingMaxSupportedSecurityLevel() {
-        checkThread();
-
-        if (mAdapterService.isLeChannelSoundingSupported()) {
+        if (mHasChannelSoundingFeature && mAdapterService.isLeChannelSoundingSupported()) {
             return ChannelSoundingParams.CS_SECURITY_LEVEL_ONE;
         }
         return ChannelSoundingParams.CS_SECURITY_LEVEL_UNKNOWN;
@@ -337,7 +333,7 @@ public class DistanceMeasurementManager {
         checkThread();
 
         // TODO(b/378685103): get it from the HAL when level 4 is supported and HAL v2 is available.
-        if (mAdapterService.isLeChannelSoundingSupported()) {
+        if (mHasChannelSoundingFeature && mAdapterService.isLeChannelSoundingSupported()) {
             return Set.of(ChannelSoundingParams.CS_SECURITY_LEVEL_ONE);
         }
         throw new UnsupportedOperationException("Channel Sounding is not supported.");

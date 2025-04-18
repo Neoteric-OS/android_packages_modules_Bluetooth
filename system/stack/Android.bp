@@ -824,6 +824,7 @@ cc_test {
         ":TestMockStackBtm",
         ":TestMockStackL2capInterface",
         ":TestMockStackRfcommMetrics",
+        ":TestCommonStackConfig",
         "rfcomm/port_api.cc",
         "rfcomm/port_rfc.cc",
         "rfcomm/port_utils.cc",
@@ -1394,6 +1395,7 @@ cc_test {
         "liblog",
         "libopus",
         "libosi",
+        "bluetooth_flags_c_lib",
     ],
     whole_static_libs: [
         "libaptx_enc",

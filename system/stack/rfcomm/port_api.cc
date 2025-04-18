@@ -1225,7 +1225,9 @@ int PORT_GetChannelInfo(uint16_t handle, uint16_t* local_mtu, uint16_t* remote_m
     return PORT_BAD_HANDLE;
   }
 
-  if (!p_port->in_use || (p_port->state == PORT_CONNECTION_STATE_CLOSED)) {
+  if (!p_port->in_use ||
+      !p_port->rfc.p_mcb ||
+      (p_port->state == PORT_CONNECTION_STATE_CLOSED)) {
     return PORT_NOT_OPENED;
   }
 

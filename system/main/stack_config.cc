@@ -45,6 +45,7 @@ const char* PTS_EATT_USE_FOR_ALL_SERVICES = "PTS_UseEattForAllServices";
 const char* PTS_L2CAP_ECOC_UPPER_TESTER = "PTS_L2capEcocUpperTester";
 const char* PTS_L2CAP_ECOC_MIN_KEY_SIZE = "PTS_L2capEcocMinKeySize";
 const char* PTS_L2CAP_ECOC_INITIAL_CHAN_CNT = "PTS_L2capEcocInitialChanCnt";
+const char* PTS_RFCOMM_SEND_RLS = "PTS_RFCOMM_send_rls";
 const char* PTS_L2CAP_ECOC_CONNECT_REMAINING = "PTS_L2capEcocConnectRemaining";
 const char* PTS_L2CAP_ECOC_SEND_NUM_OF_SDU = "PTS_L2capEcocSendNumOfSdu";
 const char* PTS_L2CAP_ECOC_RECONFIGURE = "PTS_L2capEcocReconfigure";
@@ -172,6 +173,10 @@ static bool get_pts_l2cap_ecoc_connect_remaining(void) {
   return config_get_bool(*config, CONFIG_DEFAULT_SECTION, PTS_L2CAP_ECOC_CONNECT_REMAINING, false);
 }
 
+static bool get_pts_rfcomm_rls_check(void) {
+  return config_get_bool(*config, CONFIG_DEFAULT_SECTION, PTS_RFCOMM_SEND_RLS, false);
+}
+
 static int get_pts_l2cap_ecoc_send_num_of_sdu(void) {
   return config_get_int(*config, CONFIG_DEFAULT_SECTION, PTS_L2CAP_ECOC_SEND_NUM_OF_SDU, -1);
 }
@@ -212,6 +217,7 @@ const stack_config_t interface = {get_pts_avrcp_test,
                                   get_pts_l2cap_ecoc_min_key_size,
                                   get_pts_l2cap_ecoc_initial_chan_cnt,
                                   get_pts_l2cap_ecoc_connect_remaining,
+                                  get_pts_rfcomm_rls_check,
                                   get_pts_l2cap_ecoc_send_num_of_sdu,
                                   get_pts_l2cap_ecoc_reconfigure,
                                   get_pts_broadcast_audio_config_options,
