@@ -1215,6 +1215,7 @@ void BtifAvSource::Init(btav_source_callbacks_t* callbacks, int max_connected_au
                                                                  supports_a2dp_hw_offload_v2);
   }
 
+  bta_av_co_aptx_ad_support(offloading_preference);
   bta_av_co_init(codec_priorities, supported_codecs);
 
   if (!btif_a2dp_source_init()) {
