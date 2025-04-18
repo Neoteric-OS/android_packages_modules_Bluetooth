@@ -451,7 +451,6 @@ static btgatt_client_callbacks_t sGattClient_cb = {
     NULL,
     NULL,
     NULL,
-    NULL,
     NULL,  // register_for_notification_cb,
     NULL,
     NULL,
