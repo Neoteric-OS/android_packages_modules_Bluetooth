@@ -841,6 +841,14 @@ public class AdapterService extends Service {
         return mSilenceDeviceManager;
     }
 
+    public GattService getGattService() {
+        return mGattService;
+    }
+
+    public ScanController getScanController() {
+        return mScanController;
+    }
+
     private boolean initMetricsLogger() {
         if (mMetricsLogger != null) {
             return false;
