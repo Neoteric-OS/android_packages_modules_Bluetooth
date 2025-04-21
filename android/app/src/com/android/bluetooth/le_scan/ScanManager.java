@@ -113,6 +113,8 @@ public class ScanManager {
     static final int MSG_REVERT_SCAN_MODE_UPGRADE = 9;
     static final int MSG_START_CONNECTING = 10;
     static final int MSG_STOP_CONNECTING = 11;
+    /*For suspending both unfiltered & filtered scans*/
+    private static final int MSG_SUSPEND_SCAN_ALL = 13;
     private static final String ACTION_REFRESH_BATCHED_SCAN =
             "com.android.bluetooth.gatt.REFRESH_BATCHED_SCAN";
 
@@ -152,6 +154,7 @@ public class ScanManager {
 
     private int mLastConfiguredScanSetting1m = Integer.MIN_VALUE;
     private int mLastConfiguredScanSettingCoded = Integer.MIN_VALUE;
+    private boolean mIsAptXLowLatencyModeEnabled;
     // Scan parameters for batch scan.
     private BatchScanParams mBatchScanParams;
 
@@ -382,6 +385,9 @@ public class ScanManager {
                 case MSG_STOP_CONNECTING:
                     handleClearConnectingState();
                     break;
+                case MSG_SUSPEND_SCAN_ALL:
+                    handleSuspendScanAll();
+                    break;
                 default:
                     // Shouldn't happen.
                     Log.e(TAG, "received an unknown message : " + msg.what);
@@ -435,6 +441,16 @@ public class ScanManager {
                 } else {
                     setAutoBatchScanClient(client);
                 }
+            }
+
+            if (isAptXLowLatencyModeEnabled()) {
+                Log.i(TAG, "Cannot start Scan when aptX LL mode is enabled. This scan will be"
+                        + " resumed when aptX LL mode is disabled: " + client.mScannerId);
+                mSuspendedScanClients.add(client);
+                if (client.mStats != null) {
+                    client.mStats.recordScanSuspend(client.mScannerId);
+                }
+                return;
             }
 
             // Begin scan operations.
@@ -927,6 +943,19 @@ public class ScanManager {
             updateBatchScanToRegularScanClients();
             handleResumeScans();
             updateRegularScanClientsScreenOn();
+        }
+
+        void handleSuspendScanAll() {
+            for (ScanClient client : mRegularScanClients) {
+                if (!mScanNative.isOpportunisticScanClient(client)) {
+                    /*Suspend both unfiltered & filtered scans*/
+                    if (client.mStats != null) {
+                        client.mStats.recordScanSuspend(client.mScannerId);
+                    }
+                    handleStopScan(client);
+                    mSuspendedScanClients.add(client);
+                }
+            }
         }
 
         private void handleResumeScans() {
@@ -2228,6 +2257,22 @@ public class ScanManager {
         }
 
         return false;
+    }
+
+    public boolean isAptXLowLatencyModeEnabled() {
+        Log.d(TAG, "isAptXLowLatencyModeEnabled: " + mIsAptXLowLatencyModeEnabled);
+        return mIsAptXLowLatencyModeEnabled;
+    }
+
+    public void setAptXLowLatencyMode(boolean enabled){
+        Log.d(TAG, "setAptXLowLatencyMode: mIsAptXLowLatencyModeEnabled: "
+                    + mIsAptXLowLatencyModeEnabled + "enabled: " + enabled);
+        mIsAptXLowLatencyModeEnabled = enabled;
+        if (mIsAptXLowLatencyModeEnabled) {
+            sendMessage(MSG_SUSPEND_SCAN_ALL, null);
+        } else {
+            sendMessage(MSG_RESUME_SCANS, null);
+        }
     }
 
     private final DisplayManager.DisplayListener mDisplayListener =
