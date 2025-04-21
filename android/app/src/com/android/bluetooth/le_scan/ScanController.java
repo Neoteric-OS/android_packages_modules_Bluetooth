@@ -263,6 +263,10 @@ public class ScanController {
         }
     }
 
+    public void setAptXLowLatencyMode(boolean enabled) {
+        mScanManager.setAptXLowLatencyMode(enabled);
+    }
+
     /**************************************************************************
      * Callback functions - CLIENT
      *************************************************************************/
