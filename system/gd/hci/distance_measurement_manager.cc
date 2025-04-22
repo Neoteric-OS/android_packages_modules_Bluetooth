@@ -917,7 +917,9 @@ struct DistanceMeasurementManager::impl : bluetooth::hal::RangingHalCallback {
     if (set_cs_params_.find(connection_handle) != set_cs_params_.end()) {
       config_avb = true;
     }
-
+    uint8_t remote_config_supports = cs_requester_trackers_[connection_handle].remote_num_config_supported_;
+    KMaxAllowedConfigID = (remote_config_supports > local_num_config_supported_) ?
+                                               local_num_config_supported_ : remote_config_supports;
     if (config_avb) {
       tCS_CONFIG config_settings;
       config_settings = set_cs_params_[connection_handle].cs_conf_settings[0];
@@ -926,13 +928,9 @@ struct DistanceMeasurementManager::impl : bluetooth::hal::RangingHalCallback {
         channel_map[i] = config_settings.channel_map[i];
       }
 
-      KMaxAllowedConfigID = (cs_requester_trackers_[connection_handle].remote_num_config_supported_ > local_num_config_supported_) ?
-                             local_num_config_supported_ : cs_requester_trackers_[connection_handle].remote_num_config_supported_;
-
       if (config_settings.config_id >= KMaxAllowedConfigID) {
-        log::info("config_settings.config_id: {} KMaxAllowedConfigID: {}",
-                                              config_settings.config_id, KMaxAllowedConfigID);
-        send_le_cs_remove_config(connection_handle, 0);
+        log::info("config_settings.config_id: {} KMaxAllowedConfigID: {} config_avb: {}",
+                              config_settings.config_id, KMaxAllowedConfigID, config_avb);
         config_settings.config_id = 0;
       }
 
@@ -969,6 +967,13 @@ struct DistanceMeasurementManager::impl : bluetooth::hal::RangingHalCallback {
     std::array<uint8_t, 10> channel_map;
     std::copy(channel_vector->begin(), channel_vector->end(), channel_map.begin());
     std::reverse(channel_map.begin(), channel_map.end());
+
+    if (config_id >= KMaxAllowedConfigID) {
+      log::info("config_id: {} KMaxAllowedConfigID: {} config_avb: {}",
+                            config_id, KMaxAllowedConfigID, config_avb);
+      config_id = 0;
+    }
+
     hci_layer_->EnqueueCommand(
             LeCsCreateConfigBuilder::Create(
                     connection_handle, config_id, CsCreateContext::BOTH_LOCAL_AND_REMOTE_CONTROLLER,
