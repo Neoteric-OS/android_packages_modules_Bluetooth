@@ -27,6 +27,7 @@ import android.bluetooth.BluetoothHearingAid;
 import android.bluetooth.BluetoothLeAudio;
 import android.bluetooth.BluetoothProfile;
 import android.bluetooth.BluetoothSinkAudioPolicy;
+import android.bluetooth.BluetoothUuid;
 import android.content.res.Resources;
 import android.content.res.Resources.NotFoundException;
 import android.media.AudioDeviceCallback;
@@ -889,6 +890,14 @@ public class ActiveDeviceManager implements AdapterService.BluetoothStateCallbac
                 if (!Utils.isDualModeAudioEnabled()) {
                     setA2dpActiveDevice(null, true);
                     setHfpActiveDevice(null);
+                } else {
+                    boolean isCsipSupported = Utils.arrayContains(mAdapterService.getRemoteUuids(device),
+                                                       BluetoothUuid.COORDINATED_SET);
+                    if (isCsipSupported) {
+                       Log.d(TAG, "set A2dp and HFP active device as null for csip");
+                       setA2dpActiveDevice(null, true);
+                       setHfpActiveDevice(null);
+                    }
                 }
                 setHearingAidActiveDevice(null, true);
             }
