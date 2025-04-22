@@ -452,6 +452,7 @@ cc_test {
         "libaconfig_storage_read_api_cc",
         "libcrypto",
         "libxml2",
+        "libutils",
     ],
     sanitize: {
         address: true,
