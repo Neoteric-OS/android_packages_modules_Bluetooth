@@ -935,6 +935,7 @@ std::optional<const char*> provider::codec_index_str(btav_a2dp_codec_index_t cod
  * A2DP_HARDWARE_ENCODING_DATAPATH or A2DP_HARDWARE_DECODING_DATAPATH.
  ***/
 bool provider::supports_codec(btav_a2dp_codec_index_t codec_index) {
+  log::error("codec_index: {}", codec_index);
   return provider_info ? provider_info->SupportsCodec(codec_index) : false;
 }
 
@@ -1013,6 +1014,7 @@ provider::get_a2dp_configuration(
                 remote_seps,
         btav_a2dp_codec_config_t const& user_preferences) {
   if (provider_info == nullptr) {
+    log::info("provider_info is null, return.");
     return std::nullopt;
   }
 
@@ -1026,6 +1028,7 @@ provider::get_a2dp_configuration(
     size_t capabilities_start = 0;
     size_t capabilities_end = 0;
     CodecId id;
+    log::info("codecId: {}", sep.capabilities[2]);
     switch (sep.capabilities[2]) {
       case A2DP_MEDIA_CT_SBC:
       case A2DP_MEDIA_CT_AAC: {

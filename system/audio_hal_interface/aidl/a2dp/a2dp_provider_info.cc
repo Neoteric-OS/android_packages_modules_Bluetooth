@@ -34,6 +34,7 @@
 #include "a2dp_vendor_ldac_constants.h"
 #include "a2dp_vendor_opus_constants.h"
 #include "client_interface_aidl.h"
+#include "osi/include/properties.h"
 
 namespace bluetooth::audio::aidl::a2dp {
 
@@ -50,9 +51,15 @@ using ::aidl::android::hardware::bluetooth::audio::SessionType;
  * extensibility is disabled.
  ***/
 std::unique_ptr<ProviderInfo> ProviderInfo::GetProviderInfo(bool supports_a2dp_hw_offload_v2) {
-  if (!supports_a2dp_hw_offload_v2) {
+
+  bool is_a2dp_offload_codec_extensibility_enabled_ =
+    osi_property_get_bool("persist.vendor.qcom.bluetooth.a2dp_offload_codec_extensibility", true);
+  log::info("provider info a2dp offload extensiblity: {}",
+             is_a2dp_offload_codec_extensibility_enabled_);
+
+  if (!is_a2dp_offload_codec_extensibility_enabled_) {
     log::info(
-            "a2dp hw offload v2 is not supported by the controller,"
+            "A2DP Offload Codec Extensiblity Disabled,"
             " not going to load the ProviderInfo");
     return nullptr;
   }
