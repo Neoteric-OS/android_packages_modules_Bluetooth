@@ -335,11 +335,10 @@ struct DistanceMeasurementManager::impl : bluetooth::hal::RangingHalCallback {
     }
   }
 
-  void set_cs_params(const Address& cs_remote_address, int mSightType, int mLocationType,
-		     int mCsSecurityLevel, int mFrequency, int mDuration) {
-    uint16_t connection_handle = acl_manager_->HACK_GetLeHandle(cs_remote_address);
-    log::info("Address:{}, CsSecurityLevel:{} frequency:{}",
-		    cs_remote_address, mCsSecurityLevel, mFrequency);
+  void set_cs_params(const Address& cs_remote_address, uint16_t connection_handle, int mSightType,
+             int mLocationType, int mCsSecurityLevel, int mFrequency, int mDuration) {
+    log::info("Address:{}, connection_handle:{}, CsSecurityLevel:{} frequency:{}",
+               cs_remote_address, connection_handle, mCsSecurityLevel, mFrequency);
     if (set_cs_params_.find(connection_handle) != set_cs_params_.end() &&
         set_cs_params_[connection_handle].address != cs_remote_address) {
       log::warn("Remove old tracker for {}", cs_remote_address);
@@ -2584,12 +2583,12 @@ void DistanceMeasurementManager::StartDistanceMeasurement(const Address& address
          local_hci_role, interval, method);
 }
 
-void DistanceMeasurementManager::SetCsParams(const Address& address,
+void DistanceMeasurementManager::SetCsParams(const Address& address, uint16_t connection_handle,
 		int mSightType, int mLocationType, int mCsSecurityLevel, int mFrequency, int mDuration) {
 	log::info("address {} mSightType {}, mLocationType {} mCsSecurityLevel {} mFrequency {} mDuration {}",
 		  address, mSightType, mLocationType,
 		  mCsSecurityLevel, mFrequency, mDuration);
-	CallOn(pimpl_.get(), &impl::set_cs_params, address, mSightType,
+	CallOn(pimpl_.get(), &impl::set_cs_params, address, connection_handle, mSightType,
                mLocationType, mCsSecurityLevel, mFrequency, mDuration);
 }
 
