@@ -346,12 +346,18 @@ public:
   void UpdateAudioActiveStateInPublicAnnouncement() {
     for (auto const& kv_it : broadcasts_) {
       auto& broadcast = kv_it.second;
+      bool is_public = broadcast->IsPublicBroadcast();
 
       bool audio_active_state = (audio_state_ == AudioState::ACTIVE) &&
                                 (broadcast->GetState() == BroadcastStateMachine::State::STREAMING);
 
-      log::info("broadcast_id={}, audio_active_state={}", broadcast->GetBroadcastId(),
-                audio_active_state);
+      log::info("broadcast_id={}, audio_active_state={}, is_public={}",
+                broadcast->GetBroadcastId(), audio_active_state, is_public);
+
+      if (!is_public) {
+        log::info("Not update public announcement for non-public source");
+        continue;
+      }
 
       auto updateLtv = [](bool audio_active_state, LeAudioLtvMap& ltv) -> bool {
         auto existing_audio_active_state =
