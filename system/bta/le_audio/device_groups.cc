@@ -2271,6 +2271,24 @@ void LeAudioDeviceGroup::SetSuspendedForReconfiguration(void) { suspended_for_re
 
 void LeAudioDeviceGroup::ClearSuspendedForReconfiguration(void) { suspended_for_reconfig_ = false; }
 
+bool LeAudioDeviceGroup::IsStreamingPendingTargetState(void) const {
+  log::info("group {}, streaming_pending_target_state_: {}",
+                             group_id_, streaming_pending_target_state_);
+  return streaming_pending_target_state_;
+}
+
+void LeAudioDeviceGroup::SetStreamingPendingTargetState(void) {
+  log::verbose("group {}, is StreamingPendingTargetState from {} to true",
+                                 group_id_, streaming_pending_target_state_);
+  streaming_pending_target_state_ = true;
+}
+
+void LeAudioDeviceGroup::ClearStreamingPendingTargetState(void) {
+  log::verbose("group {}, is StreamingPendingTargetState from {} to false",
+                                  group_id_, streaming_pending_target_state_);
+  streaming_pending_target_state_ = false;
+}
+
 bool LeAudioDeviceGroup::IsReconfigStartPendingDir(uint8_t direction) const {
   log::info(" reconfig_start_pending_directions_: {}", reconfig_start_pending_directions_);
   return reconfig_start_pending_directions_ & direction;
@@ -2373,6 +2391,8 @@ void LeAudioDeviceGroup::ApplyReconnectionMode(int gatt_if, tBTM_BLE_CONN_TYPE r
 bool LeAudioDeviceGroup::IsConfiguredForContext(LeAudioContextType context_type) const {
   /* Check if all connected group members are configured */
   if (GetConfigurationContextType() != context_type) {
+    log::debug("All group members not configured to context_type: {}",
+                                          bluetooth::common::ToString(context_type));
     return false;
   }
 

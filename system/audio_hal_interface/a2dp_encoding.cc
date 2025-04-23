@@ -256,6 +256,7 @@ std::optional<const char*> codec_index_str(btav_a2dp_codec_index_t codec_index) 
 // Return true if the codec is supported for the session type
 // A2DP_HARDWARE_ENCODING_DATAPATH or A2DP_HARDWARE_DECODING_DATAPATH.
 bool supports_codec(btav_a2dp_codec_index_t codec_index) {
+  LOG(INFO) << __func__ << ": codec_index: " << codec_index;
   return (HalVersionManager::GetHalTransport() == BluetoothAudioHalTransport::AIDL)
                  ? aidl::a2dp::provider::supports_codec(codec_index)
                  : false;

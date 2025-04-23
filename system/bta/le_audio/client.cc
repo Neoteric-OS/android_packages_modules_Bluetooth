@@ -1377,6 +1377,10 @@ public:
         log::debug("Clear cached call updates during group In-Active");
         track_in_call_update_ = 0;
         defer_reconfig_complete_update_ = false;
+        auto group = aseGroups_.FindById(group_id);
+        if (group) {
+          group->ClearStreamingPendingTargetState();
+        }
       }
       callbacks_->OnGroupStatus(group_id, GroupStatus::INACTIVE);
     }
@@ -1526,6 +1530,10 @@ public:
     }
 
     LeAudioDeviceGroup* group = aseGroups_.FindById(active_group_id_);
+    if (group && !in_call) {
+      group->ClearStreamingPendingTargetState();
+    }
+
     if (!group || !group->IsStreaming()) {
       log::debug("{} is not streaming", active_group_id_);
       return;
@@ -1850,6 +1858,10 @@ public:
         log::debug("Clear cached call updates during group In-Active");
         track_in_call_update_ = 0;
         defer_reconfig_complete_update_ = false;
+        auto group = aseGroups_.FindById(active_group_id_);
+        if (group) {
+          group->ClearStreamingPendingTargetState();
+        }
       }
       StopAudio();
       ClientAudioInterfaceRelease();
@@ -6907,6 +6919,19 @@ public:
             } else {
               log::warn("Wait for ases streaming notification from remote,"
                         " as it is stand-alone call usecase");
+              if (group->IsStreamingPendingTargetState()) {
+                group->ClearStreamingPendingTargetState();
+                auto remote_direction =
+                        kLeAudioContextAllRemoteSource.test(configuration_context_type_)
+                                ? bluetooth::le_audio::types::kLeAudioDirectionSource
+                                : bluetooth::le_audio::types::kLeAudioDirectionSink;
+                auto remote_contexts =
+                        DirectionalRealignMetadataAudioContexts(group, remote_direction);
+                ApplyRemoteMetadataAudioContextPolicy(group, remote_contexts, remote_direction);
+
+                GroupStream(group, configuration_context_type_, remote_contexts);
+              }
+
             }
           } else {
             reconfigurationComplete();

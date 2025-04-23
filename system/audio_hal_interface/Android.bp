@@ -165,6 +165,7 @@ cc_test {
     srcs: [
         ":TestCommonMockFunctions",
         ":TestMockAudioHalInterface",
+        ":TestMockOsi",
         "aidl/a2dp/a2dp_provider_info.cc",
         "aidl/a2dp/a2dp_provider_info_unittest.cc",
     ],
