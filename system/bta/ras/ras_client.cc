@@ -69,6 +69,7 @@ static constexpr uint16_t kInvalidGattHandle = 0x0000;
 static constexpr uint16_t kFirstSegmentRangingDataTimeoutMs = 5000;
 static constexpr uint16_t kFirstSegmentRangingDataTimeoutMs_lowpower = 10000;
 static constexpr uint16_t kFollowingSegmentTimeoutMs = 1000;
+static constexpr uint16_t kFollowingSegmentTimeoutMs_lowpower = 2000;
 static constexpr uint16_t kRangingDataReadyTimeoutMs = 5000;
 
 class RasClientImpl : public bluetooth::ras::RasClient {
@@ -480,7 +481,13 @@ public:
     bool is_last = (data[0] >> 1 & 0x01);
     alarm_cancel(tracker->ranging_data_timeout_timer_);
     if (!is_last) {
-      SetTimeOutAlarm(tracker, kFollowingSegmentTimeoutMs, FOLLOWING_SEGMENT);
+      tBTM_SEC_DEV_REC* p_dev_rec = btm_find_or_alloc_dev(tracker->address_);
+      if (p_dev_rec && (p_dev_rec->conn_params.peripheral_latency >= 2)) {
+        log::info("Low Power Mode Timer: {}", p_dev_rec->conn_params.peripheral_latency);
+        SetTimeOutAlarm(tracker, kFollowingSegmentTimeoutMs_lowpower, TimeoutType::FOLLOWING_SEGMENT);
+      } else {
+        SetTimeOutAlarm(tracker, kFollowingSegmentTimeoutMs, TimeoutType::FOLLOWING_SEGMENT);
+      }
     }
     callbacks_->OnRemoteData(tracker->address_for_cs_, data);
   }
