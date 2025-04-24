@@ -1199,6 +1199,8 @@ struct Controller::impl {
         return vendor_capabilities_.a2dp_source_offload_capability_mask_ != 0x00;
       case OpCode::CONTROLLER_BQR:
         return vendor_capabilities_.bluetooth_quality_report_support_ == 0x01;
+      case OpCode::CONTROLLER_BTTPI:
+        return false;
       case OpCode::DYNAMIC_AUDIO_BUFFER:
         return vendor_capabilities_.dynamic_audio_buffer_support_ > 0x00;
       // Before MSFT extension is fully supported, return false for the following MSFT_OPCODE_XXXX
