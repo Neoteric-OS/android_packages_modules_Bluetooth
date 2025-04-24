@@ -40,9 +40,9 @@ final class AvrcpVersion {
     public static AvrcpVersion getCurrentSystemPropertiesValue() {
         // Make sure this default version agrees with AVRCP_GetProfileVersion
 
-        String defaultVersion =
-                Flags.avrcp16Default() ? AVRCP_VERSION_1_6_STRING : AVRCP_VERSION_1_5_STRING;
-        String version = SystemProperties.get(AVRCP_VERSION_PROPERTY, defaultVersion);
+        /* String defaultVersion =
+                Flags.avrcp16Default() ? AVRCP_VERSION_1_6_STRING : AVRCP_VERSION_1_5_STRING; */
+        String version = SystemProperties.get(AVRCP_VERSION_PROPERTY, AVRCP_VERSION_1_6_STRING);
 
         switch (version) {
             case AVRCP_VERSION_1_3_STRING:
