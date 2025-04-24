@@ -722,7 +722,7 @@ public class ActiveDeviceManager implements AdapterService.BluetoothStateCallbac
                 }
                 updateLeAudioActiveDeviceIfDualMode(mA2dpActiveDevice, device);
             } else {
-                if (Utils.isDualModeAudioEnabled()
+                if (device != null && Utils.isDualModeAudioEnabled()
                      && !mAdapterService.isProfileSupported(device, BluetoothProfile.LE_AUDIO)) {
                     Log.d(TAG, " set LE Audio in-active as new classic device become active ");
                     setLeAudioActiveDevice(null, true);
@@ -792,7 +792,7 @@ public class ActiveDeviceManager implements AdapterService.BluetoothStateCallbac
 
                 updateLeAudioActiveDeviceIfDualMode(mHfpActiveDevice, device);
             } else {
-                if (Utils.isDualModeAudioEnabled()
+                if (device != null && Utils.isDualModeAudioEnabled()
                      && !mAdapterService.isProfileSupported(device, BluetoothProfile.LE_AUDIO)) {
                     Log.d(TAG, " set LE Audio in-active as new classic device become active ");
                     setLeAudioActiveDevice(null, true);
