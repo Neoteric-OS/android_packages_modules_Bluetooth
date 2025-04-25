@@ -780,7 +780,7 @@ void BTM_ConfigQHS() {
     BTM_VendorSpecificCommand(HCI_VS_QBCE_OCF, sizeof(cmd), cmd,
                               qbce_set_qhs_host_mode_hci_cmd_complete);
     /* This property is for test/debug purpose only */
-    property_get("persist.vendor.btstack.qhs_support", qhs_value, "255");
+    property_get("persist.vendor.qcom.bluetooth.qhs_support", qhs_value, "255");
     log::info(": qhs property value= {}", qhs_value);
     qhs_support_mask = (uint8_t)atoi(qhs_value);
     log::info(": qhs support mask={}", qhs_support_mask);
