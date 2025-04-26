@@ -3305,6 +3305,27 @@ public class LeAudioService extends ProfileService {
         }
     }
 
+    private void handleMetadataContextUpdate(int context_type) {
+        if (context_type == BluetoothLeAudio.CONTEXT_TYPE_GAME) {
+            if (isBroadcastActive()) {
+                Log.d(TAG, "Update Broadcast InActive to MM-Framework in Gaming context");
+                if (mActiveBroadcastAudioDevice != null) {
+                    updateBroadcastActiveDevice(null, mActiveBroadcastAudioDevice, true);
+                }
+            }
+        } else if (context_type == BluetoothLeAudio.CONTEXT_TYPE_MEDIA) {
+            if (isBroadcastActive()) {
+                BluetoothDevice device =
+                    mAdapterService.getDeviceFromByte(
+                        Utils.getBytesFromAddress("FF:FF:FF:FF:FF:FF"));
+                if (!device.equals(mActiveBroadcastAudioDevice)) {
+                    Log.d(TAG, "Update Broadcast Active to MM-Framework in Media Context");
+                    updateBroadcastActiveDevice(device, mActiveBroadcastAudioDevice, true);
+                }
+            }
+        }
+    }
+
     @VisibleForTesting
     void handleGroupIdleDuringCall() {
         if (mHfpHandoverDevice == null) {
@@ -4220,12 +4241,15 @@ public class LeAudioService extends ProfileService {
                         }
                     }
 
-                    // Notify audio manager
-                    if (isAnyBroadcastInStreamingState()) {
-                        if (!Objects.equals(device, mActiveBroadcastAudioDevice)) {
-                            updateBroadcastActiveDevice(device, mActiveBroadcastAudioDevice, true);
+                    if (!leaudioBigDependsOnAudioState()) {
+                        // Notify audio manager
+                        if (isAnyBroadcastInStreamingState()) {
+                            if (!Objects.equals(device, mActiveBroadcastAudioDevice)) {
+                                updateBroadcastActiveDevice(device, mActiveBroadcastAudioDevice, true);
+                            }
                         }
                     }
+
                     if (mBroadcastIdPendingStop.isPresent()) {
                         Log.d(TAG, "mBroadcastIdPendingStop exist, Stop pending broadcast");
                         stopBroadcast(mBroadcastIdPendingStop.get());
@@ -6062,6 +6086,9 @@ public class LeAudioService extends ProfileService {
         mAdapterService
                 .getActiveDeviceManager()
                 .contextBundle(btDevice, context_type);
+        if (leaudioBigDependsOnAudioState()) {
+            handleMetadataContextUpdate(context_type);
+        }
     }
 
     /**
