@@ -1316,7 +1316,9 @@ void updateVAcontext(types::BidirectionalPair<types::AudioContexts>& group_conte
 void LeAudioDeviceGroup::CigConfiguration::GetCisCount(LeAudioContextType context_type,
                                                        uint8_t& out_cis_count_bidir,
                                                        uint8_t& out_cis_count_unidir_sink,
-                                                       uint8_t& out_cis_count_unidir_source) const {
+                                                       uint8_t& out_cis_count_unidir_source,
+                                   std::shared_ptr<const types::AudioSetConfiguration> conf,
+                             types::BidirectionalPair<types::AudioContexts> group_contexts) const {
   auto expected_device_cnt = group_->DesiredSize();
   auto avail_group_ase_snk_cnt = group_->GetAseCount(types::kLeAudioDirectionSink);
   auto avail_group_ase_src_count = group_->GetAseCount(types::kLeAudioDirectionSource);
@@ -1326,6 +1328,21 @@ void LeAudioDeviceGroup::CigConfiguration::GetCisCount(LeAudioContextType contex
   bool is_source_only = !is_bidirectional && group_->GetAllSupportedSingleDirectionOnlyContextTypes(
                                                            types::kLeAudioDirectionSource)
                                                      .test(context_type);
+  bool is_leX_codec = false;
+
+  if (conf->confs.sink.size() > 0) {
+    if (conf->confs.sink[0].codec.id == types::LeAudioCodecIdAptxLeX) {
+      is_leX_codec = true;
+    }
+  }
+
+  if ((strategy == types::LeAudioConfigurationStrategy::STEREO_TWO_CISES_PER_DEVICE) &&
+      !(group_contexts.sink.test(context_type) && group_contexts.source.test(context_type))) {
+    log::warn("Remote does not support (context:{}) for both directions",
+              bluetooth::common::ToString(context_type));
+    is_bidirectional = false;
+  }
+
   log::debug(
           "{} {}, strategy {}, group avail sink ases: {}, "
           "group avail source ases {} "
@@ -1357,7 +1374,11 @@ void LeAudioDeviceGroup::CigConfiguration::GetCisCount(LeAudioContextType contex
       } else if (is_source_only) {
         out_cis_count_unidir_source = expected_device_cnt;
       } else {
-        out_cis_count_unidir_sink = expected_device_cnt;
+        if (context_type == LeAudioContextType::LIVE) {
+          out_cis_count_unidir_source = expected_device_cnt;
+        } else {
+          out_cis_count_unidir_sink = expected_device_cnt;
+        }
       }
 
       break;
@@ -1368,11 +1389,26 @@ void LeAudioDeviceGroup::CigConfiguration::GetCisCount(LeAudioContextType contex
       if (is_bidirectional) {
         if ((avail_group_ase_snk_cnt > 0) && (avail_group_ase_src_count) > 0) {
           /* Prepare CIG to enable all microphones per device */
-          out_cis_count_bidir = expected_device_cnt;
-          if (avail_group_ase_src_count > 1) {
-            out_cis_count_bidir++;
-          } else {
+          if (context_type == LeAudioContextType::CONVERSATIONAL) {
+            if (is_leX_codec) {
+              out_cis_count_bidir = expected_device_cnt;
+              out_cis_count_unidir_sink = expected_device_cnt;
+            } else {
+              out_cis_count_bidir = 2 * expected_device_cnt;
+            }
+          } else if (context_type == LeAudioContextType::LIVE ||
+                     context_type == LeAudioContextType::VOICEASSISTANTS) {
+            out_cis_count_bidir = 2 * expected_device_cnt;
+          } else if (context_type == LeAudioContextType::GAME) {
+            out_cis_count_bidir = expected_device_cnt;
             out_cis_count_unidir_sink = expected_device_cnt;
+          } else {
+            out_cis_count_bidir = expected_device_cnt;
+            if (avail_group_ase_src_count > 1) {
+              out_cis_count_bidir++;
+            } else {
+              out_cis_count_unidir_sink = expected_device_cnt;
+            }
           }
         } else {
           if (avail_group_ase_snk_cnt > 0) {
@@ -1384,7 +1420,11 @@ void LeAudioDeviceGroup::CigConfiguration::GetCisCount(LeAudioContextType contex
       } else if (is_source_only) {
         out_cis_count_unidir_source = 2 * expected_device_cnt;
       } else {
-        out_cis_count_unidir_sink = 2 * expected_device_cnt;
+        if (context_type == LeAudioContextType::LIVE) {
+          out_cis_count_unidir_source = 2 * expected_device_cnt;
+        } else {
+          out_cis_count_unidir_sink = 2 * expected_device_cnt;
+        }
       }
       break;
     case types::LeAudioConfigurationStrategy::RFU:
@@ -1410,7 +1450,9 @@ void LeAudioDeviceGroup::CigConfiguration::GenerateCisIds(LeAudioContextType con
   uint8_t cis_count_bidir = 0;
   uint8_t cis_count_unidir_sink = 0;
   uint8_t cis_count_unidir_source = 0;
-  GetCisCount(context_type, cis_count_bidir, cis_count_unidir_sink, cis_count_unidir_source);
+  auto group_contexts = group_->GetLatestAvailableContexts();
+  GetCisCount(context_type, cis_count_bidir, cis_count_unidir_sink, cis_count_unidir_source,
+              group_->GetConfiguration(context_type), group_contexts);
 
   uint8_t idx = 0;
   while (cis_count_bidir > 0) {
