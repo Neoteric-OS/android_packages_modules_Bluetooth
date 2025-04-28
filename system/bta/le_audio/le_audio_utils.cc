@@ -30,6 +30,7 @@
 #include "hardware/bt_le_audio.h"
 #include "le_audio/codec_manager.h"
 #include "le_audio_types.h"
+#include "osi/include/properties.h"
 
 using bluetooth::common::ToString;
 using bluetooth::le_audio::types::AudioContexts;
@@ -228,7 +229,12 @@ AudioContexts GetAudioContextsFromSinkMetadata(
             audioSourceToStr(track.source), track.source, track.gain, track.dest_device,
             track.dest_device_address);
 
-    if (track.source == AUDIO_SOURCE_MIC || track.source == AUDIO_SOURCE_CAMCORDER) {
+    bool pts_gmap = osi_property_get_bool("persist.vendor.qcom.bluetooth.pts_gmap", false);
+    // For GMAP, in case metadata comes only for sink, then go for GAME instead of LIVE
+    if(pts_gmap && track.source == AUDIO_SOURCE_MIC) {
+      log::info(" GMAP is enabled, select game context for audio source mic");
+      track_context = LeAudioContextType::GAME;
+    } else if (track.source == AUDIO_SOURCE_MIC || track.source == AUDIO_SOURCE_CAMCORDER) {
       track_context = LeAudioContextType::LIVE;
 
     } else if (track.source == AUDIO_SOURCE_VOICE_COMMUNICATION ||

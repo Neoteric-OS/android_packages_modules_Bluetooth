@@ -869,6 +869,7 @@ LeAudioDeviceGroup::GetAudioSetConfigurationRequirements(types::LeAudioContextTy
         continue;
       }
 
+      log::debug(" ASE count: {} for direction: {}", device->GetAseCount(direction), direction);
       if (device->GetAseCount(direction) == 0) {
         log::warn("Device {} has no ASEs for direction: {}", device->address_, (int)direction);
         continue;
@@ -906,8 +907,13 @@ LeAudioDeviceGroup::GetAudioSetConfigurationRequirements(types::LeAudioContextTy
 
       // Pass the audio channel allocation requirement according to TMAP
       auto locations =
+              dev_locations->value.to_ulong() & (codec_spec_conf::kLeAudioLocationFrontLeft);
+      bool pts_gmap = osi_property_get_bool("persist.vendor.qcom.bluetooth.pts_gmap", false);
+      if(!pts_gmap) {
+        locations =
               dev_locations->value.to_ulong() & (codec_spec_conf::kLeAudioLocationFrontLeft |
                                                  codec_spec_conf::kLeAudioLocationFrontRight);
+      }
       CodecManager::UnicastConfigurationRequirements::DeviceDirectionRequirements config_req;
       config_req.params.Add(codec_spec_conf::kLeAudioLtvTypeAudioChannelAllocation,
                             (uint32_t)locations);
@@ -928,6 +934,14 @@ LeAudioDeviceGroup::GetAudioSetConfigurationRequirements(types::LeAudioContextTy
       config_req.target_latency = utils::GetTargetLatencyForAudioContext(ctx_type);
       log::warn("Device {} pushes requirement, location: {}, direction: {}", device->address_,
                 (int)locations, (int)direction);
+      if(pts_gmap) {
+        log::info(" GMAP is enabled, push requirement according to number of ASEs");
+        int num_ases = device->GetAseCount(direction);
+        for(int i = 0; i < num_ases; i++) {
+          direction_req->push_back(std::move(config_req));
+        }
+        continue;
+      }
       direction_req->push_back(std::move(config_req));
     }
 
