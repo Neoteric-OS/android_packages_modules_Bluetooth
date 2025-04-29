@@ -153,7 +153,7 @@ public:
     }
 
     char qhs_value[PROPERTY_VALUE_MAX] = "0";
-    osi_property_get("persist.vendor.btstack.qhs_support", qhs_value, "255");
+    osi_property_get("persist.vendor.qcom.bluetooth.qhs_support", qhs_value, "255");
     uint8_t qhs_support_mask = (uint8_t)atoi(qhs_value);
     log::debug("QHS support mask {} ", qhs_support_mask);
     if (qhs_support_mask != 0) {
