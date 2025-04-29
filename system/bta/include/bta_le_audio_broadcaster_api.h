@@ -57,6 +57,7 @@ public:
           base::Callback<void(uint8_t /* broadcast_id */, uint8_t /* addr_type */,
                               RawAddress /* addr */, bool /* is_valid */)>
                   cb) = 0;
+  virtual bool IsLeAudioBroadcastActive(void) = 0;
 
   virtual void SetStreamingPhy(uint8_t phy) = 0;
   virtual uint8_t GetStreamingPhy(void) const = 0;

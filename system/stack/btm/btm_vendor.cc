@@ -763,7 +763,7 @@ void BTM_ConfigQHS() {
   if (BTM_QBCE_QLE_HCI_SUPPORTED(soc_add_on_features.as_array)) {
     BT_HDR* response;
     char qhs_iso[PROPERTY_VALUE_MAX] = "false";
-    property_get("persist.vendor.btstack.qhs_enable", qhs_iso, "true");
+    property_get("persist.vendor.qcom.bluetooth.qhs_enable", qhs_iso, "true");
     uint8_t cmd[3];
     uint8_t sub_cmd = QBCE_SET_QHS_HOST_MODE;
 

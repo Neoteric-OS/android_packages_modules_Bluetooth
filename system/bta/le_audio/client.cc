@@ -4652,11 +4652,15 @@ public:
 
     /* We update the target audio allocation before streamStarted so that the CodecManager would
      * already know how to configure the encoder once we confirm the streaming request. */
+
+    /* Updating both Sink and Source config as start for decoding may come first and both
+     * direction config would be required. */
     CodecManager::GetInstance()->UpdateActiveAudioConfig(
             group->stream_conf.stream_params, group->stream_conf.codec_id,
             std::bind(&LeAudioClientImpl::UpdateAudioConfigToHal, weak_factory_.GetWeakPtr(),
                       std::placeholders::_1, std::placeholders::_2),
-            ::bluetooth::le_audio::types::kLeAudioDirectionSource);
+            (::bluetooth::le_audio::types::kLeAudioDirectionSource |
+             ::bluetooth::le_audio::types::kLeAudioDirectionSink));
 
     ConfirmLocalAudioSinkStreamingRequest(false);
 
@@ -6252,6 +6256,17 @@ public:
                 ToString(configuration_context_type_), ToString(new_config_context));
         new_config_context = configuration_context_type_;
       }
+    }
+
+    if (LeAudioBroadcaster::IsLeAudioBroadcasterRunning() &&
+        LeAudioBroadcaster::Get()->IsLeAudioBroadcastActive() &&
+        group->IsStreaming() && !group->IsReleasingOrIdle() &&
+        new_config_context == LeAudioContextType::MEDIA) {
+      log::info(
+              "Broadcast is active, current configuration context is {}. "
+              "Not reconfig to {} right now.",
+              ToString(configuration_context_type_), ToString(new_config_context));
+      new_config_context = configuration_context_type_;
     }
 
     /* Note that the remote device metadata was so far unfiltered when it comes
