@@ -192,6 +192,7 @@ stack_config_t mock_stack_config{
 const stack_config_t* stack_config_get_interface(void) { return &mock_stack_config; }
 
 bool LeAudioBroadcaster::IsLeAudioBroadcasterRunning() { return false; }
+LeAudioBroadcaster* LeAudioBroadcaster::Get(void) { return nullptr; }
 
 namespace bluetooth::le_audio {
 class MockLeAudioSourceHalClient;
