@@ -803,7 +803,7 @@ void Device::PlaybackStatusNotificationResponse(uint8_t label, bool interim, Pla
     log::verbose("Send new playback Status CHANGED");
     auto newresponse =
         RegisterNotificationResponseBuilder::MakePlaybackStatusBuilder(
-            false, IsActive() ? status.state : PlayState::PAUSED);
+            false, IsActive() ? state_to_send : PlayState::PAUSED);
     send_message_cb_.Run(label, false, std::move(newresponse));
 
     active_labels_.erase(label);
@@ -814,7 +814,7 @@ void Device::PlaybackStatusNotificationResponse(uint8_t label, bool interim, Pla
   last_play_status_.state = state_to_send;
 
   auto response = RegisterNotificationResponseBuilder::MakePlaybackStatusBuilder(
-          interim, IsActive() ? status.state : PlayState::PAUSED);
+          interim, IsActive() ? state_to_send : PlayState::PAUSED);
   send_message_cb_.Run(label, false, std::move(response));
 
   if (!interim) {
@@ -1108,6 +1108,14 @@ void Device::MessageReceived(uint8_t label, std::shared_ptr<Packet> pkt) {
         fast_rewinding_ = false;
       }
       log::verbose("fast_forwarding_: {}, fast_rewinding_: {}", fast_forwarding_, fast_rewinding_);
+
+      if(pass_through_packet->GetOperationId() == uint8_t(OperationID::STOP)) {
+        if (!bluetooth::headset::IsCallIdle()) {
+          log::warn("Ignore passthrough stop during active call");
+          return;
+        }
+      }
+
       media_interface_->GetPlayStatus(base::Bind(
           &Device::PlaybackStatusNotificationResponse,
           weak_ptr_factory_.GetWeakPtr(), play_status_changed_.second, false));

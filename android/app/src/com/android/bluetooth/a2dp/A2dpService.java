@@ -122,6 +122,11 @@ public class A2dpService extends ProfileService {
     private static final long GAMING_ON = 0x00002000;
     private static final long GAMING_MODE_MASK = 0x00007000;
 
+    private static final int APTX_HQ = 0x1000;
+    private static final int APTX_LL = 0x2000;
+    private static final long APTX_MODE_MASK = 0x7000;
+    private static final long APTX_SCAN_FILTER_MASK = 0x8000;
+
     private final AudioManagerAudioDeviceCallback mAudioManagerAudioDeviceCallback =
             new AudioManagerAudioDeviceCallback();
 
@@ -496,6 +501,7 @@ public class A2dpService extends ProfileService {
         synchronized (mActiveSwitchingGuard) {
             BluetoothDevice previousActiveDevice = null;
             synchronized (mStateMachines) {
+            Log.d(TAG," removeActiveDevice(): mActiveDevice: " + mActiveDevice);
                 if (mActiveDevice == null) return true;
                 previousActiveDevice = mActiveDevice;
                 mActiveDevice = null;
@@ -798,6 +804,7 @@ public class A2dpService extends ProfileService {
         boolean isLowLatencyModeEnabled = false;
         long mGamingStatus = (cs4 & GAMING_MODE_MASK);
         long mLowLatencyStatus = (cs4 & HEAD_TRACKER_AVAILABLE_MASK);
+        boolean mIsScanEnabled = false;
 
         if (cs4 > 0 && codecConfig.getCodecType() ==
                                 BluetoothCodecConfig.SOURCE_CODEC_TYPE_APTX_ADAPTIVE) {
@@ -819,6 +826,24 @@ public class A2dpService extends ProfileService {
             setStreamMode(isGamingEnabled, isLowLatencyModeEnabled);
 
         }
+
+        switch ((int)(cs4 & APTX_MODE_MASK)) {
+            case APTX_HQ:
+                mIsScanEnabled = false;
+                break;
+            case APTX_LL:
+                if ((cs4 & APTX_SCAN_FILTER_MASK) == APTX_SCAN_FILTER_MASK) {
+                    mIsScanEnabled = true;
+                } else {
+                    mIsScanEnabled = false;
+                }
+                break;
+            default:
+                Log.e(TAG, cs4 + " is not a aptX profile mode feedback");
+        }
+        mAdapterService.getBluetoothGattService()
+                       .getScanController()
+                       .setAptXLowLatencyMode(mIsScanEnabled);
 
         if (codecConfig == null) {
             Log.e(TAG, "setCodecConfigPreference: Codec config can't be null");
@@ -1183,7 +1208,6 @@ public class A2dpService extends ProfileService {
                 Log.e(TAG, "Callback called when LeAudioService is stopped");
                 return;
             }
-
             synchronized (mStateMachines) {
                 for (AudioDeviceInfo deviceInfo : removedDevices) {
                     if (deviceInfo.getType() != AudioDeviceInfo.TYPE_BLUETOOTH_A2DP) {
@@ -1196,7 +1220,6 @@ public class A2dpService extends ProfileService {
                     }
 
                     mExposedActiveDevice = null;
-
                     Log.d(
                             TAG,
                             " onAudioDevicesRemoved: "
@@ -1458,12 +1481,16 @@ public class A2dpService extends ProfileService {
     public BluetoothDevice getFallbackDevice() {
         DatabaseManager dbManager = mAdapterService.getDatabase();
         if (dbManager != null) {
+            List<BluetoothDevice> A2dpConnectedDevice =
+                    getConnectedDevices();
+            if (A2dpConnectedDevice.contains(getActiveDevice())) {
+                A2dpConnectedDevice.remove(getActiveDevice());
+            }
+
             BluetoothDevice mostRecentDevice =
                 dbManager
-                    .getMostRecentlyConnectedDevicesInList(getConnectedDevices());
-            if (mostRecentDevice != null) {
-                return mostRecentDevice.equals(getActiveDevice()) ? null : mostRecentDevice;
-            }
+                    .getMostRecentlyConnectedDevicesInList(A2dpConnectedDevice);
+            return mostRecentDevice;
         }
         return null;
     }

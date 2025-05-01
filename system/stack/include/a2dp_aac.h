@@ -29,6 +29,17 @@
 #include "internal_include/bt_target.h"
 #include "stack/include/bt_hdr.h"
 
+// data type for the AAC Codec Information Element */
+// NOTE: bits_per_sample is needed only for AAC encoder initialization.
+typedef struct {
+  uint8_t objectType;             /* Object Type */
+  uint16_t sampleRate;            /* Sampling Frequency */
+  uint8_t channelMode;            /* STEREO/MONO */
+  uint8_t variableBitRateSupport; /* Variable Bit Rate Support*/
+  uint32_t bitRate;               /* Bit rate */
+  btav_a2dp_codec_bits_per_sample_t bits_per_sample;
+} tA2DP_AAC_CIE;
+
 class A2dpCodecConfigAacBase : public A2dpCodecConfig {
 protected:
   A2dpCodecConfigAacBase(btav_a2dp_codec_index_t codec_index, const std::string& name,
@@ -77,6 +88,11 @@ bool A2DP_IsCodecValidAac(const uint8_t* p_codec_info);
 // |p_codec_info| contains information about the codec capabilities.
 // Returns true if the A2DP AAC Sink codec is supported, otherwise false.
 tA2DP_STATUS A2DP_IsSinkCodecSupportedAac(const uint8_t* p_codec_info);
+
+// Parses the given codec info and copies the needed info
+// to Codec Information Element and returns same CIE.
+bool A2DP_GetAacCIE(const uint8_t* p_codec_info,
+                        tA2DP_AAC_CIE *cfg_cie);
 
 // Gets the A2DP AAC codec name for a given |p_codec_info|.
 const char* A2DP_CodecNameAac(const uint8_t* p_codec_info);

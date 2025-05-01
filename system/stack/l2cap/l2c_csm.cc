@@ -43,7 +43,7 @@
 #include "stack/include/bt_types.h"
 #include "stack/include/l2cdefs.h"
 #include "stack/l2cap/l2c_int.h"
-
+#include "stack/include/bt_psm_types.h"
 using namespace bluetooth;
 
 /******************************************************************************/
@@ -307,7 +307,7 @@ static void l2c_csm_closed(tL2C_CCB* p_ccb, tL2CEVT event, void* p_data) {
       break;
 
     case L2CEVT_LP_CONNECT_CFM_NEG: /* Link failed          */
-      if (p_ci->hci_status == HCI_ERR_CONNECTION_EXISTS  || (p_ci->hci_status == HCI_ERR_CONTROLLER_BUSY)) {
+      if (p_ci->hci_status == HCI_ERR_CONNECTION_EXISTS  || ((p_ci->hci_status == HCI_ERR_CONTROLLER_BUSY) && (!(p_ccb->p_rcb && p_ccb->p_rcb->psm == BT_PSM_SDP)))) {
         btm_acl_notif_conn_collision(p_ccb->p_lcb->remote_bd_addr);
       } else {
         l2cu_release_ccb(p_ccb);

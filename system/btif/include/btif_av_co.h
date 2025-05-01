@@ -117,4 +117,8 @@ uint8_t* bta_av_co_get_codec_config(const RawAddress& peer_address);
 // TRUE if AAC is allowed , FALSE otherwise
 bool bta_av_co_audio_is_aac_wl_enabled(const RawAddress* remote_bdaddr);
 
+// Set the Offload Support or Aptx Adaptive
+// offloading_preference is the MM supported offload preferences
+void bta_av_co_aptx_ad_support(std::vector<btav_a2dp_codec_config_t> offloading_preference);
+
 #endif  // BTIF_AV_CO_H

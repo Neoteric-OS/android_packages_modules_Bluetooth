@@ -26,6 +26,7 @@
 #include <com_android_bluetooth_flags.h>
 #include <math.h>
 
+#include <utils/SystemClock.h>
 #include <chrono>
 #include <complex>
 #include <unordered_map>
@@ -229,6 +230,7 @@ struct DistanceMeasurementManager::impl : bluetooth::hal::RangingHalCallback {
     uint8_t remote_supported_sw_time_ = 0;
     // sending from host to controller with CS config command, request the controller to use it.
     uint8_t requesting_config_id = kInvalidConfigId;
+    uint8_t remote_num_config_supported_ = 0x01;
     // received from controller to host with CS config complete event, it will be used
     // for the following measurement.
     uint8_t used_config_id = kInvalidConfigId;
@@ -336,9 +338,7 @@ struct DistanceMeasurementManager::impl : bluetooth::hal::RangingHalCallback {
     }
     log::debug("address {}, resultMeters {}", cs_requester_trackers_[connection_handle].address,
                ranging_result.result_meters_);
-    using namespace std::chrono;
-    uint64_t elapsedRealtimeNanos =
-            duration_cast<nanoseconds>(steady_clock::now().time_since_epoch()).count();
+    uint64_t elapsedRealtimeNanos = ::android::elapsedRealtimeNano();
     if (is_hal_v2()) {
       elapsedRealtimeNanos = ranging_result.elapsed_timestamp_nanos_;
     }
@@ -889,7 +889,23 @@ struct DistanceMeasurementManager::impl : bluetooth::hal::RangingHalCallback {
                                handler_->BindOnce(check_status<LeCsReadRemoteFaeTableStatusView>));
   }
 
+  void send_le_cs_remove_config(uint16_t conn_handle, uint8_t config_id) {
+    log::info("remove_config conn_handle: {} config_id: {}", conn_handle, config_id);
+    hci_layer_->EnqueueCommand(
+         LeCsRemoveConfigBuilder::Create(conn_handle, config_id),
+         handler_->BindOnceOn(this, &impl::on_le_cs_remove_config_complete));
+  }
+
+  void on_le_cs_remove_config_complete(CommandStatusView status_view){
+    log::info("remove_config complete");
+    ErrorCode status = status_view.GetStatus();
+    if (status != ErrorCode::SUCCESS) {
+      log::error("Invalid LeCsRemoveConfigStatus: {}", status);
+    }
+  }
+
   void send_le_cs_create_config(uint16_t connection_handle, uint8_t config_id) {
+    uint8_t KMaxAllowedConfigID = 4;
     if (cs_requester_trackers_.find(connection_handle) == cs_requester_trackers_.end()) {
       log::warn("no cs tracker found for {}", connection_handle);
     }
@@ -908,9 +924,17 @@ struct DistanceMeasurementManager::impl : bluetooth::hal::RangingHalCallback {
       for (int i = 0; i < CS_CHANNEL_MAP_SIZE; i++) {
         channel_map[i] = config_settings.channel_map[i];
       }
-      if(config_settings.config_id == 4) {
-          config_settings.config_id = config_settings.config_id - 1;
+
+      KMaxAllowedConfigID = (cs_requester_trackers_[connection_handle].remote_num_config_supported_ > local_num_config_supported_) ?
+                             local_num_config_supported_ : cs_requester_trackers_[connection_handle].remote_num_config_supported_;
+
+      if (config_settings.config_id >= KMaxAllowedConfigID) {
+        log::info("config_settings.config_id: {} KMaxAllowedConfigID: {}",
+                                              config_settings.config_id, KMaxAllowedConfigID);
+        send_le_cs_remove_config(connection_handle, 0);
+        config_settings.config_id = 0;
       }
+
       cs_requester_trackers_[connection_handle].used_config_id = config_settings.config_id;
       cs_requester_trackers_[connection_handle].requesting_config_id = config_settings.config_id;
       hci_layer_->EnqueueCommand(
@@ -1163,6 +1187,7 @@ struct DistanceMeasurementManager::impl : bluetooth::hal::RangingHalCallback {
     }
     cs_subfeature_supported_ = complete_view.GetOptionalSubfeaturesSupported();
     num_antennas_supported_ = complete_view.GetNumAntennasSupported();
+    local_num_config_supported_ = complete_view.GetNumConfigSupported();
     local_support_phase_based_ranging_ = cs_subfeature_supported_.phase_based_ranging_ == 0x01;
     local_supported_sw_time_ = complete_view.GetTSwTimeSupported();
     is_local_cs_ready_ = true;
@@ -1195,6 +1220,7 @@ struct DistanceMeasurementManager::impl : bluetooth::hal::RangingHalCallback {
               event_view.GetOptionalSubfeaturesSupported().phase_based_ranging_ == 0x01;
       req_it->second.remote_num_antennas_supported_ = event_view.GetNumAntennasSupported();
       req_it->second.retry_counter_for_create_config = 0;
+      req_it->second.remote_num_config_supported_ = event_view.GetNumConfigSupported();
       req_it->second.remote_supported_sw_time_ = event_view.GetTSwTimeSupported();
 
       if (event_view.GetOptionalSubfeaturesSupported().no_frequency_actuation_error_ == 0) {
@@ -1205,10 +1231,11 @@ struct DistanceMeasurementManager::impl : bluetooth::hal::RangingHalCallback {
       send_le_cs_create_config(connection_handle, req_it->second.requesting_config_id);
     }
     log::info(
-            "connection_handle:{}, num_antennas_supported:{}, max_antenna_paths_supported:{}, "
-            "roles_supported:{}, phase_based_ranging_supported: {}",
+            "connection_handle:{}, num_antennas_supported:{},  num_config_supported:{},"
+            "max_antenna_paths_supported:{}, roles_supported:{}, phase_based_ranging_supported: {}",
             event_view.GetConnectionHandle(), event_view.GetNumAntennasSupported(),
-            event_view.GetMaxAntennaPathsSupported(), event_view.GetRolesSupported().ToString(),
+            event_view.GetNumConfigSupported(), event_view.GetMaxAntennaPathsSupported(),
+            event_view.GetRolesSupported().ToString(),
             event_view.GetOptionalSubfeaturesSupported().phase_based_ranging_);
   }
 
@@ -3027,6 +3054,7 @@ struct DistanceMeasurementManager::impl : bluetooth::hal::RangingHalCallback {
   DistanceMeasurementCallbacks* distance_measurement_callbacks_ = nullptr;
   CsOptionalSubfeaturesSupported cs_subfeature_supported_;
   uint8_t num_antennas_supported_ = 0x01;
+  uint8_t local_num_config_supported_ = 0x01;
   bool local_support_phase_based_ranging_ = false;
   uint8_t local_supported_sw_time_ = 0;
   bool is_local_cs_ready_ = false;

@@ -4,12 +4,15 @@
  * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
  -->
-
+/*
+ * Each CsConfigSetting elem is mapped to Security levels in the order.
+ * There is no relation between ConfigID and Sec Level selected on the UI
+ */
 <CsConfigurationList>
 <CsConfig>
      <CsConfigSetting>
-        <ConfigId>1</ConfigId>
-        <MainModeType>1</MainModeType>
+        <ConfigId>0</ConfigId>
+        <MainModeType>2</MainModeType>
         <SubModeType>255</SubModeType>
         <MainModeMinSteps>2</MainModeMinSteps>
         <MainModeMaxSteps>6</MainModeMaxSteps>
@@ -26,7 +29,7 @@
         <CompanionSignalEnable>0</CompanionSignalEnable>
     </CsConfigSetting>
     <CsConfigSetting>
-        <ConfigId>2</ConfigId>
+        <ConfigId>1</ConfigId>
         <MainModeType>2</MainModeType>
         <SubModeType>1</SubModeType>
         <MainModeMinSteps>2</MainModeMinSteps>
@@ -35,7 +38,7 @@
         <Mode0Steps>2</Mode0Steps>
         <Role>0</Role>
         <RTTTypes>0</RTTTypes>
-        <CsSyncPhy>1</CsSyncPhy>
+        <CsSyncPhy>2</CsSyncPhy>
         <ChannelMap>252 255 127 252 255 255 255 255 255 31</ChannelMap>
         <ChannelMapRepetition>1</ChannelMapRepetition>
         <ChannelSelectionType>0</ChannelSelectionType>
@@ -44,7 +47,7 @@
         <CompanionSignalEnable>0</CompanionSignalEnable>
     </CsConfigSetting>
     <CsConfigSetting>
-        <ConfigId>3</ConfigId>
+        <ConfigId>2</ConfigId>
         <MainModeType>2</MainModeType>
         <SubModeType>1</SubModeType>
         <MainModeMinSteps>2</MainModeMinSteps>
@@ -62,7 +65,7 @@
         <CompanionSignalEnable>0</CompanionSignalEnable>
     </CsConfigSetting>
     <CsConfigSetting>
-        <ConfigId>4</ConfigId>
+        <ConfigId>3</ConfigId>
         <MainModeType>3</MainModeType>
         <SubModeType>255</SubModeType>
         <MainModeMinSteps>2</MainModeMinSteps>

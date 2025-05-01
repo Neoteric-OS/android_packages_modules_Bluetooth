@@ -1348,6 +1348,18 @@ public class MediaControlGattService implements MediaControlGattServiceInterface
         }
 
         Request req = new Request(opcode, intVal);
+
+        if (!isBroadcastActive() && (req.opcode() != Request.Opcodes.PLAY) &&
+                ((mAdapterService.getActiveDevices(BluetoothProfile.A2DP).size() > 0) ||
+                (mAdapterService.getActiveDevices(BluetoothProfile.HEARING_AID).size() > 0))) {
+            Log.w(TAG, "handleMediaControlPointRequest: Either A2DP or Hearing Aid active, ignore mcp passthrough");
+            mHandler.post(() -> {
+                setMediaControlRequestResult(new Request(opcode, 0),
+                        Request.Results.COMMAND_CANNOT_BE_COMPLETED);
+            });
+            return BluetoothGatt.GATT_SUCCESS;
+        }
+
         mEventLogger.logd(
                 TAG,
                 "handleMediaControlPointRequest: sending "

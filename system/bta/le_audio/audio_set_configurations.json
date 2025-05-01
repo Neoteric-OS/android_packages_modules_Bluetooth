@@ -773,6 +773,13 @@
         ]
     },
     {
+        "name": "VND_One-OneChan-SnkAse-Lc3_24khz_HapLe_60octs_R2_L10",
+        "codec_config_name": "One-OneChan-SnkAse-Lc3_24_2",
+        "qos_config_name": [
+            "QoS_Config_24_2_1"
+        ]
+    },
+    {
       "name": "Two-OneChan-SnkAse-Lc3_24_2_Balanced_Reliability",
       "codec_config_name": "Two-OneChan-SnkAse-Lc3_24_2",
       "qos_config_name": [
@@ -1538,7 +1545,7 @@
     },
     {
       "name": "VND_Two-OneChan-SnkAse-Lc3_48_2_155octs_R5_L20-Two-OneChan_SrcAse-Lc3_16_2_40octs_R5_L10_1",
-      "codec_config_name": "Two_Two-OneChan-SnkAse-Lc3_48_2_155octs-Two-OneChan_SrcAse-Lc3_16_2_40octs",
+      "codec_config_name": "VND_Two-OneChan-SnkAse-Lc3_48_2_155octs-Two-OneChan_SrcAse-Lc3_16_2_40octs",
       "qos_config_name": [
         "VND_QoS_Config_R5_L20",
         "VND_QoS_Config_R5_L10"

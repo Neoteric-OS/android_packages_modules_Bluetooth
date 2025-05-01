@@ -41,10 +41,10 @@ types::AudioContexts GetAudioContextsFromSinkMetadata(
 inline uint8_t GetTargetLatencyForAudioContext(types::LeAudioContextType ctx) {
   switch (ctx) {
     case types::LeAudioContextType::MEDIA:
+      FALLTHROUGH_INTENDED;
+    case types::LeAudioContextType::LIVE:
       return types::kTargetLatencyHigherReliability;
 
-    case types::LeAudioContextType::LIVE:
-      FALLTHROUGH_INTENDED;
     case types::LeAudioContextType::GAME:
       return types::kTargetLatencyLower;
 

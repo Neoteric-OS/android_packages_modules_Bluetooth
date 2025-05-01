@@ -566,6 +566,7 @@ public:
                     "reconfigure.",
                     group->group_id_);
             if (group->Configure(context_type, metadata_context_types, ccid_lists)) {
+              group->SetStreamingPendingTargetState();
               return PrepareAndSendCodecConfigToTheGroup(group);
             }
           }
