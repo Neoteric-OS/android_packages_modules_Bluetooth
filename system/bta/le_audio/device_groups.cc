@@ -59,6 +59,7 @@
 #include "osi/include/properties.h"
 #include "stack/include/btm_client_interface.h"
 #include "types/bt_transport.h"
+#include "osi/include/properties.h"
 
 namespace bluetooth::le_audio {
 
@@ -1409,6 +1410,11 @@ void LeAudioDeviceGroup::CigConfiguration::GetCisCount(LeAudioContextType contex
               out_cis_count_unidir_sink = expected_device_cnt;
             } else {
               out_cis_count_bidir = 2 * expected_device_cnt;
+              if (osi_property_get_bool("persist.bluetooth.leaudio.tmap_vrc_05", false)) {
+                 //only required for tmap_05, Config D case
+                 out_cis_count_bidir = expected_device_cnt;
+                 out_cis_count_unidir_sink = expected_device_cnt;
+              }
             }
           } else if (context_type == LeAudioContextType::LIVE ||
                      context_type == LeAudioContextType::VOICEASSISTANTS) {
