@@ -4016,6 +4016,33 @@ public class AdapterService extends Service {
         return mVendor;
     }
 
+    /**
+     * Check whether Split A2DP Source LDAC  enabled.
+     *
+     * @return true if Split A2DP Source LDAC  is enabled
+     */
+    public boolean isSplitA2DPSourceLDAC() {
+        return mVendor.isSplitA2DPSourceLDAC();
+    }
+
+    /**
+     * Check whether Split A2DP Source APTX HD  enabled.
+     *
+     * @return true if Split A2DP Source APTX HD  is enabled
+     */
+    public boolean isSplitA2DPSourceAPTXHD() {
+        return mVendor.isSplitA2DPSourceAPTXHD();
+    }
+
+    /**
+     * Check whether Split A2DP Source APTX ADAPTIVE  enabled.
+     *
+     * @return true if Split A2DP Source APTX ADAPTIVE  is enabled
+     */
+    public boolean isSplitA2DPSourceAPTXADAPTIVE() {
+        return mVendor.isSplitA2DPSourceAPTXADAPTIVE();
+    }
+
     BluetoothActivityEnergyInfo reportActivityInfo() {
         if (mAdapterProperties.getState() != BluetoothAdapter.STATE_ON
                 || !mAdapterProperties.isActivityAndEnergyReportingSupported()) {
