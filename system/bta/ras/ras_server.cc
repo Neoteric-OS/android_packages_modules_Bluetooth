@@ -19,6 +19,7 @@
 
 #include <unordered_map>
 
+#include "internal_include/stack_config.h"
 #include "bta/include/bta_gatt_api.h"
 #include "bta/include/bta_ras_api.h"
 #include "bta/ras/ras_types.h"
@@ -568,7 +569,7 @@ public:
       return;
     }
 
-    if(ccc_value == 0x0001) {
+    if(stack_config_get_interface()->get_pts_bcs_rej_write_req() && ccc_value == 0x0001) {
       BTA_GATTS_SendRsp(conn_id, p_data->req_data.trans_id, WRITE_REJECTED, &p_msg);
       return;
     }
