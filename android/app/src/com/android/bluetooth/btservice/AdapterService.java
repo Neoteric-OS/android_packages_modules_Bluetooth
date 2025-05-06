@@ -1871,6 +1871,9 @@ public class AdapterService extends Service {
             Log.i(TAG, "connectEnabledProfiles: Connecting HFP");
             mHeadsetClientService.connect(device);
         }
+        /*delaying the A2DP connection so that HFP connection can be established first*/
+        Log.d(TAG,"delaying the A2dp Connection by 100ms");
+        SystemClock.sleep(100);
         if (mA2dpService != null
                 && isProfileSupported(device, BluetoothProfile.A2DP)
                 && mA2dpService.getConnectionPolicy(device) > CONNECTION_POLICY_FORBIDDEN) {
