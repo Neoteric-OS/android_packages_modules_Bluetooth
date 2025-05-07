@@ -3167,6 +3167,13 @@ class HeadsetStateMachine extends StateMachine {
         if (clcc.mIndex == 0) {
             removeMessages(CLCC_RSP_TIMEOUT);
         }
+        if ((clcc.mIndex != 0 && clcc.mNumber == null && clcc.mType == -1)
+                || (clcc.mIndex != 0 && clcc.mNumber == "")) {
+            clcc.mNumber = VOIP_CALL_NUMBER;
+            clcc.mType = PhoneNumberUtils.toaFromString(clcc.mNumber);
+            Log.i(TAG, "sendClccForCall: voip phoneNumber " +
+                          clcc.mNumber +" voip type " + clcc.mType);
+        }
         mNativeInterface.clccResponse(
                 mDevice,
                 clcc.mIndex,
