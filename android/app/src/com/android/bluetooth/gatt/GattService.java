@@ -2324,8 +2324,15 @@ public class GattService extends ProfileService {
                 db.add(GattDbElement.createDescriptor(descriptor.getUuid(), permission));
             }
         }
-
-        mNativeInterface.gattServerAddService(serverIf, db);
+        int state = BluetoothAdapter.STATE_OFF;
+        if (mAdapterService != null) {
+          state = mAdapterService.getState();
+        }
+        if (state == BluetoothAdapter.STATE_ON || state == BluetoothAdapter.STATE_BLE_ON) {
+          mNativeInterface.gattServerAddService(serverIf, db);
+        } else {
+            Log.w(TAG, " addService() - Disallowed in BT state: " + state);
+        }
     }
 
     @RequiresPermission(BLUETOOTH_CONNECT)
