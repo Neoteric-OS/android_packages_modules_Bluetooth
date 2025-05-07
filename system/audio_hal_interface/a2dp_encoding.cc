@@ -22,6 +22,9 @@
 #include "hal_version_manager.h"
 #include "hidl/a2dp_encoding_hidl.h"
 #include "qti_hidl/a2dp_encoding_qti.h"
+#include "btif/include/btif_av.h"
+#include "btif/include/btif_av_co.h"
+#include "osi/include/properties.h"
 
 namespace bluetooth {
 namespace audio {
@@ -193,7 +196,36 @@ size_t read(uint8_t* p_buf, uint32_t len) {
   }
   return 0;
 }
+static uint16_t a2dp_get_peer_mtu(A2dpCodecConfig* a2dp_config) {
+   uint8_t codec_info[AVDT_CODEC_SIZE];
+   a2dp_config->copyOutOtaCodecConfig(codec_info);
 
+   RawAddress peer_addr = btif_av_source_active_peer();
+   tA2DP_ENCODER_INIT_PEER_PARAMS peer_params;
+   bta_av_co_get_peer_params(peer_addr, &peer_params);
+   uint16_t peer_mtu = peer_params.peer_mtu;
+   uint16_t effective_mtu = bta_av_co_get_encoder_effective_frame_size(peer_addr);
+
+   if (effective_mtu > 0 && effective_mtu < peer_mtu) {
+     peer_mtu = effective_mtu;
+   }
+   // b/188020925
+   // When SBC headsets report middle quality bitpool under a larger MTU, we
+   // reduce the packet size to prevent the hardware encoder from putting too
+   // many frames in one packet.
+   if (a2dp_config->codecIndex() == BTAV_A2DP_CODEC_INDEX_SOURCE_SBC &&
+       codec_info[2] /* maxBitpool */ <= A2DP_SBC_BITPOOL_MIDDLE_QUALITY) {
+     peer_mtu = MAX_2MBPS_AVDTP_MTU;
+   }
+   // b/177205770
+   // Fix the MTU value not to be greater than an AVDTP packet, so the data
+   // encoded by A2DP hardware encoder can be fitted into one AVDTP packet
+   // without fragmented
+   if (peer_mtu > MAX_3MBPS_AVDTP_MTU) {
+     peer_mtu = MAX_3MBPS_AVDTP_MTU;
+   }
+   return peer_mtu;
+ }
 // Update A2DP delay report to BluetoothAudio HAL
 void set_remote_delay(uint16_t delay_report) {
   LOG(INFO) << __func__;
@@ -201,6 +233,9 @@ void set_remote_delay(uint16_t delay_report) {
     hidl::a2dp::set_remote_delay(delay_report);
   } else if (HalVersionManager::GetHalTransport() == BluetoothAudioHalTransport::AIDL) {
     aidl::a2dp::set_remote_delay(delay_report);
+    setup_codec(bta_av_get_a2dp_current_codec(),
+                a2dp_get_peer_mtu(bta_av_get_a2dp_current_codec()),
+                bta_av_co_get_encoder_preferred_interval_us());
   } else if (HalVersionManager::GetHalTransport() == BluetoothAudioHalTransport::QTI_HIDL) {
     LOG(INFO) << __func__ << ": qti_hidl set_remote_delay";
     qti_hidl::a2dp::set_remote_delay(delay_report);
