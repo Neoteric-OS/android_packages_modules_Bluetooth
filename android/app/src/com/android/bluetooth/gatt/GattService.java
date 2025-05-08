@@ -2328,7 +2328,8 @@ public class GattService extends ProfileService {
         if (mAdapterService != null) {
           state = mAdapterService.getState();
         }
-        if (state == BluetoothAdapter.STATE_ON || state == BluetoothAdapter.STATE_BLE_ON) {
+        if (state == BluetoothAdapter.STATE_ON || state == BluetoothAdapter.STATE_BLE_ON
+                                               || state == BluetoothAdapter.STATE_TURNING_ON ) {
           mNativeInterface.gattServerAddService(serverIf, db);
         } else {
             Log.w(TAG, " addService() - Disallowed in BT state: " + state);
