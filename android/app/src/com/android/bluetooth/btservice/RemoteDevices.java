@@ -1165,6 +1165,12 @@ public class RemoteDevices {
                             if (areUuidsEqual(newUuids, deviceProperties.getUuidsBrEdr())) {
                                 // SDP Skip adding UUIDs to property cache if equal
                                 debugLog("Skip uuids update for " + bdDevice.getAddress());
+
+                                if(mHandler.hasMessages(MESSAGE_UUID_INTENT)) {
+                                    warnLog("MESSAGE_UUID_INTENT enqueued for " + bdDevice);
+                                    mHandler.removeMessages(MESSAGE_UUID_INTENT);
+                                    sendUuidIntent(bdDevice, deviceProperties, true);
+                                }
                                 MetricsLogger.getInstance()
                                         .cacheCount(BluetoothProtoEnums.SDP_UUIDS_EQUAL_SKIP, 1);
                                 break;
