@@ -4884,16 +4884,16 @@ public class LeAudioService extends ProfileService {
                 if (isCsipSupported && CsipGroupSize > 0) {
                     A2dpService mA2dp = A2dpService.getA2dpService();
                     if (mA2dp != null) {
-                        mA2dp.connect(device);
-                        Log.e(TAG, "A2DP connect when dual mode enable for CSIP device "
-                            + device + " for le audio policy forbidden");
+                        boolean ret = mA2dp.setConnectionPolicy(device, CONNECTION_POLICY_ALLOWED);
+                        Log.e(TAG, "setting A2dp Connection_policy_allowed during dual mode enable for CSIP device"
+                            + device + " for le audio policy forbidden is " + ret);
                     }
 
                     HeadsetService mHfp = HeadsetService.getHeadsetService();
                     if (mHfp != null) {
-                        mHfp.connect(device);
-                        Log.e(TAG, "HFP connect when dual mode enable for CSIP device "
-                            + device + " for le audio policy forbidden");
+                        boolean ret = mHfp.setConnectionPolicy(device, CONNECTION_POLICY_ALLOWED);
+                        Log.e(TAG, "setting HFP Connection_policy_allowed during dual mode enable for CSIP device"
+                            + device + " for le audio policy forbidden is " + ret);
                     }
                 }
             }
