@@ -53,7 +53,7 @@ using ::aidl::android::hardware::bluetooth::audio::SessionType;
 std::unique_ptr<ProviderInfo> ProviderInfo::GetProviderInfo(bool supports_a2dp_hw_offload_v2) {
 
   bool is_a2dp_offload_codec_extensibility_enabled_ =
-    osi_property_get_bool("persist.vendor.qcom.bluetooth.a2dp_offload_codec_extensibility", true);
+    osi_property_get_bool("persist.vendor.qcom.bluetooth.a2dp_offload_codec_extensibility", false);
   log::info("provider info a2dp offload extensiblity: {}",
              is_a2dp_offload_codec_extensibility_enabled_);
 
