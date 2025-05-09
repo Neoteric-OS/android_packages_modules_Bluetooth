@@ -29,6 +29,7 @@
 #include <vector>
 
 #include "bta/ag/bta_ag_int.h"
+#include "osi/include/properties.h"
 
 const uint8_t kFetchAudioProviderRetryNumber = 3;
 
@@ -195,6 +196,21 @@ void BluetoothAudioClientInterface::FetchAudioProvider() {
     }
     log::info("BluetoothAudioHal SessionType={} has {} AudioCapabilities",
               toString(transport_->GetSessionType()), capabilities_.size());
+
+    bool is_a2dp_offload_codec_extensibility_enabled_ =
+      osi_property_get_bool("persist.vendor.qcom.bluetooth.a2dp_offload_codec_extensibility",false);
+    log::info("provider info a2dp offload extensiblity: {}",
+               is_a2dp_offload_codec_extensibility_enabled_);
+
+    if (is_a2dp_offload_codec_extensibility_enabled_) {
+      std::optional<IBluetoothAudioProviderFactory::ProviderInfo> provider_info = {};
+      aidl_retval = provider_factory->getProviderInfo(transport_->GetSessionType(), &provider_info);
+
+      if (!aidl_retval.isOk()) {
+        log::error("BluetoothAudioHal::getProviderInfo failure: {}", aidl_retval.getDescription());
+        return;
+      }
+    }
 
     aidl_retval = provider_factory->openProvider(transport_->GetSessionType(), &provider_);
     if (!aidl_retval.isOk() || provider_ == nullptr) {

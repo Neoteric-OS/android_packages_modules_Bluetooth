@@ -1122,6 +1122,39 @@ provider::get_a2dp_configuration(
     hint.codecId = codec.value()->id;
   }
 
+  // Dev UI Bit Rate change for LDAC
+  if (codec.has_value() && codec.value()->id.getTag() == CodecId::vendor) {
+    int vendor_id = codec.value()->id.get<CodecId::vendor>().id;
+    int codec_id = codec.value()->id.get<CodecId::vendor>().codecId;
+    int samplerate = codecParameters.samplingFrequencyHz;
+    if (vendor_id == A2DP_LDAC_VENDOR_ID && codec_id == A2DP_LDAC_CODEC_ID) {
+      switch (user_preferences.codec_specific_1) {
+        case 1000:
+          if (samplerate == 44100 || samplerate == 88200)
+            codecParameters.maxBitrate = 909000;
+          else
+            codecParameters.maxBitrate = 990000;
+          break;
+        case 1001:
+          if (samplerate == 44100 || samplerate == 88200)
+            codecParameters.maxBitrate = 606000;
+          else
+            codecParameters.maxBitrate = 660000;
+          break;
+        case 1002:
+          if (samplerate == 44100 || samplerate == 88200)
+            codecParameters.maxBitrate = 303000;
+          else
+            codecParameters.maxBitrate = 330000;
+          break;
+        case 1003:
+        default:
+          codecParameters.maxBitrate = 0; // LDAC ABR
+          break;
+      }
+    }
+  }
+
   log::info("remote capabilities:");
   for (auto const& sep : a2dp_remote_capabilities) {
     log::info("- {}", sep.toString());
