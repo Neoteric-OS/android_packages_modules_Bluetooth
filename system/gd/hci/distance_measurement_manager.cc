@@ -847,6 +847,15 @@ struct DistanceMeasurementManager::impl : bluetooth::hal::RangingHalCallback {
             cs_preferred_peer_antenna_mapping_table_[tone_antenna_config_selection];
 
     bool config_avb = false;
+    uint8_t KMaxAllowedConfigID = 4;
+    uint8_t remote_config_supports = cs_requester_trackers_[connection_handle].remote_num_config_supported_;
+    KMaxAllowedConfigID = (remote_config_supports > local_num_config_supported_) ?
+                                         local_num_config_supported_ : remote_config_supports;
+    if (config_id >= KMaxAllowedConfigID) {
+      log::info("config_id: {} KMaxAllowedConfigID: {} config_avb: {}",
+                           config_id, KMaxAllowedConfigID, config_avb);
+      config_id = 0;
+   }
     if (set_cs_params_.find(connection_handle) != set_cs_params_.end()) {
       log::info("address {} ", set_cs_params_[connection_handle].address);
       config_avb = true;
@@ -876,7 +885,7 @@ struct DistanceMeasurementManager::impl : bluetooth::hal::RangingHalCallback {
        preferred_peer_antenna.use_third_ordered_antenna_element_ = 1;
      if (procedure_setting.preferred_peer_antenna & 0x08)
        preferred_peer_antenna.use_fourth_ordered_antenna_element_ = 1;
-
+     
       hci_layer_->EnqueueCommand(
             LeCsSetProcedureParametersBuilder::Create(
             connection_handle,
