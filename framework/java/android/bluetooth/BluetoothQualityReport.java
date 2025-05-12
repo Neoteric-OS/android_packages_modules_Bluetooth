@@ -863,14 +863,18 @@ public final class BluetoothQualityReport implements Parcelable {
                             bqrBuf.get(currentOffset + 0));
             bqrBuf.position(currentOffset + 6);
             mCalFailedItemCount = bqrBuf.get() & 0xFF;
-            mTxTotalPackets = bqrBuf.getInt() & 0xFFFFFFFFL;
-            mTxUnackPackets = bqrBuf.getInt() & 0xFFFFFFFFL;
-            mTxFlushPackets = bqrBuf.getInt() & 0xFFFFFFFFL;
-            mTxLastSubeventPackets = bqrBuf.getInt() & 0xFFFFFFFFL;
-            mCrcErrorPackets = bqrBuf.getInt() & 0xFFFFFFFFL;
-            mRxDupPackets = bqrBuf.getInt() & 0xFFFFFFFFL;
-            mRxUnRecvPackets = bqrBuf.getInt() & 0xFFFFFFFFL;
-            mCoexInfoMask = bqrBuf.getShort() & 0xFFFF;
+            if (versionSupported >= BQR_VERSION_4_0) {
+                mTxTotalPackets = bqrBuf.getInt() & 0xFFFFFFFFL;
+                mTxUnackPackets = bqrBuf.getInt() & 0xFFFFFFFFL;
+                mTxFlushPackets = bqrBuf.getInt() & 0xFFFFFFFFL;
+                mTxLastSubeventPackets = bqrBuf.getInt() & 0xFFFFFFFFL;
+                mCrcErrorPackets = bqrBuf.getInt() & 0xFFFFFFFFL;
+                mRxDupPackets = bqrBuf.getInt() & 0xFFFFFFFFL;
+            }
+            if (versionSupported >= BQR_VERSION_6_0) {
+                mRxUnRecvPackets = bqrBuf.getInt() & 0xFFFFFFFFL;
+                mCoexInfoMask = bqrBuf.getShort() & 0xFFFF;
+            }
         }
 
         private BqrCommon(Parcel in) {
