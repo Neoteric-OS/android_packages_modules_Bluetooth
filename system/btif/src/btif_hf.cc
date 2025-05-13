@@ -138,6 +138,7 @@ struct btif_hf_cb_t {
   int num_held;
   bool is_during_voice_recognition;
   bthf_call_state_t call_setup_state;
+  bthf_audio_state_t audio_state;
 };
 
 static btif_hf_cb_t btif_hf_cb[BTA_AG_MAX_NUM_CLIENTS];
@@ -534,6 +535,7 @@ static void btif_hf_upstreams_evt(uint16_t event, char* p_param) {
 
     case BTA_AG_AUDIO_OPEN_EVT:
       log::debug("Audio open event:{}", dump_hf_event(event));
+      btif_hf_cb[idx].audio_state = BTHF_AUDIO_STATE_CONNECTED;
       bt_hf_callbacks->AudioStateCallback(BTHF_AUDIO_STATE_CONNECTED,
                                           &btif_hf_cb[idx].connected_bda);
       break;
@@ -544,6 +546,7 @@ static void btif_hf_upstreams_evt(uint16_t event, char* p_param) {
       DEVICE_IOT_CONFIG_ADDR_INT_ADD_ONE(btif_hf_cb[idx].connected_bda,
                                          IOT_CONF_KEY_HFP_SCO_CONN_FAIL_COUNT);
 
+      btif_hf_cb[idx].audio_state = BTHF_AUDIO_STATE_DISCONNECTED;
       bt_hf_callbacks->AudioStateCallback(BTHF_AUDIO_STATE_DISCONNECTED,
                                           &btif_hf_cb[idx].connected_bda);
       break;
@@ -1004,8 +1007,14 @@ bt_status_t HeadsetInterface::ConnectAudio(RawAddress* bd_addr, int disabled_cod
                                   // Manual pointer management for now
                                   base::Unretained(bt_hf_callbacks), BTHF_AUDIO_STATE_CONNECTING,
                                   &btif_hf_cb[idx].connected_bda));
+  log::info("current audio state",btif_hf_cb[idx].audio_state);
   BTA_AgAudioOpen(btif_hf_cb[idx].handle, disabled_codecs);
 
+  if (btif_hf_cb[idx].audio_state != BTHF_AUDIO_STATE_CONNECTED) {
+     log::info("Moving the audio_state to CONNECTING for device {}",
+                btif_hf_cb[idx].connected_bda.ToString().c_str());
+     btif_hf_cb[idx].audio_state = BTHF_AUDIO_STATE_CONNECTING;
+   }
   DEVICE_IOT_CONFIG_ADDR_INT_ADD_ONE(*bd_addr, IOT_CONF_KEY_HFP_SCO_CONN_COUNT);
 
   return BT_STATUS_SUCCESS;
@@ -1616,6 +1625,15 @@ bt_status_t HeadsetInterface::SendBsir(bool value, RawAddress* bd_addr) {
 bt_status_t HeadsetInterface::SetActiveDevice(RawAddress* active_device_addr) {
   CHECK_BTHF_INIT();
   active_bda = *active_device_addr;
+    // if SCO is setting up, don't allow active device switch
+  for (int i = 0; i < btif_max_hf_clients; i++) {
+    if (btif_hf_cb[i].audio_state == BTHF_AUDIO_STATE_CONNECTING) {
+       log::error("SCO setting up with {}, not allowing active device switch to {}",
+         btif_hf_cb[i].connected_bda.ToString().c_str(),
+       active_device_addr->ToString().c_str());
+       return BT_STATUS_FAIL;
+    }
+  }
   BTA_AgSetActiveDevice(*active_device_addr);
   return BT_STATUS_SUCCESS;
 }
