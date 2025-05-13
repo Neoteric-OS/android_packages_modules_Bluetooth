@@ -1125,6 +1125,31 @@ public class VolumeControlService extends ProfileService {
                         mNativeInterface.unmute(device);
                     }
                 }
+            } else if (groupId != LE_AUDIO_GROUP_ID_INVALID) {
+                boolean can_change_volume = false;
+                LeAudioService leAudioService = mFactory.getLeAudioService();
+                if (leAudioService != null) {
+                    for (BluetoothDevice dev : getConnectedDevices()) {
+                        if (groupId == leAudioService.getGroupId(dev)) {
+                            Log.i(TAG, " Group " + groupId + " is connected");
+                            can_change_volume = true;
+                            break;
+                        }
+                    }
+                }
+
+                if (can_change_volume && (groupVolume != volume)) {
+                    Log.i(TAG, "Setting value:" + groupVolume + " to group " + groupId);
+                    mNativeInterface.setGroupVolume(groupId, groupVolume);
+                }
+                if (can_change_volume && (groupMute != mute)) {
+                    Log.i(TAG, "Setting mute:" + groupMute + " to group " + groupId);
+                    if (groupMute) {
+                        mNativeInterface.muteGroup(groupId);
+                    } else {
+                        mNativeInterface.unmuteGroup(groupId);
+                    }
+                }
             } else {
                 Log.e(
                         TAG,
