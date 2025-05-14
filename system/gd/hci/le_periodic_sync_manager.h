@@ -33,7 +33,7 @@
 namespace bluetooth {
 namespace hci {
 
-constexpr std::chrono::duration kPeriodicSyncTimeout = std::chrono::seconds(5);
+constexpr std::chrono::duration kPeriodicSyncTimeout = std::chrono::seconds(10);
 constexpr int kMaxSyncTransactions = 16;
 
 enum PeriodicSyncState : int {

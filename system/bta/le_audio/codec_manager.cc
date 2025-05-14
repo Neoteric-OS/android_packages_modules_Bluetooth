@@ -516,7 +516,7 @@ public:
         }
       }
 
-      broadcast_config.bits_per_sample = LeAudioCodecConfiguration::kBitsPerSample16;
+      broadcast_config.bits_per_sample = LeAudioCodecConfiguration::kBitsPerSample24;
       broadcast_config.sampling_rate = core_config.GetSamplingFrequencyHz();
       broadcast_config.frame_duration = core_config.GetFrameDurationUs();
       broadcast_config.octets_per_frame = *(core_config.octets_per_codec_frame);

@@ -42,6 +42,7 @@
 #include "bta/include/bta_av_api.h"
 #include "bta/include/bta_av_ci.h"
 #include "bta/include/bta_av_co.h"
+#include "bta/av/bta_av_int.h"
 #include "btif/include/bta_av_co_peer.h"
 #include "btif/include/btif_a2dp_source.h"
 #include "btif/include/btif_av.h"
@@ -325,7 +326,35 @@ tA2DP_STATUS BtaAvCo::ProcessSourceGetConfig(tBTA_AV_HNDL bta_av_handle,
   log::verbose("peer {} acceptor:{} reconfig_needed:{}", p_peer->addr, p_peer->acceptor,
                p_peer->reconfig_needed);
   if (p_peer->acceptor) {
-    if (p_peer->reconfig_needed) {
+    if (!p_peer->reconfig_needed &&
+        A2DP_SourceCodecIndex(p_peer->codec_config) == BTAV_A2DP_CODEC_INDEX_SOURCE_APTX_ADAPTIVE) {
+      uint8_t new_codec_config[AVDT_CODEC_SIZE];
+      if (p_peer->GetCodecs()->setCodecConfig(p_sink->codec_caps, true, new_codec_config, true)) {
+        log::verbose("peer {} reconfig aptx-adaptive codec after get remote capabilities",
+                     p_peer->addr);
+        SaveNewCodecConfig(p_peer, new_codec_config, p_sink->num_protect, p_sink->protect_info,
+                           AVDT_TSEP_SRC);
+        tBTA_AV_SCB* p_scb = bta_av_hndl_to_scb(bta_av_handle);
+        memcpy(p_scb->cfg.codec_info, p_peer->codec_config, AVDT_CODEC_SIZE);
+        if (bluetooth::audio::a2dp::is_hal_enabled()) {
+          auto a2dp_codec_config = p_peer->GetCodecs()->getCurrentCodecConfig();
+          tA2DP_ENCODER_INIT_PEER_PARAMS peer_params;
+          bta_av_co_get_peer_params(p_peer->addr, &peer_params);
+          uint16_t peer_mtu = peer_params.peer_mtu;
+          uint16_t effective_mtu = bta_av_co_get_encoder_effective_frame_size(p_peer->addr);
+          if (effective_mtu > 0 && effective_mtu < peer_mtu) {
+            peer_mtu = effective_mtu;
+          }
+          if (peer_mtu > MAX_3MBPS_AVDTP_MTU) {
+            peer_mtu = MAX_3MBPS_AVDTP_MTU;
+          }
+          auto encoder = GetSourceEncoderInterface(p_peer->addr);
+          bluetooth::audio::a2dp::setup_codec(
+                  a2dp_codec_config, peer_mtu,
+                  encoder == nullptr ? 0 : encoder->get_encoder_interval_ms() * 1000);
+        }
+      }
+    } else if (p_peer->reconfig_needed) {
       log::verbose("call BTA_AvReconfig(0x{:x}) for peer {}", bta_av_handle, p_peer->addr);
       BTA_AvReconfig(bta_av_handle, true, p_sink->sep_info_idx, p_peer->codec_config,
                      *p_num_protect, bta_av_co_cp_scmst);

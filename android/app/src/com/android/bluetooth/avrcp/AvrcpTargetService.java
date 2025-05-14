@@ -28,6 +28,8 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.media.AudioManager;
+import android.media.AudioPlaybackConfiguration;
+import android.media.AudioAttributes;
 import android.os.Looper;
 import android.os.UserManager;
 import android.sysprop.BluetoothProperties;
@@ -507,6 +509,25 @@ public class AvrcpTargetService extends ProfileService {
         mMediaPlayerList.playItem(playerId, nowPlaying, mediaId);
     }
 
+    private boolean hasVoiceCommunicationActive() {
+        boolean result = false;
+        List<AudioPlaybackConfiguration> configs;
+
+        if (mAudioManager == null) return false;
+        configs = mAudioManager.getActivePlaybackConfigurations();
+
+        for (AudioPlaybackConfiguration config : configs) {
+            if (config.isActive()
+                && config.getAudioAttributes().getUsage()
+                    == AudioAttributes.USAGE_VOICE_COMMUNICATION) {
+                Log.d(TAG, "hasVoiceCommunicationActive find config = " + config);
+                result = true;
+                break;
+            }
+        }
+        return result;
+    }
+
     /** Informs {@link AudioManager} of an incoming key event from a remote device. */
     void sendMediaKeyEvent(int key, boolean pushed) {
         MediaPlayerWrapper activePlayer = mMediaPlayerList.getActivePlayer();
@@ -536,8 +557,33 @@ public class AvrcpTargetService extends ProfileService {
                         + pushed
                         + " to "
                         + (activePlayer == null ? null : activePlayer.getPackageName()));
+
+        int keyCode = AvrcpPassthrough.toKeyCode(key);
+        PlayStatus status;
+        if (activePlayer != null) {
+            status = PlayStatus.fromPlaybackState(activePlayer.getPlaybackState(),
+                    Long.parseLong(getCurrentSongInfo().duration));
+        } else {
+            status = getPlayState();
+        }
+        boolean musicActive = mAudioManager.isMusicActive();
+        if (keyCode == KeyEvent.KEYCODE_MEDIA_PLAY
+            && (hasVoiceCommunicationActive()
+                || (status.state == PlayStatus.PLAYING && musicActive))) {
+            mMediaKeyEventLogger.logw(TAG,
+                "Ignore passthrough play during voice communication or music playing");
+            return;
+        }
+        if (keyCode == KeyEvent.KEYCODE_MEDIA_PAUSE
+            && status.state != PlayStatus.PLAYING
+            && !musicActive) {
+            mMediaKeyEventLogger.logw(TAG,
+                "Ignore passthrough pause during music not playing");
+            return;
+        }
+
         int action = pushed ? KeyEvent.ACTION_DOWN : KeyEvent.ACTION_UP;
-        KeyEvent event = new KeyEvent(action, AvrcpPassthrough.toKeyCode(key));
+        KeyEvent event = new KeyEvent(action, keyCode);
         mAudioManager.dispatchMediaKeyEvent(event);
     }
 
