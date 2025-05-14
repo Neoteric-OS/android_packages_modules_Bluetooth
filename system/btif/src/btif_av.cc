@@ -1396,10 +1396,16 @@ void BtifAvSource::DispatchSuspendStreamEvent(btif_av_sm_event_t event) {
 
 void BtifAvSource::DeleteIdlePeers() {
   std::lock_guard<std::recursive_mutex> lock(btifavsource_peers_lock_);
+  log::info("peers_.size()={}", peers_.size());
   for (auto it = peers_.begin(); it != peers_.end();) {
     BtifAvPeer* peer = it->second;
     auto prev_it = it++;
+    if (peer == nullptr) {
+      log::info("peer is null, continue");
+      continue;
+    }
     if (!peer->CanBeDeleted()) {
+      log::info("peer cannot be deleted, continue");
       continue;
     }
     log::info("peer={} bta_handle=0x{:x}", peer->PeerAddress(), peer->BtaHandle());
@@ -1731,12 +1737,15 @@ void BtifAvStateMachine::StateIdle::OnEnter() {
   peer_.ClearAllFlags();
 
   // Stop A2DP if this is the active peer
+  log::info("peer_.IsActivePeer()={}, peer_.ActivePeerAddress().IsEmpty()={}",
+                             peer_.IsActivePeer(), peer_.ActivePeerAddress().IsEmpty());
   if (peer_.IsActivePeer() || peer_.ActivePeerAddress().IsEmpty()) {
     btif_a2dp_on_idle(peer_.PeerAddress(), peer_.IsSource() ? A2dpType::kSink : A2dpType::kSource);
   }
 
   // Reset the active peer if this was the active peer and
   // the Idle state was reentered
+  log::info("peer_.CanBeDeleted()={}", peer_.CanBeDeleted());
   if (peer_.IsActivePeer() && peer_.CanBeDeleted()) {
     std::promise<void> peer_ready_promise;
     if (peer_.IsSink()) {
