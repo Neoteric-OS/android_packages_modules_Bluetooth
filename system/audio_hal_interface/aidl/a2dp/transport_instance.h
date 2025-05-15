@@ -73,6 +73,7 @@ public:
   virtual void SetLatencyMode(LatencyMode latency_mode) = 0;
   virtual bool GetPresentationPosition(uint64_t* remote_delay_report_ns,
                                        uint64_t* total_bytes_readed, timespec* data_position) = 0;
+  virtual void SourceMetadataChanged(bool is_low_latency) = 0;
 
   /***
    * Invoked when the transport is requested to reset presentation position

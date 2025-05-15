@@ -2602,8 +2602,10 @@ class HeadsetStateMachine extends StateMachine {
     }
 
     private void processAtCind(BluetoothDevice device) {
-        int call, callSetup;
+        int call, callSetup, call_state;
         logi("processAtCind: for device=" + device);
+         // get the top of the Q
+        HeadsetCallState tempCallState = mDelayedCSCallStates.peek();
         final HeadsetPhoneState phoneState = mSystemInterface.getHeadsetPhoneState();
         int service = phoneState.getCindService(), signal = phoneState.getCindSignal();
 
@@ -2611,13 +2613,19 @@ class HeadsetStateMachine extends StateMachine {
         Hence we ensure that a proper response is sent
         for the virtual call too.*/
         if (mHeadsetService.isVirtualCallStarted()) {
-            call = 1;
+            call = mStateMachineCallState.mNumActive;
             callSetup = 0;
         } else {
             // regular phone call
-            call = phoneState.getNumActiveCall();
-            callSetup = phoneState.getNumHeldCall();
+            call = mStateMachineCallState.mNumActive;
+            callSetup = mStateMachineCallState.mNumHeld;
         }
+        if(tempCallState != null &&
+            tempCallState.mCallState == HeadsetHalConstants.CALL_STATE_ALERTING)
+              call_state = HeadsetHalConstants.CALL_STATE_DIALING;
+        else
+              call_state = mStateMachineCallState.mCallState;
+        logi("sending call state in CIND resp as " + call_state);
 
         // During wifi call, a regular call in progress while no network service,
         // pretend service availability and signal strength.
@@ -2641,15 +2649,10 @@ class HeadsetStateMachine extends StateMachine {
             signal = phoneState.getCindSignal();
         }
 
-        mNativeInterface.cindResponse(
-                device,
-                service,
-                call,
-                callSetup,
-                phoneState.getCallState(),
-                signal,
-                phoneState.getCindRoam(),
+        mNativeInterface.cindResponse(device, service, call, callSetup,
+                call_state, signal, phoneState.getCindRoam(),
                 phoneState.getCindBatteryCharge());
+        logi("Exit processAtCind()");
     }
 
     @VisibleForTesting

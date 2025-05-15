@@ -14,6 +14,12 @@
  * limitations under the License.
  */
 
+#ifdef TARGET_FLOSS
+#include <audio_hal_interface/audio_linux.h>
+#else
+#include <hardware/audio.h>
+#endif
+
 #include "bluetooth_audio_port_impl.h"
 
 #include <bluetooth/log.h>
@@ -26,12 +32,90 @@
 #include "client_interface_aidl.h"
 #include "common/stop_watch_legacy.h"
 
+enum CONTEXT_PRIORITY { SONIFICATION = 0, MEDIA, GAME, CONVERSATIONAL };
+
+/* Context Types */
+enum class AudioContext : uint16_t {
+  UNINITIALIZED = 0x0000,
+  UNSPECIFIED = 0x0001,
+  CONVERSATIONAL = 0x0002,
+  MEDIA = 0x0004,
+  GAME = 0x0008,
+  INSTRUCTIONAL = 0x0010,
+  VOICE_ASSISTANTS = 0x0020,
+  LIVE = 0x0040,
+  SOUND_EFFECTS = 0x0080,
+  NOTIFICATIONS = 0x0100,
+  RINGTONE = 0x0200,
+  ALERTS = 0x0400,
+  EMERGENCY_ALARM = 0x0800,
+  RFU = 0x1000,
+};
+
 namespace bluetooth {
 namespace audio {
 namespace aidl {
 namespace a2dp {
 
 using ::bluetooth::common::StopWatchLegacy;
+
+static AudioContext AudioContentToAudioContext([[maybe_unused]] audio_content_type_t content_type,
+                                               audio_source_t source_type, audio_usage_t usage) {
+  switch (usage) {
+    case AUDIO_USAGE_MEDIA:
+      return AudioContext::MEDIA;
+    case AUDIO_USAGE_VOICE_COMMUNICATION:
+      return AudioContext::CONVERSATIONAL;
+    case AUDIO_USAGE_CALL_ASSISTANT:
+      return AudioContext::CONVERSATIONAL;
+    case AUDIO_USAGE_VOICE_COMMUNICATION_SIGNALLING:
+      return AudioContext::VOICE_ASSISTANTS;
+    case AUDIO_USAGE_ASSISTANCE_SONIFICATION:
+      return AudioContext::SOUND_EFFECTS;
+    case AUDIO_USAGE_GAME:
+      return AudioContext::GAME;
+    case AUDIO_USAGE_NOTIFICATION:
+      return AudioContext::NOTIFICATIONS;
+    case AUDIO_USAGE_NOTIFICATION_TELEPHONY_RINGTONE:
+      return AudioContext::CONVERSATIONAL;
+    case AUDIO_USAGE_ALARM:
+      return AudioContext::ALERTS;
+    case AUDIO_USAGE_EMERGENCY:
+      return AudioContext::EMERGENCY_ALARM;
+    case AUDIO_USAGE_ASSISTANCE_NAVIGATION_GUIDANCE:
+      return AudioContext::INSTRUCTIONAL;
+    default:
+      break;
+  }
+
+  switch (source_type) {
+    case AUDIO_SOURCE_MIC:
+    case AUDIO_SOURCE_HOTWORD:
+    case AUDIO_SOURCE_VOICE_CALL:
+    case AUDIO_SOURCE_VOICE_COMMUNICATION:
+      return AudioContext::CONVERSATIONAL;
+    default:
+      break;
+  }
+
+  return AudioContext::MEDIA;
+}
+
+static int getPriority(AudioContext context) {
+  switch (context) {
+    case AudioContext::MEDIA:
+      return CONTEXT_PRIORITY::MEDIA;
+    case AudioContext::GAME:
+      return CONTEXT_PRIORITY::GAME;
+    case AudioContext::CONVERSATIONAL:
+      return CONTEXT_PRIORITY::CONVERSATIONAL;
+    case AudioContext::SOUND_EFFECTS:
+      return CONTEXT_PRIORITY::SONIFICATION;
+    default:
+      break;
+  }
+  return 0;
+}
 
 BluetoothAudioPortImpl::BluetoothAudioPortImpl(
         IBluetoothTransportInstance* transport_instance,
@@ -96,7 +180,46 @@ ndk::ScopedAStatus BluetoothAudioPortImpl::getPresentationPosition(
 }
 
 ndk::ScopedAStatus BluetoothAudioPortImpl::updateSourceMetadata(
-        const SourceMetadata& /*source_metadata*/) {
+        const SourceMetadata& source_metadata) {
+  StopWatchLegacy stop_watch(__func__);
+  log::info("{} track(s)", source_metadata.tracks.size());
+
+  std::vector<playback_track_metadata_v7> tracks_vec;
+  tracks_vec.reserve(source_metadata.tracks.size());
+  for (const auto& track : source_metadata.tracks) {
+    playback_track_metadata_v7 desc_track = {
+            .base = {.usage = static_cast<audio_usage_t>(track.usage),
+                     .content_type = static_cast<audio_content_type_t>(track.contentType),
+                     .gain = track.gain},
+    };
+
+    tracks_vec.push_back(desc_track);
+  }
+
+  AudioContext current_context = AudioContext::MEDIA;
+  auto current_priority = -1;
+  for (const auto &track_entry : tracks_vec) {
+    auto context_priority = 0;
+    auto track = track_entry.base;
+    if (track.content_type == 0 && track.usage == 0) {
+      continue;
+    }
+
+    log::info("usage: {}, content_type: {}, gain: {}",
+              (int)track.usage, (int)track.content_type, track.gain);
+
+    AudioContext context_type = AudioContentToAudioContext(track.content_type,
+        AUDIO_SOURCE_DEFAULT, track.usage);
+    context_priority = getPriority(context_type);
+    if (context_priority > current_priority) {
+      current_priority = context_priority;
+      current_context = context_type;
+    }
+  }
+
+  bool is_low_latency = (current_context == AudioContext::GAME);
+  transport_instance_->SourceMetadataChanged(is_low_latency);
+
   return ndk::ScopedAStatus::ok();
 }
 

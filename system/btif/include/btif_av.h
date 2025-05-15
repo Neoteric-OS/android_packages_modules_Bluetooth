@@ -379,13 +379,6 @@ void btif_av_update_codec_mode();
  */
 void btif_av_update_source_metadata(bool is_Gaming_Enabled);
 
-/**
- * Set Low Latency for Spatial Audio
- *
- * @param low_latency to set
- */
-void btif_av_set_low_latency_spatial_audio(bool is_low_latency);
-
 /*
  * Dual Mode Enabled check
  */

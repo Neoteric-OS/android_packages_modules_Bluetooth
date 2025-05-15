@@ -74,6 +74,8 @@ public:
   void SendPlayerSettingsChanged(std::vector<PlayerAttribute> attributes,
                                  std::vector<uint8_t> values) override;
 
+  void HandlePendingPlay();
+
   bool IsDeviceConnected(const RawAddress& bdaddr);
 
   /** when a2dp connected, btif will start register vol changed, so we need a

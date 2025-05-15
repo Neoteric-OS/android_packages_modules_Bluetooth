@@ -705,8 +705,16 @@ public final class BluetoothLeAdvertiser {
         boolean encryptionBytesAdded = false;
         // Flags field is omitted if the advertising is not connectable.
         int size = (isFlagsIncluded) ? FLAGS_FIELD_BYTES : 0;
-        size += calculateUuidsSize(data.getServiceUuids());
-        size += calculateUuidsSize(data.getServiceSolicitationUuids());
+
+        if (data.getServiceUuids() != null) {
+            size += calculateUuidsSize(data.getServiceUuids());
+            encryptionBytesAdded |= data.getServiceUuidsEnc();
+        }
+
+        if (data.getServiceSolicitationUuids() != null) {
+            size += calculateUuidsSize(data.getServiceSolicitationUuids());
+            encryptionBytesAdded |= data.getServiceSolicitationUuidsEnc();
+        }
 
         for (TransportDiscoveryData transportDiscoveryData : data.getTransportDiscoveryData()) {
             size += OVERHEAD_BYTES_PER_FIELD + transportDiscoveryData.totalBytes();
@@ -714,13 +722,7 @@ public final class BluetoothLeAdvertiser {
         if (!data.getTransportDiscoveryData().isEmpty()) {
             encryptionBytesAdded |= data.getTransportDiscoveryDataEnc();
         }
-        for (ParcelUuid uuid : data.getServiceData().keySet()) {
-            int uuidLen = BluetoothUuid.uuidToBytes(uuid).length;
-            size +=
-                    OVERHEAD_BYTES_PER_FIELD
-                            + uuidLen
-                            + byteLength(data.getServiceData().get(uuid));
-        }
+
         for (Map.Entry<ParcelUuid, byte[]> entry : data.getServiceData().entrySet()) {
             final ParcelUuid uuid = entry.getKey();
             final byte[] serviceData = entry.getValue();
