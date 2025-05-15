@@ -519,7 +519,7 @@ bool a2dp_get_selected_hal_codec_config(A2dpCodecConfig* a2dp_config, uint16_t p
   if (A2DP_MEDIA_CT_SBC == codec_type) {
     bitrate = A2DP_GetBitrateSbc();
     log::info("AIDL SBC bitrate: {}", bitrate);
-    codec_config->encodedAudioBitrate = bitrate * 1000;
+    codec_config->encodedAudioBitrate = bitrate;
   }  else if (A2DP_MEDIA_CT_NON_A2DP == codec_type) {
     int samplerate = A2DP_GetTrackSampleRate(p_codec_info);
     if ((A2DP_VendorCodecGetVendorId(p_codec_info)) == A2DP_LDAC_VENDOR_ID) {
