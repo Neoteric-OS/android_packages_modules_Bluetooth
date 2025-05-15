@@ -30,7 +30,7 @@ import android.os.UserManager;
 import android.telephony.TelephonyManager;
 import android.text.format.DateUtils;
 import android.util.Log;
-
+import com.android.bluetooth.DeviceWorkArounds;
 import com.android.bluetooth.BluetoothMethodProxy;
 import com.android.bluetooth.BluetoothStatsLog;
 import com.android.bluetooth.SignedLongLong;
@@ -650,7 +650,19 @@ public class BluetoothMapObexServer extends ServerRequestHandler {
                                 + folderName
                                 + " resulted in this element: "
                                 + folderElement.getName());
-            }
+            } else {
+                String remoteAddress = BluetoothMapService.getBluetoothMapService().
+                        getRemoteDevice().getAddress();
+                if ((DeviceWorkArounds.addressStartsWith(remoteAddress,
+                        DeviceWorkArounds.HYUNDAI_SONATA_CARKIT)) &&
+                   folderName.equalsIgnoreCase(mCurrentFolder.getName()) &&
+                   (folderName.equalsIgnoreCase(BluetoothMapContract.FOLDER_NAME_OUTBOX) ||
+                    folderName.equalsIgnoreCase(BluetoothMapContract.FOLDER_NAME_DRAFT))) {
+                    Log.d(TAG, "Current Folder name = outbox , draft or drafts so using current "
+                                + " folder only");
+                    folderElement = mCurrentFolder;
+                }
+             }
         }
         return folderElement;
     }
