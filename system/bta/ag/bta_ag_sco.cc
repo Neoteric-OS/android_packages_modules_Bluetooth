@@ -1084,9 +1084,18 @@ static void bta_ag_sco_event(tBTA_AG_SCB* p_scb, uint8_t event) {
             /* remove listening connection */
             bta_ag_remove_sco(p_scb, false);
           } else {
-            p_sco->state = BTA_AG_SCO_SHUTTING_ST;
+            // if RFCOMM conn closed, move to shutdown/listen state
+            if (p_scb->svc_conn) {
+              p_sco->state = BTA_AG_SCO_SHUTTING_ST;
+            } else {
+              log::verbose("RFCOMM got disconnected before SCO close");
+              if (!bta_ag_other_scb_open(p_scb)) {
+                p_sco->state = BTA_AG_SCO_SHUTDOWN_ST;
+              } else {/* Other instance is still listening */
+                p_sco->state = BTA_AG_SCO_LISTEN_ST;
+              }
+            }
           }
-
           break;
 
         case BTA_AG_SCO_CONN_CLOSE_E:
