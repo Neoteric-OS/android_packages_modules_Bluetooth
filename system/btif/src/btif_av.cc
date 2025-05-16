@@ -2697,12 +2697,16 @@ bool BtifAvStateMachine::StateStarted::ProcessEvent(uint32_t event, void* p_data
                 peer_.FlagsToString());
 
       // A2DP suspended, stop A2DP encoder / decoder until resumed
-      if (peer_.IsActivePeer() ||
-          !btif_av_stream_started_ready(peer_.IsSource() ? A2dpType::kSink : A2dpType::kSource)) {
-        btif_a2dp_on_suspended(&p_av->suspend,
-                               peer_.IsSource() ? A2dpType::kSink : A2dpType::kSource);
+      if (p_av->suspend.initiator) {
+        log::info("Suspend initiator, conditionally call btif_a2dp_on_suspended");
+        if (peer_.IsActivePeer() ||
+            !btif_av_stream_started_ready(peer_.IsSource() ? A2dpType::kSink : A2dpType::kSource)) {
+          btif_a2dp_on_suspended(&p_av->suspend,
+                                 peer_.IsSource() ? A2dpType::kSink : A2dpType::kSource);
+        }
+      } else {
+        log::info("Remote Suspend, ignore calling btif_a2dp_on_suspended");
       }
-
       // If not successful, remain in current state
       if (p_av->suspend.status != BTA_AV_SUCCESS) {
         peer_.ClearFlags(BtifAvPeer::kFlagLocalSuspendPending);
