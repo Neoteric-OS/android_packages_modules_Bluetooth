@@ -958,6 +958,10 @@ static void on_rfc_outgoing_congest(tBTA_JV_RFCOMM_CONG* p, uint32_t id) {
 static uint32_t rfcomm_cback(tBTA_JV_EVT event, tBTA_JV* p_data, uint32_t rfcomm_slot_id) {
   uint32_t id = 0;
 
+  if (rfcomm_slot_id == 0) {
+    log::info("invalid rfcomm_slot_id");
+    return id;
+  }
   switch (event) {
     case BTA_JV_RFCOMM_START_EVT:
       log::info("handling {}, slot_id:{}", bta_jv_event_text(event), rfcomm_slot_id);
