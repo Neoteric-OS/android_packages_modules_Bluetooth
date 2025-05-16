@@ -859,7 +859,17 @@ LeAudioDeviceGroup::GetAudioSetConfigurationRequirements(types::LeAudioContextTy
                    (int)direction);
         continue;
       }
-
+      if ((ctx_type == types::LeAudioContextType::LIVE) &&
+         (direction == types::kLeAudioDirectionSink)){
+         auto direction_sink_contexs = device->GetAvailableContexts(types::kLeAudioDirectionSink);
+         auto direction_src_contexs = device->GetAvailableContexts(types::kLeAudioDirectionSource);
+         if (!(direction_sink_contexs.test(ctx_type) && direction_src_contexs.test(ctx_type))){
+           log::warn("Device {} does not have both direction  for {}, treat it as source only",
+                      device->address_,
+                      common::ToString(ctx_type));
+           continue;
+         }
+       }
       // Do not put any requirements on the Source if Sink only scenario is used
       // Note: With the RINGTONE we should already prepare for a call.
       if ((direction == types::kLeAudioDirectionSource) &&

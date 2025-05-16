@@ -314,10 +314,6 @@ private:
           /* in ENABLING state */
           [this](const void*) {
             SetState(State::DISABLING);
-
-            if (active_config_ != std::nullopt) {
-              TerminateBig();
-            }
           },
           /* in DISABLING state */
           [](const void*) { /* Do nothing */ },
@@ -468,10 +464,11 @@ private:
     handle_it = std::next(handle_it);
 
     if (handle_it == active_config_->connection_handles.end()) {
-      if (GetState() == BroadcastStateMachine::State::STOPPING) {
+      if (GetState() == BroadcastStateMachine::State::STOPPING ||
+          GetState() == BroadcastStateMachine::State::DISABLING) {
         // All ISO setup completed, but we're in stopping state, we need to tear down all ISO
-        log::warn("ISO setup in stopping state. Tearing down ISO data path.");
-        // Remain in STOPPING, BIG will be terminated in OnRemoveIsoDataPath
+        log::warn("ISO setup in stopping or disabling state. Tearing down ISO data path.");
+        // Remain in STOPPING/DISABLING, BIG will be terminated in OnRemoveIsoDataPath
         TriggerIsoDatapathTeardown(active_config_->connection_handles[0]);
         return;
       }
