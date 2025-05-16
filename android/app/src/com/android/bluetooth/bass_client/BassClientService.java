@@ -199,6 +199,7 @@ public class BassClientService extends ProfileService {
     private final Map<BluetoothDevice, HashMap<Integer, PeriodicAdvertisementResult>>
             mPeriodicAdvertisementResultMap = new HashMap<>();
     private ScanCallback mSearchScanCallback = null;
+    private ScanCallback mScanCallbackForPaSync  = null;
     private boolean mIsAssistantActive = false;
     private boolean mIsAllowedContextOfActiveGroupModified = false;
     Optional<Integer> mUnicastSourceStreamStatus = Optional.empty();
@@ -777,6 +778,14 @@ public class BassClientService extends ProfileService {
 
         setBassClientService(null);
         synchronized (mSearchScanCallbackLock) {
+            if (mScanCallbackForPaSync != null && mBluetoothLeScannerWrapper != null) {
+                try {
+                    mBluetoothLeScannerWrapper.stopScan(mScanCallbackForPaSync);
+                } catch (IllegalStateException e) {
+                    log("Fail to stop scanner: " + e);
+                }
+                mScanCallbackForPaSync = null;
+            }
             if (leaudioBassScanWithInternalScanController()) {
                 if (isSearchInProgress()) {
                     mBassScanCallback.stopScanAndUnregister();
@@ -2429,6 +2438,17 @@ public class BassClientService extends ProfileService {
                 }
             }
             handleSelectSourceRequest();
+            synchronized (mSearchScanCallbackLock) {
+                if (mScanCallbackForPaSync != null && mBluetoothLeScannerWrapper != null) {
+                    log("Stop bass scan for PA sync");
+                    try {
+                        mBluetoothLeScannerWrapper.stopScan(mScanCallbackForPaSync);
+                    } catch (IllegalStateException e) {
+                        log("Fail to stop scanner:  " + e);
+                    }
+                    mScanCallbackForPaSync = null;
+                }
+            }
         }
 
         @Override
@@ -2780,6 +2800,59 @@ public class BassClientService extends ProfileService {
         return false;
     }
 
+    private void enableBassScan() {
+        log("enableBassScan for PA sync");
+        synchronized (mSearchScanCallbackLock) {
+            if (mScanCallbackForPaSync == null) {
+                mScanCallbackForPaSync = new ScanCallback() {
+                    @Override
+                    public void onScanResult(int callbackType, ScanResult result) {
+                    }
+                    @Override
+                    public void onBatchScanResults(List<ScanResult> results) {
+                    }
+                    @Override
+                    public void onScanFailed(int errorCode) {
+                        Log.e(TAG, "Scan Failure:" + errorCode);
+                        mScanCallbackForPaSync = null;
+                    }
+                };
+
+                ScanSettings settings =
+                        new ScanSettings.Builder()
+                                .setCallbackType(ScanSettings.CALLBACK_TYPE_ALL_MATCHES)
+                                .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
+                                .setLegacy(false)
+                                .build();
+                ArrayList filterList = new ArrayList<ScanFilter>();
+                byte[] serviceData = {0x00, 0x00, 0x00};
+                byte[] serviceDataMask = {0x00, 0x00, 0x00};
+                ScanFilter filter =
+                        new ScanFilter.Builder()
+                                .setServiceData(BassConstants.BAAS_UUID,
+                                        serviceData, serviceDataMask)
+                                .build();
+                filterList.add(filter);
+                if (mBluetoothLeScannerWrapper == null) {
+                    mBluetoothLeScannerWrapper =
+                            BassObjectsFactory.getInstance()
+                            .getBluetoothLeScannerWrapper(
+                                    BluetoothAdapter.getDefaultAdapter());
+                }
+                if (mBluetoothLeScannerWrapper != null) {
+                    log("Start bass scan for PA sync");
+                    try {
+                        mBluetoothLeScannerWrapper.startScan(filterList,
+                                settings, mScanCallbackForPaSync);
+                    } catch (IllegalStateException e) {
+                        log("Fail to start scanner: " + e);
+                        mScanCallbackForPaSync = null;
+                    }
+                }
+            }
+        }
+    }
+
     void addSelectSourceRequest(int broadcastId, boolean hasPriority) {
         if (getActiveSyncedSources().contains(getSyncHandleForBroadcastId(broadcastId))) {
             log("addSelectSourceRequest: Already synced");
@@ -2879,6 +2952,11 @@ public class BassClientService extends ProfileService {
                     broadcastId,
                     pbData,
                     broadcastName);
+        }
+
+        // Make sure scan is enabled before PA sync
+        if (!isSearchInProgress()) {
+            enableBassScan();
         }
 
         // Check if there are resources for sync
