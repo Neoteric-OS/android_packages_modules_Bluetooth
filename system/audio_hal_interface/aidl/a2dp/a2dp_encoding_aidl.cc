@@ -1040,6 +1040,7 @@ provider::get_a2dp_configuration(
           convert_sampling_frequency_hz(result->parameters.samplingFrequencyHz);
   a2dp_configuration.codec_parameters.bits_per_sample =
           convert_bitdepth(result->parameters.bitdepth);
+  a2dp_configuration.codec_parameters.codec_specific_1 = user_preferences.codec_specific_1;
 
   return std::make_optional(a2dp_configuration);
 }
