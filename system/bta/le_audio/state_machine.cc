@@ -560,7 +560,10 @@ public:
           return false;
         }
 
-        if (!group->IsConfiguredForContext(context_type)) {
+        int num_connected_devices = group->NumOfConnected();
+        log::info("num_connected_devices: {}", num_connected_devices);
+
+        if ((num_connected_devices > 1) && !group->IsConfiguredForContext(context_type)) {
           if (group->GetConfigurationContextType() == context_type) {
             log::info(
                     "Looks like another device connected in the meantime to group_id: {}, try to "
