@@ -821,7 +821,12 @@ int PORT_ReadData(uint16_t handle, char* p_data, uint16_t max_len, uint16_t* p_l
   /* check if it can be resumed now */
   port_flow_control_peer(p_port, true, count);
 
-  return PORT_SUCCESS;
+  if ((p_port->rfc.sm_cb.state == RFC_STATE_CLOSED) && fixed_queue_is_empty(p_port->rx.queue)){
+    log::verbose("Close rfc port");
+    port_rfc_closed(p_port, PORT_CLOSED);
+  }
+
+  return (PORT_SUCCESS);
 }
 
 /*******************************************************************************
