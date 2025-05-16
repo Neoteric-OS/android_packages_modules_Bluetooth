@@ -2441,6 +2441,11 @@ struct DistanceMeasurementManager::impl : bluetooth::hal::RangingHalCallback {
       log::debug("Procedure complete counter:{} data size:{}", (uint16_t)procedure_data->counter,
                  procedure_data->step_channel.size());
       if (is_hal_v2()) {
+        struct timeval tv;
+        gettimeofday(&tv, NULL);
+        curr_proc_complete_timestampMs  = tv.tv_sec*1e6*1ll + tv.tv_usec*1ll;
+        procedure_data->procedure_data_v2_.local_subevent_data_[0]->timestamp_nanos_ = (long)((curr_proc_complete_timestampMs - proc_start_timestampMs)*1000);
+        procedure_data->procedure_data_v2_.remote_subevent_data_[0]->timestamp_nanos_ = (long)((curr_proc_complete_timestampMs - proc_start_timestampMs)*1000);
         ranging_hal_->WriteProcedureData(connection_handle, live_tracker->role,
                                          procedure_data->procedure_data_v2_,
                                          procedure_data->counter);
