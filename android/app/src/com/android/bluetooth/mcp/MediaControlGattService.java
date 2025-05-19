@@ -1294,6 +1294,7 @@ public class MediaControlGattService implements MediaControlGattServiceInterface
 
     @VisibleForTesting
     int handleMediaControlPointRequest(BluetoothDevice device, byte[] value) {
+        Log.w(TAG, "handleMediaControlPointRequest: device: " + device);
         final int payloadOffset = 1;
         final int opcode = value[0];
 
@@ -1348,11 +1349,11 @@ public class MediaControlGattService implements MediaControlGattServiceInterface
         }
 
         Request req = new Request(opcode, intVal);
-
+        List<BluetoothDevice> mLeAudioActiveDevices =
+            mAdapterService.getActiveDevices(BluetoothProfile.LE_AUDIO);
         if (!isBroadcastActive() && (req.opcode() != Request.Opcodes.PLAY) &&
-                ((mAdapterService.getActiveDevices(BluetoothProfile.A2DP).size() > 0) ||
-                (mAdapterService.getActiveDevices(BluetoothProfile.HEARING_AID).size() > 0))) {
-            Log.w(TAG, "handleMediaControlPointRequest: Either A2DP or Hearing Aid active, ignore mcp passthrough");
+                !mLeAudioActiveDevices.contains(device)) {
+            Log.w(TAG, "handleMediaControlPointRequest: command came from inactive device, ignore mcp passthrough");
             mHandler.post(() -> {
                 setMediaControlRequestResult(new Request(opcode, 0),
                         Request.Results.COMMAND_CANNOT_BE_COMPLETED);
