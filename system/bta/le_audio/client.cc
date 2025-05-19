@@ -1523,6 +1523,11 @@ public:
 
   void SetInCall(bool in_call) override {
     log::debug("in_call: {}", in_call);
+    if (!in_call) {
+      track_in_call_update_ = 0;
+      defer_reconfig_complete_update_ = false;
+    }
+
     if (in_call == in_call_) {
       log::verbose("no state change {}", in_call);
       return;
@@ -1594,8 +1599,6 @@ public:
           ReconfigureOrUpdateRemote(group, bluetooth::le_audio::types::kLeAudioDirectionSource);
         }
       } else {
-        track_in_call_update_ = 0;
-        defer_reconfig_complete_update_ = false;
         ReconfigureOrUpdateRemote(group, bluetooth::le_audio::types::kLeAudioDirectionSink);
       }
     }
