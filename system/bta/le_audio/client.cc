@@ -1154,7 +1154,8 @@ public:
       remove_group_if_possible(group);
       return;
     }
-
+    /* Reset preferred config when last leAudioDevice remove*/
+    group->ResetPreferredAudioSetConfiguration();
     /* Removing node from group requires updating group context availability */
     UpdateLocationsAndContextsAvailability(group);
   }
