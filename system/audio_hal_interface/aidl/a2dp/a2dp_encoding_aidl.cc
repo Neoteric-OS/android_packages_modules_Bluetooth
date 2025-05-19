@@ -32,6 +32,7 @@
 #include "transport_instance.h"
 #include "a2dp_aac.h"
 #include "a2dp_sbc.h"
+#include "a2dp_vendor_aptx_adaptive_constants.h"
 #include "a2dp_vendor_ldac_constants.h"
 #include <a2dp_vendor.h>
 #include "stack/include/btm_client_interface.h"
@@ -1041,7 +1042,10 @@ provider::get_a2dp_configuration(
   a2dp_configuration.codec_parameters.bits_per_sample =
           convert_bitdepth(result->parameters.bitdepth);
   a2dp_configuration.codec_parameters.codec_specific_1 = user_preferences.codec_specific_1;
-
+  if (result->parameters.lossless) {
+    a2dp_configuration.codec_parameters.codec_specific_3 =
+        APTX_ADAPTIVE_R2_2_SUPPORT_AVAILABLE | QHS_SUPPORT_MASK;
+  }
   return std::make_optional(a2dp_configuration);
 }
 
