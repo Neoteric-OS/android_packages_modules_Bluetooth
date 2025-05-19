@@ -2698,16 +2698,26 @@ void do_start_adv_set(char* p) {
   params.secondary_advertising_phy = get_int(&p, -1);
   params.channel_map = 0x07;
   params.tx_power = -7;
+  uint8_t adv_type = get_int(&p, -1);
   params.own_address_type = get_int(&p, BLE_ADDR_RANDOM);
 
-  printf("%s:: own_address_type=%d, adv_phy=%d, second_adv_phy=%d\n",
+  printf("%s:: own_address_type=%d, adv_phy=%d, second_adv_phy=%d\n, adv_type=%d\n",
          __FUNCTION__, params.own_address_type, params.primary_advertising_phy,
-         params.secondary_advertising_phy);
+         params.secondary_advertising_phy, adv_type);
 
   params.scan_request_notification_enable = false;
 
   // adv data
-  uint8_t arr[] = {10, 9, 'G', 'A', 'T', 'T', '-', 'T', 'O', 'O', 'L'};
+  uint8_t arr[] = {2,1,0,10, 9, 'G', 'A', 'T', 'T', '-', 'T', 'O', 'O', 'L'};
+  switch(adv_type) {
+          case 1:
+            arr[2] = 1;
+            break;
+          case 2:
+            arr[2] = 2;
+            break;
+  }
+
   std::vector<uint8_t> adv_data(arr, arr + (sizeof(arr) / sizeof(arr[0])));
   std::vector<uint8_t> adv_data_enc;
   std::vector<uint8_t> enc_key_vec;
