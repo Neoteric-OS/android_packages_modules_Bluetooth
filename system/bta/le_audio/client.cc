@@ -993,6 +993,11 @@ public:
         le_audio_sink_hal_client_->ReconfigurationComplete();
       }
     }
+
+    auto group = aseGroups_.FindById(active_group_id_);
+    if(group) {
+      group->ClearSuspendedForReconfiguration();
+    }
   }
 
   void CancelLocalAudioSourceStreamingRequest() {
