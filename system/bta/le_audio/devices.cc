@@ -72,6 +72,11 @@ using bluetooth::le_audio::types::DataPathState;
 using bluetooth::le_audio::types::LeAudioContextType;
 using bluetooth::le_audio::CodecManager;
 
+static constexpr char kPtsCcidListProp[] =
+ "persist.bluetooth.leaudio.pts.set.ccid.list";
+static constexpr char kPtsCapAudioContextProp[] =
+ "persist.bluetooth.leaudio.pts.set.capAudio.context";
+
 namespace bluetooth::le_audio {
 std::ostream& operator<<(std::ostream& os, const DeviceConnectState& state) {
   const char* char_value_ = "UNKNOWN";
@@ -454,8 +459,10 @@ bool LeAudioDevice::ConfigureAses(const types::AudioSetConfiguration* audio_set_
       if (!CodecManager::GetInstance()->IsUsingCodecExtensibility()) {
         if (ase->codec_config.id.coding_format == types::kLeAudioCodingFormatLC3) {
           /* Let's choose audio channel allocation if not set */
-          ase->codec_config.params.Add(codec_spec_conf::kLeAudioLtvTypeAudioChannelAllocation,
-                                audio_location);
+          if (audio_location != 0) {
+             ase->codec_config.params.Add(codec_spec_conf::kLeAudioLtvTypeAudioChannelAllocation,
+                                   audio_location);
+          }
 
           /* Get default value if no requirement for specific frame blocks per sdu
            */
@@ -468,10 +475,12 @@ bool LeAudioDevice::ConfigureAses(const types::AudioSetConfiguration* audio_set_
         } else if (ase->codec_config.id.coding_format == types::kLeAudioCodingFormatVendorSpecific &&
                    (ase->codec_config.id.vendor_codec_id == types::kLeAudioCodingFormatAptxLe ||
                     ase->codec_config.id.vendor_codec_id == types::kLeAudioCodingFormatAptxLeX)) {
-          /* Let's choose audio channel allocation if not set */
-          ase->codec_config.params.Add(codec_spec_conf::qcom_codec_spec_conf::
-                                        kLeAudioCodecAptxLeTypeAudioChannelAllocation,
-                                audio_location);
+          if (audio_location != 0) {
+            /* Let's choose audio channel allocation if not set */
+            ase->codec_config.params.Add(codec_spec_conf::qcom_codec_spec_conf::
+                                          kLeAudioCodecAptxLeTypeAudioChannelAllocation,
+                                  audio_location);
+          }
           uint8_t len = sizeof(audio_location) + 1;
           uint8_t type = codec_spec_conf::qcom_codec_spec_conf::
                   kLeAudioCodecAptxLeTypeAudioChannelAllocation;
@@ -1232,6 +1241,38 @@ void LeAudioDevice::SetMetadataToAse(struct types::ase* ase,
   auto directional_audio_context = metadata_context_types & GetAvailableContexts(ase->direction);
   /* Tha base metadata will be extended (or partially overridden if any key already exist) */
   ase->metadata = base_metadata;
+  uint64_t requiredCcidCount = 0;
+  requiredCcidCount =
+    osi_property_get_int32(kPtsCcidListProp, requiredCcidCount);
+  uint64_t requiredCapAudioContext = 1; //UNSPECIFIED
+  requiredCapAudioContext =
+     osi_property_get_int32(kPtsCapAudioContextProp, requiredCapAudioContext);
+  if (osi_property_get_bool("persist.bluetooth.leaudio.cap.pts", false)) {
+    directional_audio_context = AudioContexts(requiredCapAudioContext);
+    std::vector<uint8_t> temp_ccid_lists;
+    if (requiredCcidCount == 1) {
+      temp_ccid_lists.insert(temp_ccid_lists.end(), 1);
+    } else if (requiredCcidCount == 2) {
+      temp_ccid_lists.insert(temp_ccid_lists.end(), {1,2});
+    } else {
+      //send empty
+      ase->metadata = GetMetadata(directional_audio_context, std::vector<uint8_t>());
+      return;
+    }
+    ase->metadata = GetMetadata(directional_audio_context, temp_ccid_lists);
+    return;
+  }
+  /* //done for ringtone cap 2 use cases to a source direction and single/multi ccid.*/
+  /*directional_audio_context = (AudioContexts(LeAudioContextType::MEDIA) |
+                       AudioContexts(LeAudioContextType::GAME) |
+                      AudioContexts(LeAudioContextType::CONVERSATIONAL));
+  directional_audio_context = AudioContexts(LeAudioContextType::RINGTONE);
+  directional_audio_context = AudioContexts(LeAudioContextType::MEDIA);
+  directional_audio_context = AudioContexts(LeAudioContextType::CONVERSATIONAL);
+  std::vector<uint8_t> temp_ccid_lists;
+  temp_ccid_lists.push_back(static_cast<uint8_t>(1));
+  temp_ccid_lists.push_back(static_cast<uint8_t>(2));*/
+ 
   if (directional_audio_context.any()) {
     ase->metadata.Append(GetMetadata(directional_audio_context, ccid_lists));
   } else {

@@ -1284,14 +1284,23 @@ public class LeAudioService extends ProfileService {
 
         if (!leaudioBigDependsOnAudioState()) {
             A2dpService mA2dp = A2dpService.getA2dpService();
-            if ((mA2dp != null && mA2dp.getActiveDevice() != null) || mInCall) {
-                Log.w(TAG, "A2dp device is active or call ongoing, skip broadcast creation.");
+            if (mA2dp != null && mA2dp.getActiveDevice() != null) {
+                Log.w(TAG, "A2dp device is active, skip broadcast creation.");
                 mHandler.post(
                         () ->
                                 notifyBroadcastStartFailed(
                                         BluetoothStatusCodes.ERROR_LOCAL_NOT_ENOUGH_RESOURCES));
                 return;
             }
+        }
+
+        if (mInCall || !isBroadcastAllowedToBeActivateInCurrentAudioMode()) {
+            Log.w(TAG, "Call is ongoing, skip broadcast creation.");
+            mHandler.post(
+                        () ->
+                            notifyBroadcastStartFailed(
+                                    BluetoothStatusCodes.ERROR_LOCAL_NOT_ENOUGH_RESOURCES));
+            return;
         }
 
         int canBroadcastBeCreatedReturnCode = canBroadcastBeCreated(broadcastSettings);
@@ -1887,7 +1896,8 @@ public class LeAudioService extends ProfileService {
         /*
          * Do not update input if neither previous nor current device support input
          */
-        if (!oldSupportedByDeviceInput && !newSupportedByDeviceInput) {
+        if ((!oldSupportedByDeviceInput && !newSupportedByDeviceInput) &&
+            (!Utils.isBapNoPacsPtsTestMode())) {
             Log.d(TAG, "updateActiveInDevice: Device does not support input.");
             return false;
         }
@@ -1935,7 +1945,21 @@ public class LeAudioService extends ProfileService {
          */
         if (!Objects.equals(device, previousInDevice)
                 || (oldSupportedByDeviceInput != newSupportedByDeviceInput)) {
-            mActiveAudioInDevice = newSupportedByDeviceInput ? device : null;
+
+            if (newSupportedByDeviceInput || Utils.isBapNoPacsPtsTestMode()) {
+                mActiveAudioInDevice = device;
+            } else {
+                mActiveAudioInDevice = null;
+            }
+
+            Log.d(
+                    TAG,
+                    " handleBluetoothActiveDeviceChanged previousInDevice: "
+                            + previousInDevice
+                            + ", mActiveAudioInDevice: "
+                            + mActiveAudioInDevice
+                            + " isLeOutput: false");
+
             return true;
         }
         Log.d(TAG, "updateActiveInDevice: Nothing to do.");
@@ -1955,7 +1979,8 @@ public class LeAudioService extends ProfileService {
         /*
          * Do not update output if neither previous nor current device support output
          */
-        if (!oldSupportedByDeviceOutput && !newSupportedByDeviceOutput) {
+        if ((!oldSupportedByDeviceOutput && !newSupportedByDeviceOutput) &&
+            (!Utils.isBapNoPacsPtsTestMode())) {
             Log.d(TAG, "updateActiveOutDevice: Device does not support output.");
             return false;
         }
@@ -2004,7 +2029,20 @@ public class LeAudioService extends ProfileService {
          */
         if (!Objects.equals(device, previousOutDevice)
                 || (oldSupportedByDeviceOutput != newSupportedByDeviceOutput)) {
-            mActiveAudioOutDevice = newSupportedByDeviceOutput ? device : null;
+
+            if (newSupportedByDeviceOutput || Utils.isBapNoPacsPtsTestMode()) {
+                mActiveAudioOutDevice = device;
+            } else {
+                mActiveAudioOutDevice = null;
+            }
+
+            Log.d(
+                    TAG,
+                    " handleBluetoothActiveDeviceChanged previousOutDevice: "
+                            + previousOutDevice
+                            + ", mActiveAudioOutDevice: "
+                            + mActiveAudioOutDevice
+                            + " isLeOutput: true");
             return true;
         }
         Log.d(TAG, "updateActiveOutDevice: Nothing to do.");
@@ -3672,6 +3710,7 @@ public class LeAudioService extends ProfileService {
                         case LeAudioStackEvent.CONNECTION_STATE_DISCONNECTING:
                         case LeAudioStackEvent.CONNECTION_STATE_DISCONNECTED:
                             deviceDescriptor.mAclConnected = false;
+                            setDisconnected(true);
 
                             if (isScannerNeeded()) {
                                 mScanCallback.startBackgroundScan();
@@ -4845,16 +4884,16 @@ public class LeAudioService extends ProfileService {
                 if (isCsipSupported && CsipGroupSize > 0) {
                     A2dpService mA2dp = A2dpService.getA2dpService();
                     if (mA2dp != null) {
-                        mA2dp.connect(device);
-                        Log.e(TAG, "A2DP connect when dual mode enable for CSIP device "
-                            + device + " for le audio policy forbidden");
+                        boolean ret = mA2dp.setConnectionPolicy(device, CONNECTION_POLICY_ALLOWED);
+                        Log.e(TAG, "setting A2dp Connection_policy_allowed during dual mode enable for CSIP device"
+                            + device + " for le audio policy forbidden is " + ret);
                     }
 
                     HeadsetService mHfp = HeadsetService.getHeadsetService();
                     if (mHfp != null) {
-                        mHfp.connect(device);
-                        Log.e(TAG, "HFP connect when dual mode enable for CSIP device "
-                            + device + " for le audio policy forbidden");
+                        boolean ret = mHfp.setConnectionPolicy(device, CONNECTION_POLICY_ALLOWED);
+                        Log.e(TAG, "setting HFP Connection_policy_allowed during dual mode enable for CSIP device"
+                            + device + " for le audio policy forbidden is " + ret);
                     }
                 }
             }

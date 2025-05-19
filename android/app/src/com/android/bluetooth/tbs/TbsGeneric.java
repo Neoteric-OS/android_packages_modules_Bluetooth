@@ -37,6 +37,7 @@ import android.os.RemoteException;
 import android.util.Log;
 import static android.bluetooth.IBluetoothLeAudio.LE_AUDIO_GROUP_ID_INVALID;
 
+import com.android.bluetooth.Utils;
 import com.android.bluetooth.btservice.ServiceFactory;
 import com.android.bluetooth.le_audio.ContentControlIdKeeper;
 import com.android.bluetooth.le_audio.LeAudioService;
@@ -246,6 +247,29 @@ public class TbsGeneric {
         mTbsGatt.setInbandRingtoneFlag(device);
     }
 
+    public synchronized void updateBearerSignalStrength(int bearerSignal) {
+        if (mTbsGatt == null) {
+            Log.w(TAG, "updateBearerSignalStrength, mTbsGatt is null");
+            return;
+        }
+        mTbsGatt.updateBearerSignalStrength(bearerSignal);
+    }
+
+    public synchronized void updateBearerTechnology(int bearertech) {
+        if (mTbsGatt == null) {
+            Log.w(TAG, "updateBearerTechnology, mTbsGatt is null");
+            return;
+        }
+        mTbsGatt.setBearerTechnology(bearertech);
+    }
+
+    public synchronized void updateBearerName(String bearerName) {
+        if (mTbsGatt == null) {
+            Log.w(TAG, "updateBearerName, mTbsGatt is null");
+            return;
+        }
+        mTbsGatt.updateBearerName(bearerName);
+    }
     /**
      * Clear inband ringtone for the device. When set, notification will be sent to given device.
      *
@@ -638,6 +662,14 @@ public class TbsGeneric {
 
         TbsCall tbsCall = mCurrentCallsList.get(callIndex);
         if (tbsCall.getState() == state) {
+            if (Utils.isTmapPtsTestMode()) {
+                if (state == 0) {
+                    Log.e(TAG, "need to send incoming call again");
+                    mTbsGatt.setIncomingCall(1, tbsCall.getUri());
+                    notifyCclc();
+                    return;
+                }
+            }
             return;
         }
 

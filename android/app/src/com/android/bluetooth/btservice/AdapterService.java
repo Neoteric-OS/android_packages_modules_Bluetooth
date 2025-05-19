@@ -1871,6 +1871,9 @@ public class AdapterService extends Service {
             Log.i(TAG, "connectEnabledProfiles: Connecting HFP");
             mHeadsetClientService.connect(device);
         }
+        /*delaying the A2DP connection so that HFP connection can be established first*/
+        Log.d(TAG,"delaying the A2dp Connection by 100ms");
+        SystemClock.sleep(100);
         if (mA2dpService != null
                 && isProfileSupported(device, BluetoothProfile.A2DP)
                 && mA2dpService.getConnectionPolicy(device) > CONNECTION_POLICY_FORBIDDEN) {
@@ -4014,6 +4017,33 @@ public class AdapterService extends Service {
 
     public Vendor getVendorIntf() {
         return mVendor;
+    }
+
+    /**
+     * Check whether Split A2DP Source LDAC  enabled.
+     *
+     * @return true if Split A2DP Source LDAC  is enabled
+     */
+    public boolean isSplitA2DPSourceLDAC() {
+        return mVendor.isSplitA2DPSourceLDAC();
+    }
+
+    /**
+     * Check whether Split A2DP Source APTX HD  enabled.
+     *
+     * @return true if Split A2DP Source APTX HD  is enabled
+     */
+    public boolean isSplitA2DPSourceAPTXHD() {
+        return mVendor.isSplitA2DPSourceAPTXHD();
+    }
+
+    /**
+     * Check whether Split A2DP Source APTX ADAPTIVE  enabled.
+     *
+     * @return true if Split A2DP Source APTX ADAPTIVE  is enabled
+     */
+    public boolean isSplitA2DPSourceAPTXADAPTIVE() {
+        return mVendor.isSplitA2DPSourceAPTXADAPTIVE();
     }
 
     BluetoothActivityEnergyInfo reportActivityInfo() {

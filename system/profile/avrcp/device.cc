@@ -930,10 +930,11 @@ void Device::GetElementAttributesResponse(uint8_t label,
                                           SongInfo info) {
   auto get_element_attributes_pkt = pkt;
   auto attributes_requested = get_element_attributes_pkt->GetAttributesRequested();
-  bool all_attributes_flag =
-           osi_property_get_bool("persist.vendor.bt.a2dp.all_attributes_flag", false);
-  log::info(" Size of attributes_requested: {} all_attributes_flag: {}",
-                 attributes_requested.size(), all_attributes_flag);
+  bool use_coverart_attr = true;
+  bool ca_attribute_forced_flag =
+           osi_property_get_bool("persist.vendor.bt.a2dp.ca_attribute_forced_flag", false);
+  log::info(" Size of attributes_requested: {} ca_attribute_forced_flag: {}",
+                 attributes_requested.size(), ca_attribute_forced_flag);
 
   // To Pass PTS TC AVCTP/TG/FRA/BV-02-C
   /* After AVCTP connection is established with remote,
@@ -958,6 +959,7 @@ void Device::GetElementAttributesResponse(uint8_t label,
   if (!HasBipClient() || !HasCoverArtSupport()) {
     log::verbose("Remove cover art element if remote doesn't support coverart or has BIP connection");
     filter_cover_art(info);
+    use_coverart_attr = false;
   }
 
   last_song_info_ = info;
@@ -966,48 +968,84 @@ void Device::GetElementAttributesResponse(uint8_t label,
     for (const auto& attribute : attributes_requested) {
       log::verbose("requested attribute: {}", AttributeText(attribute));
       if (info.attributes.find(attribute) != info.attributes.end()) {
-        if (info.attributes.find(attribute)->value().empty() && all_attributes_flag) {
-          log::verbose("Empty attribute found, add string Unavailable");
-          response->AddAttributeEntry(attribute, "Unavailable");
+        if (info.attributes.find(attribute)->value().empty()) {
+          if (attribute == Attribute::DEFAULT_COVER_ART) {
+            if (!ca_attribute_forced_flag) {
+              log::verbose("Empty CA attribute found, add empty string");
+              response->AddAttributeEntry(attribute, std::string());
+            } else {
+              log::verbose("Empty CA attribute found, add 9999999");
+              response->AddAttributeEntry(attribute, "9999999");
+            }
+          } else {
+            log::verbose("Empty attribute found, add string Unavailable");
+            response->AddAttributeEntry(attribute, "Unavailable");
+          }
         } else {
           log::verbose("Add attribute value");
           response->AddAttributeEntry(*info.attributes.find(attribute));
         }
-      } else if (all_attributes_flag) {
-        log::info(" Attribute not found, add string Unavailable");
-        response->AddAttributeEntry(attribute, "Unavailable");
+      } else {
+        if (attribute == Attribute::DEFAULT_COVER_ART)  {
+          if (!ca_attribute_forced_flag) {
+            log::verbose("CA attribute not found, add empty string");
+            response->AddAttributeEntry(attribute, std::string());
+          } else {
+            log::verbose("CA attribute not found, add 9999999");
+            response->AddAttributeEntry(attribute, "9999999");
+          }
+        } else {
+          log::verbose("Attribute not found, add string Unavailable");
+          response->AddAttributeEntry(attribute, "Unavailable");
+        }
       }
     }
   } else {  // zero attributes requested which means all attributes requested
-    // Todo: Add condition !all_attributes_flag once flag is enabled by default
-    if (!all_attributes_flag) {
-      for (const auto& attribute : info.attributes) {
-        log::info(" Add attribute value");
-        response->AddAttributeEntry(attribute);
+    std::vector<Attribute> all_attributes = {Attribute::TITLE,
+                                             Attribute::ARTIST_NAME,
+                                             Attribute::ALBUM_NAME,
+                                             Attribute::TRACK_NUMBER,
+                                             Attribute::TOTAL_NUMBER_OF_TRACKS,
+                                             Attribute::GENRE,
+                                             Attribute::PLAYING_TIME,
+                                             Attribute::DEFAULT_COVER_ART};
+    for (const auto& attribute : all_attributes) {
+      log::verbose("requested attribute: {}", AttributeText(attribute));
+      if (attribute == Attribute::DEFAULT_COVER_ART && !use_coverart_attr) {
+        log::verbose("Requested attr CA when remote doesn't support it, ignore");
+        continue;
       }
-    } else {
-      std::vector<Attribute> all_attributes = {Attribute::TITLE,
-                                               Attribute::ARTIST_NAME,
-                                               Attribute::ALBUM_NAME,
-                                               Attribute::TRACK_NUMBER,
-                                               Attribute::TOTAL_NUMBER_OF_TRACKS,
-                                               Attribute::GENRE,
-                                               Attribute::PLAYING_TIME,
-                                               Attribute::DEFAULT_COVER_ART};
-      for (const auto& attribute : all_attributes) {
-        if (info.attributes.find(attribute) != info.attributes.end()) {
-          log::verbose("requested attribute: {}", AttributeText(attribute));
-          if (info.attributes.find(attribute)->value().empty() && all_attributes_flag) {
+      if (info.attributes.find(attribute) != info.attributes.end()) {
+        if (info.attributes.find(attribute)->value().empty()) {
+          if (attribute == Attribute::DEFAULT_COVER_ART) {
+            if (!ca_attribute_forced_flag) {
+              log::verbose("Empty CA attribute found, add empty string");
+              response->AddAttributeEntry(attribute, std::string());
+            } else {
+              log::verbose("Empty CA attribute found, add 9999999");
+              response->AddAttributeEntry(attribute, "9999999");
+            }
+          } else {
             log::verbose("Empty attribute found, add string Unavailable");
             response->AddAttributeEntry(attribute, "Unavailable");
-          } else {
-            log::info(" Add attribute value");
-            response->AddAttributeEntry(*info.attributes.find(attribute));
           }
         } else {
-          // If all attributes were requested, we send a response even for attributes that we don't
-          // have a value for.
-          log::info(" Attribute not found, add string Unavailable");
+          log::info(" Add attribute value");
+          response->AddAttributeEntry(*info.attributes.find(attribute));
+        }
+      } else {
+        // If all attributes were requested, we send a response even for attributes that we don't
+        // have a value for.
+        if (attribute == Attribute::DEFAULT_COVER_ART)  {
+          if (!ca_attribute_forced_flag) {
+            log::verbose("CA attribute not found, add empty string");
+            response->AddAttributeEntry(attribute, std::string());
+          } else {
+            log::verbose("CA attribute not found, add 9999999");
+            response->AddAttributeEntry(attribute, "9999999");
+          }
+        } else {
+          log::verbose("Attribute not found, add string Unavailable");
           response->AddAttributeEntry(attribute, "Unavailable");
         }
       }

@@ -247,6 +247,9 @@ struct HciLayer::impl {
       log::error("Discarding event that came after timeout {}", OpCodeText(op_code));
       common::StopWatch::DumpStopWatchLog();
       return;
+    } else if (op_code == OpCode::CONTROLLER_BTTPI) {
+      log::error("Discarding vendor bttpi event {} recvied in stack", OpCodeText(op_code));
+      return;
     }
     log::assert_that(waiting_command_ == op_code, "Waiting for {}, got {}",
                      OpCodeText(waiting_command_), OpCodeText(op_code));
