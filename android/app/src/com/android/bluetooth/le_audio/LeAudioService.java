@@ -4767,6 +4767,9 @@ public class LeAudioService extends ProfileService {
         return descriptor.mInbandRingtoneEnabled;
     }
 
+    public boolean getInCall() {
+       return mInCall;
+    }
     /**
      * Set In Call state
      *
