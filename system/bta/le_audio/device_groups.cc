@@ -1046,6 +1046,11 @@ bool LeAudioDeviceGroup::SetPreferredAudioSetConfiguration(
     return true;
   }
 
+  if (!lex_codec_disabled.first && IsLeXDevice()) {
+     log::info("Ignore LE codecs switching for XPAN enabled");
+     return false;
+  }
+
   preferred_config_.sink = std::make_unique<btle_audio_codec_config_t>(output_codec_config);
   preferred_config_.source = std::make_unique<btle_audio_codec_config_t>(input_codec_config);
 
@@ -1084,7 +1089,6 @@ void LeAudioDeviceGroup::ResetPreferredAudioSetConfiguration(void) const {
 void LeAudioDeviceGroup::InvalidateCachedConfigurations(void) {
   log::info("Group id: {}", group_id_);
   context_to_configuration_cache_map_.clear();
-  context_to_preferred_configuration_cache_map_.clear();
 }
 
 types::BidirectionalPair<AudioContexts> LeAudioDeviceGroup::GetLatestAvailableContexts() const {
@@ -1799,6 +1803,15 @@ bool LeAudioDeviceGroup::IsAudioSetConfigurationSupported(
     log::debug("Looking for configuration: {} - {}", audio_set_conf->name,
                direction == types::kLeAudioDirectionSink ? "Sink" : "Source");
     auto const& ase_confs = audio_set_conf->confs.get(direction);
+    if (use_preference) {
+      auto& direction_req = (direction == types::kLeAudioDirectionSink)
+                                    ? requirements.sink_requirements
+                                    : requirements.source_requirements;
+      if (ase_confs.empty() && direction_req.has_value()) {
+        log::debug("No configurations for direction {}, but requirement has value.", (int)direction);
+        return false;
+      }
+    }
     if (ase_confs.empty()) {
       log::debug("No configurations for direction {}, skip it.", (int)direction);
       continue;
@@ -1827,7 +1840,8 @@ bool LeAudioDeviceGroup::IsAudioSetConfigurationSupported(
       if (!utils::IsAseConfigMatchedWithPreferredRequirements(
                   ase_confs, direction_req.value(),
                   codec_spec_conf::SingleChannelCountCapability2Config(
-                          preferred_config_.get(direction)->channel_count))) {
+                          preferred_config_.get(direction)->channel_count),
+                  preferred_config_.get(direction)->codec_type)) {
         return false;
       }
     }

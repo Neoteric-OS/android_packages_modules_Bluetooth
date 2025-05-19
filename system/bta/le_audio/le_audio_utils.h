@@ -94,6 +94,6 @@ bool IsAseConfigMatchedWithPreferredRequirements(
         const std::vector<struct types::AseConfiguration>& ase_confs,
         const std::vector<
                 CodecManager::UnicastConfigurationRequirements::DeviceDirectionRequirements>& reqs,
-        uint8_t channel_cnt_per_ase);
+        uint8_t channel_cnt_per_ase, btle_audio_codec_index_t PreferCodecType);
 }  // namespace utils
 }  // namespace bluetooth::le_audio
