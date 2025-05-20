@@ -7803,9 +7803,10 @@ void LeAudioClient::Initialize(
     return;
   }
 
-  log::assert_that(std::move(hal_2_1_verifier).Run(),
-                   "LE Audio Client requires Bluetooth Audio HAL V2.1 at least. Either "
-                   "disable LE Audio Profile, or update your HAL");
+  if (!std::move(hal_2_1_verifier).Run()) {
+    log::error("LE Audio Client requires Bluetooth Audio HAL V2.1 at least. Either "
+               "disable LE Audio Profile, or update your HAL");
+  }
 
   IsoManager::GetInstance()->Start();
 
