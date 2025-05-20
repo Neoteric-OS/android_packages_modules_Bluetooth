@@ -80,6 +80,7 @@ final class BondStateMachine extends StateMachine {
     static final int BOND_STATE_NONE = 0;
     static final int BOND_STATE_BONDING = 1;
     static final int BOND_STATE_BONDED = 2;
+    static final int ACL_DISCONNECTED = 16;
 
     static int sPendingUuidUpdateTimeoutMillis = 3000; // 3s
 
@@ -220,6 +221,16 @@ final class BondStateMachine extends StateMachine {
                 case BONDED_INTENT_DELAY:
                     if (mPendingBondedDevices.contains(dev)) {
                         sendIntent(dev, BluetoothDevice.BOND_BONDED, 0, true);
+                    }
+                    break;
+                case ACL_DISCONNECTED:
+                    if (hasMessages(BONDED_INTENT_DELAY)) {
+                        Log.e(TAG,
+                            "ACL DISCONNECTED during Bonding: Remove the device "
+                                    + dev);
+                        removeMessages(BONDED_INTENT_DELAY);
+                        mPendingBondedDevices.remove(dev);
+                        removeBond(dev, true);
                     }
                     break;
                 case UUID_UPDATE:
@@ -364,6 +375,16 @@ final class BondStateMachine extends StateMachine {
                                 devProp.getAddress(),
                                 Optional.empty(),
                                 BluetoothDevice.PAIRING_VARIANT_PIN);
+                    }
+                    break;
+                case ACL_DISCONNECTED:
+                    if (hasMessages(BONDED_INTENT_DELAY)) {
+                        Log.e(TAG,
+                            "ACL DISCONNECTED during Bonding: Remove the device "
+                                    + dev);
+                        removeMessages(BONDED_INTENT_DELAY);
+                        mPendingBondedDevices.remove(dev);
+                        removeBond(dev, true);
                     }
                     break;
                 default:
