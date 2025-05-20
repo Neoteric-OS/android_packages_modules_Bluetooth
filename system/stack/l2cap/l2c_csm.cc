@@ -207,6 +207,7 @@ static void l2c_csm_closed(tL2C_CCB* p_ccb, tL2CEVT event, void* p_data) {
   tL2C_CONN_INFO* p_ci = (tL2C_CONN_INFO*)p_data;
   uint16_t local_cid = p_ccb->local_cid;
   tL2CA_DISCONNECT_IND_CB* disconnect_ind;
+  tL2CA_DISCONNECT_CFM_CB* disconnect_cfm;
 
   if (p_ccb->p_rcb == NULL) {
     log::error("LCID: 0x{:04x}  st: CLOSED  evt: {} p_rcb == NULL", p_ccb->local_cid, l2c_csm_get_event_name(event));
@@ -366,7 +367,12 @@ static void l2c_csm_closed(tL2C_CCB* p_ccb, tL2CEVT event, void* p_data) {
       break;
 
     case L2CEVT_L2CA_DISCONNECT_REQ: /* Upper wants to disconnect */
-      l2cu_release_ccb(p_ccb);
+        disconnect_cfm =
+            p_ccb->p_rcb->api.pL2CA_DisconnectCfm_Cb;
+        l2cu_release_ccb(p_ccb);
+        if (disconnect_cfm != nullptr) {
+          (*disconnect_cfm)(local_cid, L2CAP_CONN_NO_LINK);
+        }
       break;
 
     default:

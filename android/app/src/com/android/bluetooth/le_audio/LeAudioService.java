@@ -3325,6 +3325,7 @@ public class LeAudioService extends ProfileService {
                         case LeAudioStackEvent.CONNECTION_STATE_DISCONNECTING:
                         case LeAudioStackEvent.CONNECTION_STATE_DISCONNECTED:
                             deviceDescriptor.mAclConnected = false;
+                            setDisconnected(true);
                             synchronized(mScanCallbackLock) {
                                 Log.d(TAG, " try to start background scan");
                                 startAudioServersBackgroundScan(/* retry= */ false);
