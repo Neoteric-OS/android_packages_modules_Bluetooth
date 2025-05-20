@@ -33,6 +33,7 @@ import com.android.bluetooth.flags.Flags;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
+import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
@@ -1918,10 +1919,27 @@ public final class BluetoothQualityReport implements Parcelable {
             mSprIntrMiss = bqrBuf.getShort() & 0xFFFF;
             mPlcFillCount = bqrBuf.getShort() & 0xFFFF;
             mPlcDiscardCount = bqrBuf.getShort() & 0xFFFF;
-            mMissedInstanceCount = bqrBuf.getShort() & 0xFFFF;
-            mTxRetransmitSlotCount = bqrBuf.getShort() & 0xFFFF;
-            mRxRetransmitSlotCount = bqrBuf.getShort() & 0xFFFF;
-            mGoodRxFrameCount = bqrBuf.getShort() & 0xFFFF;
+
+            int missedInstanceCount;
+            int txRetransmitSlotCount;
+            int rxRetransmitSlotCount;
+            int goodRxFrameCount;
+            try {
+                missedInstanceCount = bqrBuf.getShort() & 0xFFFF;
+                txRetransmitSlotCount = bqrBuf.getShort() & 0xFFFF;
+                rxRetransmitSlotCount = bqrBuf.getShort() & 0xFFFF;
+                goodRxFrameCount = bqrBuf.getShort() & 0xFFFF;
+            } catch (BufferUnderflowException e) {
+                Log.v(TAG, "some fields are not contained");
+                missedInstanceCount = 0;
+                txRetransmitSlotCount = 0;
+                rxRetransmitSlotCount = 0;
+                goodRxFrameCount = 0;
+            }
+            mMissedInstanceCount = missedInstanceCount;
+            mTxRetransmitSlotCount = txRetransmitSlotCount;
+            mRxRetransmitSlotCount = rxRetransmitSlotCount;
+            mGoodRxFrameCount = goodRxFrameCount;
         }
 
         private BqrVsScoChoppy(Parcel in) {
