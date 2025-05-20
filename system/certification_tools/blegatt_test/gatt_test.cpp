@@ -2467,8 +2467,7 @@ void do_le_send_connect_req(int client_if, RawAddress bd_addr, int transport,
   bool Ret = false;
 
   printf("%s:: client_if=%d \n", __FUNCTION__, client_if);
-  // if (Btif_gatt_layer) {
-  if (transport == 2) {
+   if (Btif_gatt_layer) {
     // TODO need to add phy parameter as 0x07 for connection to all types of
     // Phys
     if (is_ext)
