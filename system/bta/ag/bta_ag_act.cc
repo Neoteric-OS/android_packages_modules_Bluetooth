@@ -613,7 +613,8 @@ void bta_ag_rfc_acp_open(tBTA_AG_SCB* p_scb, const tBTA_AG_DATA& data) {
             log::warn(
                  "No call RFCOMM_RemoveConnection as SLC is on ");
          }
-      } else if (com::android::bluetooth::flags::reset_after_collision()) {
+      }
+      if (com::android::bluetooth::flags::reset_after_collision()) {
         // As no existing outgoing rfcomm connection, then manual reset current
         // state, and use the incoming one
         bta_ag_rfc_fail(&ag_scb, tBTA_AG_DATA::kEmpty);
