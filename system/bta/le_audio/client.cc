@@ -1428,7 +1428,7 @@ public:
   void UpdateCodecConfigPreferenceToHal(
           const bluetooth::le_audio::btle_audio_codec_config_t *input_codec_config,
           const bluetooth::le_audio::btle_audio_codec_config_t *output_codec_config) {
-    if (!com::android::bluetooth::flags::le_audio_update_config_preference_to_hal()) {
+    if (false/*!com::android::bluetooth::flags::le_audio_update_config_preference_to_hal()*/) {
       log::warn(
               "SetCodecPriority skipped due to flag not set: "
               "le_audio_update_config_preference_to_hal");
@@ -1436,12 +1436,16 @@ public:
     }
 
     if (le_audio_sink_hal_client_ && input_codec_config) {
+      log::info("input codec type: {}, input codec priority: {}",
+                   input_codec_config->codec_type, input_codec_config->codec_priority);
       le_audio_sink_hal_client_->SetCodecPriority(
               bluetooth::le_audio::utils::translateCodecTypeToLeAudioCodecId(
                       input_codec_config->codec_type),
               input_codec_config->codec_priority);
     }
     if (le_audio_source_hal_client_ && output_codec_config) {
+      log::info("output codec type: {}, output codec priority: {}",
+                   output_codec_config->codec_type, output_codec_config->codec_priority);
       le_audio_source_hal_client_->SetCodecPriority(
               bluetooth::le_audio::utils::translateCodecTypeToLeAudioCodecId(
                       output_codec_config->codec_type),
@@ -1458,25 +1462,29 @@ public:
       log::error("Unknown group id: %d", group_id);
     }
 
-    if (output_codec_config.codec_type ==
-        bluetooth::le_audio::btle_audio_codec_index_t::LE_AUDIO_CODEC_INDEX_SOURCE_APTX_LEX) {
-      group->DisableLeXCodec(false);
-      log::debug("Enabling LeX Codec");
-      group->UpdateAudioSetConfigurationCache(LeAudioContextType::MEDIA);
-      group->UpdateAudioSetConfigurationCache(LeAudioContextType::CONVERSATIONAL);
-    } else if (output_codec_config.codec_type ==
-        bluetooth::le_audio::btle_audio_codec_index_t::LE_AUDIO_CODEC_INDEX_SOURCE_DEFAULT) {
-      group->DisableLeXCodec(true);
-      log::debug("Disabling LeX Codec");
-      group->UpdateAudioSetConfigurationCache(LeAudioContextType::MEDIA);
-      group->UpdateAudioSetConfigurationCache(LeAudioContextType::CONVERSATIONAL);
+    if (!CodecManager::GetInstance()->IsUsingCodecExtensibility()) {
+      if (output_codec_config.codec_type ==
+          bluetooth::le_audio::btle_audio_codec_index_t::LE_AUDIO_CODEC_INDEX_SOURCE_APTX_LEX) {
+        group->DisableLeXCodec(false);
+        log::debug("Enabling LeX Codec");
+        group->UpdateAudioSetConfigurationCache(LeAudioContextType::MEDIA);
+        group->UpdateAudioSetConfigurationCache(LeAudioContextType::CONVERSATIONAL);
+      } else if (output_codec_config.codec_type ==
+          bluetooth::le_audio::btle_audio_codec_index_t::LE_AUDIO_CODEC_INDEX_SOURCE_DEFAULT) {
+        group->DisableLeXCodec(true);
+        log::debug("Disabling LeX Codec");
+        group->UpdateAudioSetConfigurationCache(LeAudioContextType::MEDIA);
+        group->UpdateAudioSetConfigurationCache(LeAudioContextType::CONVERSATIONAL);
+      }
     }
 
+    log::info("output codec type: {}, input codec type: {}",
+                    output_codec_config.codec_type, input_codec_config.codec_type);
     if (!com::android::bluetooth::flags::leaudio_set_codec_config_preference()) {
       log::debug("leaudio_set_codec_config_preference flag is not enabled");
     } else {
+      UpdateCodecConfigPreferenceToHal(&input_codec_config, &output_codec_config);
       if (group->SetPreferredAudioSetConfiguration(input_codec_config, output_codec_config)) {
-        UpdateCodecConfigPreferenceToHal(&input_codec_config, &output_codec_config);
         log::info("group id: {}, setting preferred codec is successful.", group_id);
       } else {
         log::warn("group id: {}, setting preferred codec is failed.", group_id);

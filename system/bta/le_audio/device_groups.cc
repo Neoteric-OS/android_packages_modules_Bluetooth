@@ -1051,10 +1051,16 @@ bool LeAudioDeviceGroup::SetPreferredAudioSetConfiguration(
   if (input_codec_config.codec_priority == -1 || output_codec_config.codec_priority == -1) {
     log::info("Clear codec config");
     ResetPreferredAudioSetConfiguration();
-    return true;
+    if (CodecManager::GetInstance()->IsUsingCodecExtensibility()) {
+      LeAudioDeviceGroup* non_const_this_ = const_cast<LeAudioDeviceGroup*>(this);
+      non_const_this_->InvalidateCachedConfigurations();
+    } else {
+      return true;
+    }
   }
 
-  if (!lex_codec_disabled.first && IsLeXDevice()) {
+  if (!CodecManager::GetInstance()->IsUsingCodecExtensibility() &&
+      !lex_codec_disabled.first && IsLeXDevice()) {
      log::info("Ignore LE codecs switching for XPAN enabled");
      return false;
   }
@@ -1064,10 +1070,15 @@ bool LeAudioDeviceGroup::SetPreferredAudioSetConfiguration(
 
   bool is_updated = false;
 
-  for (LeAudioContextType ctx_type : types::kLeAudioContextAllTypesArray) {
+  /*for (LeAudioContextType ctx_type : types::kLeAudioContextAllTypesArray) {
     is_updated |= UpdateAudioSetConfigurationCache(ctx_type, true);
-  }
+  }*/
 
+  log::debug("configuration_context_type_ = {}",
+                                      common::ToString(configuration_context_type_));
+  is_updated |= UpdateAudioSetConfigurationCache(configuration_context_type_, true);
+
+  log::info("is_updated: {}", is_updated);
   return is_updated;
 }
 
@@ -1081,7 +1092,11 @@ bool LeAudioDeviceGroup::IsUsingPreferredAudioSetConfiguration(
 
   if (preferred_config_.sink->codec_priority == -1 ||
       preferred_config_.source->codec_priority == -1) {
-    return false;
+    if (CodecManager::GetInstance()->IsUsingCodecExtensibility()) {
+      log::info("fetching preferred configuration");
+    } else {
+      return false;
+    }
   }
 
   return GetPreferredConfiguration(context_type).get();
