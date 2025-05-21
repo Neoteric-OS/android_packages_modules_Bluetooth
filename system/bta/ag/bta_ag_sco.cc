@@ -366,7 +366,9 @@ static void bta_ag_esco_connreq_cback(tBTM_ESCO_EVT event, tBTM_ESCO_EVT_DATA* p
     uint16_t sco_inx = p_data->conn_evt.sco_inx;
     const RawAddress* remote_bda = BTM_ReadScoBdAddr(sco_inx);
     tBTA_AG_SCB* p_scb = bta_ag_scb_by_idx(bta_ag_idx_by_bdaddr(remote_bda));
-    if (remote_bda && bta_ag_sco_is_active_device(*remote_bda) && p_scb && p_scb->svc_conn) {
+    if (remote_bda && bta_ag_sco_is_active_device(*remote_bda) && p_scb &&
+        p_scb->svc_conn && ((bta_ag_is_call_present(remote_bda) == true) ||
+        (p_scb->is_vr_active == true))) {
       p_scb->sco_idx = sco_inx;
 
       /* If no other SCO active, allow this one */

@@ -1908,6 +1908,7 @@ static void bta_ag_hfp_result(tBTA_AG_SCB* p_scb, const tBTA_AG_API_RESULT& resu
       break;
 
     case BTA_AG_BVRA_RES:
+      p_scb->is_vr_active = result.data.state;
       bta_ag_send_result(p_scb, result.result, nullptr, result.data.state);
       break;
 
