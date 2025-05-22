@@ -587,10 +587,6 @@ public:
                          std::promise<void> peer_ready_promise) {
     // Restart the session if the codec for the active peer is updated
     A2dpCodecConfig* current_codec = bta_av_get_a2dp_current_codec();
-    bool is_a2dp_offload_codec_extensibility_enabled_ =
-        osi_property_get_bool("persist.vendor.qcom.bluetooth.a2dp_offload_codec_extensibility", false);
-    log::info("provider info a2dp offload extensiblity: {}",
-               is_a2dp_offload_codec_extensibility_enabled_);
     bool aptX_config_change = true;
     uint16_t cs4 = 0;
     for (auto cp : codec_preferences) {
@@ -601,7 +597,7 @@ public:
         }
         btav_a2dp_codec_config_t codec_config;
         codec_config = current_codec->getCodecConfig();
-        if (cp.codec_specific_4 > 0 && !is_a2dp_offload_codec_extensibility_enabled_) {
+        if (cp.codec_specific_4 > 0) {
           cs4 = cp.codec_specific_4;
           BTA_AvUpdateAptxData(cs4);
           uint16_t aptx_mode = (uint16_t)(cs4 & APTX_MODE_MASK);

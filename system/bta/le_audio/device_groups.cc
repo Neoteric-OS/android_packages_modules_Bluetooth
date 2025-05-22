@@ -2496,8 +2496,15 @@ bool LeAudioDeviceGroup::IsConfiguredForContext(LeAudioContextType context_type)
   }
 
   if (!stream_conf.conf) {
+    log::debug("stream_conf.conf->name : {}",
+                                bluetooth::common::ToString(stream_conf.conf));
     return false;
   }
+
+  log::debug("stream_conf.conf->name: {}",
+                              bluetooth::common::ToString(stream_conf.conf));
+  log::debug("GetActiveConfiguration(): {}",
+                              bluetooth::common::ToString(GetActiveConfiguration()));
 
   /* Check if used configuration is same as the active one.*/
   return stream_conf.conf.get() == GetActiveConfiguration().get();

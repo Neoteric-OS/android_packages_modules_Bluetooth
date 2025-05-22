@@ -1916,6 +1916,19 @@ public:
       return;
     }
 
+    log::debug("local_metadata_context_types_ sink: {}  source: {}",
+               local_metadata_context_types_.sink.to_string(),
+               local_metadata_context_types_.source.to_string());
+
+    //While making groupsetactive, if call exist already, it would reconfigure to
+    //conversational. But there is nothing exist in local_metadata_context_types_.
+    //So set local_metadata_context_types_ to CONVERSATIONAL, which would be used
+    if (local_metadata_context_types_.sink.none() &&
+        local_metadata_context_types_.source.none()) {
+      local_metadata_context_types_.sink.set(LeAudioContextType::CONVERSATIONAL);
+      local_metadata_context_types_.source.set(LeAudioContextType::CONVERSATIONAL);
+    }
+
     if (!ConfigureStream(group, true)) {
       log::info("Reconfiguration is needed for group {}", group->group_id_);
       initReconfiguration(group, LeAudioContextType::UNSPECIFIED);
