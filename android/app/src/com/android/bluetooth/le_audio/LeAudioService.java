@@ -4438,7 +4438,7 @@ public class LeAudioService extends ProfileService {
         }
     }
 
-    public void setInactiveForBroadcast() {
+    public void setInactiveForBroadcast(boolean blocking) {
         Log.d(TAG, "setInactiveForBroadcast");
         if (!isBroadcastActive()) {
             Log.d(TAG, "setInactiveForBroadcast: broadcast is inactive");
@@ -4450,6 +4450,11 @@ public class LeAudioService extends ProfileService {
             Log.d(TAG, "setInactiveForBroadcast: stop broadcast now");
             updateFallbackUnicastGroupIdForBroadcast(LE_AUDIO_GROUP_ID_INVALID);
             stopBroadcast(broadcastId.get());
+            if (!blocking) {
+                updateBroadcastActiveDevice(null, mActiveBroadcastAudioDevice, true);
+                Log.d(TAG, "No need Waiting for broadcast to stop");
+                return;
+            }
             suspendLeAudioStream();
             Log.d(TAG, "Wait for broadcast to stop");
             int waitCount = SystemProperties.getInt(
