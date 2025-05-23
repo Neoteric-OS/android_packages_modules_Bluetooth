@@ -382,6 +382,8 @@ typedef enum {
   // Some devices don't respond to LE appearance read request.
   INTEROP_DISABLE_READ_LE_APPEARANCE,
 
+  INTEROP_A2DP_DELAY_SNIFF_SUBRATING,
+
   END_OF_INTEROP_LIST
 } interop_feature_t;
 

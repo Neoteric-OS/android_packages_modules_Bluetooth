@@ -211,8 +211,15 @@ class HeadsetSystemInterface {
     public String getNetworkOperator() {
         BluetoothInCallService bluetoothInCallService = getBluetoothInCallServiceInstance();
         if (bluetoothInCallService == null) {
-            Log.e(TAG, "getNetworkOperator() failed: mBluetoothInCallService is null");
-            return null;
+            if (mTelephonyManager != null) {
+                Log.e(TAG, "getNetworkOperator() failed: mBluetoothInCallService is null" +
+                            " fetching NetworkOperator Name from telephony directly");
+                return mTelephonyManager.getNetworkOperatorName();
+            } else {
+                Log.e(TAG, "returning empty string as both mBluetoothInCallService and" +
+                         " mTelephonyManager is null");
+                return "";
+            }
         }
         // Should never return null
         return bluetoothInCallService.getNetworkOperator();

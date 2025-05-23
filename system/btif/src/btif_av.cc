@@ -93,6 +93,9 @@ static const char kBtifAvSinkServiceName[] = "Advanced Audio Sink";
 static constexpr int kDefaultMaxConnectedAudioDevices = 1;
 static constexpr tBTA_AV_HNDL kBtaHandleUnknown = 0;
 
+static btav_source_callbacks_t* bt_av_src_callbacks = NULL;
+static btav_sink_callbacks_t* bt_av_sink_callbacks = NULL;
+
 namespace {
 constexpr char kBtmLogHistoryTag[] = "A2DP";
 }
@@ -1229,6 +1232,7 @@ void BtifAvSource::Init(btav_source_callbacks_t* callbacks, int max_connected_au
 
   enabled_ = true;
   btif_enable_service(BTA_A2DP_SOURCE_SERVICE_ID);
+  bt_av_src_callbacks = callbacks;
   complete_promise.set_value(BT_STATUS_SUCCESS);
 }
 
@@ -1246,6 +1250,9 @@ void BtifAvSource::Cleanup() {
   btif_a2dp_source_cleanup();
 
   btif_disable_service(BTA_A2DP_SOURCE_SERVICE_ID);
+  if (bt_av_src_callbacks) {
+    bt_av_src_callbacks = NULL;
+  }
   CleanupAllPeers();
 
   callbacks_ = nullptr;
@@ -1491,6 +1498,7 @@ void BtifAvSink::Init(btav_sink_callbacks_t* callbacks, int max_connected_audio_
   }
   enabled_ = true;
   btif_enable_service(BTA_A2DP_SINK_SERVICE_ID);
+  bt_av_sink_callbacks = callbacks;
   complete_promise.set_value(BT_STATUS_SUCCESS);
 }
 
@@ -1508,6 +1516,9 @@ void BtifAvSink::Cleanup() {
   btif_a2dp_sink_cleanup();
 
   btif_disable_service(BTA_A2DP_SINK_SERVICE_ID);
+  if (bt_av_sink_callbacks) {
+    bt_av_sink_callbacks = NULL;
+  }
   CleanupAllPeers();
 
   callbacks_ = nullptr;
@@ -1801,7 +1812,13 @@ bool BtifAvStateMachine::StateIdle::ProcessEvent(uint32_t event, void* p_data) {
       if (!can_connect) {
         log::error("Cannot connect to peer {}: too many connected peers", peer_.PeerAddress());
         if (peer_.SelfInitiatedConnection()) {
-          btif_queue_advance();
+          if (bt_av_sink_callbacks != NULL) {
+            btif_queue_advance_by_uuid(UUID_SERVCLASS_AUDIO_SINK,
+                                       &peer_.PeerAddress());
+          } else if (bt_av_src_callbacks != NULL) {
+            btif_queue_advance_by_uuid(UUID_SERVCLASS_AUDIO_SOURCE,
+                                       &peer_.PeerAddress());
+          }
         }
         break;
       }
@@ -1979,7 +1996,14 @@ bool BtifAvStateMachine::StateIdle::ProcessEvent(uint32_t event, void* p_data) {
         peer_.StateMachine().TransitionTo(BtifAvStateMachine::kStateIdle);
         DEVICE_IOT_CONFIG_ADDR_INT_ADD_ONE(peer_.PeerAddress(), IOT_CONF_KEY_A2DP_CONN_FAIL_COUNT);
       }
-      btif_queue_advance();
+
+      if (bt_av_sink_callbacks != NULL) {
+        btif_queue_advance_by_uuid(UUID_SERVCLASS_AUDIO_SINK,
+                                   &peer_.PeerAddress());
+      } else if (bt_av_src_callbacks != NULL) {
+        btif_queue_advance_by_uuid(UUID_SERVCLASS_AUDIO_SOURCE,
+                                   &peer_.PeerAddress());
+      }
     } break;
 
     case BTA_AV_REMOTE_CMD_EVT:
@@ -2066,7 +2090,13 @@ bool BtifAvStateMachine::StateOpening::ProcessEvent(uint32_t event, void* p_data
                                    peer_.IsSource() ? A2dpType::kSink : A2dpType::kSource);
       peer_.StateMachine().TransitionTo(BtifAvStateMachine::kStateIdle);
       if (peer_.SelfInitiatedConnection()) {
-        btif_queue_advance();
+        if (bt_av_sink_callbacks != NULL) {
+          btif_queue_advance_by_uuid(UUID_SERVCLASS_AUDIO_SINK,
+                                     &peer_.PeerAddress());
+        } else if (bt_av_src_callbacks != NULL) {
+          btif_queue_advance_by_uuid(UUID_SERVCLASS_AUDIO_SOURCE,
+                                     &peer_.PeerAddress());
+        }
       }
       break;
     case BTA_AV_REJECT_EVT:
@@ -2079,7 +2109,13 @@ bool BtifAvStateMachine::StateOpening::ProcessEvent(uint32_t event, void* p_data
                                    peer_.IsSource() ? A2dpType::kSink : A2dpType::kSource);
       peer_.StateMachine().TransitionTo(BtifAvStateMachine::kStateIdle);
       if (peer_.SelfInitiatedConnection()) {
-        btif_queue_advance();
+        if (bt_av_sink_callbacks != NULL) {
+          btif_queue_advance_by_uuid(UUID_SERVCLASS_AUDIO_SINK,
+                                     &peer_.PeerAddress());
+        } else if (bt_av_src_callbacks != NULL) {
+          btif_queue_advance_by_uuid(UUID_SERVCLASS_AUDIO_SOURCE,
+                                     &peer_.PeerAddress());
+        }
       }
       break;
 
@@ -2187,7 +2223,13 @@ bool BtifAvStateMachine::StateOpening::ProcessEvent(uint32_t event, void* p_data
         }
       }
       if (peer_.SelfInitiatedConnection()) {
-        btif_queue_advance();
+        if (bt_av_sink_callbacks != NULL) {
+          btif_queue_advance_by_uuid(UUID_SERVCLASS_AUDIO_SINK,
+                                     &peer_.PeerAddress());
+        } else if (bt_av_src_callbacks != NULL) {
+          btif_queue_advance_by_uuid(UUID_SERVCLASS_AUDIO_SOURCE,
+                                     &peer_.PeerAddress());
+        }
       }
     } break;
 
@@ -2215,7 +2257,13 @@ bool BtifAvStateMachine::StateOpening::ProcessEvent(uint32_t event, void* p_data
               peer_.PeerAddress(), BtifAvEvent::EventName(event));
       bluetooth::shim::CountCounterMetrics(
               android::bluetooth::CodePathCounterKeyEnum::A2DP_ALREADY_CONNECTING, 1);
-      btif_queue_advance();
+      if (bt_av_sink_callbacks != NULL) {
+        btif_queue_advance_by_uuid(UUID_SERVCLASS_AUDIO_SINK,
+                                   &peer_.PeerAddress());
+      } else if (bt_av_src_callbacks != NULL) {
+        btif_queue_advance_by_uuid(UUID_SERVCLASS_AUDIO_SOURCE,
+                                   &peer_.PeerAddress());
+      }
     } break;
 
     case BTA_AV_PENDING_EVT: {
@@ -2247,7 +2295,13 @@ bool BtifAvStateMachine::StateOpening::ProcessEvent(uint32_t event, void* p_data
               android::bluetooth::CodePathCounterKeyEnum::A2DP_CONNECTION_CLOSE, 1);
       DEVICE_IOT_CONFIG_ADDR_INT_ADD_ONE(peer_.PeerAddress(), IOT_CONF_KEY_A2DP_CONN_FAIL_COUNT);
       if (peer_.SelfInitiatedConnection()) {
-        btif_queue_advance();
+        if (bt_av_sink_callbacks != NULL) {
+          btif_queue_advance_by_uuid(UUID_SERVCLASS_AUDIO_SINK,
+                                     &peer_.PeerAddress());
+        } else if (bt_av_src_callbacks != NULL) {
+          btif_queue_advance_by_uuid(UUID_SERVCLASS_AUDIO_SOURCE,
+                                     &peer_.PeerAddress());
+        }
       }
       break;
 
@@ -2261,7 +2315,13 @@ bool BtifAvStateMachine::StateOpening::ProcessEvent(uint32_t event, void* p_data
       bluetooth::shim::CountCounterMetrics(
               android::bluetooth::CodePathCounterKeyEnum::A2DP_CONNECTION_DISCONNECTED, 1);
       if (peer_.SelfInitiatedConnection()) {
-        btif_queue_advance();
+        if (bt_av_sink_callbacks != NULL) {
+          btif_queue_advance_by_uuid(UUID_SERVCLASS_AUDIO_SINK,
+                                     &peer_.PeerAddress());
+        } else if (bt_av_src_callbacks != NULL) {
+          btif_queue_advance_by_uuid(UUID_SERVCLASS_AUDIO_SOURCE,
+                                     &peer_.PeerAddress());
+        }
       }
       break;
 
@@ -2493,7 +2553,13 @@ bool BtifAvStateMachine::StateOpened::ProcessEvent(uint32_t event, void* p_data)
     case BTIF_AV_CONNECT_REQ_EVT: {
       log::warn("Peer {} : Ignore {} for same device", peer_.PeerAddress(),
                 BtifAvEvent::EventName(event));
-      btif_queue_advance();
+      if (bt_av_sink_callbacks != NULL) {
+        btif_queue_advance_by_uuid(UUID_SERVCLASS_AUDIO_SINK,
+                                   &peer_.PeerAddress());
+      } else if (bt_av_src_callbacks != NULL) {
+        btif_queue_advance_by_uuid(UUID_SERVCLASS_AUDIO_SOURCE,
+                                   &peer_.PeerAddress());
+      }
     } break;
 
     case BTIF_AV_OFFLOAD_START_REQ_EVT:
@@ -2684,7 +2750,13 @@ bool BtifAvStateMachine::StateStarted::ProcessEvent(uint32_t event, void* p_data
     case BTIF_AV_CONNECT_REQ_EVT: {
       log::warn("Peer {} : Ignore {} for same device", peer_.PeerAddress(),
               BtifAvEvent::EventName(event));
-      btif_queue_advance();
+      if (bt_av_sink_callbacks != NULL) {
+        btif_queue_advance_by_uuid(UUID_SERVCLASS_AUDIO_SINK,
+                                   &peer_.PeerAddress());
+      } else if (bt_av_src_callbacks != NULL) {
+        btif_queue_advance_by_uuid(UUID_SERVCLASS_AUDIO_SOURCE,
+                                   &peer_.PeerAddress());
+      }
     } break;
 
     case BTA_AV_SUSPEND_EVT: {
@@ -2925,12 +2997,19 @@ bool BtifAvStateMachine::StateClosing::ProcessEvent(uint32_t event, void* p_data
       btif_a2dp_on_offload_started(peer_.PeerAddress(), BTA_AV_FAIL);
       break;
 
-    case BTIF_AV_CONNECT_REQ_EVT:
+    case BTIF_AV_CONNECT_REQ_EVT: {
       log::warn("Peer {} : Ignore {} in StateClosing", peer_.PeerAddress(),
                 BtifAvEvent::EventName(event));
-      btif_queue_advance();
+      if (bt_av_sink_callbacks != NULL) {
+        btif_queue_advance_by_uuid(UUID_SERVCLASS_AUDIO_SINK,
+                                   &peer_.PeerAddress());
+      } else if (bt_av_src_callbacks != NULL) {
+        btif_queue_advance_by_uuid(UUID_SERVCLASS_AUDIO_SOURCE,
+                                   &peer_.PeerAddress());
+      }
       peer_.StateMachine().TransitionTo(BtifAvStateMachine::kStateIdle);
       break;
+    }
 
     case BTIF_AV_RECONFIGURE_REQ_EVT: {
       // Unlock JNI thread only
@@ -3610,7 +3689,7 @@ static bt_status_t connect_int(RawAddress* peer_address, uint16_t uuid) {
       peer = btif_av_sink.FindOrCreatePeer(*peer_address, kBtaHandleUnknown);
     }
     if (peer == nullptr) {
-      btif_queue_advance();
+      btif_queue_advance_by_uuid(uuid, peer_address);
       return;
     }
     peer->StateMachine().ProcessEvent(BTIF_AV_CONNECT_REQ_EVT, nullptr);
