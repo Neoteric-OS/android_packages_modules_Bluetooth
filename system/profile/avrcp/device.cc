@@ -1502,7 +1502,12 @@ void Device::GetTotalNumberOfItemsNowPlayingResponse(uint8_t label, std::string 
                                                      std::vector<SongInfo> list) {
   log::verbose("num_items={}", list.size());
 
-  if (curr_addressed_player_id_ == -1) {
+  bool running_pts = osi_property_get_bool("persist.vendor.bt.a2dp.pts_enable", false);
+  /*
+    AVRCP/TG/MCN/NP/BV-11-C - PTS doesn't do SET_ADDRESSED_PLAYER, hence curr_addressed_player_id_
+    will be -1 always. Hence avoid NO_AVAILABLE_PLAYERS response
+  */
+  if (curr_addressed_player_id_ == -1 && !running_pts) {
     auto response = GetTotalNumberOfItemsResponseBuilder::MakeBuilder(Status::NO_AVAILABLE_PLAYERS,
                                                                       0x0000, 0);
     send_message(label, true, std::move(response));
