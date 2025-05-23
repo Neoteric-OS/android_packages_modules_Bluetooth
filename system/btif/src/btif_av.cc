@@ -153,11 +153,6 @@ typedef enum {
   BTIF_AV_SET_CODEC_MODE_EVT
 } btif_av_sm_event_t;
 
-typedef struct {
-  RawAddress* target_bda;
-  uint16_t uuid;
-} btif_av_connect_req_t;
-
 class BtifAvEvent {
 public:
   BtifAvEvent(uint32_t event, const void* p_data, size_t data_length);
@@ -1817,13 +1812,13 @@ bool BtifAvStateMachine::StateIdle::ProcessEvent(uint32_t event, void* p_data) {
       if (!can_connect) {
         log::error("Cannot connect to peer {}: too many connected peers", peer_.PeerAddress());
         if (peer_.SelfInitiatedConnection()) {
-          btif_av_connect_req_t* connect_req_t = (btif_av_connect_req_t*)p_data;
           if (bt_av_sink_callbacks != NULL) {
-            connect_req_t->uuid = UUID_SERVCLASS_AUDIO_SINK;
+            btif_queue_advance_by_uuid(UUID_SERVCLASS_AUDIO_SINK,
+                                       &peer_.PeerAddress());
           } else if (bt_av_src_callbacks != NULL) {
-            connect_req_t->uuid = UUID_SERVCLASS_AUDIO_SOURCE;
+            btif_queue_advance_by_uuid(UUID_SERVCLASS_AUDIO_SOURCE,
+                                       &peer_.PeerAddress());
           }
-          btif_queue_advance_by_uuid(connect_req_t->uuid, &peer_.PeerAddress());
         }
         break;
       }
@@ -2002,13 +1997,13 @@ bool BtifAvStateMachine::StateIdle::ProcessEvent(uint32_t event, void* p_data) {
         DEVICE_IOT_CONFIG_ADDR_INT_ADD_ONE(peer_.PeerAddress(), IOT_CONF_KEY_A2DP_CONN_FAIL_COUNT);
       }
 
-      btif_av_connect_req_t* connect_req_t = (btif_av_connect_req_t*)p_data;
       if (bt_av_sink_callbacks != NULL) {
-        connect_req_t->uuid = UUID_SERVCLASS_AUDIO_SINK;
+        btif_queue_advance_by_uuid(UUID_SERVCLASS_AUDIO_SINK,
+                                   &peer_.PeerAddress());
       } else if (bt_av_src_callbacks != NULL) {
-        connect_req_t->uuid = UUID_SERVCLASS_AUDIO_SOURCE;
+        btif_queue_advance_by_uuid(UUID_SERVCLASS_AUDIO_SOURCE,
+                                   &peer_.PeerAddress());
       }
-      btif_queue_advance_by_uuid(connect_req_t->uuid, &peer_.PeerAddress());
     } break;
 
     case BTA_AV_REMOTE_CMD_EVT:
@@ -2095,13 +2090,13 @@ bool BtifAvStateMachine::StateOpening::ProcessEvent(uint32_t event, void* p_data
                                    peer_.IsSource() ? A2dpType::kSink : A2dpType::kSource);
       peer_.StateMachine().TransitionTo(BtifAvStateMachine::kStateIdle);
       if (peer_.SelfInitiatedConnection()) {
-        btif_av_connect_req_t* connect_req_t = (btif_av_connect_req_t*)p_data;
         if (bt_av_sink_callbacks != NULL) {
-          connect_req_t->uuid = UUID_SERVCLASS_AUDIO_SINK;
+          btif_queue_advance_by_uuid(UUID_SERVCLASS_AUDIO_SINK,
+                                     &peer_.PeerAddress());
         } else if (bt_av_src_callbacks != NULL) {
-          connect_req_t->uuid = UUID_SERVCLASS_AUDIO_SOURCE;
+          btif_queue_advance_by_uuid(UUID_SERVCLASS_AUDIO_SOURCE,
+                                     &peer_.PeerAddress());
         }
-        btif_queue_advance_by_uuid(connect_req_t->uuid, &peer_.PeerAddress());
       }
       break;
     case BTA_AV_REJECT_EVT:
@@ -2114,14 +2109,14 @@ bool BtifAvStateMachine::StateOpening::ProcessEvent(uint32_t event, void* p_data
                                    peer_.IsSource() ? A2dpType::kSink : A2dpType::kSource);
       peer_.StateMachine().TransitionTo(BtifAvStateMachine::kStateIdle);
       if (peer_.SelfInitiatedConnection()) {
-          btif_av_connect_req_t* connect_req_t = (btif_av_connect_req_t*)p_data;
-          if (bt_av_sink_callbacks != NULL) {
-            connect_req_t->uuid = UUID_SERVCLASS_AUDIO_SINK;
-          } else if (bt_av_src_callbacks != NULL) {
-            connect_req_t->uuid = UUID_SERVCLASS_AUDIO_SOURCE;
-          }
-          btif_queue_advance_by_uuid(connect_req_t->uuid, &peer_.PeerAddress());
+        if (bt_av_sink_callbacks != NULL) {
+          btif_queue_advance_by_uuid(UUID_SERVCLASS_AUDIO_SINK,
+                                     &peer_.PeerAddress());
+        } else if (bt_av_src_callbacks != NULL) {
+          btif_queue_advance_by_uuid(UUID_SERVCLASS_AUDIO_SOURCE,
+                                     &peer_.PeerAddress());
         }
+      }
       break;
 
     case BTA_AV_OPEN_EVT: {
@@ -2228,13 +2223,13 @@ bool BtifAvStateMachine::StateOpening::ProcessEvent(uint32_t event, void* p_data
         }
       }
       if (peer_.SelfInitiatedConnection()) {
-        btif_av_connect_req_t* connect_req_t = (btif_av_connect_req_t*)p_data;
         if (bt_av_sink_callbacks != NULL) {
-          connect_req_t->uuid = UUID_SERVCLASS_AUDIO_SINK;
+          btif_queue_advance_by_uuid(UUID_SERVCLASS_AUDIO_SINK,
+                                     &peer_.PeerAddress());
         } else if (bt_av_src_callbacks != NULL) {
-          connect_req_t->uuid = UUID_SERVCLASS_AUDIO_SOURCE;
+          btif_queue_advance_by_uuid(UUID_SERVCLASS_AUDIO_SOURCE,
+                                     &peer_.PeerAddress());
         }
-        btif_queue_advance_by_uuid(connect_req_t->uuid, &peer_.PeerAddress());
       }
     } break;
 
@@ -2256,7 +2251,6 @@ bool BtifAvStateMachine::StateOpening::ProcessEvent(uint32_t event, void* p_data
     case BTIF_AV_CONNECT_REQ_EVT: {
       // The device has moved already to Opening, hence don't report the
       // connection state.
-      btif_av_connect_req_t* connect_req_t = (btif_av_connect_req_t*)p_data;
       log::warn(
               "Peer {} : event={} : device is already connecting, ignore Connect "
               "request",
@@ -2264,11 +2258,12 @@ bool BtifAvStateMachine::StateOpening::ProcessEvent(uint32_t event, void* p_data
       bluetooth::shim::CountCounterMetrics(
               android::bluetooth::CodePathCounterKeyEnum::A2DP_ALREADY_CONNECTING, 1);
       if (bt_av_sink_callbacks != NULL) {
-        connect_req_t->uuid = UUID_SERVCLASS_AUDIO_SINK;
+        btif_queue_advance_by_uuid(UUID_SERVCLASS_AUDIO_SINK,
+                                   &peer_.PeerAddress());
       } else if (bt_av_src_callbacks != NULL) {
-        connect_req_t->uuid = UUID_SERVCLASS_AUDIO_SOURCE;
+        btif_queue_advance_by_uuid(UUID_SERVCLASS_AUDIO_SOURCE,
+                                   &peer_.PeerAddress());
       }
-      btif_queue_advance_by_uuid(connect_req_t->uuid, &peer_.PeerAddress());
     } break;
 
     case BTA_AV_PENDING_EVT: {
@@ -2300,13 +2295,13 @@ bool BtifAvStateMachine::StateOpening::ProcessEvent(uint32_t event, void* p_data
               android::bluetooth::CodePathCounterKeyEnum::A2DP_CONNECTION_CLOSE, 1);
       DEVICE_IOT_CONFIG_ADDR_INT_ADD_ONE(peer_.PeerAddress(), IOT_CONF_KEY_A2DP_CONN_FAIL_COUNT);
       if (peer_.SelfInitiatedConnection()) {
-        btif_av_connect_req_t* connect_req_t = (btif_av_connect_req_t*)p_data;
         if (bt_av_sink_callbacks != NULL) {
-          connect_req_t->uuid = UUID_SERVCLASS_AUDIO_SINK;
+          btif_queue_advance_by_uuid(UUID_SERVCLASS_AUDIO_SINK,
+                                     &peer_.PeerAddress());
         } else if (bt_av_src_callbacks != NULL) {
-          connect_req_t->uuid = UUID_SERVCLASS_AUDIO_SOURCE;
+          btif_queue_advance_by_uuid(UUID_SERVCLASS_AUDIO_SOURCE,
+                                     &peer_.PeerAddress());
         }
-        btif_queue_advance_by_uuid(connect_req_t->uuid, &peer_.PeerAddress());
       }
       break;
 
@@ -2320,13 +2315,13 @@ bool BtifAvStateMachine::StateOpening::ProcessEvent(uint32_t event, void* p_data
       bluetooth::shim::CountCounterMetrics(
               android::bluetooth::CodePathCounterKeyEnum::A2DP_CONNECTION_DISCONNECTED, 1);
       if (peer_.SelfInitiatedConnection()) {
-        btif_av_connect_req_t* connect_req_t = (btif_av_connect_req_t*)p_data;
         if (bt_av_sink_callbacks != NULL) {
-          connect_req_t->uuid = UUID_SERVCLASS_AUDIO_SINK;
+          btif_queue_advance_by_uuid(UUID_SERVCLASS_AUDIO_SINK,
+                                     &peer_.PeerAddress());
         } else if (bt_av_src_callbacks != NULL) {
-          connect_req_t->uuid = UUID_SERVCLASS_AUDIO_SOURCE;
+          btif_queue_advance_by_uuid(UUID_SERVCLASS_AUDIO_SOURCE,
+                                     &peer_.PeerAddress());
         }
-        btif_queue_advance_by_uuid(connect_req_t->uuid, &peer_.PeerAddress());
       }
       break;
 
@@ -2558,13 +2553,13 @@ bool BtifAvStateMachine::StateOpened::ProcessEvent(uint32_t event, void* p_data)
     case BTIF_AV_CONNECT_REQ_EVT: {
       log::warn("Peer {} : Ignore {} for same device", peer_.PeerAddress(),
                 BtifAvEvent::EventName(event));
-      btif_av_connect_req_t* connect_req_t = (btif_av_connect_req_t*)p_data;
       if (bt_av_sink_callbacks != NULL) {
-        connect_req_t->uuid = UUID_SERVCLASS_AUDIO_SINK;
+        btif_queue_advance_by_uuid(UUID_SERVCLASS_AUDIO_SINK,
+                                   &peer_.PeerAddress());
       } else if (bt_av_src_callbacks != NULL) {
-        connect_req_t->uuid = UUID_SERVCLASS_AUDIO_SOURCE;
+        btif_queue_advance_by_uuid(UUID_SERVCLASS_AUDIO_SOURCE,
+                                   &peer_.PeerAddress());
       }
-      btif_queue_advance_by_uuid(connect_req_t->uuid, &peer_.PeerAddress());
     } break;
 
     case BTIF_AV_OFFLOAD_START_REQ_EVT:
@@ -2755,13 +2750,13 @@ bool BtifAvStateMachine::StateStarted::ProcessEvent(uint32_t event, void* p_data
     case BTIF_AV_CONNECT_REQ_EVT: {
       log::warn("Peer {} : Ignore {} for same device", peer_.PeerAddress(),
               BtifAvEvent::EventName(event));
-      btif_av_connect_req_t* connect_req_t = (btif_av_connect_req_t*)p_data;
       if (bt_av_sink_callbacks != NULL) {
-        connect_req_t->uuid = UUID_SERVCLASS_AUDIO_SINK;
+        btif_queue_advance_by_uuid(UUID_SERVCLASS_AUDIO_SINK,
+                                   &peer_.PeerAddress());
       } else if (bt_av_src_callbacks != NULL) {
-        connect_req_t->uuid = UUID_SERVCLASS_AUDIO_SOURCE;
+        btif_queue_advance_by_uuid(UUID_SERVCLASS_AUDIO_SOURCE,
+                                   &peer_.PeerAddress());
       }
-      btif_queue_advance_by_uuid(connect_req_t->uuid, &peer_.PeerAddress());
     } break;
 
     case BTA_AV_SUSPEND_EVT: {
@@ -3005,13 +3000,13 @@ bool BtifAvStateMachine::StateClosing::ProcessEvent(uint32_t event, void* p_data
     case BTIF_AV_CONNECT_REQ_EVT: {
       log::warn("Peer {} : Ignore {} in StateClosing", peer_.PeerAddress(),
                 BtifAvEvent::EventName(event));
-      btif_av_connect_req_t* connect_req_t = (btif_av_connect_req_t*)p_data;
       if (bt_av_sink_callbacks != NULL) {
-        connect_req_t->uuid = UUID_SERVCLASS_AUDIO_SINK;
+        btif_queue_advance_by_uuid(UUID_SERVCLASS_AUDIO_SINK,
+                                   &peer_.PeerAddress());
       } else if (bt_av_src_callbacks != NULL) {
-        connect_req_t->uuid = UUID_SERVCLASS_AUDIO_SOURCE;
+        btif_queue_advance_by_uuid(UUID_SERVCLASS_AUDIO_SOURCE,
+                                   &peer_.PeerAddress());
       }
-      btif_queue_advance_by_uuid(connect_req_t->uuid, &peer_.PeerAddress());
       peer_.StateMachine().TransitionTo(BtifAvStateMachine::kStateIdle);
       break;
     }
