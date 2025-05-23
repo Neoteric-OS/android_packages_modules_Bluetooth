@@ -2356,6 +2356,11 @@ void btif_dm_sec_evt(tBTA_DM_SEC_EVT event, tBTA_DM_SEC* p_data) {
       GetInterfaceToProfiles()->events->invoke_encryption_change_cb(p_data->encryption_change);
       break;
 
+    case BTA_DM_SSR_EVT:
+      log::warn("");
+      GetInterfaceToProfiles()->events->invoke_ssr_event_cb();
+      break;
+
     default:
       log::warn("unhandled event({})", event);
       break;
