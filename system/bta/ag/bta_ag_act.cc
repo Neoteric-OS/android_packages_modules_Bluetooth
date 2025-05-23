@@ -710,11 +710,13 @@ void bta_ag_rfc_data(tBTA_AG_SCB* p_scb, const tBTA_AG_DATA& /* data */) {
 void bta_ag_start_close(tBTA_AG_SCB* p_scb, const tBTA_AG_DATA& data) {
   /* Take the link out of sniff and set L2C idle time to 0 */
   bta_dm_pm_active(p_scb->peer_addr);
-  if (!stack::l2cap::get_interface().L2CA_SetIdleTimeoutByBdAddr(p_scb->peer_addr, 0,
+  if (p_scb->svc_conn){
+       log::warn("SLC is up peer:{}", p_scb->peer_addr);
+       if (!stack::l2cap::get_interface().L2CA_SetIdleTimeoutByBdAddr(p_scb->peer_addr, 0,
                                                                  BT_TRANSPORT_BR_EDR)) {
-    log::warn("Unable to set idle timeout peer:{}", p_scb->peer_addr);
+       log::warn("Unable to set idle timeout peer:{}", p_scb->peer_addr);
+    }
   }
-
   /* if SCO is open close SCO and wait on RFCOMM close */
   if (bta_ag_sco_is_open(p_scb)) {
     p_scb->post_sco = BTA_AG_POST_SCO_CLOSE_RFC;
