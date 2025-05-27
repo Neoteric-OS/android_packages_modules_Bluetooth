@@ -605,11 +605,10 @@ void bta_ag_rfc_acp_open(tBTA_AG_SCB* p_scb, const tBTA_AG_DATA& data) {
             log::warn(
                  "No call RFCOMM_RemoveConnection as SLC is on ");
          }
-      } else {
-        // As no existing outgoing rfcomm connection, then manual reset current
-        // state, and use the incoming one
-        bta_ag_rfc_fail(&ag_scb, tBTA_AG_DATA::kEmpty);
       }
+      // As no existing outgoing rfcomm connection, then manual reset current
+      // state, and use the incoming one
+      bta_ag_rfc_fail(&ag_scb, tBTA_AG_DATA::kEmpty);
     }
     log::info("dev_addr={}, peer_addr={}, in_use={}, index={}", dev_addr, ag_scb.peer_addr,
               ag_scb.in_use, bta_ag_scb_to_idx(p_scb));
