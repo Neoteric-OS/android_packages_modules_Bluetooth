@@ -2016,6 +2016,7 @@ struct DistanceMeasurementManager::impl : bluetooth::hal::RangingHalCallback {
       if (ranging_hal_->IsBound()) {
         // Use algorithm in the HAL
         bluetooth::hal::ChannelSoundingRawData raw_data;
+        raw_data.procedure_counter_ = live_tracker->procedure_counter;
         raw_data.step_mode_ = procedure_data->step_mode;
         raw_data.measured_freq_offset_= procedure_data->measured_freq_offset;
         raw_data.init_packet_rssi_ = procedure_data->rssi_initiator;
