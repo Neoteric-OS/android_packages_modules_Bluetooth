@@ -890,9 +890,9 @@ LeAudioDeviceGroup::GetAudioSetConfigurationRequirements(types::LeAudioContextTy
           ctx_type == types::LeAudioContextType::GAME) {
         // For GAME and VOICE ASSISTANT, ignore direction if it is not supported only on a single
         // direction.
-        auto group_contexts = GetAvailableContexts(types::kLeAudioDirectionBoth);
+        auto group_contexts = GetSupportedContexts(types::kLeAudioDirectionBoth);
         if (group_contexts.test(ctx_type)) {
-          auto direction_contexs = device->GetAvailableContexts(direction);
+          auto direction_contexs = device->GetSupportedContexts(direction);
           if (!direction_contexs.test(ctx_type)) {
             log::warn("Device {} has no {} context support", device->address_,
                       common::ToString(ctx_type));
