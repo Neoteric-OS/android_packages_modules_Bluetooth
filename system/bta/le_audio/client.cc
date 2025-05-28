@@ -1995,6 +1995,7 @@ public:
 
       if (CodecManager::GetInstance()->IsUsingCodecExtensibility()) {
         group->InvalidateCachedConfigurations();
+        group->ResetPreferredAudioSetConfiguration();
       }
 
       log::info("current state {}", ToString(group->GetState()));
@@ -2043,6 +2044,7 @@ public:
         }
         log::info("current_active_group: {}", current_active_group->group_id_);
         current_active_group->InvalidateCachedConfigurations();
+        current_active_group->ResetPreferredAudioSetConfiguration();
       }
 
       log::info("switching active group to: {}", group_id);
