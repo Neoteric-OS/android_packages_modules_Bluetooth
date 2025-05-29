@@ -2432,7 +2432,11 @@ bool BtifAvStateMachine::StateOpened::ProcessEvent(uint32_t event, void* p_data)
       // channel.
       bool should_suspend = false;
       if (peer_.IsSink()) {
-        if (!peer_.CheckFlags(BtifAvPeer::kFlagPendingStart | BtifAvPeer::kFlagRemoteSuspend)) {
+        // In AVDTP/SRC/ACP/SIG/SYN/BV-06-C, PTS is sending start even when DUT
+        // is A2DP source, in that case, don't suspend
+        bool running_pts = osi_property_get_bool("persist.vendor.bt.a2dp.pts_enable", false);
+        if (!peer_.CheckFlags(BtifAvPeer::kFlagPendingStart | BtifAvPeer::kFlagRemoteSuspend) &&
+              !running_pts) {
           log::warn("Peer {} : trigger Suspend as remote initiated", peer_.PeerAddress());
           should_suspend = true;
         } else if (!peer_.IsActivePeer()) {
