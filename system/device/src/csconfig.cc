@@ -319,6 +319,8 @@ void ReadLocalConfigs(void)
     return;
   }
 
+  log::info("loading the CS XML file {}", config_path);
+
   root_element = xmlDocGetRootElement(doc);
   if (root_element == NULL) {
     log::error("Empty XML document: {}", config_path);
