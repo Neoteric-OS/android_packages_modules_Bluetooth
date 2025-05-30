@@ -3261,10 +3261,6 @@ public class AdapterService extends Service {
                  */
                 mLeAudioService.removeActiveDevice(true /* hasFallbackDevice */);
             } else {
-                if (mA2dpService != null && mA2dpService.getActiveDevice() != null) {
-                    // TODO:  b/312396770
-                    mA2dpService.removeActiveDevice(false);
-                }
                 mLeAudioService.setActiveDevice(device);
             }
         }
