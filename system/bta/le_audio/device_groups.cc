@@ -1078,6 +1078,11 @@ bool LeAudioDeviceGroup::SetPreferredAudioSetConfiguration(
                                       common::ToString(configuration_context_type_));
   is_updated |= UpdateAudioSetConfigurationCache(configuration_context_type_, true);
 
+  if (!IsStreaming() && configuration_context_type_ != LeAudioContextType::MEDIA) {
+    log::info("Update media also when is NOT streaming");
+    is_updated |= UpdateAudioSetConfigurationCache(LeAudioContextType::MEDIA, true);
+  }
+
   log::info("is_updated: {}", is_updated);
   return is_updated;
 }
