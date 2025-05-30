@@ -3908,7 +3908,7 @@ public class LeAudioService extends ProfileService {
                               .setSampleRate(BluetoothLeAudioCodecConfig.SAMPLE_RATE_48000)
                               .setBitsPerSample(BluetoothLeAudioCodecConfig.BITS_PER_SAMPLE_16)
                               .setChannelCount(BluetoothLeAudioCodecConfig.CHANNEL_COUNT_1)
-                              .setFrameDuration(BluetoothLeAudioCodecConfig.FRAME_DURATION_7500)
+                              .setFrameDuration(BluetoothLeAudioCodecConfig.FRAME_DURATION_10000)
                               .build();
                             setCodecConfigPreference(groupId,CodecConfig,CodecConfig);
                             break;
