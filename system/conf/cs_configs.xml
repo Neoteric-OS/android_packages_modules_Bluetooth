@@ -4,10 +4,7 @@
  * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
  -->
-/*
- * Each CsConfigSetting elem is mapped to Security levels in the order.
- * There is no relation between ConfigID and Sec Level selected on the UI
- */
+
 <CsConfigurationList>
 <CsConfig>
      <CsConfigSetting>
@@ -38,7 +35,7 @@
         <Mode0Steps>2</Mode0Steps>
         <Role>0</Role>
         <RTTTypes>0</RTTTypes>
-        <CsSyncPhy>2</CsSyncPhy>
+        <CsSyncPhy>1</CsSyncPhy>
         <ChannelMap>252 255 127 252 255 255 255 255 255 31</ChannelMap>
         <ChannelMapRepetition>1</ChannelMapRepetition>
         <ChannelSelectionType>0</ChannelSelectionType>
@@ -92,10 +89,10 @@
         <MaxProcedureCount>0</MaxProcedureCount>
         <MinSubEventLen>00 50 00</MinSubEventLen>
         <MaxSubEventLen>03 50 00</MaxSubEventLen>
-        <ToneAntennaConfigSelection>0</ToneAntennaConfigSelection>
+        <ToneAntennaConfigSelection>7</ToneAntennaConfigSelection>
         <Phy>1</Phy>
-        <TxPowerDelta>0x1</TxPowerDelta>
-        <PreferredPeerAntenna>1 0 0 0</PreferredPeerAntenna>
+        <TxPowerDelta>128</TxPowerDelta>
+        <PreferredPeerAntenna>1 1 0 0</PreferredPeerAntenna>
         <SnrControlInitiator>255</SnrControlInitiator>
         <SnrControlReflector>255</SnrControlReflector>
     </CsProcedureSettings>
@@ -106,10 +103,10 @@
         <MaxProcedureCount>0</MaxProcedureCount>
         <MinSubEventLen>00 50 00</MinSubEventLen>
         <MaxSubEventLen>03 50 00</MaxSubEventLen>
-        <ToneAntennaConfigSelection>0</ToneAntennaConfigSelection>
+        <ToneAntennaConfigSelection>7</ToneAntennaConfigSelection>
         <Phy>1</Phy>
-        <TxPowerDelta>0x1</TxPowerDelta>
-        <PreferredPeerAntenna>1 0 0 0</PreferredPeerAntenna>
+        <TxPowerDelta>128</TxPowerDelta>
+        <PreferredPeerAntenna>1 1 0 0</PreferredPeerAntenna>
         <SnrControlInitiator>255</SnrControlInitiator>
         <SnrControlReflector>255</SnrControlReflector>
     </CsProcedureSettings>
@@ -120,10 +117,10 @@
         <MaxProcedureCount>0</MaxProcedureCount>
         <MinSubEventLen>00 50 00</MinSubEventLen>
         <MaxSubEventLen>03 50 00</MaxSubEventLen>
-        <ToneAntennaConfigSelection>0</ToneAntennaConfigSelection>
+        <ToneAntennaConfigSelection>7</ToneAntennaConfigSelection>
         <Phy>1</Phy>
-        <TxPowerDelta>0x1</TxPowerDelta>
-        <PreferredPeerAntenna>1 0 0 0</PreferredPeerAntenna>
+        <TxPowerDelta>128</TxPowerDelta>
+        <PreferredPeerAntenna>1 1 0 0</PreferredPeerAntenna>
         <SnrControlInitiator>255</SnrControlInitiator>
         <SnrControlReflector>255</SnrControlReflector>
     </CsProcedureSettings>
