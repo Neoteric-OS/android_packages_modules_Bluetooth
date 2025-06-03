@@ -993,6 +993,11 @@ public:
         le_audio_sink_hal_client_->ReconfigurationComplete();
       }
     }
+
+    auto group = aseGroups_.FindById(active_group_id_);
+    if(group) {
+      group->ClearSuspendedForReconfiguration();
+    }
   }
 
   void CancelLocalAudioSourceStreamingRequest() {
@@ -1154,7 +1159,8 @@ public:
       remove_group_if_possible(group);
       return;
     }
-
+    /* Reset preferred config when last leAudioDevice remove*/
+    group->ResetPreferredAudioSetConfiguration();
     /* Removing node from group requires updating group context availability */
     UpdateLocationsAndContextsAvailability(group);
   }
@@ -1458,10 +1464,15 @@ public:
       return;
     }
 
-    if (SetConfigurationAndStopStreamWhenNeeded(group, group->GetConfigurationContextType())) {
+    if (SetConfigurationAndStopStreamWhenNeeded(group, configuration_context_type_)) {
       log::debug("Group id {} do the reconfiguration based on preferred codec config", group_id);
     } else {
-      log::debug("Group id {} preferred codec config is not changed", group_id);
+      if (group->GetState() != AseState::BTA_LE_AUDIO_ASE_STATE_STREAMING) {
+        log::debug("Group id {} not streaming, update codec config for media as default", group_id);
+        SendAudioGroupContextCodecConfigChanged(group, LeAudioContextType::MEDIA);
+      } else {
+        log::debug("Group id {} is streaming, but reconfiguration not needed", group_id);
+      }
     }
   }
 
@@ -1517,6 +1528,11 @@ public:
 
   void SetInCall(bool in_call) override {
     log::debug("in_call: {}", in_call);
+    if (!in_call) {
+      track_in_call_update_ = 0;
+      defer_reconfig_complete_update_ = false;
+    }
+
     if (in_call == in_call_) {
       log::verbose("no state change {}", in_call);
       return;
@@ -1588,8 +1604,6 @@ public:
           ReconfigureOrUpdateRemote(group, bluetooth::le_audio::types::kLeAudioDirectionSource);
         }
       } else {
-        track_in_call_update_ = 0;
-        defer_reconfig_complete_update_ = false;
         ReconfigureOrUpdateRemote(group, bluetooth::le_audio::types::kLeAudioDirectionSink);
       }
     }
@@ -1900,6 +1914,19 @@ public:
       log::error("Something went wrong {} != {} ", ToString(configuration_context_type_),
                  ToString(LeAudioContextType::CONVERSATIONAL));
       return;
+    }
+
+    log::debug("local_metadata_context_types_ sink: {}  source: {}",
+               local_metadata_context_types_.sink.to_string(),
+               local_metadata_context_types_.source.to_string());
+
+    //While making groupsetactive, if call exist already, it would reconfigure to
+    //conversational. But there is nothing exist in local_metadata_context_types_.
+    //So set local_metadata_context_types_ to CONVERSATIONAL, which would be used
+    if (local_metadata_context_types_.sink.none() &&
+        local_metadata_context_types_.source.none()) {
+      local_metadata_context_types_.sink.set(LeAudioContextType::CONVERSATIONAL);
+      local_metadata_context_types_.source.set(LeAudioContextType::CONVERSATIONAL);
     }
 
     if (!ConfigureStream(group, true)) {
@@ -4033,6 +4060,28 @@ public:
     callbacks_->OnAudioGroupCurrentCodecConf(group->group_id_, input_config, output_config);
   }
 
+  void SendAudioGroupContextCodecConfigChanged(LeAudioDeviceGroup* group,
+            LeAudioContextType context_type) {
+    // This shall be called when configuration changes for context
+    log::debug("group_id {}", group->group_id_);
+
+    auto audio_set_conf = group->GetConfiguration(context_type);
+    if (!audio_set_conf) {
+      log::warn("Stream configuration is not valid for group id {}", group->group_id_);
+      return;
+    }
+
+    bluetooth::le_audio::btle_audio_codec_config_t input_config{};
+    bluetooth::le_audio::utils::fillStreamParamsToBtLeAudioCodecConfig(audio_set_conf->confs.source,
+                                                                       input_config);
+
+    bluetooth::le_audio::btle_audio_codec_config_t output_config{};
+    bluetooth::le_audio::utils::fillStreamParamsToBtLeAudioCodecConfig(audio_set_conf->confs.sink,
+                                                                       output_config);
+
+    callbacks_->OnAudioGroupCurrentCodecConf(group->group_id_, input_config, output_config);
+  }
+
   void connectionReady(LeAudioDevice* leAudioDevice) {
     log::debug("{},  {}", leAudioDevice->address_,
                bluetooth::common::ToString(leAudioDevice->GetConnectionState()));
@@ -5623,6 +5672,7 @@ public:
     }
 
     if (group->GetState() != AseState::BTA_LE_AUDIO_ASE_STATE_STREAMING) {
+      SendAudioGroupCurrentCodecConfigChanged(group);
       log::debug("Group is not streaming");
       return false;
     }

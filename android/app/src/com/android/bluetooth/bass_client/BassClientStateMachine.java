@@ -886,14 +886,6 @@ class BassClientStateMachine extends StateMachine {
                 mBassStateReady = true;
                 mService.getCallbacks().notifyBassStateReady(mDevice);
             }
-            if (mBluetoothLeBroadcastReceiveStates.size() == mNumOfBroadcastReceiverStates) {
-                log("The last receive state");
-                if (mLastConnectionState != BluetoothProfile.STATE_CONNECTED) {
-                    broadcastConnectionState(
-                            mDevice, mLastConnectionState, BluetoothProfile.STATE_CONNECTED);
-                    mLastConnectionState = BluetoothProfile.STATE_CONNECTED;
-                }
-            }
         } else {
             log("Updated receiver state: " + recvState);
             mBluetoothLeBroadcastReceiveStates.replace(characteristic.getInstanceId(), recvState);
@@ -1843,6 +1835,10 @@ class BassClientStateMachine extends StateMachine {
                             + "): "
                             + messageWhatToString(getCurrentMessage().what));
             removeDeferredMessages(CONNECT);
+            if (mLastConnectionState != BluetoothProfile.STATE_CONNECTED) {
+                broadcastConnectionState(
+                        mDevice, mLastConnectionState, BluetoothProfile.STATE_CONNECTED);
+            }
         }
 
         @Override
@@ -1852,6 +1848,7 @@ class BassClientStateMachine extends StateMachine {
                             + mDevice
                             + "): "
                             + messageWhatToString(getCurrentMessage().what));
+            mLastConnectionState = BluetoothProfile.STATE_CONNECTED;
         }
 
         private void writeBassControlPoint(byte[] value) {

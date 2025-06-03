@@ -398,19 +398,19 @@ struct DistanceMeasurementManager::impl : bluetooth::hal::RangingHalCallback {
     }
   }
 
-  void set_cs_params(const Address& cs_remote_address, int mSightType, int mLocationType,
-		     int mCsSecurityLevel, int mFrequency, int mDuration) {
-    uint16_t connection_handle = acl_manager_->HACK_GetLeHandle(cs_remote_address);
+  void set_cs_params(const Address& cs_remote_address, uint16_t connection_handle, int mSightType,
+             int mLocationType, int mCsSecurityLevel, int mFrequency, int mDuration) {
 
-    if (!com::android::bluetooth::flags::channel_sounding_in_stack()) {
+   if (!com::android::bluetooth::flags::channel_sounding_in_stack()) {
       log::error("Channel Sounding is not enabled");
       distance_measurement_callbacks_->OnDistanceMeasurementStopped(
 		      cs_remote_address, REASON_INTERNAL_ERROR, METHOD_CS);
       return;
     }
 
-    log::info("Address:{}, CsSecurityLevel:{} frequency:{}",
-		    cs_remote_address, mCsSecurityLevel, mFrequency);
+    log::info("Address:{}, connection_handle:{}, CsSecurityLevel:{} frequency:{}",
+               cs_remote_address, connection_handle, mCsSecurityLevel, mFrequency);
+
     if (set_cs_params_.find(connection_handle) != set_cs_params_.end() &&
         set_cs_params_[connection_handle].address != cs_remote_address) {
       log::warn("Remove old tracker for {}", cs_remote_address);
@@ -993,6 +993,15 @@ struct DistanceMeasurementManager::impl : bluetooth::hal::RangingHalCallback {
             cs_preferred_peer_antenna_mapping_table_[tone_antenna_config_selection];
 
     bool config_avb = false;
+    uint8_t KMaxAllowedConfigID = 4;
+    uint8_t remote_config_supports = cs_requester_trackers_[connection_handle].remote_num_config_supported_;
+    KMaxAllowedConfigID = (remote_config_supports > local_num_config_supported_) ?
+                                         local_num_config_supported_ : remote_config_supports;
+    if (config_id >= KMaxAllowedConfigID) {
+      log::info("config_id: {} KMaxAllowedConfigID: {} config_avb: {}",
+                           config_id, KMaxAllowedConfigID, config_avb);
+      config_id = 0;
+   }
     if (set_cs_params_.find(connection_handle) != set_cs_params_.end()) {
       log::info("address {} ", set_cs_params_[connection_handle].address);
       config_avb = true;
@@ -1022,7 +1031,7 @@ struct DistanceMeasurementManager::impl : bluetooth::hal::RangingHalCallback {
        preferred_peer_antenna.use_third_ordered_antenna_element_ = 1;
      if (procedure_setting.preferred_peer_antenna & 0x08)
        preferred_peer_antenna.use_fourth_ordered_antenna_element_ = 1;
-
+     
       hci_layer_->EnqueueCommand(
             LeCsSetProcedureParametersBuilder::Create(
             connection_handle,
@@ -2432,6 +2441,11 @@ struct DistanceMeasurementManager::impl : bluetooth::hal::RangingHalCallback {
       log::debug("Procedure complete counter:{} data size:{}", (uint16_t)procedure_data->counter,
                  procedure_data->step_channel.size());
       if (is_hal_v2()) {
+        struct timeval tv;
+        gettimeofday(&tv, NULL);
+        curr_proc_complete_timestampMs  = tv.tv_sec*1e6*1ll + tv.tv_usec*1ll;
+        procedure_data->procedure_data_v2_.local_subevent_data_[0]->timestamp_nanos_ = (long)((curr_proc_complete_timestampMs - proc_start_timestampMs)*1000);
+        procedure_data->procedure_data_v2_.remote_subevent_data_[0]->timestamp_nanos_ = (long)((curr_proc_complete_timestampMs - proc_start_timestampMs)*1000);
         ranging_hal_->WriteProcedureData(connection_handle, live_tracker->role,
                                          procedure_data->procedure_data_v2_,
                                          procedure_data->counter);
@@ -2517,7 +2531,7 @@ struct DistanceMeasurementManager::impl : bluetooth::hal::RangingHalCallback {
         gettimeofday(&tv, NULL);
         curr_proc_complete_timestampMs  = tv.tv_sec*1e6*1ll + tv.tv_usec*1ll;
         raw_data.timestampMs_ = (long)(curr_proc_complete_timestampMs - proc_start_timestampMs);
-        log::verbose("timestampMs_: {} current_proc : {} proc start :{}",
+        log::info("timestampMs_: {} current_proc : {} proc start :{}",
                     raw_data.timestampMs_, curr_proc_complete_timestampMs,
                     proc_start_timestampMs);
 
@@ -3111,12 +3125,12 @@ void DistanceMeasurementManager::StartDistanceMeasurement(const Address& address
          local_hci_role, interval, method);
 }
 
-void DistanceMeasurementManager::SetCsParams(const Address& address,
+void DistanceMeasurementManager::SetCsParams(const Address& address, uint16_t connection_handle,
 		int mSightType, int mLocationType, int mCsSecurityLevel, int mFrequency, int mDuration) {
 	log::info("address {} mSightType {}, mLocationType {} mCsSecurityLevel {} mFrequency {} mDuration {}",
 		  address, mSightType, mLocationType,
 		  mCsSecurityLevel, mFrequency, mDuration);
-	CallOn(pimpl_.get(), &impl::set_cs_params, address, mSightType,
+	CallOn(pimpl_.get(), &impl::set_cs_params, address, connection_handle, mSightType,
                mLocationType, mCsSecurityLevel, mFrequency, mDuration);
 }
 

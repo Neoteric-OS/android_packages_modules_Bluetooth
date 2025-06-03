@@ -154,6 +154,42 @@ bool Device::IsActive() const { return address_ == a2dp_interface_->active_peer(
 
 bool Device::IsInSilenceMode() const { return a2dp_interface_->is_peer_in_silence_mode(address_); }
 
+bool Device::IsPendingPlay() {
+  log::info("IsPendingPlay_: {}", IsPendingPlay_);
+  return IsPendingPlay_;
+}
+
+void Device::HandlePendingPlay() {
+  log::assert_that(media_interface_ != nullptr,
+                   "assert failed: media_interface_ != nullptr");
+  log::verbose("");
+
+  media_interface_->GetPlayStatus(base::Bind(
+      [](base::WeakPtr<Device> d, PlayStatus s) {
+    if (!d) return;
+
+    if (!bluetooth::headset::IsCallIdle()) {
+        log::warn("Ignore passthrough play during active Call");
+        d->IsPendingPlay_ = false;
+        return;
+    }
+
+    if (!d->IsActive() ||
+        s.state == PlayState::PLAYING) {
+        d->IsPendingPlay_ = false;
+      return;
+    }
+
+    if (d->IsPendingPlay()) {
+      log::info("Send PLAY to {}", d->address_);
+      d->media_interface_->SendKeyEvent(uint8_t(OperationID::PLAY), KeyState::PUSHED);
+      d->IsPendingPlay_ = false;
+    }
+  },
+  weak_ptr_factory_.GetWeakPtr()));
+  return;
+}
+
 void Device::VendorPacketHandler(uint8_t label, std::shared_ptr<VendorPacket> pkt) {
   log::assert_that(media_interface_ != nullptr, "assert failed: media_interface_ != nullptr");
   log::verbose("pdu={}", pkt->GetCommandPdu());
@@ -200,6 +236,7 @@ void Device::VendorPacketHandler(uint8_t label, std::shared_ptr<VendorPacket> pk
           active_labels_.erase(label);
           volume_interface_ = nullptr;
           volume_ = VOL_REGISTRATION_FAILED;
+          last_request_volume_ = volume_;
           return;
         }
 
@@ -214,12 +251,24 @@ void Device::VendorPacketHandler(uint8_t label, std::shared_ptr<VendorPacket> pk
         }
         break;
       }
-      case CommandPdu::SET_ABSOLUTE_VOLUME:
-        // TODO (apanicke): Add a retry mechanism if the response has a
-        // different volume than the one we set. For now, we don't care
-        // about the response to this message.
+
+      case CommandPdu::SET_ABSOLUTE_VOLUME: {
+        auto set_absolute_volume =
+            Packet::Specialize<SetAbsoluteVolumeResponse>(pkt);
         active_labels_.erase(label);
+        volume_label_ = MAX_TRANSACTION_LABEL;
+        if (set_absolute_volume->IsValid()) {
+          volume_ = set_absolute_volume->GetVolume();
+          volume_ &= ~0x80;
+          log::verbose("{}: current volume={}, last request volume={}",
+                       address_, (int)volume_, (int)last_request_volume_);
+          if (last_request_volume_ != volume_) SetVolume(last_request_volume_);
+        } else {
+          log::warn("{}: Response packet is not valid", address_);
+          last_request_volume_ = volume_;
+        }
         break;
+      }
       default:
         log::warn("{}: Unhandled Response: pdu={}", address_, pkt->GetCommandPdu());
         break;
@@ -616,6 +665,7 @@ void Device::HandleVolumeChanged(uint8_t label,
     // Disable Absolute Volume
     active_labels_.erase(label);
     volume_ = VOL_REGISTRATION_FAILED;
+    last_request_volume_ = volume_;
     log::error("device rejected register Volume changed notification request.");
     log::error("Putting Device in ABSOLUTE_VOLUME rejectlist");
     interop_database_add(INTEROP_DISABLE_ABSOLUTE_VOLUME, &address_, 3);
@@ -632,8 +682,7 @@ void Device::HandleVolumeChanged(uint8_t label,
 
   // Handle the first volume update.
   if (volume_ == VOL_NOT_SUPPORTED) {
-    volume_ = pkt->GetVolume();
-    volume_ &= ~0x80;  // remove RFA bit
+    log::info("Absolute voluem updated later in the DeviceConnected");
     volume_interface_->DeviceConnected(
             GetAddress(), base::Bind(&Device::SetVolume, weak_ptr_factory_.GetWeakPtr()));
 
@@ -649,15 +698,25 @@ void Device::HandleVolumeChanged(uint8_t label,
 
   volume_ = pkt->GetVolume();
   volume_ &= ~0x80;  // remove RFA bit
+  last_request_volume_ = volume_;
   log::verbose("Volume has changed to {}", (uint32_t)volume_);
   volume_interface_->SetVolume(volume_);
 }
 
 void Device::SetVolume(int8_t volume) {
   // TODO (apanicke): Implement logic for Multi-AVRCP
-  log::verbose("volume={}", (int)volume);
+  log::verbose("request volume={}, last request volume={}, current volume={}",
+               (int)volume, (int)last_request_volume_, (int)volume_);
   if (volume == volume_) {
     log::warn("{}: Ignoring volume change same as current volume level", address_);
+    return;
+  }
+
+  last_request_volume_ = volume;
+  if (volume_label_ != MAX_TRANSACTION_LABEL) {
+    log::warn(
+        "{}: There is already a volume command in progress, cache volume={}",
+        address_, (int)last_request_volume_);
     return;
   }
   auto request = SetAbsoluteVolumeRequestBuilder::MakeBuilder(volume);
@@ -667,10 +726,15 @@ void Device::SetVolume(int8_t volume) {
     if (active_labels_.find(i) == active_labels_.end()) {
       active_labels_.insert(i);
       label = i;
+      volume_label_ = label;
       break;
     }
   }
 
+  if (label == MAX_TRANSACTION_LABEL) {
+    log::fatal("{}: Abandon all hope, something went catastrophically wrong",
+               address_);
+  }
   send_message_cb_.Run(label, false, std::move(request));
 
   if (stack_config_get_interface()->get_pts_avrcp_test()) {
@@ -699,9 +763,8 @@ void Device::SetVolume(int8_t volume) {
     auto vol_cmd_release = PassThroughPacketBuilder::MakeBuilder(
          false, false, (volume_ < volume) ? 0x41 : 0x42);
     send_message(label, false, std::move(vol_cmd_release));
+    volume_ = volume;
   }
-
-  volume_ = volume;
 }
 
 void Device::TrackChangedNotificationResponse(uint8_t label, bool interim, std::string curr_song_id,
@@ -1120,9 +1183,13 @@ void Device::MessageReceived(uint8_t label, std::shared_ptr<Packet> pkt) {
                     if (s.state == PlayState::PLAYING) {
                       log::info("Skipping sendKeyEvent since music is already playing");
                       return;
+                    } else {
+                      log::info("cache PLAY pending cmd", d->address_);
+                      d->IsPendingPlay_ = true;
                     }
+                  } else {
+                    d->media_interface_->SendKeyEvent(uint8_t(OperationID::PLAY), KeyState::PUSHED);
                   }
-                  d->media_interface_->SendKeyEvent(uint8_t(OperationID::PLAY), KeyState::PUSHED);
                 },
                 weak_ptr_factory_.GetWeakPtr()));
         return;
@@ -1155,13 +1222,16 @@ void Device::MessageReceived(uint8_t label, std::shared_ptr<Packet> pkt) {
       }
 
       media_interface_->GetPlayStatus(base::Bind(
-          &Device::PlaybackStatusNotificationResponse,
-          weak_ptr_factory_.GetWeakPtr(), play_status_changed_.second, false));
-
-      if (IsActive()) {
-        media_interface_->SendKeyEvent(pass_through_packet->GetOperationId(),
-                                       pass_through_packet->GetKeyState());
-      }
+          [](base::WeakPtr<Device> d, std::shared_ptr<PassThroughPacket> packet, PlayStatus s) {
+            if (!d) return;
+            d->PlaybackStatusNotificationResponse(d->play_status_changed_.second, false, s);
+            if (d->IsActive()) {
+              log::verbose("SendKeyEvent: PT:{}, KEYSTATE:{}", packet->GetOperationId(),
+                  packet->GetKeyState());
+              d->media_interface_->SendKeyEvent(packet->GetOperationId(),
+                  packet->GetKeyState());
+            }
+          }, weak_ptr_factory_.GetWeakPtr(), pass_through_packet));
     } break;
     case Opcode::VENDOR: {
       auto vendor_pkt = Packet::Specialize<VendorPacket>(pkt);
@@ -2064,6 +2134,7 @@ void Device::DeviceDisconnected() {
   // to reset the local volume var to be sure we send the correct value
   // to the remote device on the next connection.
   volume_ = VOL_NOT_SUPPORTED;
+  last_request_volume_ = volume_;
   fast_forwarding_ = false;
   fast_rewinding_ = false;
 }

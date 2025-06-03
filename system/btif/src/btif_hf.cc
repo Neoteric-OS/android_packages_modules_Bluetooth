@@ -138,6 +138,7 @@ struct btif_hf_cb_t {
   int num_held;
   bool is_during_voice_recognition;
   bthf_call_state_t call_setup_state;
+  bthf_audio_state_t audio_state;
 };
 
 static btif_hf_cb_t btif_hf_cb[BTA_AG_MAX_NUM_CLIENTS];
@@ -423,7 +424,8 @@ static void btif_hf_upstreams_evt(uint16_t event, char* p_param) {
           bluetooth::shim::CountCounterMetrics(
                   android::bluetooth::CodePathCounterKeyEnum::HFP_COLLISON_AT_CONNECTING, 1);
           reset_control_block(&btif_hf_cb[idx]);
-          btif_queue_advance();
+          btif_queue_advance_by_uuid(UUID_SERVCLASS_AG_HANDSFREE,
+                                     &btif_hf_cb[idx].connected_bda);
         }
       }
 
@@ -482,7 +484,7 @@ static void btif_hf_upstreams_evt(uint16_t event, char* p_param) {
 
         bluetooth::shim::CountCounterMetrics(
                 android::bluetooth::CodePathCounterKeyEnum::HFP_SELF_INITIATED_AG_FAILED, 1);
-        btif_queue_advance();
+        btif_queue_advance_by_uuid(UUID_SERVCLASS_AG_HANDSFREE, &connected_bda);
         if (btm_sec_is_a_bonded_dev(connected_bda)) {
           DEVICE_IOT_CONFIG_ADDR_INT_ADD_ONE(connected_bda, IOT_CONF_KEY_HFP_SLC_CONN_FAIL_COUNT);
         }
@@ -506,7 +508,7 @@ static void btif_hf_upstreams_evt(uint16_t event, char* p_param) {
         log::error("failed to setup SLC for {}", connected_bda);
         bluetooth::shim::CountCounterMetrics(
                 android::bluetooth::CodePathCounterKeyEnum::HFP_SLC_SETUP_FAILED, 1);
-        btif_queue_advance();
+        btif_queue_advance_by_uuid(UUID_SERVCLASS_AG_HANDSFREE, &connected_bda);
         LogMetricHfpSlcFail(ToGdAddress(p_data->open.bd_addr));
         DEVICE_IOT_CONFIG_ADDR_INT_ADD_ONE(btif_hf_cb[idx].connected_bda,
                                            IOT_CONF_KEY_HFP_SLC_CONN_FAIL_COUNT);
@@ -528,12 +530,14 @@ static void btif_hf_upstreams_evt(uint16_t event, char* p_param) {
       bt_hf_callbacks->ConnectionStateCallback(btif_hf_cb[idx].state,
                                                &btif_hf_cb[idx].connected_bda);
       if (btif_hf_cb[idx].is_initiator) {
-        btif_queue_advance();
+        btif_queue_advance_by_uuid(UUID_SERVCLASS_AG_HANDSFREE,
+                                   &btif_hf_cb[idx].connected_bda);
       }
       break;
 
     case BTA_AG_AUDIO_OPEN_EVT:
       log::debug("Audio open event:{}", dump_hf_event(event));
+      btif_hf_cb[idx].audio_state = BTHF_AUDIO_STATE_CONNECTED;
       bt_hf_callbacks->AudioStateCallback(BTHF_AUDIO_STATE_CONNECTED,
                                           &btif_hf_cb[idx].connected_bda);
       break;
@@ -544,6 +548,7 @@ static void btif_hf_upstreams_evt(uint16_t event, char* p_param) {
       DEVICE_IOT_CONFIG_ADDR_INT_ADD_ONE(btif_hf_cb[idx].connected_bda,
                                          IOT_CONF_KEY_HFP_SCO_CONN_FAIL_COUNT);
 
+      btif_hf_cb[idx].audio_state = BTHF_AUDIO_STATE_DISCONNECTED;
       bt_hf_callbacks->AudioStateCallback(BTHF_AUDIO_STATE_DISCONNECTED,
                                           &btif_hf_cb[idx].connected_bda);
       break;
@@ -727,6 +732,10 @@ static void btif_hf_upstreams_evt(uint16_t event, char* p_param) {
         log::verbose(
             "AG final selected SWB codec is 0x{:02x} 0=Q0 4=Q1 6=Q2 7=Q3",
             p_data->val.num);
+      if (p_data->val.num  &  BTA_AG_SCO_APTX_SWB_SETTINGS_Q0_MASK) {
+            log::verbose("btif_hf override-Preferred Codec to SWB");
+            BTA_AgSetCodec(btif_hf_cb[idx].handle, BTA_AG_SCO_APTX_SWB_SETTINGS_Q0);
+      }
       p_data->val.num = BTA_AG_SCO_APTX_SWB_SETTINGS_Q0;
       log::verbose("p->data.num {}",p_data->val.num);
       config_s = BTHF_SWB_YES;
@@ -1000,8 +1009,14 @@ bt_status_t HeadsetInterface::ConnectAudio(RawAddress* bd_addr, int disabled_cod
                                   // Manual pointer management for now
                                   base::Unretained(bt_hf_callbacks), BTHF_AUDIO_STATE_CONNECTING,
                                   &btif_hf_cb[idx].connected_bda));
+  log::info("current audio state",btif_hf_cb[idx].audio_state);
   BTA_AgAudioOpen(btif_hf_cb[idx].handle, disabled_codecs);
 
+  if (btif_hf_cb[idx].audio_state != BTHF_AUDIO_STATE_CONNECTED) {
+     log::info("Moving the audio_state to CONNECTING for device {}",
+                btif_hf_cb[idx].connected_bda.ToString().c_str());
+     btif_hf_cb[idx].audio_state = BTHF_AUDIO_STATE_CONNECTING;
+   }
   DEVICE_IOT_CONFIG_ADDR_INT_ADD_ONE(*bd_addr, IOT_CONF_KEY_HFP_SCO_CONN_COUNT);
 
   return BT_STATUS_SUCCESS;
@@ -1612,6 +1627,15 @@ bt_status_t HeadsetInterface::SendBsir(bool value, RawAddress* bd_addr) {
 bt_status_t HeadsetInterface::SetActiveDevice(RawAddress* active_device_addr) {
   CHECK_BTHF_INIT();
   active_bda = *active_device_addr;
+    // if SCO is setting up, don't allow active device switch
+  for (int i = 0; i < btif_max_hf_clients; i++) {
+    if (btif_hf_cb[i].audio_state == BTHF_AUDIO_STATE_CONNECTING) {
+       log::error("SCO setting up with {}, not allowing active device switch to {}",
+         btif_hf_cb[i].connected_bda.ToString().c_str(),
+       active_device_addr->ToString().c_str());
+       return BT_STATUS_FAIL;
+    }
+  }
   BTA_AgSetActiveDevice(*active_device_addr);
   return BT_STATUS_SUCCESS;
 }

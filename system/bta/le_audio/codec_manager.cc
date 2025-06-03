@@ -284,11 +284,9 @@ public:
       auto unicast_cfg = stream_params.get(direction).stream_config;
       log::debug( ": coding_format = {}, vendor_codec_id = {}",
                   unicast_cfg.codec_id.coding_format, unicast_cfg.codec_id.vendor_codec_id);
-
-      unicast_cfg.stream_map =
-              (stream_map.is_initial || LeAudioHalVerifier::SupportsStreamActiveApi())
-                      ? stream_map.streams_map_target
-                      : stream_map.streams_map_current;
+      log::debug("is_initial: {}, SupportStreamActiveApi: {}",
+            stream_map.is_initial,LeAudioHalVerifier::SupportsStreamActiveApi());
+      unicast_cfg.stream_map = stream_map.streams_map_target;
       unicast_cfg.codec_id = id;
 
       update_receiver(unicast_cfg, direction);
@@ -516,7 +514,7 @@ public:
         }
       }
 
-      broadcast_config.bits_per_sample = LeAudioCodecConfiguration::kBitsPerSample16;
+      broadcast_config.bits_per_sample = LeAudioCodecConfiguration::kBitsPerSample24;
       broadcast_config.sampling_rate = core_config.GetSamplingFrequencyHz();
       broadcast_config.frame_duration = core_config.GetFrameDurationUs();
       broadcast_config.octets_per_frame = *(core_config.octets_per_codec_frame);

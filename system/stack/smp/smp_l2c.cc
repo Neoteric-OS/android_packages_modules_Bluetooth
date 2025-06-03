@@ -117,11 +117,16 @@ static void smp_connect_callback(uint16_t /* channel */, const RawAddress& bd_ad
         /* initiating connection established */
         p_cb->role = stack::l2cap::get_interface().L2CA_GetBleConnRole(bd_addr);
 
-        /* initialize local i/r key to be default keys */
-        p_cb->local_r_key = p_cb->local_i_key = SMP_SEC_DEFAULT_KEY;
-        p_cb->loc_auth_req = p_cb->peer_auth_req = SMP_DEFAULT_AUTH_REQ;
-        p_cb->cb_evt = SMP_IO_CAP_REQ_EVT;
-        smp_sm_event(p_cb, SMP_L2CAP_CONN_EVT, NULL);
+        if (p_cb->br_state == SMP_BR_STATE_IDLE) {
+          /* initialize local i/r key to be default keys */
+          p_cb->local_r_key = p_cb->local_i_key = SMP_SEC_DEFAULT_KEY;
+          p_cb->loc_auth_req = p_cb->peer_auth_req = SMP_DEFAULT_AUTH_REQ;
+          p_cb->cb_evt = SMP_IO_CAP_REQ_EVT;
+          smp_sm_event(p_cb, SMP_L2CAP_CONN_EVT, NULL);
+        } else {
+          log::warn("SMP over BREDR is in progress state {}",
+            p_cb->br_state);
+        }
       }
     } else {
       /* Disconnected while doing security */

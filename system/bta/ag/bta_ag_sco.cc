@@ -366,7 +366,9 @@ static void bta_ag_esco_connreq_cback(tBTM_ESCO_EVT event, tBTM_ESCO_EVT_DATA* p
     uint16_t sco_inx = p_data->conn_evt.sco_inx;
     const RawAddress* remote_bda = BTM_ReadScoBdAddr(sco_inx);
     tBTA_AG_SCB* p_scb = bta_ag_scb_by_idx(bta_ag_idx_by_bdaddr(remote_bda));
-    if (remote_bda && bta_ag_sco_is_active_device(*remote_bda) && p_scb && p_scb->svc_conn) {
+    if (remote_bda && bta_ag_sco_is_active_device(*remote_bda) && p_scb &&
+        p_scb->svc_conn && ((bta_ag_is_call_present(remote_bda) == true) ||
+        (p_scb->is_vr_active == true))) {
       p_scb->sco_idx = sco_inx;
 
       /* If no other SCO active, allow this one */
@@ -684,6 +686,7 @@ void bta_ag_codec_negotiate(tBTA_AG_SCB* p_scb) {
       !(p_scb->peer_features & BTA_AG_PEER_FEAT_CODEC)) {
     log::info("Assume CVSD by default due to mask mismatch");
     p_scb->sco_codec = BTM_SCO_CODEC_CVSD;
+    p_scb->is_aptx_swb_codec = false;
   }
   const bool aptx_voice = is_hfp_aptx_voice_enabled() &&
                           (get_swb_codec_status(bluetooth::headset::BTHF_SWB_CODEC_VENDOR_APTX,
@@ -1084,9 +1087,18 @@ static void bta_ag_sco_event(tBTA_AG_SCB* p_scb, uint8_t event) {
             /* remove listening connection */
             bta_ag_remove_sco(p_scb, false);
           } else {
-            p_sco->state = BTA_AG_SCO_SHUTTING_ST;
+            // if RFCOMM conn closed, move to shutdown/listen state
+            if (p_scb->svc_conn) {
+              p_sco->state = BTA_AG_SCO_SHUTTING_ST;
+            } else {
+              log::verbose("RFCOMM got disconnected before SCO close");
+              if (!bta_ag_other_scb_open(p_scb)) {
+                p_sco->state = BTA_AG_SCO_SHUTDOWN_ST;
+              } else {/* Other instance is still listening */
+                p_sco->state = BTA_AG_SCO_LISTEN_ST;
+              }
+            }
           }
-
           break;
 
         case BTA_AG_SCO_CONN_CLOSE_E:

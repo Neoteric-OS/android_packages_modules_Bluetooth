@@ -1272,7 +1272,9 @@ void LeAudioDevice::SetMetadataToAse(struct types::ase* ase,
   std::vector<uint8_t> temp_ccid_lists;
   temp_ccid_lists.push_back(static_cast<uint8_t>(1));
   temp_ccid_lists.push_back(static_cast<uint8_t>(2));*/
- 
+
+  log::info("directional_audio_context: {}",
+                        bluetooth::common::ToString(directional_audio_context));
   if (directional_audio_context.any()) {
     ase->metadata.Append(GetMetadata(directional_audio_context, ccid_lists));
   } else {
@@ -1294,7 +1296,13 @@ bool LeAudioDevice::ActivateConfiguredAses(
 
   log::info("Configuring device {}", address_);
   for (auto& ase : ases_) {
-    if (ase.state == AseState::BTA_LE_AUDIO_ASE_STATE_CODEC_CONFIGURED &&
+    log::info("ase state: {}, configured_for_context_type: {}, context_type: {}",
+                          bluetooth::common::ToString(ase.state),
+                          bluetooth::common::ToString(ase.configured_for_context_type),
+                          bluetooth::common::ToString(context_type));
+
+    if ((ase.state == AseState::BTA_LE_AUDIO_ASE_STATE_CODEC_CONFIGURED/* ||
+         ase.state == AseState::BTA_LE_AUDIO_ASE_STATE_QOS_CONFIGURED*/) &&
         ase.configured_for_context_type == context_type) {
       log::info(
               "conn_id: {}, ase id {}, cis id {}, cis_handle 0x{:04x} is "

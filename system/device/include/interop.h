@@ -273,6 +273,9 @@ typedef enum {
   // as 1.3
   INTEROP_AVRCP_1_3_ONLY,
 
+  //Few remote devices do not support a2dp v1.4 well, rsp v1.3 for such remotes.
+  INTEROP_A2DP_1_3_ONLY,
+
   // As per the implementation for the incoming connection scenario if one
   // profile got connected and other profile didn't get connected, DUT starts
   // connect other profiles after 6sec timeout. For some certain device,
@@ -378,6 +381,8 @@ typedef enum {
 
   // Some devices don't respond to LE appearance read request.
   INTEROP_DISABLE_READ_LE_APPEARANCE,
+
+  INTEROP_A2DP_DELAY_SNIFF_SUBRATING,
 
   END_OF_INTEROP_LIST
 } interop_feature_t;

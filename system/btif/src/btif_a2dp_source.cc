@@ -405,6 +405,11 @@ class A2dpStreamCallbacks : public bluetooth::audio::a2dp::StreamCallbacks {
     btif_av_set_low_latency(low_latency);
     return Status::SUCCESS;
   }
+
+  Status UpdateSourceMetadata(bool is_gaming_mode) const override {
+    btif_av_update_source_metadata(is_gaming_mode);
+    return Status::SUCCESS;
+  }
 };
 
 static const A2dpStreamCallbacks a2dp_stream_callbacks;
@@ -705,7 +710,7 @@ void btif_a2dp_source_start_audio_req(void) {
 }
 
 void btif_a2dp_source_stop_audio_req(void) {
-  log::info("state={}", btif_a2dp_source_cb.StateStr());
+  log::info("state={} tx_flush={}", btif_a2dp_source_cb.StateStr(), btif_a2dp_source_cb.tx_flush);
 
   do_in_main_thread(base::BindOnce(&btif_a2dp_source_audio_tx_stop_event));
 }
@@ -803,7 +808,7 @@ void btif_a2dp_source_on_idle(void) {
 }
 
 void btif_a2dp_source_on_stopped(tBTA_AV_SUSPEND* p_av_suspend) {
-  log::info("state={}", btif_a2dp_source_cb.StateStr());
+  log::info("state={} tx_flush={}", btif_a2dp_source_cb.StateStr(), btif_a2dp_source_cb.tx_flush);
 
   btif_a2dp_source_cb.sw_audio_is_encoding = false;
 
@@ -824,6 +829,7 @@ void btif_a2dp_source_on_stopped(tBTA_AV_SUSPEND* p_av_suspend) {
   }
 
   // ensure tx frames are immediately suspended
+  log::info("setting tx_flush true");
   btif_a2dp_source_cb.tx_flush = true;
   // ensure tx frames are immediately flushed
   btif_a2dp_source_audio_tx_flush_req();
@@ -835,7 +841,7 @@ void btif_a2dp_source_on_stopped(tBTA_AV_SUSPEND* p_av_suspend) {
 }
 
 void btif_a2dp_source_on_suspended(tBTA_AV_SUSPEND* p_av_suspend) {
-  log::info("state={}", btif_a2dp_source_cb.StateStr());
+  log::info("state={} tx_flush={}", btif_a2dp_source_cb.StateStr(), btif_a2dp_source_cb.tx_flush);
 
   if (btif_a2dp_source_cb.State() == BtifA2dpSource::kStateOff) {
     return;
@@ -851,10 +857,12 @@ void btif_a2dp_source_on_suspended(tBTA_AV_SUSPEND* p_av_suspend) {
       bluetooth::audio::a2dp::ack_stream_suspended(Status::FAILURE);
     }
   } else if (btif_av_is_a2dp_offload_running()) {
+    log::info("btif_av_is_a2dp_offload_running, send ack_stream_suspended");
     bluetooth::audio::a2dp::ack_stream_suspended(Status::SUCCESS);
   }
 
   // ensure tx frames are immediately suspended
+  log::info("setting tx_flush true");
   btif_a2dp_source_cb.tx_flush = true;
 
   // stop timer tick
@@ -870,8 +878,8 @@ void btif_a2dp_source_set_tx_flush(bool enable) {
 }
 
 static void btif_a2dp_source_audio_tx_start_event(void) {
-  log::info("streaming {} state={}", btif_a2dp_source_is_streaming(),
-            btif_a2dp_source_cb.StateStr());
+  log::info("streaming {} state={} tx_flush={}", btif_a2dp_source_is_streaming(),
+            btif_a2dp_source_cb.StateStr(), btif_a2dp_source_cb.tx_flush);
 
   btif_a2dp_source_cb.stats.Reset();
   btif_a2dp_source_cb.stats.session_start_us = bluetooth::common::time_get_os_boottime_us();
@@ -883,6 +891,7 @@ static void btif_a2dp_source_audio_tx_start_event(void) {
   }
 
   if (btif_av_is_a2dp_offload_running()) {
+    log::info("btif_a2dp_source_audio_tx_start_event, btif_av_is_a2dp_offload_running, return");
     return;
   }
 
@@ -914,10 +923,12 @@ static void btif_a2dp_source_audio_tx_stop_event(void) {
                                     &btif_a2dp_source_cb.accumulated_stats);
 
   if (btif_av_is_a2dp_offload_running()) {
+    log::info("btif_a2dp_source_audio_tx_stop_event, btif_av_is_a2dp_offload_running, return");
     return;
   }
 
   if (!btif_a2dp_source_is_streaming()) {
+    log::info("btif_a2dp_source_audio_tx_stop_event, !btif_a2dp_source_is_streaming()");
     return;
   }
 
@@ -1003,8 +1014,9 @@ static bool btif_a2dp_source_enqueue_callback(BT_HDR* p_buf, size_t frames_n,
   uint64_t now_us = bluetooth::common::time_get_os_boottime_us();
 
   // Check if the transmission queue has been flushed.
+  log::info("btif_a2dp_source_enqueue_callback");
   if (btif_a2dp_source_cb.tx_flush) {
-    log::verbose("tx suspended, discarded frame");
+    log::info("tx suspended, discarded frame");
 
     btif_a2dp_source_cb.stats.tx_queue_total_flushed_messages +=
             fixed_queue_length(btif_a2dp_source_cb.tx_audio_queue);

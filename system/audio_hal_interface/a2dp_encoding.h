@@ -56,6 +56,7 @@ public:
   virtual Status SuspendStream() const { return Status::FAILURE; }
   virtual Status StopStream() const { return SuspendStream(); }
   virtual Status SetLatencyMode(bool /*low_latency*/) const { return Status::FAILURE; }
+  virtual Status UpdateSourceMetadata(bool /*is_gaming_mode*/) const { return Status::FAILURE; }
 };
 
 bool update_codec_offloading_capabilities(

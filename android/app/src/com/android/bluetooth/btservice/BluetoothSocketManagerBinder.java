@@ -51,6 +51,7 @@ class BluetoothSocketManagerBinder extends IBluetoothSocketManager.Stub {
     public ParcelFileDescriptor connectSocket(
             BluetoothDevice device, int type, ParcelUuid uuid, int port, int flag) {
 
+        String leDeviceAddr = null;
         enforceActiveUser();
 
         if (!Utils.checkConnectPermissionForPreflight(mService)) {
@@ -59,9 +60,20 @@ class BluetoothSocketManagerBinder extends IBluetoothSocketManager.Stub {
 
         String brEdrAddress = Utils.getBrEdrAddress(device);
 
+        if (type == BluetoothSocket.TYPE_L2CAP_LE) {
+          leDeviceAddr = mService.getIdentityAddress(device.getAddress());
+          if (leDeviceAddr == null)
+            leDeviceAddr = device.getAddress();
+ 
+          Log.i(
+                  TAG,
+                  "connectsocket: leDeviceAddr ="
+                      + leDeviceAddr);
+        }
+
         Log.i(
                 TAG,
-                "connectSocket: device="
+                "connectsocket: device="
                         + device
                         + ", type="
                         + type
@@ -77,7 +89,7 @@ class BluetoothSocketManagerBinder extends IBluetoothSocketManager.Stub {
                         .connectSocket(
                                 Utils.getBytesFromAddress(
                                         type == BluetoothSocket.TYPE_L2CAP_LE
-                                                ? device.getAddress()
+                                                ? leDeviceAddr
                                                 : brEdrAddress),
                                 type,
                                 Utils.uuidToByteArray(uuid),

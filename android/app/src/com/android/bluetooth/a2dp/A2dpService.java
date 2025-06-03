@@ -113,6 +113,7 @@ public class A2dpService extends ProfileService {
     // A2DP Offload Enabled in platform
     private final boolean mA2dpOffloadEnabled;
     private final boolean mAlsDisabled;
+    private final boolean mA2dpCodecExtensiblityEnabled;
 
     // Head tracker available
     private static final long HEAD_TRACKER_AVAILABLE_MASK = 0x00300000;
@@ -152,6 +153,8 @@ public class A2dpService extends ProfileService {
 
         mAlsDisabled = SystemProperties.getBoolean
                                         ("persist.vendor.service.bt.als_disabled", false);
+        mA2dpCodecExtensiblityEnabled = SystemProperties.getBoolean(
+             "persist.vendor.qcom.bluetooth.a2dp_offload_codec_extensibility", false);
         mMaxConnectedAudioDevices = mAdapterService.getMaxConnectedAudioDevices();
         Log.i(TAG, "Max connected audio devices set to " + mMaxConnectedAudioDevices);
 
@@ -810,6 +813,11 @@ public class A2dpService extends ProfileService {
                                 BluetoothCodecConfig.SOURCE_CODEC_TYPE_APTX_ADAPTIVE) {
             if (mAlsDisabled) {
                 Log.e(TAG, "setCodecConfigPreference: ALS trigger is ignored");
+                return;
+            }
+
+            if (mA2dpCodecExtensiblityEnabled) {
+                Log.e(TAG, "setCodecCfgPreference: Ignore ALS trigger when A2DP extension enabled");
                 return;
             }
 

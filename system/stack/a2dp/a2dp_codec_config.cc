@@ -317,7 +317,7 @@ bool A2dpCodecConfig::getCodecSpecificConfig(tBT_A2DP_OFFLOAD* p_a2dp_offload) {
 bool A2dpCodecConfig::copyOutOtaCodecConfig(uint8_t* p_codec_info) {
   std::lock_guard<std::recursive_mutex> lock(codec_mutex_);
   for (int i = 0; i < AVDT_CODEC_SIZE; i++) {
-    LOG(ERROR) << __func__ << ": type of ota_codec_config_[" << i
+    LOG(INFO) << __func__ << ": type of ota_codec_config_[" << i
                << "]: " << ", ota_codec_config_float_ + " << i << ": "
                << (float)*(ota_codec_config_ + i) << ", ota_codec_config_hex_ + " << i << ": "
                << std::hex << *(ota_codec_config_ + i);
@@ -327,15 +327,15 @@ bool A2dpCodecConfig::copyOutOtaCodecConfig(uint8_t* p_codec_info) {
   if (!A2DP_IsSourceCodecValid(ota_codec_config_)) {
     return false;
   }
-  LOG(ERROR) << __func__ << ": sizeof(ota_codec_config_): " << sizeof(ota_codec_config_);
+  LOG(INFO) << __func__ << ": sizeof(ota_codec_config_): " << sizeof(ota_codec_config_);
   for (int i = 0; i < AVDT_CODEC_SIZE; i++) {
-    LOG(ERROR) << __func__ << ": type of ota_codec_config___[" << i
+    LOG(INFO) << __func__ << ": type of ota_codec_config___[" << i
                << "]: " << ", ota_codec_config_float_ + " << i << ": "
                << (float)*(ota_codec_config_ + i);
   }
   memcpy(p_codec_info, ota_codec_config_, sizeof(ota_codec_config_));
   for (int i = 0; i < AVDT_CODEC_SIZE; i++) {
-    LOG(ERROR) << __func__ << ": type of p_codec_info[" << i << "]: " << ", p_codec_info[" << i
+    LOG(INFO) << __func__ << ": type of p_codec_info[" << i << "]: " << ", p_codec_info[" << i
                << "]: " << (float)p_codec_info[i];
   }
   return true;

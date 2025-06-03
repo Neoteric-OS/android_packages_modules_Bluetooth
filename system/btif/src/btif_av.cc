@@ -93,6 +93,9 @@ static const char kBtifAvSinkServiceName[] = "Advanced Audio Sink";
 static constexpr int kDefaultMaxConnectedAudioDevices = 1;
 static constexpr tBTA_AV_HNDL kBtaHandleUnknown = 0;
 
+static btav_source_callbacks_t* bt_av_src_callbacks = NULL;
+static btav_sink_callbacks_t* bt_av_sink_callbacks = NULL;
+
 namespace {
 constexpr char kBtmLogHistoryTag[] = "A2DP";
 }
@@ -117,6 +120,7 @@ typedef struct {
 
 typedef struct {
   bool is_low_latency;
+  bool is_gaming_enabled;
 } btif_av_set_latency_req_t;
 
 typedef struct {
@@ -396,6 +400,9 @@ public:
     return data;
   }
 
+  bool GetLowLatencyMode () const { return is_low_latency_mode_; }
+  void SetLowLatencyMode(bool is_low_latency_mode) { is_low_latency_mode_ = is_low_latency_mode; }
+
 private:
   const RawAddress peer_address_;
   uint8_t peer_sep_;  // SEP type of peer device
@@ -410,6 +417,7 @@ private:
   uint16_t delay_report_;
   bool mandatory_codec_preferred_ = false;
   bool use_latency_mode_ = false;
+  bool is_low_latency_mode_ = false;
   std::optional<btif_av_reconfig_req_t> reconfig_req_;
 };
 
@@ -582,7 +590,6 @@ public:
                          std::promise<void> peer_ready_promise) {
     // Restart the session if the codec for the active peer is updated
     A2dpCodecConfig* current_codec = bta_av_get_a2dp_current_codec();
-
     bool aptX_config_change = true;
     uint16_t cs4 = 0;
     for (auto cp : codec_preferences) {
@@ -1225,6 +1232,7 @@ void BtifAvSource::Init(btav_source_callbacks_t* callbacks, int max_connected_au
 
   enabled_ = true;
   btif_enable_service(BTA_A2DP_SOURCE_SERVICE_ID);
+  bt_av_src_callbacks = callbacks;
   complete_promise.set_value(BT_STATUS_SUCCESS);
 }
 
@@ -1242,6 +1250,9 @@ void BtifAvSource::Cleanup() {
   btif_a2dp_source_cleanup();
 
   btif_disable_service(BTA_A2DP_SOURCE_SERVICE_ID);
+  if (bt_av_src_callbacks) {
+    bt_av_src_callbacks = NULL;
+  }
   CleanupAllPeers();
 
   callbacks_ = nullptr;
@@ -1487,6 +1498,7 @@ void BtifAvSink::Init(btav_sink_callbacks_t* callbacks, int max_connected_audio_
   }
   enabled_ = true;
   btif_enable_service(BTA_A2DP_SINK_SERVICE_ID);
+  bt_av_sink_callbacks = callbacks;
   complete_promise.set_value(BT_STATUS_SUCCESS);
 }
 
@@ -1504,6 +1516,9 @@ void BtifAvSink::Cleanup() {
   btif_a2dp_sink_cleanup();
 
   btif_disable_service(BTA_A2DP_SINK_SERVICE_ID);
+  if (bt_av_sink_callbacks) {
+    bt_av_sink_callbacks = NULL;
+  }
   CleanupAllPeers();
 
   callbacks_ = nullptr;
@@ -1797,7 +1812,13 @@ bool BtifAvStateMachine::StateIdle::ProcessEvent(uint32_t event, void* p_data) {
       if (!can_connect) {
         log::error("Cannot connect to peer {}: too many connected peers", peer_.PeerAddress());
         if (peer_.SelfInitiatedConnection()) {
-          btif_queue_advance();
+          if (bt_av_sink_callbacks != NULL) {
+            btif_queue_advance_by_uuid(UUID_SERVCLASS_AUDIO_SINK,
+                                       &peer_.PeerAddress());
+          } else if (bt_av_src_callbacks != NULL) {
+            btif_queue_advance_by_uuid(UUID_SERVCLASS_AUDIO_SOURCE,
+                                       &peer_.PeerAddress());
+          }
         }
         break;
       }
@@ -1975,7 +1996,14 @@ bool BtifAvStateMachine::StateIdle::ProcessEvent(uint32_t event, void* p_data) {
         peer_.StateMachine().TransitionTo(BtifAvStateMachine::kStateIdle);
         DEVICE_IOT_CONFIG_ADDR_INT_ADD_ONE(peer_.PeerAddress(), IOT_CONF_KEY_A2DP_CONN_FAIL_COUNT);
       }
-      btif_queue_advance();
+
+      if (bt_av_sink_callbacks != NULL) {
+        btif_queue_advance_by_uuid(UUID_SERVCLASS_AUDIO_SINK,
+                                   &peer_.PeerAddress());
+      } else if (bt_av_src_callbacks != NULL) {
+        btif_queue_advance_by_uuid(UUID_SERVCLASS_AUDIO_SOURCE,
+                                   &peer_.PeerAddress());
+      }
     } break;
 
     case BTA_AV_REMOTE_CMD_EVT:
@@ -2062,7 +2090,13 @@ bool BtifAvStateMachine::StateOpening::ProcessEvent(uint32_t event, void* p_data
                                    peer_.IsSource() ? A2dpType::kSink : A2dpType::kSource);
       peer_.StateMachine().TransitionTo(BtifAvStateMachine::kStateIdle);
       if (peer_.SelfInitiatedConnection()) {
-        btif_queue_advance();
+        if (bt_av_sink_callbacks != NULL) {
+          btif_queue_advance_by_uuid(UUID_SERVCLASS_AUDIO_SINK,
+                                     &peer_.PeerAddress());
+        } else if (bt_av_src_callbacks != NULL) {
+          btif_queue_advance_by_uuid(UUID_SERVCLASS_AUDIO_SOURCE,
+                                     &peer_.PeerAddress());
+        }
       }
       break;
     case BTA_AV_REJECT_EVT:
@@ -2075,7 +2109,13 @@ bool BtifAvStateMachine::StateOpening::ProcessEvent(uint32_t event, void* p_data
                                    peer_.IsSource() ? A2dpType::kSink : A2dpType::kSource);
       peer_.StateMachine().TransitionTo(BtifAvStateMachine::kStateIdle);
       if (peer_.SelfInitiatedConnection()) {
-        btif_queue_advance();
+        if (bt_av_sink_callbacks != NULL) {
+          btif_queue_advance_by_uuid(UUID_SERVCLASS_AUDIO_SINK,
+                                     &peer_.PeerAddress());
+        } else if (bt_av_src_callbacks != NULL) {
+          btif_queue_advance_by_uuid(UUID_SERVCLASS_AUDIO_SOURCE,
+                                     &peer_.PeerAddress());
+        }
       }
       break;
 
@@ -2183,7 +2223,13 @@ bool BtifAvStateMachine::StateOpening::ProcessEvent(uint32_t event, void* p_data
         }
       }
       if (peer_.SelfInitiatedConnection()) {
-        btif_queue_advance();
+        if (bt_av_sink_callbacks != NULL) {
+          btif_queue_advance_by_uuid(UUID_SERVCLASS_AUDIO_SINK,
+                                     &peer_.PeerAddress());
+        } else if (bt_av_src_callbacks != NULL) {
+          btif_queue_advance_by_uuid(UUID_SERVCLASS_AUDIO_SOURCE,
+                                     &peer_.PeerAddress());
+        }
       }
     } break;
 
@@ -2211,7 +2257,13 @@ bool BtifAvStateMachine::StateOpening::ProcessEvent(uint32_t event, void* p_data
               peer_.PeerAddress(), BtifAvEvent::EventName(event));
       bluetooth::shim::CountCounterMetrics(
               android::bluetooth::CodePathCounterKeyEnum::A2DP_ALREADY_CONNECTING, 1);
-      btif_queue_advance();
+      if (bt_av_sink_callbacks != NULL) {
+        btif_queue_advance_by_uuid(UUID_SERVCLASS_AUDIO_SINK,
+                                   &peer_.PeerAddress());
+      } else if (bt_av_src_callbacks != NULL) {
+        btif_queue_advance_by_uuid(UUID_SERVCLASS_AUDIO_SOURCE,
+                                   &peer_.PeerAddress());
+      }
     } break;
 
     case BTA_AV_PENDING_EVT: {
@@ -2243,7 +2295,13 @@ bool BtifAvStateMachine::StateOpening::ProcessEvent(uint32_t event, void* p_data
               android::bluetooth::CodePathCounterKeyEnum::A2DP_CONNECTION_CLOSE, 1);
       DEVICE_IOT_CONFIG_ADDR_INT_ADD_ONE(peer_.PeerAddress(), IOT_CONF_KEY_A2DP_CONN_FAIL_COUNT);
       if (peer_.SelfInitiatedConnection()) {
-        btif_queue_advance();
+        if (bt_av_sink_callbacks != NULL) {
+          btif_queue_advance_by_uuid(UUID_SERVCLASS_AUDIO_SINK,
+                                     &peer_.PeerAddress());
+        } else if (bt_av_src_callbacks != NULL) {
+          btif_queue_advance_by_uuid(UUID_SERVCLASS_AUDIO_SOURCE,
+                                     &peer_.PeerAddress());
+        }
       }
       break;
 
@@ -2257,7 +2315,13 @@ bool BtifAvStateMachine::StateOpening::ProcessEvent(uint32_t event, void* p_data
       bluetooth::shim::CountCounterMetrics(
               android::bluetooth::CodePathCounterKeyEnum::A2DP_CONNECTION_DISCONNECTED, 1);
       if (peer_.SelfInitiatedConnection()) {
-        btif_queue_advance();
+        if (bt_av_sink_callbacks != NULL) {
+          btif_queue_advance_by_uuid(UUID_SERVCLASS_AUDIO_SINK,
+                                     &peer_.PeerAddress());
+        } else if (bt_av_src_callbacks != NULL) {
+          btif_queue_advance_by_uuid(UUID_SERVCLASS_AUDIO_SOURCE,
+                                     &peer_.PeerAddress());
+        }
       }
       break;
 
@@ -2489,7 +2553,13 @@ bool BtifAvStateMachine::StateOpened::ProcessEvent(uint32_t event, void* p_data)
     case BTIF_AV_CONNECT_REQ_EVT: {
       log::warn("Peer {} : Ignore {} for same device", peer_.PeerAddress(),
                 BtifAvEvent::EventName(event));
-      btif_queue_advance();
+      if (bt_av_sink_callbacks != NULL) {
+        btif_queue_advance_by_uuid(UUID_SERVCLASS_AUDIO_SINK,
+                                   &peer_.PeerAddress());
+      } else if (bt_av_src_callbacks != NULL) {
+        btif_queue_advance_by_uuid(UUID_SERVCLASS_AUDIO_SOURCE,
+                                   &peer_.PeerAddress());
+      }
     } break;
 
     case BTIF_AV_OFFLOAD_START_REQ_EVT:
@@ -2515,6 +2585,31 @@ bool BtifAvStateMachine::StateOpened::ProcessEvent(uint32_t event, void* p_data)
                 p_set_latency_req->is_low_latency);
 
       BTA_AvSetLatency(peer_.BtaHandle(), p_set_latency_req->is_low_latency);
+
+      bool old_low_latency_set = peer_.GetLowLatencyMode();
+      bool new_low_latency_set = (p_set_latency_req->is_low_latency) ||
+                                 (p_set_latency_req->is_gaming_enabled);
+      log::info("old_low_latency_set={}, new_low_latency_set={}",
+                 old_low_latency_set, new_low_latency_set);
+
+      if (new_low_latency_set != old_low_latency_set) {
+        btav_a2dp_codec_audio_context_t audio_context_type = (new_low_latency_set) ?
+            BTAV_A2DP_CODEC_AUDIO_CONTEXT_GAME : BTAV_A2DP_CODEC_AUDIO_CONTEXT_MEDIA;
+        peer_.SetLowLatencyMode(new_low_latency_set);
+        A2dpCodecConfig* current_codec = bta_av_get_a2dp_current_codec();
+        if (current_codec == nullptr) return false;
+        auto codec_type = current_codec->codecIndex();
+        btav_a2dp_codec_config_t codec_config {
+            .codec_type = codec_type,
+            .codec_priority = BTAV_A2DP_CODEC_PRIORITY_HIGHEST,
+            .audio_context = audio_context_type,
+            // Using default settings for those untouched fields
+        };
+        const std::vector<btav_a2dp_codec_config_t>& codec_preferences = {codec_config};
+        std::promise<void> peer_ready_promise;
+        btif_av_source.UpdateCodecConfig(peer_.PeerAddress(), codec_preferences,
+                                         std::move(peer_ready_promise));
+      }
     } break;
 
     case BTIF_AV_RECONFIGURE_REQ_EVT: {
@@ -2655,7 +2750,13 @@ bool BtifAvStateMachine::StateStarted::ProcessEvent(uint32_t event, void* p_data
     case BTIF_AV_CONNECT_REQ_EVT: {
       log::warn("Peer {} : Ignore {} for same device", peer_.PeerAddress(),
               BtifAvEvent::EventName(event));
-      btif_queue_advance();
+      if (bt_av_sink_callbacks != NULL) {
+        btif_queue_advance_by_uuid(UUID_SERVCLASS_AUDIO_SINK,
+                                   &peer_.PeerAddress());
+      } else if (bt_av_src_callbacks != NULL) {
+        btif_queue_advance_by_uuid(UUID_SERVCLASS_AUDIO_SOURCE,
+                                   &peer_.PeerAddress());
+      }
     } break;
 
     case BTA_AV_SUSPEND_EVT: {
@@ -2664,12 +2765,16 @@ bool BtifAvStateMachine::StateStarted::ProcessEvent(uint32_t event, void* p_data
                 peer_.FlagsToString());
 
       // A2DP suspended, stop A2DP encoder / decoder until resumed
-      if (peer_.IsActivePeer() ||
-          !btif_av_stream_started_ready(peer_.IsSource() ? A2dpType::kSink : A2dpType::kSource)) {
-        btif_a2dp_on_suspended(&p_av->suspend,
-                               peer_.IsSource() ? A2dpType::kSink : A2dpType::kSource);
+      if (p_av->suspend.initiator) {
+        log::info("Suspend initiator, conditionally call btif_a2dp_on_suspended");
+        if (peer_.IsActivePeer() ||
+            !btif_av_stream_started_ready(peer_.IsSource() ? A2dpType::kSink : A2dpType::kSource)) {
+          btif_a2dp_on_suspended(&p_av->suspend,
+                                 peer_.IsSource() ? A2dpType::kSink : A2dpType::kSource);
+        }
+      } else {
+        log::info("Remote Suspend, ignore calling btif_a2dp_on_suspended");
       }
-
       // If not successful, remain in current state
       if (p_av->suspend.status != BTA_AV_SUCCESS) {
         peer_.ClearFlags(BtifAvPeer::kFlagLocalSuspendPending);
@@ -2774,7 +2879,30 @@ bool BtifAvStateMachine::StateStarted::ProcessEvent(uint32_t event, void* p_data
                 BtifAvEvent::EventName(event), peer_.FlagsToString(),
                 p_set_latency_req->is_low_latency);
 
-      BTA_AvSetLatency(peer_.BtaHandle(), p_set_latency_req->is_low_latency);
+      bool old_low_latency_set = peer_.GetLowLatencyMode();
+      bool new_low_latency_set = (p_set_latency_req->is_low_latency) ||
+                                 (p_set_latency_req->is_gaming_enabled);
+      log::info("old_low_latency_set={}, new_low_latency_set={}",
+                 old_low_latency_set, new_low_latency_set);
+
+      if (new_low_latency_set != old_low_latency_set) {
+        btav_a2dp_codec_audio_context_t audio_context_type = (new_low_latency_set) ?
+            BTAV_A2DP_CODEC_AUDIO_CONTEXT_GAME : BTAV_A2DP_CODEC_AUDIO_CONTEXT_MEDIA;
+        peer_.SetLowLatencyMode(new_low_latency_set);
+        A2dpCodecConfig* current_codec = bta_av_get_a2dp_current_codec();
+        if (current_codec == nullptr) return false;
+        auto codec_type = current_codec->codecIndex();
+        btav_a2dp_codec_config_t codec_config {
+            .codec_type = codec_type,
+            .codec_priority = BTAV_A2DP_CODEC_PRIORITY_HIGHEST,
+            .audio_context = audio_context_type,
+            // Using default settings for those untouched fields
+        };
+        const std::vector<btav_a2dp_codec_config_t>& codec_preferences = {codec_config};
+        std::promise<void> peer_ready_promise;
+        btif_av_source.UpdateCodecConfig(peer_.PeerAddress(), codec_preferences,
+                                         std::move(peer_ready_promise));
+      }
     } break;
 
     case BTIF_AV_SET_CODEC_MODE_EVT: {
@@ -2869,12 +2997,19 @@ bool BtifAvStateMachine::StateClosing::ProcessEvent(uint32_t event, void* p_data
       btif_a2dp_on_offload_started(peer_.PeerAddress(), BTA_AV_FAIL);
       break;
 
-    case BTIF_AV_CONNECT_REQ_EVT:
+    case BTIF_AV_CONNECT_REQ_EVT: {
       log::warn("Peer {} : Ignore {} in StateClosing", peer_.PeerAddress(),
                 BtifAvEvent::EventName(event));
-      btif_queue_advance();
+      if (bt_av_sink_callbacks != NULL) {
+        btif_queue_advance_by_uuid(UUID_SERVCLASS_AUDIO_SINK,
+                                   &peer_.PeerAddress());
+      } else if (bt_av_src_callbacks != NULL) {
+        btif_queue_advance_by_uuid(UUID_SERVCLASS_AUDIO_SOURCE,
+                                   &peer_.PeerAddress());
+      }
       peer_.StateMachine().TransitionTo(BtifAvStateMachine::kStateIdle);
       break;
+    }
 
     case BTIF_AV_RECONFIGURE_REQ_EVT: {
       // Unlock JNI thread only
@@ -3554,7 +3689,7 @@ static bt_status_t connect_int(RawAddress* peer_address, uint16_t uuid) {
       peer = btif_av_sink.FindOrCreatePeer(*peer_address, kBtaHandleUnknown);
     }
     if (peer == nullptr) {
-      btif_queue_advance();
+      btif_queue_advance_by_uuid(uuid, peer_address);
       return;
     }
     peer->StateMachine().ProcessEvent(BTIF_AV_CONNECT_REQ_EVT, nullptr);
@@ -3708,6 +3843,11 @@ bt_status_t btif_av_source_set_active_device(const RawAddress& peer_address) {
                                            peer_address, std::move(peer_ready_promise)));
   if (status == BT_STATUS_SUCCESS) {
     peer_ready_future.wait();
+    if (!peer_address.IsEmpty() &&
+         bluetooth::avrcp::AvrcpService::Get() != nullptr) {
+        log::info("check pending play cmd");
+        bluetooth::avrcp::AvrcpService::Get()->HandlePendingPlay();
+    }
   } else {
     log::warn("BTIF AV Source fails to change peer");
   }
@@ -4219,8 +4359,15 @@ void btif_av_set_dynamic_audio_buffer_size(uint8_t dynamic_audio_buffer_size) {
 void btif_av_set_low_latency(bool is_low_latency) {
   log::info("active_peer={} is_low_latency={}", btif_av_source_active_peer(), is_low_latency);
 
+
+  // Below 3 lines for Spatial Audio Aptx-Adaptive LL Mode switch
+  btif_av_source.SetSpatialAudioLLMode(is_low_latency);
+  btif_av_update_aptx_mode_info();
+  btif_av_update_codec_mode();
+
   btif_av_set_latency_req_t set_latency_req;
   set_latency_req.is_low_latency = is_low_latency;
+  set_latency_req.is_gaming_enabled = btif_av_source.GetGamingMode();
   BtifAvEvent btif_av_event(BTIF_AV_SET_LATENCY_REQ_EVT, &set_latency_req, sizeof(set_latency_req));
 
   do_in_main_thread(base::BindOnce(&btif_av_handle_event,
@@ -4334,15 +4481,17 @@ void btif_av_update_aptx_mode_info() {
 
 void btif_av_update_source_metadata(bool is_gaming_enabled) {
   log::info("btif_av_update_source_metadata");
+  log::info("active_peer={} is_gaming_enabled={}", btif_av_source_active_peer(), is_gaming_enabled);
+
+  btif_av_set_latency_req_t set_latency_req;
+  set_latency_req.is_low_latency = btif_av_source.GetSpatialAudioLLMode();
+  set_latency_req.is_gaming_enabled = is_gaming_enabled;
+  BtifAvEvent btif_av_event(BTIF_AV_SET_LATENCY_REQ_EVT, &set_latency_req, sizeof(set_latency_req));
+
+  do_in_main_thread(base::BindOnce(&btif_av_handle_event,
+                                   AVDT_TSEP_SNK,  // peer_sep
+                                   btif_av_source_active_peer(), kBtaHandleUnknown, btif_av_event));
   btif_av_source.SetGamingMode(is_gaming_enabled);
-  btif_av_update_aptx_mode_info();
-  btif_av_update_codec_mode();
-}
-
-void btif_av_set_low_latency_spatial_audio(bool is_low_latency) {
-  log::info("is_low_latency: {}", is_low_latency ? "true" : "false");
-
-  btif_av_source.SetSpatialAudioLLMode(is_low_latency);
   btif_av_update_aptx_mode_info();
   btif_av_update_codec_mode();
 }

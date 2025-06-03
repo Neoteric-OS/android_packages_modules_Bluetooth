@@ -859,7 +859,17 @@ LeAudioDeviceGroup::GetAudioSetConfigurationRequirements(types::LeAudioContextTy
                    (int)direction);
         continue;
       }
-
+      if ((ctx_type == types::LeAudioContextType::LIVE) &&
+         (direction == types::kLeAudioDirectionSink)){
+         auto direction_sink_contexs = device->GetAvailableContexts(types::kLeAudioDirectionSink);
+         auto direction_src_contexs = device->GetAvailableContexts(types::kLeAudioDirectionSource);
+         if (!(direction_sink_contexs.test(ctx_type) && direction_src_contexs.test(ctx_type))){
+           log::warn("Device {} does not have both direction  for {}, treat it as source only",
+                      device->address_,
+                      common::ToString(ctx_type));
+           continue;
+         }
+       }
       // Do not put any requirements on the Source if Sink only scenario is used
       // Note: With the RINGTONE we should already prepare for a call.
       if ((direction == types::kLeAudioDirectionSource) &&
@@ -1036,6 +1046,11 @@ bool LeAudioDeviceGroup::SetPreferredAudioSetConfiguration(
     return true;
   }
 
+  if (!lex_codec_disabled.first && IsLeXDevice()) {
+     log::info("Ignore LE codecs switching for XPAN enabled");
+     return false;
+  }
+
   preferred_config_.sink = std::make_unique<btle_audio_codec_config_t>(output_codec_config);
   preferred_config_.source = std::make_unique<btle_audio_codec_config_t>(input_codec_config);
 
@@ -1074,7 +1089,6 @@ void LeAudioDeviceGroup::ResetPreferredAudioSetConfiguration(void) const {
 void LeAudioDeviceGroup::InvalidateCachedConfigurations(void) {
   log::info("Group id: {}", group_id_);
   context_to_configuration_cache_map_.clear();
-  context_to_preferred_configuration_cache_map_.clear();
 }
 
 types::BidirectionalPair<AudioContexts> LeAudioDeviceGroup::GetLatestAvailableContexts() const {
@@ -1789,6 +1803,15 @@ bool LeAudioDeviceGroup::IsAudioSetConfigurationSupported(
     log::debug("Looking for configuration: {} - {}", audio_set_conf->name,
                direction == types::kLeAudioDirectionSink ? "Sink" : "Source");
     auto const& ase_confs = audio_set_conf->confs.get(direction);
+    if (use_preference) {
+      auto& direction_req = (direction == types::kLeAudioDirectionSink)
+                                    ? requirements.sink_requirements
+                                    : requirements.source_requirements;
+      if (ase_confs.empty() && direction_req.has_value()) {
+        log::debug("No configurations for direction {}, but requirement has value.", (int)direction);
+        return false;
+      }
+    }
     if (ase_confs.empty()) {
       log::debug("No configurations for direction {}, skip it.", (int)direction);
       continue;
@@ -1817,7 +1840,8 @@ bool LeAudioDeviceGroup::IsAudioSetConfigurationSupported(
       if (!utils::IsAseConfigMatchedWithPreferredRequirements(
                   ase_confs, direction_req.value(),
                   codec_spec_conf::SingleChannelCountCapability2Config(
-                          preferred_config_.get(direction)->channel_count))) {
+                          preferred_config_.get(direction)->channel_count),
+                  preferred_config_.get(direction)->codec_type)) {
         return false;
       }
     }
@@ -1867,6 +1891,12 @@ bool LeAudioDeviceGroup::IsAudioSetConfigurationSupported(
       /* Skip if device has ASE configured in this direction already */
       if (device->ases_.empty()) {
         log::error("Device has no ASEs.");
+        continue;
+      }
+
+      /* Skip if device has not been connected */
+      if (device->GetConnectionState() != DeviceConnectState::CONNECTED) {
+        log::error("Device is not connected");
         continue;
       }
 
@@ -2466,8 +2496,15 @@ bool LeAudioDeviceGroup::IsConfiguredForContext(LeAudioContextType context_type)
   }
 
   if (!stream_conf.conf) {
+    log::debug("stream_conf.conf->name : {}",
+                                bluetooth::common::ToString(stream_conf.conf));
     return false;
   }
+
+  log::debug("stream_conf.conf->name: {}",
+                              bluetooth::common::ToString(stream_conf.conf));
+  log::debug("GetActiveConfiguration(): {}",
+                              bluetooth::common::ToString(GetActiveConfiguration()));
 
   /* Check if used configuration is same as the active one.*/
   return stream_conf.conf.get() == GetActiveConfiguration().get();

@@ -1488,6 +1488,19 @@ class HeadsetStateMachine extends StateMachine {
                 mIsBlacklistedForSCOAfterSLC = isSCONeededImmediatelyAfterSLC();
                 // Checking for the Blacklisted device Addresses
                 mIsBlacklistedDeviceforRetrySCO = isConnectedDeviceBlacklistedforRetrySco();
+
+                if (mSystemInterface.isInCall() || mSystemInterface.isRinging()) {
+                    Log.w(TAG, "call is in ringing/present, suspending a2dp/le audio");
+                    mSystemInterface.getAudioManager().setA2dpSuspended(true);
+                    if (isAtLeastU()) {
+                      BluetoothDevice btDevice = mAdapterService.getActiveDeviceManager()
+                                                    .fetchLeHearingAidActiveDevice();
+                      if (btDevice == null) {
+                          Log.w(TAG,"no le hearing aid device is active, suspend le audio");
+                         mSystemInterface.getAudioManager().setLeAudioSuspended(true);
+                      }
+                    }
+                }
                 // Remove pending connection attempts that were deferred during the pending
                 // state. This is to prevent auto connect attempts from disconnecting
                 // devices that previously successfully connected.
@@ -1854,6 +1867,13 @@ class HeadsetStateMachine extends StateMachine {
                                             + mDevice);
                             break;
                         }
+
+                        if (mIsRetrySco) {
+                            Log.d(TAG, "reset mIsRetrySco as DISCONNECT_AUDIO");
+                            mIsRetrySco = false;
+                            removeMessages(SCO_RETRIAL_NOT_REQ);
+                        }
+
                         if (mNativeInterface.disconnectAudio(mDevice)) {
                             stateLogD("DISCONNECT_AUDIO, device=" + mDevice);
                             transitionTo(mAudioDisconnecting);
@@ -2475,6 +2495,13 @@ class HeadsetStateMachine extends StateMachine {
                       SystemProperties.getInt("persist.vendor.btstack.mo.retry_sco.interval", 2000);
               }
            }
+
+           if (mIsRetrySco && callState.mNumActive == 0 && callState.mNumHeld == 0 &&
+                      callState.mCallState == HeadsetHalConstants.CALL_STATE_IDLE) {
+               Log.d(TAG, "reset mIsRetrySco as no call is ongoing");
+               mIsRetrySco = false;
+               removeMessages(SCO_RETRIAL_NOT_REQ);
+           }
         }
         mStateMachineCallState.mNumActive = callState.mNumActive;
         mStateMachineCallState.mNumHeld = callState.mNumHeld;
@@ -2588,8 +2615,10 @@ class HeadsetStateMachine extends StateMachine {
     }
 
     private void processAtCind(BluetoothDevice device) {
-        int call, callSetup;
+        int call, callSetup, call_state;
         logi("processAtCind: for device=" + device);
+         // get the top of the Q
+        HeadsetCallState tempCallState = mDelayedCSCallStates.peek();
         final HeadsetPhoneState phoneState = mSystemInterface.getHeadsetPhoneState();
         int service = phoneState.getCindService(), signal = phoneState.getCindSignal();
 
@@ -2597,13 +2626,19 @@ class HeadsetStateMachine extends StateMachine {
         Hence we ensure that a proper response is sent
         for the virtual call too.*/
         if (mHeadsetService.isVirtualCallStarted()) {
-            call = 1;
+            call = mStateMachineCallState.mNumActive;
             callSetup = 0;
         } else {
             // regular phone call
-            call = phoneState.getNumActiveCall();
-            callSetup = phoneState.getNumHeldCall();
+            call = mStateMachineCallState.mNumActive;
+            callSetup = mStateMachineCallState.mNumHeld;
         }
+        if(tempCallState != null &&
+            tempCallState.mCallState == HeadsetHalConstants.CALL_STATE_ALERTING)
+              call_state = HeadsetHalConstants.CALL_STATE_DIALING;
+        else
+              call_state = mStateMachineCallState.mCallState;
+        logi("sending call state in CIND resp as " + call_state);
 
         // During wifi call, a regular call in progress while no network service,
         // pretend service availability and signal strength.
@@ -2627,15 +2662,10 @@ class HeadsetStateMachine extends StateMachine {
             signal = phoneState.getCindSignal();
         }
 
-        mNativeInterface.cindResponse(
-                device,
-                service,
-                call,
-                callSetup,
-                phoneState.getCallState(),
-                signal,
-                phoneState.getCindRoam(),
+        mNativeInterface.cindResponse(device, service, call, callSetup,
+                call_state, signal, phoneState.getCindRoam(),
                 phoneState.getCindBatteryCharge());
+        logi("Exit processAtCind()");
     }
 
     @VisibleForTesting
@@ -3171,6 +3201,13 @@ class HeadsetStateMachine extends StateMachine {
         }
         if (clcc.mIndex == 0) {
             removeMessages(CLCC_RSP_TIMEOUT);
+        }
+        if ((clcc.mIndex != 0 && clcc.mNumber == null && clcc.mType == -1)
+                || (clcc.mIndex != 0 && clcc.mNumber == "")) {
+            clcc.mNumber = VOIP_CALL_NUMBER;
+            clcc.mType = PhoneNumberUtils.toaFromString(clcc.mNumber);
+            Log.i(TAG, "sendClccForCall: voip phoneNumber " +
+                          clcc.mNumber +" voip type " + clcc.mType);
         }
         mNativeInterface.clccResponse(
                 mDevice,
