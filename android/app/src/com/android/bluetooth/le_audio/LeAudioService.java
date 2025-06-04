@@ -510,8 +510,9 @@ public class LeAudioService extends ProfileService {
         }
         mNativeInterface.init(mLeAudioCodecConfig.getCodecConfigOffloading());
 
+        Log.d(TAG, "leaudioUseAudioModeListener is : " + leaudioUseAudioModeListener());
         if (leaudioUseAudioModeListener() && mAudioModeChangeListener != null) {
-          Log.i(TAG, "leaudioUseAudioModeListener is true, calling addOnModeChangedListener");
+          Log.i(TAG, "leaudioUseAudioModeListener is true, calling addOnModeChangedListener from start");
           mAudioManager.addOnModeChangedListener(getMainExecutor(), mAudioModeChangeListener);
         }
     }
@@ -529,8 +530,9 @@ public class LeAudioService extends ProfileService {
 
         mNativeInterface.init(mLeAudioCodecConfig.getCodecConfigOffloading());
 
+        Log.d(TAG, "leaudioUseAudioModeListener is : " + leaudioUseAudioModeListener());
         if (leaudioUseAudioModeListener() && mAudioModeChangeListener != null) {
-          Log.i(TAG, "leaudioUseAudioModeListener is true, calling addOnModeChangedListener");
+          Log.i(TAG, "leaudioUseAudioModeListener is true, calling addOnModeChangedListener from init");
           mAudioManager.addOnModeChangedListener(getMainExecutor(), mAudioModeChangeListener);
         }
     }
