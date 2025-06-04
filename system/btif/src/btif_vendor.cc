@@ -157,6 +157,14 @@ void btif_vendor_update_add_on_features_to_jni() {
 void btif_vendor_update_add_on_features() {
   do_in_jni_thread(base::BindOnce(btif_vendor_update_add_on_features_to_jni));
 }
+
+void btif_vendor_update_ssr_event_to_jni() {
+  HAL_CBACK(bt_vendor_callbacks, ssr_vendor_cb);
+}
+
+void btif_vendor_update_ssr_event() {
+  do_in_jni_thread(base::BindOnce(btif_vendor_update_ssr_event_to_jni));
+}
 static void set_wifi_state(bool status) {
   log::info("setWifiState :{}", status);
 }
