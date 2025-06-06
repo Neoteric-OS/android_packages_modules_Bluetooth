@@ -3189,7 +3189,9 @@ public class LeAudioService extends ProfileService {
                 }
             }
             try {
-                mAudioServersScanner.startScan(filterList, settings, mScanCallback);
+                if (mScanCallback != null){
+                    mAudioServersScanner.startScan(filterList, settings, mScanCallback);
+                }
             } catch (IllegalStateException e) {
                 Log.e(TAG, "Fail to start scanner, consider it stopped", e);
                 mScanCallback = null;
