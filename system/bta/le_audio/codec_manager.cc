@@ -471,7 +471,7 @@ public:
   std::unique_ptr<AudioSetConfiguration> GetCodecConfig(
           const CodecManager::UnicastConfigurationRequirements& requirements,
           CodecManager::UnicastConfigurationProvider provider) {
-    if (IsUsingCodecExtensibility()) {
+    if (IsUsingCodecExtensibility() && unicast_local_source_hal_client) {
       auto hal_config = unicast_local_source_hal_client->GetUnicastConfig(requirements);
       if (hal_config) {
         return std::make_unique<AudioSetConfiguration>(*hal_config);
