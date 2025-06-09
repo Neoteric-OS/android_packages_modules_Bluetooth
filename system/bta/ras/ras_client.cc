@@ -48,6 +48,7 @@
 #include "types/raw_address.h"
 #include "stack/btm/btm_dev.h"
 #include "stack/btm/security_device_record.h"
+#include "internal_include/stack_config.h"
 
 using namespace bluetooth;
 using namespace ::ras;
@@ -816,7 +817,8 @@ public:
   }
 
   void AllCharacteristicsReadComplete(std::shared_ptr<RasTracker> tracker) {
-    if (tracker->remote_supported_features_ & feature::kRealTimeRangingData) {
+    if (tracker->remote_supported_features_ & feature::kRealTimeRangingData 
+               & !(stack_config_get_interface()->get_pts_bcs_ranging_select())) {
       log::info("Subscribe Real-time Ranging Data");
       tracker->ranging_type_ = REAL_TIME;
       if (!SubscribeCharacteristic(tracker, kRasRealTimeRangingDataCharacteristic)) {
