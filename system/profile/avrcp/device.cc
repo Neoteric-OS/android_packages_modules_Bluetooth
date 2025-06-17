@@ -956,7 +956,13 @@ void Device::AddressedPlayerNotificationResponse(uint8_t label, bool interim,
   if (!interim) {
     active_labels_.erase(label);
     addr_player_changed_ = Notification(false, 0);
-    RejectNotification();
+    bool is_pts_enable = osi_property_get_bool("persist.vendor.bt.a2dp.pts_enable",
+                                             false);
+    log::info("is_pts_enable: {}", is_pts_enable);
+    if (is_pts_enable) {
+      log::info("Reject pending Notifications");
+      RejectNotification();
+    }
   }
 }
 
@@ -1045,8 +1051,14 @@ void Device::GetElementAttributesResponse(uint8_t label,
             response->AddAttributeEntry(attribute, "Unavailable");
           }
         } else {
-          log::verbose("Add attribute value");
-          response->AddAttributeEntry(*info.attributes.find(attribute));
+          bool pts_no_cover_art = osi_property_get_bool("persist.vendor.bt.a2dp.pts_no_cover_art", false);
+          if(pts_no_cover_art) {
+            log::verbose(" pts_no_cover_art: {}, add empty string", pts_no_cover_art);
+            response->AddAttributeEntry(attribute, std::string());
+          } else {
+            log::verbose("Add attribute value");
+            response->AddAttributeEntry(*info.attributes.find(attribute));
+          }
         }
       } else {
         if (attribute == Attribute::DEFAULT_COVER_ART)  {
@@ -1496,7 +1508,12 @@ void Device::GetTotalNumberOfItemsNowPlayingResponse(uint8_t label, std::string 
                                                      std::vector<SongInfo> list) {
   log::verbose("num_items={}", list.size());
 
-  if (curr_addressed_player_id_ == -1) {
+  bool running_pts = osi_property_get_bool("persist.vendor.bt.a2dp.pts_enable", false);
+  /*
+    AVRCP/TG/MCN/NP/BV-11-C - PTS doesn't do SET_ADDRESSED_PLAYER, hence curr_addressed_player_id_
+    will be -1 always. Hence avoid NO_AVAILABLE_PLAYERS response
+  */
+  if (curr_addressed_player_id_ == -1 && !running_pts) {
     auto response = GetTotalNumberOfItemsResponseBuilder::MakeBuilder(Status::NO_AVAILABLE_PLAYERS,
                                                                       0x0000, 0);
     send_message(label, true, std::move(response));
