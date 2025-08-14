@@ -46,10 +46,12 @@ typedef struct {
   bool (*get_pts_rfcomm_rls_check)(void);
   bool (*get_pts_bcs_rej_write_req)(void);
   bool (*get_pts_bcs_ranging_select)(void);
+  bool (*get_enable_ind_ras_real_time)(void);
   int (*get_pts_l2cap_ecoc_send_num_of_sdu)(void);
   bool (*get_pts_l2cap_ecoc_reconfigure)(void);
   const std::string* (*get_pts_broadcast_audio_config_options)(void);
   bool (*get_pts_le_audio_disable_ases_before_stopping)(void);
+  bool(*get_pts_gatt_skip_service_discovery)(void);
   config_t* (*get_all)(void);
 } stack_config_t;
 

@@ -536,6 +536,7 @@ private:
   AudioSetConfigurations AudioSetConfigurationsFromFlatScenario(
           const fbs::le_audio::AudioSetScenario* const flat_scenario) {
     AudioSetConfigurations items;
+    log::debug("AudioSetConfigurationsFromFlatScenario :");
     if (!flat_scenario->configurations()) {
       return items;
     }
@@ -546,11 +547,31 @@ private:
         continue;
       }
 
-      log::debug("pushing config {} :", config_name->str());
-      auto& cfg = configurations_.at(config_name->str());
-      items.push_back(&cfg);
+      bool is_pts_execution = osi_property_get_bool("persist.bluetooth.is_pts_execution", false);
+      log::debug("is_pts_execution {} :", is_pts_execution);
+      char conf_to_be_selected[PROPERTY_VALUE_MAX] = {0};
+      static constexpr const char* kPropertyLc3Conf =
+              "persist.bluetooth.lc3_conf_to_be_selected";
+      osi_property_get(kPropertyLc3Conf, conf_to_be_selected, "");
+      log::debug("property_name |{}| :", conf_to_be_selected);
+      std::string str(conf_to_be_selected);
+      log::debug("string_name |{}| :", str);
+      log::debug("config_name |{}| :", config_name->str());
+      if (is_pts_execution /*&& flat_scenario->name->c_str() == "Conversational"*/) {
+         if (str == config_name->str()) {
+             log::debug("pushing config {} :", config_name->str());
+             auto& cfg = configurations_.at(config_name->str());
+             items.push_back(&cfg);
+         } else {
+           log::debug("ignoring the config {} :", config_name->str());
+           continue;
+         }
+      } else {
+       log::debug("pushing config {} :", config_name->str());
+       auto& cfg = configurations_.at(config_name->str());
+       items.push_back(&cfg);
+      }
     }
-
     return items;
   }
 
@@ -759,6 +780,35 @@ bool AudioSetConfigurationProvider::CheckEnhancedGamingConfig(
             metadata_type ==
                     types::qcom_codec_metadata::kLeAudioCodecLC3QSupportedFeaturesMetadataType &&
             encoder_version == 2) {
+          return true;
+        }
+      }
+    }
+  }
+  return false;
+}
+
+bool AudioSetConfigurationProvider::CheckQHSConfig(
+        const types::AudioSetConfiguration& set_configuration) const {
+    for (auto direction :
+       {le_audio::types::kLeAudioDirectionSink, le_audio::types::kLeAudioDirectionSource}) {
+    for (const auto& conf : set_configuration.confs.get(direction)) {
+      if (conf.codec.id == bluetooth::le_audio::types::LeAudioCodecIdLc3 &&
+          !conf.vendor_metadata.value().vs_metadata.empty()) {
+        std::vector<uint8_t> vndr_metadata;
+        vndr_metadata.assign(conf.vendor_metadata.value().vs_metadata.begin(),
+                             conf.vendor_metadata.value().vs_metadata.end());
+        uint16_t company_id = conf.vendor_metadata.value().vendor_company_id;
+        uint8_t metadata_type = conf.vendor_metadata.value().vendor_metadata_type;
+        uint8_t encoder_version = vndr_metadata[0];
+        log::debug("company_id: {},  metadata_type: {}, encoder_version: {}", company_id,
+                    metadata_type, encoder_version);
+        if (direction == le_audio::types::kLeAudioDirectionSink &&
+            company_id == types::kLeAudioVendorCompanyIdQualcomm &&
+            ((metadata_type ==
+                    types::qcom_codec_metadata::kLeAudioCodecLC3QSupportedFeaturesMetadataType) ||
+             (metadata_type ==
+                     types::qcom_codec_metadata::kLeAudioCodecAptxLeSupportedFeaturesMetadataType))) {
           return true;
         }
       }

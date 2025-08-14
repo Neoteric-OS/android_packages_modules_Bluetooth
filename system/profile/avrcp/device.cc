@@ -24,6 +24,7 @@
 #include "abstract_message_loop.h"
 #include "avrcp_common.h"
 #include "bta/include/bta_le_audio_api.h"
+#include "bta/include/bta_le_audio_broadcaster_api.h"
 #include "btif/include/btif_av.h"
 #include "btif/include/btif_hf.h"
 #include "btif/include/btif_storage.h"
@@ -182,6 +183,10 @@ void Device::HandlePendingPlay() {
 
     if (d->IsPendingPlay()) {
       log::info("Send PLAY to {}", d->address_);
+      if(!d->media_interface_){
+        log::info("media_interface_ is NULL, return");
+        return;
+      }
       d->media_interface_->SendKeyEvent(uint8_t(OperationID::PLAY), KeyState::PUSHED);
       d->IsPendingPlay_ = false;
     }
@@ -276,6 +281,7 @@ void Device::VendorPacketHandler(uint8_t label, std::shared_ptr<VendorPacket> pk
     return;
   }
 
+  bool running_pts = osi_property_get_bool("persist.vendor.bt.a2dp.pts_enable", false);
   switch (pkt->GetCommandPdu()) {
     case CommandPdu::GET_CAPABILITIES: {
       HandleGetCapabilities(label, Packet::Specialize<GetCapabilitiesRequest>(pkt));
@@ -467,6 +473,28 @@ void Device::VendorPacketHandler(uint8_t label, std::shared_ptr<VendorPacket> pk
               attributes, values,
               base::Bind(&Device::SetPlayerApplicationSettingValueResponse,
                          weak_ptr_factory_.GetWeakPtr(), label, pkt->GetCommandPdu()));
+    } break;
+
+    case CommandPdu::SET_ABSOLUTE_VOLUME: {
+      // PTS - AVCTP/TG/NFR/BV-02-C
+      if(running_pts) {
+        auto set_absolute_volume =
+            Packet::Specialize<SetAbsoluteVolumeResponse>(pkt);
+        active_labels_.erase(label);
+        volume_label_ = MAX_TRANSACTION_LABEL;
+        volume_ = set_absolute_volume->GetVolume();
+        volume_ &= ~0x80;
+        log::verbose("{}: CType is CONTROL, current volume={}, last request volume={}",
+                       address_, (int)volume_, (int)last_request_volume_);
+        auto request = SetAbsoluteVolumeResponseBuilder::MakeBuilder(last_request_volume_);
+        send_message_cb_.Run(label, false, std::move(request));
+      } else {
+        log::error("{}: Unhandled Vendor Packet: {}", address_, pkt->ToString());
+        auto response =
+                RejectBuilder::MakeBuilder((CommandPdu)pkt->GetCommandPdu(), Status::INVALID_COMMAND);
+        send_message(label, false, std::move(response));
+      }
+
     } break;
 
     default: {
@@ -1169,6 +1197,12 @@ void Device::MessageReceived(uint8_t label, std::shared_ptr<Packet> pkt) {
               pass_through_packet->GetOperationId());
       send_message(label, false, std::move(response));
 
+      if (LeAudioBroadcaster::IsLeAudioBroadcasterRunning() &&
+          LeAudioBroadcaster::Get()->IsLeAudioBroadcastActive()) {
+        log::warn("Ignore passthrough cmds while Broadcast active");
+        return;
+      }
+
       // TODO (apanicke): Use an enum for media key ID's
       if (pass_through_packet->GetOperationId() == uint8_t(OperationID::PLAY) &&
           pass_through_packet->GetKeyState() == KeyState::PUSHED) {
@@ -1187,7 +1221,10 @@ void Device::MessageReceived(uint8_t label, std::shared_ptr<Packet> pkt) {
                     log::warn("Ignore passthrough play during active Call");
                     return;
                   }
-
+                  if(!d->media_interface_){
+                    log::info("media_interface_ is NULL, return");
+                    return;
+                  }
                   if (!d->IsActive()) {
                     log::info("Setting {} to be the active device", d->address_);
                     d->media_interface_->SetActiveDevice(d->address_);
@@ -1240,6 +1277,10 @@ void Device::MessageReceived(uint8_t label, std::shared_ptr<Packet> pkt) {
             if (d->IsActive()) {
               log::verbose("SendKeyEvent: PT:{}, KEYSTATE:{}", packet->GetOperationId(),
                   packet->GetKeyState());
+              if(!d->media_interface_){
+                log::info("media_interface_ is NULL, return");
+                return;
+              }
               d->media_interface_->SendKeyEvent(packet->GetOperationId(),
                   packet->GetKeyState());
             }

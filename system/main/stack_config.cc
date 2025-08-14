@@ -48,11 +48,14 @@ const char* PTS_L2CAP_ECOC_INITIAL_CHAN_CNT = "PTS_L2capEcocInitialChanCnt";
 const char* PTS_RFCOMM_SEND_RLS = "PTS_RFCOMM_send_rls";
 const char* PTS_REJ_WRITE_REQ = "PTS_BCS_Rej_Write_req";
 const char* PTS_BCS_RANGING_SELECT = "PTS_BCS_RangingSelect";
+const char* PTS_ENB_IND_RAS = "PTS_BCSenablingind";
 const char* PTS_L2CAP_ECOC_CONNECT_REMAINING = "PTS_L2capEcocConnectRemaining";
 const char* PTS_L2CAP_ECOC_SEND_NUM_OF_SDU = "PTS_L2capEcocSendNumOfSdu";
 const char* PTS_L2CAP_ECOC_RECONFIGURE = "PTS_L2capEcocReconfigure";
 const char* PTS_BROADCAST_AUDIO_CONFIG_OPTION = "PTS_BroadcastAudioConfigOption";
 const char* PTS_LE_AUDIO_SUSPEND_STREAMING = "PTS_LeAudioSuspendStreaming";
+const char* PTS_GATT_SKIP_SERVICE_DISCOVERY_DURING_CONN =
+        "PTS_SkipServiceDiscoveryDuringConnection";
 
 static std::unique_ptr<config_t> config;
 }  // namespace
@@ -187,6 +190,10 @@ static bool get_pts_bcs_ranging_select(void) {
   return config_get_bool(*config, CONFIG_DEFAULT_SECTION, PTS_BCS_RANGING_SELECT, false);
 }
 
+static bool get_enable_ind_ras_real_time(void) {
+  return config_get_bool(*config, CONFIG_DEFAULT_SECTION, PTS_ENB_IND_RAS, false);
+}
+
 static int get_pts_l2cap_ecoc_send_num_of_sdu(void) {
   return config_get_int(*config, CONFIG_DEFAULT_SECTION, PTS_L2CAP_ECOC_SEND_NUM_OF_SDU, -1);
 }
@@ -210,6 +217,10 @@ static bool get_pts_le_audio_disable_ases_before_stopping(void) {
 
 static config_t* get_all(void) { return config.get(); }
 
+static bool get_pts_gatt_skip_service_discovery(void) {
+  return config_get_bool(*config, CONFIG_DEFAULT_SECTION, PTS_GATT_SKIP_SERVICE_DISCOVERY_DURING_CONN, false);
+}
+
 const stack_config_t interface = {get_pts_avrcp_test,
                                   get_pts_secure_only_mode,
                                   get_pts_conn_updates_disabled,
@@ -230,10 +241,12 @@ const stack_config_t interface = {get_pts_avrcp_test,
                                   get_pts_rfcomm_rls_check,
                                   get_pts_bcs_rej_write_req,
                                   get_pts_bcs_ranging_select,
+                                  get_enable_ind_ras_real_time,
                                   get_pts_l2cap_ecoc_send_num_of_sdu,
                                   get_pts_l2cap_ecoc_reconfigure,
                                   get_pts_broadcast_audio_config_options,
                                   get_pts_le_audio_disable_ases_before_stopping,
+                                  get_pts_gatt_skip_service_discovery,
                                   get_all};
 
 const stack_config_t* stack_config_get_interface(void) { return &interface; }

@@ -1344,7 +1344,7 @@ public class BluetoothInCallService extends InCallService {
                 registerReceiver(mVoiceCapabilityChangeReceiver, intentfilter,
                     android.Manifest.permission.MODIFY_PHONE_STATE, null, Context.RECEIVER_EXPORTED);
             }
-            mEnableDsdaMode = SystemProperties.getBoolean(ENABLE_DSDA_SUPPORT, true);
+            mEnableDsdaMode = SystemProperties.getBoolean(ENABLE_DSDA_SUPPORT, false);
             if (mEnableDsdaMode)  {
               Log.d(TAG, "MEnableDsdaMode is: " + mEnableDsdaMode);
               if (mHandler == null) {
@@ -2081,9 +2081,7 @@ public class BluetoothInCallService extends InCallService {
                     CallState.ALERTING;
 
             case Call.STATE_RINGING, Call.STATE_SIMULATED_RINGING -> {
-                if (call.isSilentRingingRequested()) {
-                    yield CallState.IDLE;
-                } else if (isForeground) {
+                if (isForeground) {
                     yield CallState.INCOMING;
                 } else {
                     yield CallState.WAITING;

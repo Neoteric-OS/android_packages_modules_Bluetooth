@@ -14,6 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+/*
+ * Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
+ * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
+ */
 
 package com.android.bluetooth.le_audio;
 
@@ -186,6 +191,7 @@ public class LeAudioService extends ProfileService {
             new ArrayDeque<>();
 
     private final AdapterService mAdapterService;
+    private final CallAudio mCallAudio;
     private final DatabaseManager mDatabaseManager;
     private final LeAudioNativeInterface mNativeInterface;
     private final HandlerThread mStateMachinesThread;
@@ -228,6 +234,7 @@ public class LeAudioService extends ProfileService {
     Optional<Boolean> mQueuedInCallValue = Optional.empty();
     Optional<Integer> mBroadcastIdPendingStart = Optional.empty();
     Optional<Integer> mBroadcastIdPendingStop = Optional.empty();
+    Optional<Integer> mUnicastSourceStreamStatus = Optional.empty();
     BluetoothDevice mAudioManagerAddedOutDevice = null;
     boolean mInCall = false;
     boolean mTmapStarted = false;
@@ -283,6 +290,7 @@ public class LeAudioService extends ProfileService {
         mAdapterService = requireNonNull(adapterService);
         mDatabaseManager = requireNonNull(mAdapterService.getDatabase());
         mAudioManager = requireNonNull(getSystemService(AudioManager.class));
+        mCallAudio = CallAudio.init(this);
 
         // Start handler thread for state machines
         mStateMachinesThread = new HandlerThread("LeAudioService.StateMachines");
@@ -838,6 +846,7 @@ public class LeAudioService extends ProfileService {
         mBroadcastIdPendingStart = Optional.empty();
         mBroadcastIdPendingStop = Optional.empty();
         mAudioManagerAddedOutDevice = null;
+        mUnicastSourceStreamStatus = Optional.empty();
 
         // Set the service and BLE devices as inactive
         setLeAudioService(null);
@@ -870,6 +879,9 @@ public class LeAudioService extends ProfileService {
         mVolumeControlService = null;
         mCsipSetCoordinatorService = null;
         mBassClientService = null;
+        if (mCallAudio != null) {
+          mCallAudio.cleanup();
+        }
     }
 
     public static synchronized LeAudioService getLeAudioService() {
@@ -1040,7 +1052,6 @@ public class LeAudioService extends ProfileService {
             return false;
         }
 
-        setDisconnected(true);
         sm.sendMessage(LeAudioStateMachine.DISCONNECT);
 
         return true;
@@ -1737,6 +1748,7 @@ public class LeAudioService extends ProfileService {
         } else {
             if (mIsSourceStreamMonitorModeEnabled) {
                 mNativeInterface.setUnicastMonitorMode(LeAudioStackEvent.DIRECTION_SOURCE, false);
+                mUnicastSourceStreamStatus = Optional.empty();
             }
 
             mIsSourceStreamMonitorModeEnabled = false;
@@ -1803,6 +1815,14 @@ public class LeAudioService extends ProfileService {
             }
         }
         return deviceList;
+    }
+
+    boolean isVoipLeaWarEnabled() {
+        Log.d(TAG, "isVoipLeaWarEnabled");
+        CallAudio mCallAudio = CallAudio.get();
+        if (mCallAudio != null)
+            return mCallAudio.isVoipLeaWarEnabled();
+        return false;
     }
 
     private boolean areBroadcastsAllStopped() {
@@ -2081,6 +2101,19 @@ public class LeAudioService extends ProfileService {
         Log.d(TAG, "updateActiveOutDevice: Nothing to do.");
         return false;
     }
+
+    void notifyConnectionStateChanged(BluetoothDevice device,
+                                      int newState, int prevState, boolean isVoIPWarEnabled) {
+        Log.d(TAG, "notifyConnectionStateChanged, isVoIPWarEnabled:" + isVoIPWarEnabled);
+        if (isVoIPWarEnabled) {
+            CallAudio mCallAudio = CallAudio.get();
+            if (mCallAudio != null) {
+                mCallAudio.onConnStateChange(device, newState, mCallAudio.LE_AUDIO_VOICE);
+            }
+        }
+        notifyConnectionStateChanged(device, newState, prevState);
+    }
+
 
     /**
      * Send broadcast intent about LeAudio connection state changed. This is called by
@@ -2457,10 +2490,8 @@ public class LeAudioService extends ProfileService {
                 if (deviceInfo.isSink()) {
                     mAudioManagerAddedOutDevice = device;
                 }
-                if (handleAudioDeviceAdded(
-                        device, deviceInfo.getType(), deviceInfo.isSink(), deviceInfo.isSource())) {
-                    return;
-                }
+                handleAudioDeviceAdded(device, deviceInfo.getType(),
+                                            deviceInfo.isSink(), deviceInfo.isSource());
             }
         }
 
@@ -2668,6 +2699,14 @@ public class LeAudioService extends ProfileService {
              * When adding new device, wait with notification until AudioManager is ready
              * with adding the device.
              */
+            if (isVoipLeaWarEnabled()) {
+                CallAudio mCallAudio = CallAudio.get();
+                if (mCallAudio != null && mCallAudio.isVirtualCallStarted()) {
+                    if (!mCallAudio.stopScoUsingVirtualVoiceCall()) {
+                        Log.w(TAG, "updateActiveDevices: fail to stopScoUsingVirtualVoiceCall");
+                    }
+                }
+            }
             notifyActiveDeviceChanged(null);
         }
 
@@ -2717,6 +2756,24 @@ public class LeAudioService extends ProfileService {
      */
     private boolean setActiveGroupWithDevice(BluetoothDevice device, boolean hasFallbackDevice) {
         int groupId = LE_AUDIO_GROUP_ID_INVALID;
+
+        if (isVoipLeaWarEnabled()) {
+            CallAudio mCallAudio = CallAudio.get();
+            if (device == null) {
+                if (mCallAudio != null && mCallAudio.isVirtualCallStarted()) {
+                    if (!mCallAudio.stopScoUsingVirtualVoiceCall()) {
+                        Log.w(TAG, "setActiveGroupWithDevice: fail to stopScoUsingVirtualVoiceCall");
+                    }
+                }
+            } else if (mCallAudio != null && !device.equals(mCallAudio.getActiveDevice())
+                    && mCallAudio.getActiveProfile() == mCallAudio.HFP) {
+                HeadsetService headsetService = mServiceFactory.getHeadsetService();
+                if (headsetService != null && headsetService.isVirtualCallStarted()) {
+                    Log.w(TAG, "setActiveGroupWithDevice: stop VoIP in HFP");
+                    headsetService.stopScoUsingVirtualVoiceCall();
+                }
+            }
+        }
 
         if (device != null) {
             LeAudioDeviceDescriptor descriptor = getDeviceDescriptor(device);
@@ -3292,6 +3349,12 @@ public class LeAudioService extends ProfileService {
             mNativeInterface.setUnicastMonitorMode(LeAudioStackEvent.DIRECTION_SOURCE, false);
         }
 
+        mUnicastSourceStreamStatus = Optional.of(status);
+        if (status == LeAudioStackEvent.STATUS_LOCAL_STREAM_SUSPENDED
+                && !isBroadcastAllowedToBeActivateInCurrentAudioMode()) {
+            Log.w(TAG, "handleSourceStreamStatusChange: broadcast not allowed in current mode");
+            return;
+        }
         bassClientService.handleUnicastSourceStreamStatusChange(status);
     }
 
@@ -3775,7 +3838,13 @@ public class LeAudioService extends ProfileService {
                         case LeAudioStackEvent.CONNECTION_STATE_DISCONNECTING:
                         case LeAudioStackEvent.CONNECTION_STATE_DISCONNECTED:
                             deviceDescriptor.mAclConnected = false;
-                            setDisconnected(true);
+                            if (descriptor.isActive()) {
+                                if (getConnectedPeerDevices(groupId).size() > 1) {
+                                    Log.d(TAG, "There are other connected group members.");
+                                } else {
+                                    setDisconnected(true);
+                                }
+                            }
 
                             if (isScannerNeeded()) {
                                 mScanCallback.startBackgroundScan();
@@ -3930,6 +3999,7 @@ public class LeAudioService extends ProfileService {
                               .setBitsPerSample(BluetoothLeAudioCodecConfig.BITS_PER_SAMPLE_16)
                               .setChannelCount(BluetoothLeAudioCodecConfig.CHANNEL_COUNT_1)
                               .setFrameDuration(BluetoothLeAudioCodecConfig.FRAME_DURATION_10000)
+                              .setOctetsPerFrame(155)
                               .build();
                             setCodecConfigPreference(groupId,CodecConfig,CodecConfig);
                             break;
@@ -4690,6 +4760,8 @@ public class LeAudioService extends ProfileService {
                             false,
                             hasFallbackDevice,
                             false);
+                    Log.d(TAG, "Device updated had been done, reset mHasFallback");
+                    mHasFallback = true;
                     /* Set by default earliest connected device */
                     if (Flags.leaudioBroadcastPrimaryGroupSelection()
                             && mUnicastGroupIdDeactivatedForBroadcastTransition == groupId) {
@@ -5457,6 +5529,12 @@ public class LeAudioService extends ProfileService {
                     handleUnicastStreamStatusChange(
                             LeAudioStackEvent.DIRECTION_SINK,
                             LeAudioStackEvent.STATUS_LOCAL_STREAM_SUSPENDED);
+                }
+
+                if (mUnicastSourceStreamStatus.isPresent()
+                        && (mUnicastSourceStreamStatus.get()
+                        == LeAudioStackEvent.STATUS_LOCAL_STREAM_SUSPENDED)) {
+                    handleSourceStreamStatusChange(mUnicastSourceStreamStatus.get());
                 }
                 break;
             default:
