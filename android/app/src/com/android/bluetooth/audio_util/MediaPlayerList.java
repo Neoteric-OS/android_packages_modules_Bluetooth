@@ -1376,11 +1376,14 @@ public class MediaPlayerList {
                     }
 
                     MediaPlayerWrapper player = getActivePlayer();
-                    if (player != null && player.getPlaybackState() != null
-                            && player.getPlaybackState().getState() == PlaybackState.STATE_PLAYING
-                            && (data.state.getState() != PlaybackState.STATE_PLAYING)) {
-                        Log.d(TAG, "Some audio playbacks are still active, drop it");
-                        return;
+                    if (player != null) {
+                        PlaybackState playbackState = player.getPlaybackState();
+                        if (playbackState != null
+                                && playbackState.getState() == PlaybackState.STATE_PLAYING
+                                && (data.state.getState() != PlaybackState.STATE_PLAYING)) {
+                            Log.d(TAG, "Some audio playbacks are still active, drop it");
+                            return;
+                        }
                     }
                     sendMediaUpdate(data);
                 }
