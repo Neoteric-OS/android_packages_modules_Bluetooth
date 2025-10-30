@@ -44,6 +44,8 @@
 
 #define LOG_TAG "bt_btif_av_vendor"
 
+#include <bluetooth/log.h>
+#include "base/logging.h"
 #include <hardware/bt_av_vendor.h>
 #include "btif_api.h"
 #include "btif_av.h"
@@ -68,20 +70,20 @@ btav_sink_vendor_callbacks_t *bt_vendor_av_sink_callbacks = NULL;
 static bt_status_t init( btav_sink_vendor_callbacks_t* callbacks)
 {
     bt_vendor_av_sink_callbacks = callbacks;
-    LOG_INFO(LOG_TAG,"init done");
+    LOG(INFO) << "init done";
     return BT_STATUS_SUCCESS;
 }
 
 static void cleanup(void)
 {
-    LOG_INFO(LOG_TAG,"cleanup");
+    LOG(INFO) << "cleanup";
     if (bt_vendor_av_sink_callbacks)
         bt_vendor_av_sink_callbacks = NULL;
 }
 
 bt_status_t start_ind_rsp(const RawAddress& bd_addr, bool accepted)
 {
-    LOG_INFO(LOG_TAG,"%s: %d", __func__, accepted);
+    LOG(INFO) << "accepted: " << accepted;
     tBTA_AV_SINK_START_RSP start_rsp;
     start_rsp.peer_addr = bd_addr;
     start_rsp.accepted = accepted;
@@ -90,8 +92,8 @@ bt_status_t start_ind_rsp(const RawAddress& bd_addr, bool accepted)
 }
 
 bt_status_t suspend_ind_rsp(const RawAddress& bd_addr, bool accepted) {
-  LOG_INFO(LOG_TAG,"%s: %d", __func__, accepted);
-  return BT_STATUS_SUCCESS;
+    LOG(INFO) << "accepted: " << accepted;
+    return BT_STATUS_SUCCESS;
 }
 
 static const btav_sink_vendor_interface_t bt_vendor_av_sink_interface = {
@@ -113,6 +115,6 @@ static const btav_sink_vendor_interface_t bt_vendor_av_sink_interface = {
 *******************************************************************************/
 const btav_sink_vendor_interface_t *btif_vendor_av_sink_get_interface()
 {
-    BTIF_TRACE_EVENT("%s", __FUNCTION__);
+      LOG(INFO) << "vendor interface";
     return &bt_vendor_av_sink_interface;
 }
