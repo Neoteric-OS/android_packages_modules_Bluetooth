@@ -6482,6 +6482,7 @@ public:
     if (LeAudioBroadcaster::IsLeAudioBroadcasterRunning() &&
         LeAudioBroadcaster::Get()->IsLeAudioBroadcastActive() &&
         group->IsStreaming() && !group->IsReleasingOrIdle() &&
+        configuration_context_type_ != LeAudioContextType::GAME &&
         new_config_context == LeAudioContextType::MEDIA) {
       log::info(
               "Broadcast is active, current configuration context is {}. "
