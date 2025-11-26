@@ -2018,8 +2018,15 @@ struct DistanceMeasurementManager::impl : bluetooth::hal::RangingHalCallback {
           local_subevent_result =
                   procedure_data->procedure_data_v2_.local_subevent_data_[subevent_sequence];
         } else {
-          log::error("there is no local subevent result.");
-          return;
+          if (subevent_header.num_steps_reported_ == 0 &&
+              subevent_header.ranging_done_status_ == RangingDoneStatus::ALL_RESULTS_COMPLETE) {
+            log::info("num_steps_reported is 0, All results complete");
+            procedure_data->remote_status = CsProcedureDoneStatus::ALL_RESULTS_COMPLETE;
+            break;
+          } else {
+            log::error("there is no local subevent result. subevent sequenece {}, local subevent size {} ", subevent_sequence, procedure_data->procedure_data_v2_.local_subevent_data_.size());
+            return;
+          }
         }
         remote_subevent_result->start_acl_conn_event_counter_ =
                 subevent_header.start_acl_conn_event_;
