@@ -1418,7 +1418,7 @@ struct DistanceMeasurementManager::impl : bluetooth::hal::RangingHalCallback {
 
 
 
-    if (live_tracker->local_start == true) {
+    if (live_tracker->local_hci_role == hci::Role::CENTRAL) {
       // send the cmd from the BLE central only.
       send_le_cs_security_enable(connection_handle, live_tracker->local_start);
     } else {
