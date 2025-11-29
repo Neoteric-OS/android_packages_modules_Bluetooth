@@ -61,6 +61,7 @@
 #include "device/include/device_iot_config.h"
 #include "hardware/bluetooth.h"
 #include "hardware/bt_av.h"
+#include "hardware/bt_av_vendor.h"
 #include "include/hardware/bt_rc.h"
 #include "os/system_properties.h"
 #include "main/shim/metrics_api.h"
@@ -97,6 +98,8 @@ static constexpr tBTA_AV_HNDL kBtaHandleUnknown = 0;
 
 static btav_source_callbacks_t* bt_av_src_callbacks = NULL;
 static btav_sink_callbacks_t* bt_av_sink_callbacks = NULL;
+
+extern btav_sink_vendor_callbacks_t *bt_vendor_av_sink_callbacks;
 
 namespace {
 constexpr char kBtmLogHistoryTag[] = "A2DP";
@@ -2533,8 +2536,8 @@ void BtifAvStateMachine::StateOpened::OnEnter() {
 
   if (peer_.CheckFlags(BtifAvPeer::kFlagHalRestartRecovery)) {
       log::warn("HAL Restart Recovery");
-      /* do_in_jni_thread(base::BindOnce(
-             bt_vendor_av_sink_callbacks->start_ind_cb, &peer_.PeerAddress())); */
+      do_in_jni_thread(base::BindOnce(
+             bt_vendor_av_sink_callbacks->start_ind_cb, &peer_.PeerAddress()));
       peer_.ClearFlags(BtifAvPeer::kFlagHalRestartRecovery);
   }
 }
@@ -2641,8 +2644,8 @@ bool BtifAvStateMachine::StateOpened::ProcessEvent(uint32_t event, void* p_data)
             */
             peer_.StartConfPending(true);
             peer_.SetFlags(BtifAvPeer::kFlagPendingStart);
-            /* do_in_jni_thread(base::BindOnce(
-             bt_vendor_av_sink_callbacks->start_ind_cb, &peer_.PeerAddress())); */
+            do_in_jni_thread(base::BindOnce(
+            bt_vendor_av_sink_callbacks->start_ind_cb, &peer_.PeerAddress()));
             break;
           }
         } else {
@@ -3062,8 +3065,8 @@ bool BtifAvStateMachine::StateStarted::ProcessEvent(uint32_t event, void* p_data
           if (!peer_.CheckFlags(BtifAvPeer::kFlagLocalSuspendPending)) {
             peer_.SetFlags(BtifAvPeer::kFlagRemoteSuspend);
             peer_.SuspendConfPending(true);
-            /* do_in_jni_thread(base::BindOnce(
-               bt_vendor_av_sink_callbacks->suspend_ind_cb, &peer_.PeerAddress())); */
+            do_in_jni_thread(base::BindOnce(
+            bt_vendor_av_sink_callbacks->suspend_ind_cb, &peer_.PeerAddress()));
           } else {
             BTA_AvkSendPendingSuspendCnf(peer_.BtaHandle());
           }
