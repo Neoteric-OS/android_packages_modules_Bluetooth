@@ -3183,12 +3183,21 @@ bool BtifAvStateMachine::StateStarted::ProcessEvent(uint32_t event, void* p_data
       BTA_AvOffloadStart(peer_.BtaHandle());
       break;
 
-    case BTA_AV_OFFLOAD_START_RSP_EVT:
-      btif_a2dp_on_offload_started(peer_.PeerAddress(), p_av->status);
-      if (p_av->status == BTA_AV_SUCCESS) {
+    case BTA_AV_OFFLOAD_START_RSP_EVT: {
+      int status = p_av->status;
+      if (peer_.CheckFlags(BtifAvPeer::kFlagLocalSuspendPending |
+                           BtifAvPeer::kFlagRemoteSuspend |
+                           BtifAvPeer::kFlagPendingStop)) {
+        log::warn("Peer {} : event={} flags={}: stream is Suspending, ignore",
+                  peer_.PeerAddress(), BtifAvEvent::EventName(event),
+                  peer_.FlagsToString());
+        status = BTA_AV_FAIL;
+      }
+      btif_a2dp_on_offload_started(peer_.PeerAddress(), status);
+      if (status == BTA_AV_SUCCESS) {
         btif_av_update_codec_mode();
       }
-      break;
+    } break;
 
     case BTIF_AV_SET_LATENCY_REQ_EVT: {
       const btif_av_set_latency_req_t* p_set_latency_req =
