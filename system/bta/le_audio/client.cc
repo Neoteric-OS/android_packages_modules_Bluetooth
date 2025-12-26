@@ -5323,6 +5323,21 @@ public:
       return;
     }
 
+    /* Some remote device will update the available context in broadcast,
+     * Should reject the unsupported context.
+     */
+    if (LeAudioBroadcaster::IsLeAudioBroadcasterRunning() &&
+        LeAudioBroadcaster::Get()->IsLeAudioBroadcastActive() &&
+        !group->GetAvailableContexts(bluetooth::le_audio::types::kLeAudioDirectionSink)
+                 .test(configuration_context_type_)) {
+      log::warn(
+              "Context conflicts with remote available context: {}",
+              ToString(group->GetAvailableContexts(
+              bluetooth::le_audio::types::kLeAudioDirectionSink)));
+      CancelLocalAudioSourceStreamingRequestWithUnsupported();
+      return;
+    }
+
     // Without updatemetadata bt stack getting start from MM
     /*
      * In Bcacst -> Unicast switch, When either MT/MO call comes
