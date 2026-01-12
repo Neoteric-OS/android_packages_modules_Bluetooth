@@ -1384,6 +1384,13 @@ public class MediaPlayerList {
                         Log.d(TAG, "Some audio playbacks are still active, drop it");
                         return;
                     }
+
+                    if (mAudioPlaybackIsActive &&
+                            (data.state.getState() == PlaybackState.STATE_PAUSED ||
+                            data.state.getState() == PlaybackState.STATE_STOPPED)) {
+                        Log.d(TAG, "Audio playback is still active, drop state=" + data.state);
+                        return;
+                    }
                     sendMediaUpdate(data);
                 }
 
