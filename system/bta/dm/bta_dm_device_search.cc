@@ -244,6 +244,12 @@ static void bta_dm_service_search_remname_cback(const RawAddress& bd_addr, DEV_C
     rem_name.btm_status = tBTM_STATUS::BTM_SUCCESS;
     rem_name.hci_status = HCI_SUCCESS;
     bta_dm_remname_cback(&rem_name);
+  } else if (bta_dm_search_get_state() == BTA_DM_SEARCH_CANCELLING) {
+    log::info("CANCELLING");
+    rem_name.bd_addr = bta_dm_search_cb.peer_bdaddr;
+    rem_name.remote_bd_name[0] = 0;
+    rem_name.hci_status = HCI_SUCCESS;
+    bta_dm_remname_cback(&rem_name);
   } else {
     /* get name of device */
     btm_status = get_stack_rnr_interface().BTM_ReadRemoteDeviceName(
