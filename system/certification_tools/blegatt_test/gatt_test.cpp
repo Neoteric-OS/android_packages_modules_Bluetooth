@@ -320,6 +320,7 @@ static tL2CAP_CFG_INFO tl2cap_cfg_info;
 static long data_size = -1;
 static uint16_t g_PSM = 0;
 static uint16_t g_lcid = 0;
+static bool g_test_indi_reset_CCCD = false;
 
 enum {
   SEND,
@@ -2021,6 +2022,11 @@ static void acl_state_changed(bt_status_t status, RawAddress* remote_bd_addr,
       remote_bd_addr->address[4], remote_bd_addr->address[5],
       (state == BT_ACL_STATE_CONNECTED) ? "ACL Connected" : "ACL Disconnected");
   remote_bd_address = *remote_bd_addr;
+  if (g_test_indi_reset_CCCD && state == BT_ACL_STATE_DISCONNECTED) {
+    printf("Reset CCCD after disconnection\n");
+    memset(attr_value, 0, sizeof(attr_value));
+    g_test_indi_reset_CCCD = false;
+  }
 }
 
 static void le_test_mode(bt_status_t status, uint16_t packet_count) {
@@ -3225,6 +3231,7 @@ void do_le_server_send_indication(char* p) {
                                                 g_conn_id, confirm,
                                                 value.data(), value.size());
   printf("%s:: Ret=%d \n", __FUNCTION__, Ret);
+  g_test_indi_reset_CCCD = true;
 }
 
 void do_le_server_send_multi_notification(char* p) {
