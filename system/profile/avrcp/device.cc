@@ -1205,9 +1205,15 @@ void Device::MessageReceived(uint8_t label, std::shared_ptr<Packet> pkt) {
         return;
       }
 
+      if((pass_through_packet->GetOperationId() == uint8_t(OperationID::PLAY) &&
+          pass_through_packet->GetKeyState() == KeyState::PUSHED)) {
+          log::warn("Play push received");
+          pushed_already = true;
+      }
       // TODO (apanicke): Use an enum for media key ID's
       if (pass_through_packet->GetOperationId() == uint8_t(OperationID::PLAY) &&
-          pass_through_packet->GetKeyState() == KeyState::PUSHED) {
+          (pass_through_packet->GetKeyState() == KeyState::PUSHED ||
+          (!pushed_already && pass_through_packet->GetKeyState() == KeyState::RELEASED))) {
         fast_forwarding_ = false;
         fast_rewinding_ = false;
         // We need to get the play status since we need to know
