@@ -863,6 +863,21 @@ void Device::PlaybackStatusNotificationResponse(uint8_t label, bool interim, Pla
     return;
   }
 
+  if(status.state == PlayState::FWD_SEEK){
+    log::verbose("Received FWD_Seek from application");
+    fast_forwarding_ = true;
+  } else {
+    log::verbose("Setting fast_forwarding_ false");
+    fast_forwarding_ = false;
+  }
+  if(status.state == PlayState::REV_SEEK){
+    log::verbose("Received REV_SEEK from application");
+    fast_rewinding_ = true;
+  } else {
+    log::verbose("Setting fast_rewinding_ false");
+    fast_rewinding_ = false;
+  }
+
   log::verbose("status.state: {}", status.state);
   auto state_to_send = status.state;
   log::verbose("fast_forwarding_: {}, fast_rewinding_: {}", fast_forwarding_, fast_rewinding_);
