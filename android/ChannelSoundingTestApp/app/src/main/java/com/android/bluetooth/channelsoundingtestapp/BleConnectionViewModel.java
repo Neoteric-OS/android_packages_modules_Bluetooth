@@ -477,4 +477,29 @@ public class BleConnectionViewModel extends AndroidViewModel {
     private void printLog(@NonNull String logMsg) {
         mLogText.postValue("BT Log: " + logMsg);
     }
+
+    public void restoreToDefaultParams() {
+        checkstopadvertiser();
+        stopScanning();
+
+        if (mBluetoothGatt != null) {
+            try {
+                mBluetoothGatt.disconnect();
+            } catch (Exception e) {
+                printLog("Failed to disconnect GATT: " + e.getMessage());
+            }
+
+            try {
+                mBluetoothGatt.close();
+            } catch (Exception e) {
+                printLog("Failed to close GATT: " + e.getMessage());
+            }
+            mBluetoothGatt = null;
+        }
+
+        mExpectedGattState = GattState.DISCONNECTED;
+        mGattState.postValue(GattState.DISCONNECTED);
+        mTargetDevice.postValue(null);
+        is_advertising = false;
+    }
 }
