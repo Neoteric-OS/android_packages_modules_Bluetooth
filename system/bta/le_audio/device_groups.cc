@@ -1512,11 +1512,7 @@ void LeAudioDeviceGroup::CigConfiguration::GetCisCount(LeAudioContextType contex
   }
 
   // For non-LC3 codecs like Opus, we should base the strategy calcualation based on the config
-  const bool derive_strategy_from_config =
-          current_config && true/*com::android::bluetooth::flags::leaudio_add_opus_hi_res_codec_type()*/;
-  log::info("derive_strategy_from_config {}", derive_strategy_from_config);
-
-  auto strategy = derive_strategy_from_config
+  auto strategy = current_config
                           ? group_->FindGroupStrategyForConfig(current_config.get())
                           : group_->GetGroupSinkStrategy();
 
@@ -1647,7 +1643,7 @@ void LeAudioDeviceGroup::CigConfiguration::GenerateCisIds(LeAudioContextType con
     struct bluetooth::le_audio::types::cis cis_entry = {
             .id = idx,
             .type = CisType::CIS_TYPE_BIDIRECTIONAL,
-            .conn_handle = 0,
+            .conn_handle = kInvalidCisConnHandle,
             .addr = RawAddress::kEmpty,
     };
     cises.push_back(cis_entry);
@@ -1659,7 +1655,7 @@ void LeAudioDeviceGroup::CigConfiguration::GenerateCisIds(LeAudioContextType con
     struct bluetooth::le_audio::types::cis cis_entry = {
             .id = idx,
             .type = CisType::CIS_TYPE_UNIDIRECTIONAL_SINK,
-            .conn_handle = 0,
+            .conn_handle = kInvalidCisConnHandle,
             .addr = RawAddress::kEmpty,
     };
     cises.push_back(cis_entry);
@@ -1671,7 +1667,7 @@ void LeAudioDeviceGroup::CigConfiguration::GenerateCisIds(LeAudioContextType con
     struct bluetooth::le_audio::types::cis cis_entry = {
             .id = idx,
             .type = CisType::CIS_TYPE_UNIDIRECTIONAL_SOURCE,
-            .conn_handle = 0,
+            .conn_handle = kInvalidCisConnHandle,
             .addr = RawAddress::kEmpty,
     };
     cises.push_back(cis_entry);
@@ -1855,7 +1851,9 @@ void LeAudioDeviceGroup::CigConfiguration::UnassignCis(LeAudioDevice* leAudioDev
   log::info("Group {}, group_id {}, device: {}, conn_handle: {:#x}", std::format_ptr(group_),
             group_->group_id_, leAudioDevice->address_, conn_handle);
 
-  for (struct bluetooth::le_audio::types::cis& cis_entry : cises) {
+  for (struct bluetooth::le_audio::types::cis& cis_entry : cises){
+    log::info("cis_entry.addr: {}, cis_entry.conn_handle: {:#x}", cis_entry.addr,
+            cis_entry.conn_handle);
     if (cis_entry.conn_handle == conn_handle && cis_entry.addr == leAudioDevice->address_) {
       cis_entry.addr = RawAddress::kEmpty;
     }
@@ -2019,7 +2017,9 @@ bool LeAudioDeviceGroup::IsAudioSetConfigurationSupported(
     uint8_t const max_required_ase_per_dev = ase_cnt / device_cnt + (ase_cnt % device_cnt);
 
     // Use strategy for the whole group (not only the connected devices)
-    auto required_snk_strategy = FindGroupStrategyForConfig(audio_set_conf);
+    auto selected_codec_id = ase_confs[0].codec.id;
+    auto required_snk_strategy = (selected_codec_id == types::LeAudioCodecIdLc3) ?
+        GetGroupSinkStrategy() : FindGroupStrategyForConfig(audio_set_conf);
     auto const strategy = utils::GetStrategyForAseConfig(ase_confs, device_cnt);
 
     log::debug(
