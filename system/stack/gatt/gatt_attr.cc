@@ -448,52 +448,67 @@ void gatt_profile_db_init(void) {
   Uuid database_hash_uuid = Uuid::From16Bit(GATT_UUID_DATABASE_HASH);
   Uuid cccd_uuid = Uuid::From16Bit(GATT_UUID_CHAR_CLIENT_CONFIG);
 
-  btgatt_db_element_t service[] = {
-          {
-                  .uuid = service_uuid,
-                  .type = BTGATT_DB_PRIMARY_SERVICE,
-          },
-          {
-                  .uuid = srv_changed_char_uuid,
-                  .type = BTGATT_DB_CHARACTERISTIC,
-                  .properties = GATT_CHAR_PROP_BIT_INDICATE,
-                  .permissions = 0,
-          },
-          {
-                  .type = BTGATT_DB_DESCRIPTOR,
-                  .uuid = cccd_uuid,
-                  .permissions = GATT_PERM_READ | GATT_PERM_WRITE,
-          },
-          {
-                  .uuid = svr_sup_feat_uuid,
-                  .type = BTGATT_DB_CHARACTERISTIC,
-                  .properties = GATT_CHAR_PROP_BIT_READ,
-                  .permissions = GATT_PERM_READ,
-          },
-          {
-                  .uuid = cl_sup_feat_uuid,
-                  .type = BTGATT_DB_CHARACTERISTIC,
-                  .properties = GATT_CHAR_PROP_BIT_READ | GATT_CHAR_PROP_BIT_WRITE,
-                  .permissions = GATT_PERM_READ | GATT_PERM_WRITE,
-          },
-          {
-                  .uuid = database_hash_uuid,
-                  .type = BTGATT_DB_CHARACTERISTIC,
-                  .properties = GATT_CHAR_PROP_BIT_READ,
-                  .permissions = GATT_PERM_READ,
-          }};
+  // Define a maximum size array that can accommodate all possible elements
+  btgatt_db_element_t service[6]; // Max size to accommodate all possible elements
+  int idx = 0;
 
-  if (GATTS_AddService(gatt_cb.gatt_if, service, sizeof(service) / sizeof(btgatt_db_element_t)) !=
-      GATT_SERVICE_STARTED) {
-    log::warn("Unable to add GATT server service gatt_if:{}", gatt_cb.gatt_if);
+  // Add common elements
+  service[idx++] = {
+          .uuid = service_uuid,
+          .type = BTGATT_DB_PRIMARY_SERVICE,
+  };
+  
+  service[idx++] = {
+          .uuid = srv_changed_char_uuid,
+          .type = BTGATT_DB_CHARACTERISTIC,
+          .properties = GATT_CHAR_PROP_BIT_INDICATE,
+          .permissions = 0,
+  };
+
+  // Conditionally add CCCD descriptor based on PTS configuration
+  bool include_cccd = stack_config_get_interface()->get_pts_configure_svc_chg_indication();
+  if (include_cccd) {
+      service[idx++] = {
+              .type = BTGATT_DB_DESCRIPTOR,
+              .uuid = cccd_uuid,
+              .permissions = GATT_PERM_READ | GATT_PERM_WRITE,
+      };
   }
 
-  gatt_cb.handle_of_h_r = service[1].attribute_handle;
-  gatt_cb.handle_svc_chg_cccd = service[2].attribute_handle;
-  gatt_cb.handle_sr_supported_feat = service[3].attribute_handle;
-  gatt_cb.handle_cl_supported_feat = service[4].attribute_handle;
-  gatt_cb.handle_of_database_hash = service[5].attribute_handle;
+  // Add remaining elements
+  service[idx++] = {
+          .uuid = svr_sup_feat_uuid,
+          .type = BTGATT_DB_CHARACTERISTIC,
+          .properties = GATT_CHAR_PROP_BIT_READ,
+          .permissions = GATT_PERM_READ,
+  };  
+  service[idx++] = {
+          .uuid = cl_sup_feat_uuid,
+          .type = BTGATT_DB_CHARACTERISTIC,
+          .properties = GATT_CHAR_PROP_BIT_READ | GATT_CHAR_PROP_BIT_WRITE,
+          .permissions = GATT_PERM_READ | GATT_PERM_WRITE,
+  };
+  service[idx++] = {
+          .uuid = database_hash_uuid,
+          .type = BTGATT_DB_CHARACTERISTIC,
+          .properties = GATT_CHAR_PROP_BIT_READ,
+          .permissions = GATT_PERM_READ,
+  };
 
+  // Add the service with the actual number of elements
+  if (GATTS_AddService(gatt_cb.gatt_if, service, idx) != GATT_SERVICE_STARTED) {
+      log::warn("Unable to add GATT server service gatt_if:{}", gatt_cb.gatt_if);
+  }
+
+  // Set handles based on the service structure
+  int handle_idx = 1; // Start from the service changed characteristic
+  gatt_cb.handle_of_h_r = service[handle_idx++].attribute_handle;
+  if (include_cccd) {
+      gatt_cb.handle_svc_chg_cccd = service[handle_idx++].attribute_handle;
+  }
+  gatt_cb.handle_sr_supported_feat = service[handle_idx++].attribute_handle;
+  gatt_cb.handle_cl_supported_feat = service[handle_idx++].attribute_handle;
+  gatt_cb.handle_of_database_hash = service[handle_idx++].attribute_handle;
   gatt_cb.gatt_svr_supported_feat_mask |= BLE_GATT_SVR_SUP_FEAT_EATT_BITMASK;
   gatt_cb.gatt_cl_supported_feat_mask |= BLE_GATT_CL_ANDROID_SUP_FEAT;
   gatt_cb.gatt_cl_supported_feat_mask |= BLE_GATT_CL_SUP_FEAT_CACHING_BITMASK;
