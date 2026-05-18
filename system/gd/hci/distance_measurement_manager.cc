@@ -1061,6 +1061,17 @@ struct DistanceMeasurementManager::impl : bluetooth::hal::RangingHalCallback {
      uint16_t max_period_between_proc;
      uint8_t tmp_tone_antenna_config_sel =  tone_antenna_config_selection;
 
+
+     if(conn_interval * 2 > max_period_time_ms)  {
+      log::info("max_period_time_ms ({}) < conn_interval*2 ({}), clamping max_period_time_ms to conn_interval*2",
+              max_period_time_ms, conn_interval * 2);
+        max_period_time_ms = conn_interval * 2;
+     }
+     if(conn_interval * 2 > min_period_time_ms)  {
+      log::info("min_period_time_ms ({}) < conn_interval*2 ({}), clamping min_period_time_ms to conn_interval*2",
+              min_period_time_ms, conn_interval * 2);
+         min_period_time_ms = conn_interval * 2;
+      }
      if (config_used) {
        min_period_between_proc = procedure_setting.min_period_between_proc;
        max_period_between_proc = procedure_setting.max_period_between_proc;
