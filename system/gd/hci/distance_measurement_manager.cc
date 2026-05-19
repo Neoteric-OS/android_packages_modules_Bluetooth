@@ -1703,6 +1703,14 @@ struct DistanceMeasurementManager::impl : bluetooth::hal::RangingHalCallback {
           while (!data_list.empty()) {
             data_list.erase(data_list.begin());
           }
+          if (live_tracker->state == CsTrackerState::STOPPED ||
+              live_tracker->state == CsTrackerState::HOLD ||
+              live_tracker->used_config_id == kInvalidConfigId) {
+            log::info("measurement already stopped, skip re-enable after delayed RAS packets. "
+                      "state {} config_id {}",
+                      (int)live_tracker->state, live_tracker->used_config_id);
+            return;
+          }
           send_le_cs_procedure_enable(connection_handle, Enable::ENABLED);
           return;
         }
@@ -2025,6 +2033,11 @@ struct DistanceMeasurementManager::impl : bluetooth::hal::RangingHalCallback {
   void parse_ras_segments(RangingHeader ranging_header, PacketViewForRecombination& segment_data,
                           uint16_t connection_handle) {
     log::info("Data size {}, Ranging_header {}", segment_data.size(), ranging_header.ToString());
+    if (cs_requester_trackers_[connection_handle].procedure_data_list.empty()) {
+      log::warn("No procedure data available for connection_handle {}, ignore delayed RAS packet",
+                connection_handle);
+      return;
+    }
     if ((cs_requester_trackers_[connection_handle]
             .procedure_data_list.back().counter & kRangingCounterMask)
         - ranging_header.ranging_counter_ >= kProcedureDataBufferSize) {
