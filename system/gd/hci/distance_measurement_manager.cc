@@ -272,6 +272,7 @@ struct DistanceMeasurementManager::impl : bluetooth::hal::RangingHalCallback {
     PacketViewForRecombination segment_data_;
     uint16_t conn_interval_ = kInvalidConnInterval;
     uint8_t procedure_sequence_after_enable = -1;
+    bool disable_due_to_ras_packets_delayed = false;
     std::unique_ptr<os::Alarm> enable_security_timeout_alarm = nullptr;
   };
 
@@ -1056,10 +1057,26 @@ struct DistanceMeasurementManager::impl : bluetooth::hal::RangingHalCallback {
      uint16_t min_period_time_ms = procedure_setting.min_period_between_proc;
      uint16_t max_period_time_ms = procedure_setting.max_period_between_proc;
 
-     uint16_t min_period_between_proc = static_cast<uint16_t>(std::round(
-         (double)min_period_time_ms / (conn_interval * kConnIntervalUnitMs)));
-     uint16_t max_period_between_proc = static_cast<uint16_t>(std::round(
-         (double)max_period_time_ms / (conn_interval * kConnIntervalUnitMs)));
+     uint16_t min_period_between_proc;
+     uint16_t max_period_between_proc;
+     uint8_t tmp_tone_antenna_config_sel =  tone_antenna_config_selection;
+
+     if (config_used) {
+       min_period_between_proc = procedure_setting.min_period_between_proc;
+       max_period_between_proc = procedure_setting.max_period_between_proc;
+       tmp_tone_antenna_config_sel =  procedure_setting.tone_ant_cfg_selection;
+       log::info("Using local config: min_period_between_proc={}, max_period_between_proc={}, "
+                 "tone_antenna_config_sel={}", min_period_between_proc, max_period_between_proc,
+                  tmp_tone_antenna_config_sel);
+     } else {
+       min_period_between_proc = static_cast<uint16_t>(std::round(
+           (double)min_period_time_ms / (conn_interval * kConnIntervalUnitMs)));
+       max_period_between_proc = static_cast<uint16_t>(std::round(
+           (double)max_period_time_ms / (conn_interval * kConnIntervalUnitMs)));
+       log::info("Using static config: min_period_between_proc={}, max_period_between_proc={}, "
+                 "tone_antenna_config_sel={}", min_period_between_proc, max_period_between_proc,
+                  tmp_tone_antenna_config_sel);
+     }
 
      log::info("config_avb: conn_interval={}, min_period_time={}ms, max_period_time={}ms, "
                "min_period_between_proc={}, max_period_between_proc={}",
@@ -1077,7 +1094,7 @@ struct DistanceMeasurementManager::impl : bluetooth::hal::RangingHalCallback {
             min_subevent_len,
 	    max_subevent_len,
            // kToneAntennaConfigSelection,
-	    procedure_setting.tone_ant_cfg_selection,
+            tmp_tone_antenna_config_sel,
             (CsPhy)procedure_setting.phy,
             procedure_setting.tx_pwr_delta,
             preferred_peer_antenna,
@@ -1125,6 +1142,7 @@ struct DistanceMeasurementManager::impl : bluetooth::hal::RangingHalCallback {
   static void reset_tracker_on_stopped(CsTracker& cs_tracker) {
     cs_tracker.measurement_ongoing = false;
     cs_tracker.state = CsTrackerState::STOPPED;
+    cs_tracker.disable_due_to_ras_packets_delayed = false;
     cs_tracker.procedure_data_list.clear();
   }
 
@@ -1164,6 +1182,10 @@ struct DistanceMeasurementManager::impl : bluetooth::hal::RangingHalCallback {
 
       it->second.state = CsTrackerState::WAIT_FOR_PROCEDURE_ENABLED;
     } else {  // Enable::DISABLE
+      if (procedure_disable_in_progress) {
+        log::info("procedure disable already in progress for state {}.", (int)it->second.state);
+        return;
+      }
       if (it->second.state != CsTrackerState::WAIT_FOR_PROCEDURE_ENABLED &&
           it->second.state != CsTrackerState::STARTED) {
         log::info("no procedure disable command needed for state {}.", (int)it->second.state);
@@ -1185,8 +1207,13 @@ struct DistanceMeasurementManager::impl : bluetooth::hal::RangingHalCallback {
     // controller may send error if the procedure instance has finished all scheduled procedures.
     if (enable == Enable::DISABLED && status == ErrorCode::COMMAND_DISALLOWED) {
       log::info("ignored the procedure disable command disallow error.");
-      if (cs_requester_trackers_.find(connection_handle) != cs_requester_trackers_.end()) {
-        reset_tracker_on_stopped(cs_requester_trackers_[connection_handle]);
+      auto it = cs_requester_trackers_.find(connection_handle);
+      if (it != cs_requester_trackers_.end()) {
+        if (it->second.disable_due_to_ras_packets_delayed) {
+          log::info("preserve tracker because disable was triggered by delayed RAS packets.");
+          return;
+        }
+        reset_tracker_on_stopped(it->second);
       }
     } else if (enable == Enable::ENABLED && status_view.GetStatus() != ErrorCode::SUCCESS) {
       if (cs_requester_trackers_.count(connection_handle) == 0) {
@@ -1657,8 +1684,10 @@ struct DistanceMeasurementManager::impl : bluetooth::hal::RangingHalCallback {
           procedure_disable_in_progress = false;
           return;
         }
-        if (is_ras_packets_delayed) {
+        if (is_ras_packets_delayed || live_tracker->disable_due_to_ras_packets_delayed) {
           is_ras_packets_delayed = false;
+          live_tracker->disable_due_to_ras_packets_delayed = false;
+          procedure_disable_in_progress = false;
           std::vector<CsProcedureData>& data_list = live_tracker->procedure_data_list;
           while (!data_list.empty()) {
             data_list.erase(data_list.begin());
@@ -1920,9 +1949,10 @@ struct DistanceMeasurementManager::impl : bluetooth::hal::RangingHalCallback {
       return;
     }
     if (cs_requester_trackers_[connection_handle].state != CsTrackerState::STARTED &&
-        cs_requester_trackers_[connection_handle].state !=
-                CsTrackerState::WAIT_FOR_PROCEDURE_ENABLED) {
-      log::warn("The measurement for {} is stopped, ignore the remote data.", connection_handle);
+         cs_requester_trackers_[connection_handle].state !=
+                 CsTrackerState::WAIT_FOR_PROCEDURE_ENABLED) {
+      log::warn("The measurement for {} is stopped or procedure disable is in progress, ignore the remote data.",
+                connection_handle);
       return;
     }
     auto& tracker = cs_requester_trackers_[connection_handle];
@@ -1989,6 +2019,7 @@ struct DistanceMeasurementManager::impl : bluetooth::hal::RangingHalCallback {
         - ranging_header.ranging_counter_ >= kProcedureDataBufferSize) {
       log::warn("Delay in receiving RAS packets, restarting procedures!");
       is_ras_packets_delayed = true;
+      cs_requester_trackers_[connection_handle].disable_due_to_ras_packets_delayed = true;
       send_le_cs_procedure_enable(connection_handle, Enable::DISABLED);
       return;
     }
