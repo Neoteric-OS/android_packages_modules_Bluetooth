@@ -613,6 +613,14 @@ public:
             (codec_config.sample_rate == cp.sample_rate) &&
             (codec_config.channel_mode == cp.channel_mode) &&
             (codec_config.bits_per_sample == cp.bits_per_sample)) {
+          if (cp.codec_specific_4 > 0 && active_peer_ == peer_address) {
+            constexpr int64_t profile_mask = APTX_MODE_MASK;
+            const int64_t cs4 = (codec_config.codec_specific_4 & ~profile_mask) |
+                                (cp.codec_specific_4 & profile_mask);
+            if (current_codec->updateCodecSpecific4(cs4)) {
+              bta_av_co_report_codec_config_changed(peer_address);
+            }
+          }
           aptX_config_change = false;
           log::info("Aptx Adaptive core config didn't change");
           break;

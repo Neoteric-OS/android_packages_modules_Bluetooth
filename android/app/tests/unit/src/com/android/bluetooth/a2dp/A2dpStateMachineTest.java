@@ -39,6 +39,7 @@ import static com.google.common.truth.Truth.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.inOrder;
@@ -219,6 +220,44 @@ public class A2dpStateMachineTest {
                         mService, mDevice, mNativeInterface, true, mLooper.getLooper());
 
         testProcessCodecConfigEventCase(true);
+    }
+
+    @Test
+    public void adaptiveProfileOnlyChange_broadcastsWithoutRestartingAudio() {
+        mStateMachine = new A2dpStateMachine(
+                mService, mDevice, mNativeInterface, true, mLooper.getLooper());
+        BluetoothCodecConfig adaptive = new BluetoothCodecConfig.Builder()
+                .setCodecType(BluetoothCodecConfig.SOURCE_CODEC_TYPE_APTX_ADAPTIVE)
+                .setSampleRate(BluetoothCodecConfig.SAMPLE_RATE_44100)
+                .setBitsPerSample(BluetoothCodecConfig.BITS_PER_SAMPLE_24)
+                .setChannelMode(BluetoothCodecConfig.CHANNEL_MODE_STEREO)
+                .setCodecSpecific4(0x0a059000L)
+                .build();
+        BluetoothCodecConfig lossless = new BluetoothCodecConfig.Builder()
+                .setCodecType(BluetoothCodecConfig.SOURCE_CODEC_TYPE_APTX_ADAPTIVE)
+                .setSampleRate(BluetoothCodecConfig.SAMPLE_RATE_44100)
+                .setBitsPerSample(BluetoothCodecConfig.BITS_PER_SAMPLE_24)
+                .setChannelMode(BluetoothCodecConfig.CHANNEL_MODE_STEREO)
+                .setCodecSpecific4(0x0a05d000L)
+                .build();
+        List<BluetoothCodecConfig> capabilities = Arrays.asList(adaptive);
+        BluetoothCodecStatus adaptiveStatus =
+                new BluetoothCodecStatus(adaptive, capabilities, capabilities);
+        BluetoothCodecStatus losslessStatus =
+                new BluetoothCodecStatus(lossless, capabilities, capabilities);
+        mStateMachine.processCodecConfigEvent(adaptiveStatus);
+        clearInvocations(mService);
+
+        mStateMachine.processCodecConfigEvent(losslessStatus);
+
+        verify(mService).broadcastCodecConfig(mDevice, losslessStatus);
+        verify(mService, never()).codecConfigUpdated(any(), any(), anyBoolean());
+        clearInvocations(mService);
+
+        mStateMachine.processCodecConfigEvent(adaptiveStatus);
+
+        verify(mService).broadcastCodecConfig(mDevice, adaptiveStatus);
+        verify(mService, never()).codecConfigUpdated(any(), any(), anyBoolean());
     }
 
     /** Helper method to test processCodecConfigEvent() */

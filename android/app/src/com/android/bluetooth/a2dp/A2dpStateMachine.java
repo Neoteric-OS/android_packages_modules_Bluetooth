@@ -682,6 +682,12 @@ final class A2dpStateMachine extends StateMachine {
             if (update) {
                 mA2dpService.codecConfigUpdated(mDevice, mCodecStatus, false);
                 mA2dpService.enableSetCodecConfig(false);
+            } else if (prevCodecConfig != null
+                    && newCodecConfig.getCodecType()
+                            == BluetoothCodecConfig.SOURCE_CODEC_TYPE_APTX_ADAPTIVE
+                    && newCodecConfig.getCodecSpecific4()
+                            != prevCodecConfig.getCodecSpecific4()) {
+                mA2dpService.broadcastCodecConfig(mDevice, mCodecStatus);
             }
         } else {
             boolean sameAudioFeedingParameters =

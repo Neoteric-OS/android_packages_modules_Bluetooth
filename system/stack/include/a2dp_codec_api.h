@@ -104,6 +104,15 @@ public:
   // Returns a copy of the current codec configuration.
   btav_a2dp_codec_config_t getCodecConfig();
 
+  bool updateCodecSpecific4(int64_t value) {
+    std::lock_guard<std::recursive_mutex> lock(codec_mutex_);
+    if (codec_config_.codec_specific_4 == value) {
+      return false;
+    }
+    codec_config_.codec_specific_4 = value;
+    return true;
+  }
+
   // Gets the codec local capability.
   // Returns a copy of the codec local capability.
   btav_a2dp_codec_config_t getCodecLocalCapability();

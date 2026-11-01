@@ -1279,7 +1279,7 @@ public class A2dpService extends ConnectableProfile {
         sendBroadcast(intent, BLUETOOTH_CONNECT, Util.getTempBroadcastBundle());
     }
 
-    private void broadcastCodecConfig(BluetoothDevice device, BluetoothCodecStatus codecStatus) {
+    void broadcastCodecConfig(BluetoothDevice device, BluetoothCodecStatus codecStatus) {
         Log.d(TAG, "broadcastCodecConfig(" + device + "): " + codecStatus);
         Intent intent = new Intent(BluetoothA2dp.ACTION_CODEC_CONFIG_CHANGED);
         intent.putExtra(BluetoothCodecStatus.EXTRA_CODEC_STATUS, codecStatus);
