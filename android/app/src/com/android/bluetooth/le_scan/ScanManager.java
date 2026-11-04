@@ -166,7 +166,7 @@ public class ScanManager {
 
     private int mLastConfiguredScanSetting1m = Integer.MIN_VALUE;
     private int mLastConfiguredScanSettingCoded = Integer.MIN_VALUE;
-    private boolean mIsAptXLowLatencyModeEnabled;
+    private volatile boolean mIsAptXLowLatencyModeEnabled;
     // Scan parameters for batch scan.
     private BatchScanParams mBatchScanParams;
 
@@ -671,6 +671,18 @@ public class ScanManager {
         }
     }
 
+    @VisibleForTesting
+    void handleSuspendScanAll() {
+        for (ScanClient client : mRegularScanClients) {
+            if (!isOpportunisticScanClient(client)) {
+                client.getAppScanStats().recordScanSuspend(client.getScannerId());
+                Log.d(TAG, "Suspending scan for aptX LL: " + client);
+                handleStopScan(client);
+                mSuspendedScanClients.add(client);
+            }
+        }
+    }
+
     private void updateRegularScanToBatchScanClients() {
         boolean updatedScanParams = false;
         for (ScanClient client : mRegularScanClients) {
@@ -902,7 +914,8 @@ public class ScanManager {
         Iterator<ScanClient> iterator = mSuspendedScanClients.iterator();
         while (iterator.hasNext()) {
             ScanClient client = iterator.next();
-            if ((!requiresScreenOn(client) || mScreenOn)
+            if ((!mIsAptXLowLatencyModeEnabled || isOpportunisticScanClient(client))
+                    && (!requiresScreenOn(client) || mScreenOn)
                     && (!requiresLocationOn(client) || mLocationManager.isLocationEnabled())) {
                 client.getAppScanStats().recordScanResume(client.getScannerId());
                 Log.d(TAG, "Resume scan for " + client);
@@ -1407,12 +1420,15 @@ public class ScanManager {
             // cannot be queried from the controller for MSFT enabled devices
             maxFiltersSupported = MIN_NUM_MSFT_MONITOR_SLOTS;
         }
-        // Start from index 4 as:
+        // Start from index 5 as:
         // index 0 is reserved for ALL_PASS filter in Settings app.
         // index 1 is reserved for ALL_PASS filter for regular scan apps.
         // index 2 is reserved for ALL_PASS filter for batch scan apps.
         // index 3 is reserved for BAP/CAP Announcements
-        for (int i = 4; i < maxFiltersSupported; ++i) {
+        // index 4 is reserved for the CSIS RSI AD_TYPE filter (set_ad_type_rsi_filter).
+        //         It must not overlap index 0, which LE inquiry/discovery reuses as its
+        //         transient ALLOW_ALL slot and would otherwise clobber the RSI filter.
+        for (int i = 5; i < maxFiltersSupported; ++i) {
             mFilterIndexStack.add(i);
         }
     }
@@ -1615,10 +1631,10 @@ public class ScanManager {
     public void setAptXLowLatencyMode(boolean enabled){
         Log.d(TAG, "setAptXLowLatencyMode: mIsAptXLowLatencyModeEnabled: "
                     + mIsAptXLowLatencyModeEnabled + "enabled: " + enabled);
-        mIsAptXLowLatencyModeEnabled = enabled;
         mScanController.doOnScanThread(() -> {
-            if (mIsAptXLowLatencyModeEnabled) {
-                handleSuspendScans();
+            mIsAptXLowLatencyModeEnabled = enabled;
+            if (enabled) {
+                handleSuspendScanAll();
             } else {
                 handleResumeScans();
             }

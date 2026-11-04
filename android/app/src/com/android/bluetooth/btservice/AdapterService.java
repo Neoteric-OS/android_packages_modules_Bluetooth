@@ -387,7 +387,6 @@ public class AdapterService extends Service {
 
     private GattService mGattService;
     private ScanController mScanController;
-    private CallAudio mCallAudio;
 
     private volatile boolean mTestModeEnabled = false;
 
@@ -1105,7 +1104,6 @@ public class AdapterService extends Service {
 
         mActiveDeviceManager = new ActiveDeviceManager(this, mStorage);
         mActiveDeviceManager.start();
-        mCallAudio = CallAudio.get();
 
         mCompanionManager = new CompanionManager(this);
 
@@ -2423,7 +2421,8 @@ public class AdapterService extends Service {
      * @return a Bundle containing the preferred audio profiles for the device
      */
     public Bundle getPreferredAudioProfiles(BluetoothDevice device) {
-        if (mCallAudio != null && mCallAudio.isVoipLeaWarEnabled()) {
+        final CallAudio callAudio = CallAudio.get();
+        if (callAudio != null && callAudio.isVoipLeaWarEnabled()) {
             final var leAudioWar = getLeAudioService();
             if (!isDualModeAudioEnabled()
                     && leAudioWar.isPresent()
@@ -3185,13 +3184,20 @@ public class AdapterService extends Service {
         Optional<CsipSetCoordinatorService> csipSetCoordinatorService =
                 getCsipSetCoordinatorService();
         if (csipSetCoordinatorService.isPresent()) {
+            CsipSetCoordinatorService csip = csipSetCoordinatorService.get();
             List<BluetoothDevice> groupDevices =
-                    csipSetCoordinatorService
-                            .get()
-                            .getGroupDevicesOrdered(device, BluetoothUuid.CAP);
+                    csip.getGroupDevicesOrdered(device, BluetoothUuid.CAP);
             if (!groupDevices.isEmpty()) {
                 Log.i(TAG, header + "Group devices found: " + groupDevices);
                 devices.addAll(groupDevices);
+            }
+            // Also include members still bonding or CSIP connecting (not yet in
+            // getGroupDevicesOrdered). Covers the full window until CSIP connected.
+            List<BluetoothDevice> foundSetMemberDevices =
+                    csip.getFoundSetMemberDevices(device, BluetoothUuid.CAP);
+            if (!foundSetMemberDevices.isEmpty()) {
+                Log.i(TAG, header + "Set members found: " + foundSetMemberDevices);
+                devices.addAll(foundSetMemberDevices);
             }
         }
 
@@ -3735,8 +3741,9 @@ public class AdapterService extends Service {
                     break;
                 }
                 BluetoothDevice device;
-                if (mCallAudio != null && mCallAudio.isVoipLeaWarEnabled()) {
-                    device = mCallAudio.getActiveDevice();
+                final CallAudio callAudio = CallAudio.get();
+                if (callAudio != null && callAudio.isVoipLeaWarEnabled()) {
+                    device = callAudio.getActiveDevice();
                     Log.i(TAG, "getActiveDevices: CallAudio device: " + device);
                 } else {
                     device = headset.get().getActiveDevice();

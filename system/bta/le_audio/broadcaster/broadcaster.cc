@@ -979,7 +979,12 @@ public:
 
         for (auto& broadcast_pair : broadcasts_) {
           auto& broadcast = broadcast_pair.second;
-          broadcast->ProcessMessage(BroadcastStateMachine::Message::START, nullptr);
+          // Only broadcasts that are configured and paused are eligible to auto-resume here.
+          // Broadcasts that were stopped (e.g. gave up after repeated ISO data path setup
+          // failures) or are mid-transition must not be restarted from this internal trigger.
+          if (broadcast->GetState() == BroadcastStateMachine::State::CONFIGURED) {
+            broadcast->ProcessMessage(BroadcastStateMachine::Message::START, nullptr);
+          }
         }
       }
 
@@ -1206,6 +1211,18 @@ private:
       if (!com_android_bluetooth_flags_leaudio_fix_stream_confirm_datapath_race()) {
         instance->le_audio_source_hal_client_->ConfirmStreamingRequest(false);
       }
+    }
+
+    void OnBigCreationFailed(uint32_t broadcast_id, uint8_t status) {
+      log::error("BIG creation failed: broadcast_id={} status={}", broadcast_id, status);
+      instance->UpdateAudioActiveStateInBroadcastAnnouncements();
+      if (instance->le_audio_source_hal_client_) {
+        instance->le_audio_source_hal_client_->CancelStreamingRequest();
+      }
+      instance->callbacks_->OnBroadcastStateChanged(
+              broadcast_id,
+              static_cast<bluetooth::le_audio::BroadcastState>(
+                      BroadcastStateMachine::State::CONFIGURED));
     }
 
     void OnAnnouncementUpdated(uint32_t broadcast_id) {

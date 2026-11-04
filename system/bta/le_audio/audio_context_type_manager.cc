@@ -327,6 +327,19 @@ public:
     BidirectionalPair<AudioContexts> additional_local_contexts_based_on_states = {AudioContexts(),
                                                                                   AudioContexts()};
     if (IsInGame()) {
+      /* The in_game_ flag is a laggy hint from the upper layer (ActivityManager UID
+       * importance); when a game is backgrounded/closed it can remain set for up to
+       * GAME_BACKGROUND_MONITOR_MS (120 s) before setInGame(false) arrives. The HAL
+       * source metadata, on the other hand, is authoritative and real-time. If the HAL
+       * reports a clean media source (MEDIA present, GAME absent), the game audio has
+       * stopped, so a stale in_game_ must not re-promote the encoding session to GAME.
+       * Otherwise the group reconfigures to an incorrect unidirectional GAME config
+       * instead of MEDIA. A real game producing game audio always carries the GAME bit
+       * (AUDIO_USAGE_GAME -> LeAudioContextType::GAME), so this only suppresses the flag
+       * when the HAL has authoritatively moved away from game audio. */
+      bool hal_source_is_clean_media =
+              copy_local_encoding_ctxs.source.test(LeAudioContextType::MEDIA) &&
+              !copy_local_encoding_ctxs.source.test(LeAudioContextType::GAME);
       if (copy_local_encoding_ctxs.source.none() && copy_local_decoding_ctxs.none()) {
         log::info(
                 "Adding game Mode to remote Sink as Audio Hal doesn't specify metadata during the "
@@ -335,12 +348,19 @@ public:
         additional_local_contexts_based_on_states.source.set(LeAudioContextType::GAME);
       } else {
         if (copy_local_encoding_ctxs.source.any()) {
-          log::info("Adding game Mode to remote Sink");
-          copy_local_encoding_ctxs.source.set(LeAudioContextType::GAME);
-          additional_local_contexts_based_on_states.source.set(LeAudioContextType::GAME);
+          if (hal_source_is_clean_media) {
+            log::info(
+                    "Skip adding game Mode to remote Sink: HAL reports clean media source ({}), "
+                    "in_game_ is stale",
+                    ToString(copy_local_encoding_ctxs.source));
+          } else {
+            log::info("Adding game Mode to remote Sink");
+            copy_local_encoding_ctxs.source.set(LeAudioContextType::GAME);
+            additional_local_contexts_based_on_states.source.set(LeAudioContextType::GAME);
+          }
         }
 
-        if (copy_local_decoding_ctxs.any()) {
+        if (copy_local_decoding_ctxs.any() && !copy_local_decoding_ctxs.test(LeAudioContextType::LIVE)) {
           log::info("Adding game Mode to remote Source");
           copy_local_decoding_ctxs.set(LeAudioContextType::GAME);
           additional_local_contexts_based_on_states.sink.set(LeAudioContextType::GAME);
@@ -436,6 +456,18 @@ public:
     expected_remote_context_types.source &=
             (local_encoding_contexts_types_.sink | adjusted_dec_context_types |
              additional_local_contexts_based_on_states.sink);
+
+    /* Audio HAL only sends metadata for the encoding (Sink) direction during Game mode, so the
+     * mask above always clears the Source side even when the remote genuinely supports GAME on
+     * both directions (advertised in its PACS). Restore GAME on Source whenever the remote's own
+     * bidirectional support set says so, so a bidirectional-capable remote isn't downgraded to
+     * unidirectional just because the HAL didn't provide Source-side metadata.
+     */
+    if (used_bidirectional_on_encoding.test(LeAudioContextType::GAME) &&
+        bidirectional_context.test(LeAudioContextType::GAME)) {
+      expected_remote_context_types.source.set(LeAudioContextType::GAME);
+    }
+
     log::info("expected_remote_context_types.sink = {}", ToString(expected_remote_context_types.sink));
     log::info("expected_remote_context_types.source = {}", ToString(expected_remote_context_types.source));
     if (!expected_remote_context_types.sink.none()) {

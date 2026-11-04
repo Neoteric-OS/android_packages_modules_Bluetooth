@@ -39,7 +39,7 @@ bool btif_a2dp_source_init(void);
 // This function should be called by the BTIF state machine after
 // btif_a2dp_source_startup() to start the streaming session for |peer_address|.
 bool btif_a2dp_source_start_session(const RawAddress& peer_address,
-                                    std::promise<void> peer_ready_promise);
+                                    std::promise<bool> peer_ready_promise);
 
 // Restart the A2DP Source session.
 // This function should be called by the BTIF state machine after
@@ -50,7 +50,7 @@ bool btif_a2dp_source_start_session(const RawAddress& peer_address,
 // cannot be empty.
 bool btif_a2dp_source_restart_session(const RawAddress& old_peer_address,
                                       const RawAddress& new_peer_address,
-                                      std::promise<void> peer_ready_promise);
+                                      std::promise<bool> peer_ready_promise);
 
 // End the A2DP Source session.
 // This function should be called by the BTIF state machine to end the
@@ -122,6 +122,12 @@ void btif_a2dp_source_debug_dump(int fd);
 
 // Set the dynamic audio buffer size
 void btif_a2dp_source_set_dynamic_audio_buffer_size(uint8_t dynamic_audio_buffer_size);
+
+// Set up the A2DP Source codec, and prepare the encoder.
+// The peer address is |peer_addr|.
+// This function should be called prior to starting A2DP streaming.
+bool btif_a2dp_source_setup_codec(const RawAddress& peer_addr,
+                                  std::promise<bool>& peer_ready_promise);
 
 // Update codec mode during streaming
 void btif_a2dp_update_codec_mode(void);

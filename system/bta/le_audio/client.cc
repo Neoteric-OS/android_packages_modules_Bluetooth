@@ -907,7 +907,12 @@ public:
     /* There is an issue with a closing stream. It might be during
      * reconfiguration, so make sure to cancel stream request if needed
      */
-    CancelStreamingRequest();
+    if (group->IsPendingConfiguration() || group->IsSuspendedForReconfiguration()) {
+      group->ClearPendingConfiguration();
+      reconfigurationComplete();
+    } else {
+      CancelStreamingRequest();
+    }
 
     /* Check if stream was closing for the purpose of Disconnecting the whole group
      */
@@ -1580,6 +1585,8 @@ public:
         lex_enablement_changed = lex_enabled != group->IsLeXCodecEnabled() && group->IsLeXDevice();
         log::debug("Enabling LeX Codec, enablement_changed={}", lex_enablement_changed);
         group->UpdateAudioSetConfigurationCache(LeAudioContextType::MEDIA);
+        group->UpdateAudioSetConfigurationCache(LeAudioContextType::SOUNDEFFECTS);
+        group->UpdateAudioSetConfigurationCache(LeAudioContextType::NOTIFICATIONS);
         group->UpdateAudioSetConfigurationCache(LeAudioContextType::CONVERSATIONAL);
       } else if (output_codec_config.codec_type ==
           bluetooth::le_audio::btle_audio_codec_index_t::LE_AUDIO_CODEC_INDEX_SOURCE_DEFAULT) {
@@ -1587,6 +1594,8 @@ public:
         lex_enablement_changed = lex_enabled != group->IsLeXCodecEnabled() && group->IsLeXDevice();
         log::debug("Disabling LeX Codec, enablement_changed={}", lex_enablement_changed);
         group->UpdateAudioSetConfigurationCache(LeAudioContextType::MEDIA);
+        group->UpdateAudioSetConfigurationCache(LeAudioContextType::SOUNDEFFECTS);
+        group->UpdateAudioSetConfigurationCache(LeAudioContextType::NOTIFICATIONS);
         group->UpdateAudioSetConfigurationCache(LeAudioContextType::CONVERSATIONAL);
       }
     }
@@ -1666,6 +1675,28 @@ public:
                ToString(previous_context_type));
     pre_configuration_context_type_ = previous_context_type;
     group->SetPendingConfiguration();
+
+    /* Race guard: if the group is already releasing towards IDLE (e.g. the audio
+     * suspend-timeout fired a GroupStop just before this reconfiguration was
+     * requested), StopStream() below early-returns in IsReleasingOrIdle() and no
+     * fresh RELEASING status callback is raised. In that case the RELEASING
+     * handler already ran with pending_configuration unset and therefore skipped
+     * SuspendedForReconfiguration(). Drive it here so the Audio HAL is suspended
+     * for reconfiguration (ack CTRL_ACK_RECONFIGURATION) and the pending
+     * configuration can complete, instead of leaving audio_sender_state_ /
+     * audio_receiver_state_ stuck in RELEASING. */
+    if (group->IsReleasingOrIdle() &&
+        (audio_sender_state_ != AudioState::IDLE ||
+         audio_receiver_state_ != AudioState::IDLE) &&
+        !group->IsSuspendedForReconfiguration()) {
+      log::warn(
+              "group {} already releasing/idle; driving SuspendedForReconfiguration "
+              "for the late pending configuration",
+              group->group_id_);
+      SuspendedForReconfiguration();
+      group->SetSuspendedForReconfiguration();
+    }
+
     groupStateMachine_->StopStream(group);
     speed_start_setup(group->group_id_, configuration_context_type_, group->NumOfConnected(), true);
   }
@@ -2079,6 +2110,50 @@ public:
   void SetInGame(bool in_game) override {
     log::debug("in_game: {}", in_game);
     audioContextTypeManager_->SetInGame(in_game);
+
+    /* SetInGame is a laggy hint (ActivityManager UID importance) that can arrive up to
+     * GAME_BACKGROUND_MONITOR_MS (120 s) after a game is closed. If the group is still
+     * configured to GAME when the flag finally clears, force a corrective reconfiguration
+     * to the resolved (non-game) context. This mirrors SetInCall(false) and covers the case
+     * where the HAL sends no source-metadata update during the window (e.g. audio paused),
+     * so the stale GAME config would otherwise linger. When a HAL MEDIA update already
+     * corrected configuration_context_type_ away from GAME, this is a no-op. */
+    if (in_game) {
+      return;
+    }
+
+    if (active_group_id_ == bluetooth::groups::kGroupUnknown) {
+      log::debug("There is no active group");
+      return;
+    }
+
+    if (defer_notify_inactive_until_stop_) {
+      log::debug("Device is pending for inactive until stop.");
+      return;
+    }
+
+    if (configuration_context_type_ != LeAudioContextType::GAME) {
+      log::debug("configuration_context_type_ is {}, no corrective reconfig needed",
+                 ToString(configuration_context_type_));
+      return;
+    }
+
+    LeAudioDeviceGroup* group = aseGroups_.FindById(active_group_id_);
+    if (!group) {
+      log::warn("Invalid group: {}", static_cast<int>(active_group_id_));
+      return;
+    }
+
+    if (!group->IsStreaming() &&
+        group->GetTargetState() != AseState::BTA_LE_AUDIO_ASE_STATE_STREAMING) {
+      log::debug("group {} is not streaming or targeting streaming, skip corrective reconfig",
+                 active_group_id_);
+      return;
+    }
+
+    log::info("Game ended while configured to GAME, reconfigure group {} to resolved context",
+              active_group_id_);
+    ReconfigureOrUpdateRemote(group, bluetooth::le_audio::types::kLeAudioDirectionSink);
   }
 
   void StartAudioSession(LeAudioDeviceGroup* group) {
@@ -2672,6 +2747,18 @@ public:
         return;
       }
 
+      if (current_connect_state == DeviceConnectState::CONNECTED_AUTOCONNECT_GETTING_READY) {
+        log::info("{} already connected, getting profile ready", leAudioDevice->address_);
+        leAudioDevice->SetConnectionState(DeviceConnectState::CONNECTED_BY_USER_GETTING_READY);
+        return;
+      }
+
+      if (current_connect_state == DeviceConnectState::CONNECTED_BY_USER_GETTING_READY) {
+        log::info("{} already connected by the user, silent ignore, stay tuned",
+                  leAudioDevice->address_);
+        return;
+      }
+
       if (leAudioDevice->group_id_ != bluetooth::groups::kGroupUnknown) {
         auto group = GetGroupIfEnabled(leAudioDevice->group_id_);
         if (!group) {
@@ -2767,19 +2854,19 @@ public:
 
     if (!DeserializeSinkPacs(leAudioDevice, sink_pacs)) {
       /* If PACs are invalid, just say whole cache is invalid */
-      leAudioDevice->known_service_handles_ = false;
+      leAudioDevice->known_service_handles_and_capa_ = false;
       log::warn("Could not load sink pacs");
     }
 
     if (!DeserializeSourcePacs(leAudioDevice, source_pacs)) {
       /* If PACs are invalid, just say whole cache is invalid */
-      leAudioDevice->known_service_handles_ = false;
+      leAudioDevice->known_service_handles_and_capa_ = false;
       log::warn("Could not load source pacs");
     }
 
     if (!DeserializeAses(leAudioDevice, ases)) {
       /* If ASEs are invalid, just say whole cache is invalid */
-      leAudioDevice->known_service_handles_ = false;
+      leAudioDevice->known_service_handles_and_capa_ = false;
       log::warn("Could not load ases");
     }
 
@@ -2804,7 +2891,7 @@ public:
     }
 
     //For BT reboot cases, remotes need PACS discover.
-    leAudioDevice->known_service_handles_ = false;
+    leAudioDevice->known_service_handles_and_capa_ = false;
     btif_storage_leaudio_clear_service_data(address);
 
     leAudioDevice->autoconnect_flag_ = autoconnect;
@@ -3354,6 +3441,20 @@ public:
 
     if (leAudioDevice->conn_id_ != GATT_INVALID_CONN_ID) {
       log::debug("Already connected {}, conn_id=0x{:04x}", address, leAudioDevice->conn_id_);
+      /* Re-notify the upper layer in case it lost its state due to an
+       * unbond+rebond race where the Java state machine was recreated with
+       * group_id=-1 while the stack kept the live conn_id. Only do this when
+       * the device is fully connected — during the getting-ready phase a
+       * duplicate OPEN_EVT can arrive (from the background-connect
+       * re-registration in this same handler), and sending CONNECTED early
+       * would cause the Java state machine to log "bad state" when the real
+       * CONNECTED callback arrives after encryption/service-discovery. */
+      if (leAudioDevice->group_id_ != bluetooth::groups::kGroupUnknown &&
+          leAudioDevice->GetConnectionState() == DeviceConnectState::CONNECTED) {
+        callbacks_->OnGroupNodeStatus(address, leAudioDevice->group_id_,
+                                      GroupNodeStatus::ADDED);
+        callbacks_->OnConnectionState(ConnectionState::CONNECTED, address);
+      }
       return;
     }
 
@@ -3617,7 +3718,7 @@ public:
     leAudioDevice->encrypted_ = true;
 
     /* If we know services, register for notifications */
-    if (leAudioDevice->known_service_handles_) {
+    if (leAudioDevice->known_service_handles_and_capa_) {
       /* This registration will do subscribtion in local GATT as we
        * assume remote device keeps bonded CCC values.
        */
@@ -3627,7 +3728,8 @@ public:
 
     /* If we know services and read is not ongoing, this is reconnection and
      * just notify connected  */
-    if (leAudioDevice->known_service_handles_ && !leAudioDevice->notify_connected_after_read_) {
+    if (leAudioDevice->known_service_handles_and_capa_ &&
+        !leAudioDevice->notify_connected_after_read_) {
       log::info("Wait for CCC registration and MTU change request");
       return;
     }
@@ -3781,7 +3883,7 @@ public:
     leAudioDevice->acl_phy_update_done_ = false;
 
     log::info("Remove service data, addr: {}", address);
-    leAudioDevice->known_service_handles_ = false;
+    leAudioDevice->known_service_handles_and_capa_ = false;
     btif_storage_leaudio_clear_service_data(address);
 
     auto connection_state = leAudioDevice->GetConnectionState();
@@ -3935,12 +4037,12 @@ public:
       }
     }
 
-    if (leAudioDevice->known_service_handles_ == false) {
+    if (leAudioDevice->known_service_handles_and_capa_ == false) {
       log::debug("Database already invalidated");
       return;
     }
 
-    leAudioDevice->known_service_handles_ = false;
+    leAudioDevice->known_service_handles_and_capa_ = false;
     BtaGattQueue::Clean(leAudioDevice->conn_id_);
     DeregisterNotifications(leAudioDevice);
 
@@ -3970,7 +4072,7 @@ public:
 
     /* If device is not connected, just clear the handle information and this
      * will trigger service search onGattConnected */
-    leAudioDevice->known_service_handles_ = false;
+    leAudioDevice->known_service_handles_and_capa_ = false;
     btif_storage_leaudio_clear_service_data(address);
   }
 
@@ -4047,7 +4149,7 @@ public:
       return;
     }
 
-    if (!leAudioDevice->known_service_handles_) {
+    if (!leAudioDevice->known_service_handles_and_capa_) {
       BTA_GATTC_ServiceSearchRequest(leAudioDevice->conn_id_);
     }
   }
@@ -4404,7 +4506,6 @@ public:
       btif_storage_leaudio_update_gmap_bin(leAudioDevice->address_);
     }
 
-    leAudioDevice->known_service_handles_ = true;
     leAudioDevice->notify_connected_after_read_ = true;
     if (leAudioHealthStatus_) {
       leAudioHealthStatus_->AddStatisticForDevice(leAudioDevice,
@@ -4465,7 +4566,8 @@ public:
       log::info("Successfully registered on ccc: 0x{:04x}, device: {}", hdl,
                 leAudioDevice->address_);
 
-      if (leAudioDevice->ctp_hdls_.ccc_hdl == hdl && leAudioDevice->known_service_handles_ &&
+      if (leAudioDevice->ctp_hdls_.ccc_hdl == hdl &&
+          leAudioDevice->known_service_handles_and_capa_ &&
           !leAudioDevice->notify_connected_after_read_) {
         /* Reconnection case. Control point is the last CCC LeAudio is
          * registering for on reconnection */
@@ -4673,11 +4775,30 @@ public:
     log::debug("{},  {}", leAudioDevice->address_,
                bluetooth::common::ToString(leAudioDevice->GetConnectionState()));
 
-    if (leAudioDevice->GetConnectionState() ==
-                DeviceConnectState::CONNECTED_BY_USER_GETTING_READY &&
-        (leAudioDevice->autoconnect_flag_ == false)) {
-      btif_storage_set_leaudio_autoconnect(leAudioDevice->address_, true);
+    auto connection_state = leAudioDevice->GetConnectionState();
+
+    CHECK(connection_state == DeviceConnectState::CONNECTED_BY_USER_GETTING_READY ||
+          connection_state == DeviceConnectState::CONNECTED_AUTOCONNECT_GETTING_READY);
+
+    /* In this point if either autoconnect_flag_ is false or known_service_handles_and_capa_ is
+     * false, it means there is a need to update a storage and move those two flags to true. This is
+     * because whenever this function is called it means profile is connected and autoconnect shall
+     * apply. Note that autoconnect is disabled when profile is disabled.
+     */
+    bool update_storage = false;
+
+    if (!leAudioDevice->known_service_handles_and_capa_) {
+      update_storage = true;
+      leAudioDevice->known_service_handles_and_capa_ = true;
+    }
+
+    if (leAudioDevice->autoconnect_flag_ == false) {
+      update_storage = true;
       leAudioDevice->autoconnect_flag_ = true;
+    }
+
+    if (update_storage) {
+      btif_storage_set_leaudio_autoconnect(leAudioDevice->address_, true);
     }
 
     verifyPossibleMonoLocations(leAudioDevice);
@@ -5145,6 +5266,52 @@ public:
                         std::placeholders::_1, std::placeholders::_2),
               bluetooth::le_audio::types::kLeAudioDirectionSink, force_update);
     }
+
+    if (!osi_property_get_bool("persist.vendor.qcom.bluetooth.vsc_enabled", false)) {
+      LeAudioDevice* device = group->GetFirstActiveDevice();
+      if (!device) {
+        log::error("No active device in group {}", group->group_id_);
+        return;
+      }
+      int group_id = group->group_id_;
+
+      if (group->cig.GetCises().empty()) {
+        log::error("No CIS established for group {}", group_id);
+        return;
+      }
+
+      if ((configuration_context_type_ == LeAudioContextType::MEDIA) ||
+          (configuration_context_type_ == LeAudioContextType::GAME)) {
+        // Send vendor specific command for codec mode
+        uint8_t update_value =
+            (configuration_context_type_ == LeAudioContextType::MEDIA) ? 0x01 : 0x02;
+
+        log::warn("Send VSC Cmd for Encoder Limits for group {}, mode value {}",
+                group_id, update_value);
+        uint8_t param_arr[7];
+        uint8_t *p = param_arr;
+
+        UINT8_TO_STREAM(p, 0x24); //sub-opcode
+        UINT8_TO_STREAM(p, group_id);
+        UINT8_TO_STREAM(p, group->cig.GetCises()[0].id);
+        UINT8_TO_STREAM(p, 1); //numlimits
+
+        UINT8_TO_STREAM(p, 0x3);
+        UINT8_TO_STREAM(p, 0x1);
+        UINT8_TO_STREAM(p, update_value);
+
+        bluetooth::legacy::hci::GetInterface().SendVendorSpecificCmd(
+            HCI_VS_QBCE_OCF, 7, param_arr, NULL);
+      }
+
+      auto* ase = device->GetFirstActiveAse();
+      if (ase && ase->is_vsmetadata_available) {
+        for (const struct bluetooth::le_audio::types::cis& cis : group->cig.GetCises()) {
+          UpdateEncoderParams(group_id, cis.id, ase->vs_metadata);
+          ase->is_vsmetadata_available = false;
+        }
+      }
+    }
   }
 
   void StartSendingAudio(int group_id) {
@@ -5245,47 +5412,6 @@ public:
               std::bind(&LeAudioClientImpl::UpdateAudioConfigToHal, weak_factory_.GetWeakPtr(),
                         std::placeholders::_1, std::placeholders::_2),
               bluetooth::le_audio::types::kLeAudioDirectionSource, force_update);
-    }
-
-    if (!osi_property_get_bool("persist.vendor.qcom.bluetooth.vsc_enabled", false)) {
-      LeAudioDevice* device = group->GetFirstActiveDevice();
-      if (!device) {
-        log::error("No active device in group {}", group->group_id_);
-        return;
-      }
-      int group_id = group->group_id_;
-
-      if ((configuration_context_type_ == LeAudioContextType::MEDIA) ||
-          (configuration_context_type_ == LeAudioContextType::GAME)) {
-        // Send vendor specific command for codec mode
-        uint8_t update_value =
-            (configuration_context_type_ == LeAudioContextType::MEDIA) ? 0x01 : 0x02;
-
-        log::warn("Send VSC Cmd for Encoder Limits for group {}, mode value {}",
-                group_id, update_value);
-        uint8_t param_arr[7];
-        uint8_t *p = param_arr;
-
-        UINT8_TO_STREAM(p, 0x24); //sub-opcode
-        UINT8_TO_STREAM(p, group_id);
-        UINT8_TO_STREAM(p, group->cig.GetCises()[0].id);
-        UINT8_TO_STREAM(p, 1); //numlimits
-
-        UINT8_TO_STREAM(p, 0x3);
-        UINT8_TO_STREAM(p, 0x1);
-        UINT8_TO_STREAM(p, update_value);
-
-        bluetooth::legacy::hci::GetInterface().SendVendorSpecificCmd(
-            HCI_VS_QBCE_OCF, 7, param_arr, NULL);
-      }
-
-      if (device->GetFirstActiveAse()->is_vsmetadata_available) {
-        for (const struct bluetooth::le_audio::types::cis& cis : group->cig.GetCises()) {
-          UpdateEncoderParams(group_id, cis.id,
-              device->GetFirstActiveAse()->vs_metadata);
-          device->GetFirstActiveAse()->is_vsmetadata_available = false;
-        }
-      }
     }
   }
 
@@ -6882,6 +7008,18 @@ public:
         log::warn(" Stop the stream to group_id: {} and reconfigure from {} ->  {}",
                   group->group_id_, ToString(configuration_context_type_),
                   ToString(new_config_context));
+        /* Symmetric to the GAME-entry notify above: some earbuds drop MEDIA/GAME
+         * from their advertised context once synced to a broadcast, so
+         * remote_metadata is empty here too when GAME ends. Without this, the
+         * upper layer (Java) never learns of the MEDIA transition and never
+         * restores the broadcast active device with the Audio Framework, leaving
+         * the broadcast permanently stuck on unicast. */
+        if (LeAudioBroadcaster::IsLeAudioBroadcasterRunning() &&
+            configuration_context_type_ == LeAudioContextType::GAME &&
+            new_config_context == LeAudioContextType::MEDIA) {
+          game_broadcast_inactive_notified_ = false;
+          callbacks_->OnMetadataUpdate(LeAudioContextToIntContent(LeAudioContextType::MEDIA));
+        }
         initReconfiguration(group, configuration_context_type_);
         setConfigurationContextType(new_config_context);
       }

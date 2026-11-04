@@ -261,6 +261,10 @@ static void bta_ag_sco_disc_cback(uint16_t sco_idx, SCO_CONNECTION_FAILURES reas
       }
     }
     handle = bta_ag_scb_to_idx(bta_ag_cb.sco.p_curr_scb);
+    /* The SCO attempt is over: clear any pending deferred-accept state so a
+     * failed (managed-by-audio) HF-initiated SCO does not leave a stale
+     * sendAcceptConnectionRsp that corrupts the next call. */
+    bta_ag_cb.sco.p_curr_scb->sendAcceptConnectionRsp = false;
   }
 
   if (handle != 0) {
@@ -347,6 +351,7 @@ static void bta_ag_sco_disc_cback(uint16_t sco_idx, SCO_CONNECTION_FAILURES reas
     /* sco could be closed after scb dealloc'ed */
     if (bta_ag_cb.sco.p_curr_scb != nullptr) {
       bta_ag_cb.sco.p_curr_scb->sco_idx = BTM_INVALID_SCO_INDEX;
+      bta_ag_cb.sco.p_curr_scb->sendAcceptConnectionRsp = false;
       bta_ag_cb.sco.p_curr_scb = nullptr;
       bta_ag_cb.sco.state = BTA_AG_SCO_SHUTDOWN_ST;
     }
@@ -416,6 +421,7 @@ static void bta_ag_esco_connreq_cback(tBTM_ESCO_EVT event, tBTM_ESCO_EVT_DATA* p
           val.hdr.status = BTA_AG_SUCCESS;
           val.bd_addr = p_scb->peer_addr;
           (*bta_ag_cb.p_cback)(BTA_AG_AT_BCC_EVT, (tBTA_AG*)&val);
+          bta_ag_cb.sco.is_local = false;
           bta_ag_cb.sco.state = BTA_AG_SCO_OPENING_ST;
           bta_ag_cb.sco.p_curr_scb = p_scb;
           bta_ag_cb.sco.cur_idx = p_scb->sco_idx;
@@ -439,6 +445,7 @@ static void bta_ag_esco_connreq_cback(tBTM_ESCO_EVT event, tBTM_ESCO_EVT_DATA* p
           val.hdr.status = BTA_AG_SUCCESS;
           val.bd_addr = p_scb->peer_addr;
           (*bta_ag_cb.p_cback)(BTA_AG_AT_BCC_EVT, (tBTA_AG*)&val);
+          bta_ag_cb.sco.is_local = false;
           bta_ag_cb.sco.p_xfer_scb = p_scb;
           bta_ag_cb.sco.conn_data = p_data->conn_evt;
           bta_ag_cb.sco.state = BTA_AG_SCO_OPEN_XFER_ST;
@@ -507,6 +514,8 @@ void bta_ag_create_sco(tBTA_AG_SCB* p_scb, bool is_orig) {
   log::debug("BEFORE {}", p_scb->ToString());
   tBTA_AG_UUID_CODEC esco_codec = tBTA_AG_UUID_CODEC::UUID_CODEC_CVSD;
   bool is_hf_client_enabled = osi_property_get_bool("bluetooth.profile.hfp.hf.enabled", false);
+  bool is_dual_sco_enabled =
+                osi_property_get_bool("persist.vendor.qcom.bluetooth.dual_sco_enabled", false);
 
   if (!bta_ag_sco_is_active_device(p_scb->peer_addr)) {
     log::warn("device {} is not active, active_device={}", p_scb->peer_addr, active_device_addr);
@@ -614,9 +623,15 @@ void bta_ag_create_sco(tBTA_AG_SCB* p_scb, bool is_orig) {
         params = esco_parameters_for_codec(ESCO_CODEC_CVSD_S3, offload);
       }
        if (is_hf_client_enabled) {
-         log::info("hf_client is also enabled. using always 2EV2 packets only");
-         params.packet_types = ESCO_PKT_TYPES_MASK_NO_3_EV3 |
+         if (is_dual_sco_enabled) {
+           log::info("hf_client is also enabled. using 2EV2 packets only");
+           params.packet_types = ESCO_PKT_TYPES_MASK_NO_3_EV3 |
                   ESCO_PKT_TYPES_MASK_NO_2_EV5 | ESCO_PKT_TYPES_MASK_NO_3_EV5;
+         } else {
+           log::info("hf_client is also enabled. using EV3 + 2-EV3 packets only");
+           params.packet_types = ESCO_PKT_TYPES_MASK_EV3 | ESCO_PKT_TYPES_MASK_NO_3_EV3 |
+                  ESCO_PKT_TYPES_MASK_NO_2_EV5 | ESCO_PKT_TYPES_MASK_NO_3_EV5;
+         }
       }
 
       bool value = false;
@@ -794,6 +809,8 @@ void bta_ag_codec_negotiate(tBTA_AG_SCB* p_scb) {
   uint8_t* p_rem_feat = get_btm_client_interface().peer.BTM_ReadRemoteFeatures(p_scb->peer_addr);
   bool sdp_wbs_support = p_scb->peer_sdp_features & BTA_AG_FEAT_WBS_SUPPORT;
   bool sdp_swb_support = p_scb->peer_sdp_features & BTA_AG_FEAT_SWB_SUPPORT;
+  bool is_dual_sco_enabled =
+          osi_property_get_bool("persist.vendor.qcom.bluetooth.dual_sco_enabled", false);
 
   if (p_rem_feat == nullptr) {
     log::warn("Skip codec negotiation, failed to read remote features");
@@ -850,7 +867,7 @@ void bta_ag_codec_negotiate(tBTA_AG_SCB* p_scb) {
       log::verbose("Sending +BCS, sco_codec={}, is_aptx_swb_codec={}", p_scb->sco_codec,
                    p_scb->is_aptx_swb_codec);
       /* Send +BCS to the peer */
-      if (bta_is_hf_client_device_sco_connected()) {
+      if (bta_is_hf_client_device_sco_connected() && is_dual_sco_enabled) {
          log::warn("client sco is connected, need to send correct negotiation");
          uint16_t mClientCodec = fetch_client_negotiated_codec();
          if (mClientCodec == p_scb->sco_codec) {
@@ -1004,6 +1021,14 @@ static void bta_ag_sco_event(tBTA_AG_SCB* p_scb, uint8_t event) {
             /* sco open is not started yet. just go back to listening */
             p_sco->state = BTA_AG_SCO_LISTEN_ST;
             p_sco->p_curr_scb = nullptr;
+            //call app callback to notify HeadsetStateMachine exits AudioConnecting
+            bta_ag_cback_sco(p_scb, BTA_AG_AUDIO_CLOSE_EVT);
+            /* The earlier bta_sys_sco_use() (e.g. from bta_ag_hfp_result()
+             * handling BTA_AG_IN_CALL_RES) is otherwise never balanced on this
+             * path, since the SCO HCI connection was never established here.
+             * Without this, BTA_AV's sco_occupied stays stuck at true and
+             * blocks every future A2DP start. */
+            bta_sys_sco_unuse(BTA_ID_AG, p_scb->app_id, p_scb->peer_addr);
           }
           break;
 
@@ -1460,6 +1485,27 @@ bool bta_ag_sco_is_opening(tBTA_AG_SCB* p_scb) {
 bool bta_ag_sco_is_codec_negotiating(tBTA_AG_SCB* p_scb) {
   return (bta_ag_cb.sco.state == BTA_AG_SCO_CODEC_ST) && (bta_ag_cb.sco.p_curr_scb == p_scb);
 }
+
+/*******************************************************************************
+ *
+ * Function         bta_ag_sco_is_closing
+ *
+ * Description      Check if sco is in the process of closing, i.e. a
+ *                   BTA_AG_SCO_CLOSE_EVT is already in flight and will drain
+ *                   post_sco via bta_ag_post_sco_close() shortly.
+ *
+ *
+ * Returns          true if sco is in a closing state for this scb, false
+ *                  otherwise.
+ *
+ ******************************************************************************/
+bool bta_ag_sco_is_closing(tBTA_AG_SCB* p_scb) {
+  return (bta_ag_cb.sco.state == BTA_AG_SCO_CLOSING_ST ||
+          bta_ag_cb.sco.state == BTA_AG_SCO_CLOSE_OP_ST ||
+          bta_ag_cb.sco.state == BTA_AG_SCO_CLOSE_XFER_ST) &&
+         (bta_ag_cb.sco.p_curr_scb == p_scb);
+}
+
 /*******************************************************************************
  *
  * Function         bta_ag_sco_listen
@@ -1486,6 +1532,9 @@ void bta_ag_sco_listen(tBTA_AG_SCB* p_scb, const tBTA_AG_DATA& /* data */) {
  *
  ******************************************************************************/
 void bta_ag_sco_open(tBTA_AG_SCB* p_scb, const tBTA_AG_DATA& data) {
+  bool is_dual_sco_enabled =
+           osi_property_get_bool("persist.vendor.qcom.bluetooth.dual_sco_enabled", false);
+
   if (!sco_allowed) {
     log::info("not opening sco, by policy");
     return;
@@ -1502,7 +1551,7 @@ void bta_ag_sco_open(tBTA_AG_SCB* p_scb, const tBTA_AG_DATA& data) {
   //between AG and HF role is with MSBC and new BT headset supports only CVSD. No sco is created
   //in this case with BT headset. 
   //if ongoing SCO is with CVSD and new device supports MSBC, downgrading sco with CVSD
-  if (bta_is_hf_client_device_sco_connected()) {
+  if (bta_is_hf_client_device_sco_connected() && is_dual_sco_enabled) {
       uint16_t mClientCodec = fetch_client_negotiated_codec();
       if (mClientCodec == p_scb->sco_codec) {
          log::warn("going with same codec as client codec: Mclientcodec {} p_scb->sco_codec: {}", mClientCodec, p_scb->sco_codec);
@@ -1791,6 +1840,20 @@ void bta_ag_sco_conn_close(tBTA_AG_SCB* p_scb, const tBTA_AG_DATA& /* data */,
       if (!exist_other_scb) {
         bta_sys_sco_unuse(BTA_ID_AG, p_scb->app_id, p_scb->peer_addr);
       }
+    } else if (get_btm_client_interface().sco.BTM_GetNumScoLinks() == 0) {
+      /* SCO is really gone at the controller (no remaining SCO link on any
+       * device) but the call/RFCOMM stays alive, so the branches above are
+       * skipped. Without this, bta_sys never gets an unuse to match the earlier
+       * use, leaving BTA_AV's sco_occupied stuck at true and blocking A2DP start
+       * until the call finally ends. A2DP and SCO can coexist, so release AV
+       * here. BTM_GetNumScoLinks()==0 already proves no peer holds a SCO, so we
+       * must not add a bta_ag_other_scb_open() check: that only reports whether
+       * another peer has an SLC (BTA_AG_OPEN_ST), not a SCO, and would wrongly
+       * suppress this release whenever a second HFP device is merely connected.
+       * bta_sys_sco_unuse() re-checks the live count, so this stays correct if a
+       * SCO reappears. */
+      log::warn("SCO gone at controller, releasing AV occupancy");
+      bta_sys_sco_unuse(BTA_ID_AG, p_scb->app_id, p_scb->peer_addr);
     }
 
      mAgDeviceScoConnected = false;

@@ -374,8 +374,8 @@ void btif_dm_sdp_delay_timer(const RawAddress* bl_bdaddr) {
     log::info("%s: unable to allocate sdp_delay_timer", __func__);
     return;
   }
-  alarm_set(bl_device.sdp_delay_timer, BTIF_DM_SDP_DELAY_TIMER_MS, btif_dm_sdp_delay_timer_cback,
-            &bl_device.bd_addr);
+  alarm_set_on_mloop(bl_device.sdp_delay_timer, BTIF_DM_SDP_DELAY_TIMER_MS,
+                     btif_dm_sdp_delay_timer_cback, &bl_device.bd_addr);
   log::info("%s: sdp delay timer started", __func__);
 }
 
@@ -823,7 +823,11 @@ void btif_update_remote_properties(const RawAddress& bdaddr, BD_NAME bd_name, DE
   BTIF_STORAGE_FILL_PROPERTY(&prop_name, BT_PROPERTY_TYPE_OF_DEVICE, sizeof(uint32_t),
                              &remote_dev_type);
   if (btif_storage_get_remote_device_property(bdaddr, &prop_name) == BT_STATUS_SUCCESS) {
-    dev_type = remote_dev_type | device_type;
+    if (device_type != BT_DEVICE_TYPE_UNKNOWN && remote_dev_type != device_type) {
+      dev_type = device_type;
+    } else {
+      dev_type = remote_dev_type | device_type;
+    }
   } else {
     dev_type = device_type;
   }

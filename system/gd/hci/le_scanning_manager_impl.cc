@@ -739,8 +739,9 @@ struct LeScanningManagerImpl::impl : public LeAddressManagerCallback {
     // Set timer for discovery
     if (duration != 0) {
       uint64_t duration_ms = duration * kMsPerDiscoveryUnit;
-      discovery_timer_->Schedule(common::BindOnce(&impl::stop_discovery, base::Unretained(this)),
-                                 std::chrono::milliseconds(duration_ms));
+      discovery_timer_->Schedule(
+              common::BindOnce(&impl::stop_discovery_on_timeout, base::Unretained(this)),
+              std::chrono::milliseconds(duration_ms));
     }
   }
 
@@ -758,6 +759,14 @@ struct LeScanningManagerImpl::impl : public LeAddressManagerCallback {
 
     // Stop discovery
     scan(false, ScanCallerType::DISCOVERY);
+  }
+
+  // Called when the discovery timer fires (duration expired naturally).
+  // Stops discovery and notifies the BTM layer via OnTimeout() so that
+  // btm_process_inq_complete() can clear inqparms and unblock BTA state machine.
+  void stop_discovery_on_timeout() {
+    stop_discovery();
+    scanning_callbacks_->OnTimeout();
   }
 
   void scan(bool start, ScanCallerType callerType) {
@@ -1820,7 +1829,20 @@ struct LeScanningManagerImpl::impl : public LeAddressManagerCallback {
     on_found_on_lost_info.filter_index = filter_index;
     on_found_on_lost_info.advertiser_state = view.GetAdvertiserState();
     on_found_on_lost_info.advertiser_address = view.GetAdvertiserAddress();
-    on_found_on_lost_info.advertiser_address_type = view.GetAdvertiserAddressType();
+    {
+      uint8_t raw_address_type = view.GetAdvertiserAddressType();
+      switch (raw_address_type) {
+        case (uint8_t)AddressType::PUBLIC_DEVICE_ADDRESS:
+        case (uint8_t)AddressType::PUBLIC_IDENTITY_ADDRESS:
+          raw_address_type = (uint8_t)AddressType::PUBLIC_DEVICE_ADDRESS;
+          break;
+        case (uint8_t)AddressType::RANDOM_DEVICE_ADDRESS:
+        case (uint8_t)AddressType::RANDOM_IDENTITY_ADDRESS:
+          raw_address_type = (uint8_t)AddressType::RANDOM_DEVICE_ADDRESS;
+          break;
+      }
+      on_found_on_lost_info.advertiser_address_type = raw_address_type;
+    }
     on_found_on_lost_info.advertiser_info_present = view.GetAdvtInfoPresent();
     /* Extract the adv info details */
     if (on_found_on_lost_info.advertiser_info_present == AdvtInfoPresent::ADVT_INFO_PRESENT) {

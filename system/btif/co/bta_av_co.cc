@@ -57,6 +57,8 @@
 #include "stack/include/a2dp_codec_api.h"
 #include "stack/include/a2dp_constants.h"
 #include "stack/include/a2dp_ext.h"
+#include "stack/include/a2dp_vendor.h"
+#include "stack/include/a2dp_vendor_aptx_adaptive.h"
 #include "stack/include/avdt_api.h"
 #include "stack/include/bt_hdr.h"
 #include "stack/include/bt_uuid16.h"
@@ -217,6 +219,9 @@ static bool bta_av_co_should_select_hardware_codec(
         const A2dpCodecConfig& software_config,
         const ::bluetooth::audio::a2dp::provider::a2dp_configuration& hardware_config,
         const btav_a2dp_codec_config_t& user_codec_config);
+static void bta_av_co_codec_bitrate_hint(
+        const std::optional<::bluetooth::a2dp::CodecId>& codec_id,
+        btav_a2dp_codec_config_t& config);
 
 tA2DP_STATUS BtaAvCo::ProcessSourceGetConfig(tBTA_AV_HNDL bta_av_handle,
                                              const RawAddress& peer_address, uint8_t* p_codec_info,
@@ -1158,18 +1163,34 @@ BtaAvCo::GetProviderCodecConfiguration(BtaAvCoPeer* p_peer) {
   auto a2dp_codec_user_config = a2dp_codec_config->getCodecUserConfig();
   // TODO: pass the highest priority codec from the list of offload-supported codecs
   std::optional<::bluetooth::a2dp::CodecId> user_preferred_codec_id = std::nullopt;
-  if (com_android_bluetooth_flags_a2dp_offload_user_codec_selection()) {
-    if (::bluetooth::audio::a2dp::provider::supports_codec(a2dp_codec_config->codecIndex())) {
-      user_preferred_codec_id = a2dp_codec_config->codecId();
-    }
-  } else {
-    if (!::bluetooth::audio::a2dp::provider::supports_codec(a2dp_codec_config->codecIndex())) {
-      log::debug("User preferred codec not supported by the provider: {}",
-                 a2dp_codec_user_config.codec_type);
-      return std::nullopt;
-    }
+  if (::bluetooth::audio::a2dp::provider::supports_codec(a2dp_codec_config->codecIndex())) {
+    log::debug("User preferred codec is supported by the provider: {}",
+               a2dp_codec_user_config.codec_type);
     user_preferred_codec_id = a2dp_codec_config->codecId();
+  } else {
+    // The highest-priority (front) source codec is not offloaded by the
+    // provider. This happens when a codec such as aptX Adaptive is disabled
+    // for the current SoC and the next-in-line software codec (e.g. LHDCv5)
+    // becomes the front of ordered_source_codecs but is not part of the
+    // provider info. Do NOT abort provider configuration: leave
+    // user_preferred_codec_id unset (std::nullopt) and still query the HAL so
+    // it can pick the best offloaded codec (SBC, AAC, aptX, aptX-HD, LDAC)
+    // from the remote's capabilities. Returning std::nullopt here would leave
+    // SelectSourceCodec with no usable codec (every offloaded codec is a
+    // hardware-provider codec skipped in the software loop), stalling the
+    // source before it can send SET_CONFIGURATION.
+    log::debug(
+            "Preferred codec {} not offloaded by provider; letting HAL choose "
+            "among available offloaded codecs",
+            a2dp_codec_user_config.codec_type);
   }
+
+  // Compute the codec bitrate hint in the stack (e.g. LDAC Developer-Options
+  // bit rate) so it can be forwarded to the audio HAL without codec-specific
+  // logic in the HAL. Only when a preferred codec id is selected, mirroring
+  // the previous behaviour where the hint was keyed off the codec id sent to
+  // the HAL.
+  bta_av_co_codec_bitrate_hint(user_preferred_codec_id, a2dp_codec_user_config);
 
   // Pass all gathered codec capabilities to the provider
   return ::bluetooth::audio::a2dp::provider::get_a2dp_configuration(
@@ -1236,7 +1257,15 @@ const BtaAvCoSep* BtaAvCo::SelectSourceCodec(BtaAvCoPeer* p_peer) {
 
   // Query the preferred codec configuration for offloaded codecs.
   auto provider_codec_config = GetProviderCodecConfiguration(p_peer);
-  log::info("Configuration={}", provider_codec_config->toString());
+  // provider_codec_config may be std::nullopt if the HAL could not resolve any
+  // offloaded configuration from the remote capabilities. Guard the deref to
+  // avoid std::bad_optional_access; the software-codec fallback below still
+  // runs in that case.
+  if (provider_codec_config.has_value()) {
+    log::info("Configuration={}", provider_codec_config->toString());
+  } else {
+    log::info("No offloaded provider configuration resolved");
+  }
 
   // Query the preferred codec configuration for software codecs.
   auto ordered_source_codecs = p_peer->GetCodecs()->orderedSourceCodecs();
@@ -1639,6 +1668,23 @@ static bool bta_av_co_should_select_hardware_codec(
   }
   log::error("select unknown software codec: {}", A2DP_CodecIndexStr(software_codec_index));
   return false;
+}
+
+static void bta_av_co_codec_bitrate_hint(
+        const std::optional<::bluetooth::a2dp::CodecId>& codec_id,
+        btav_a2dp_codec_config_t& config) {
+
+  std::optional<A2dpBitrateRange> bitrate_range =
+          codec_id.has_value()
+                  ? A2DP_VendorGetBitRateRange(codec_id.value(), config.codec_specific_1,
+                                               config.SampleRateHz())
+                  : std::nullopt;
+  if (bitrate_range.has_value()) {
+    config.min_bitrate = bitrate_range->min_bitrate;
+    config.max_bitrate = bitrate_range->max_bitrate;
+    log::debug("applied codec bitrate hint min_bitrate={} max_bitrate={}", config.min_bitrate,
+               config.max_bitrate);
+  }
 }
 
 tA2DP_STATUS bta_av_co_audio_getconfig(tBTA_AV_HNDL bta_av_handle, const RawAddress& peer_address,
