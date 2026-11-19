@@ -19,11 +19,17 @@
 #include <bluetooth/log.h>
 #include <com_android_bluetooth_flags.h>
 
+#include <chrono>
 #include <deque>
+#include <map>
+#include <memory>
 #include <optional>
 #include <unordered_set>
 #include <utility>
 #include <variant>
+
+#include "common/bind.h"
+#include "os/alarm.h"
 
 namespace bluetooth {
 namespace hci {
@@ -43,6 +49,10 @@ struct RemoteNameRequestQueueEntry {
 
 using QueueEntry = std::variant<AclCreateConnectionQueueEntry, RemoteNameRequestQueueEntry>;
 
+// How long an incoming accept waits for a colliding outgoing Create Connection to resolve on its
+// own before the outgoing is cancelled. Well below the controller's Connection Accept Timeout.
+constexpr std::chrono::milliseconds kCollisionGracePeriod(500);
+
 struct AclScheduler::impl {
   impl(os::Handler* handler) : handler_(handler) {}
 
@@ -60,7 +70,8 @@ struct AclScheduler::impl {
   void ReportAclConnectionCompletion(
           Address address, common::ContextualOnceCallback<void()> handle_outgoing_connection,
           common::ContextualOnceCallback<void()> handle_incoming_connection,
-          common::ContextualOnceCallback<void(std::string)> handle_unknown_connection) {
+          common::ContextualOnceCallback<void(std::string)> handle_unknown_connection,
+          bool succeeded) {
     // Check if an outgoing request (a) exists, (b) is a Create Connection, (c) matches the received
     // address
     if (outgoing_entry_.has_value()) {
@@ -68,18 +79,31 @@ struct AclScheduler::impl {
       if (entry != nullptr && entry->address == address) {
         // If so, clear the current entry and advance the queue
         outgoing_entry_.reset();
-        // If we deliberately cancelled this outgoing to let a colliding incoming connection
-        // win (see CancelOutgoingAclConnectionIfPending), the controller emits a separate
-        // Connection Complete for the incoming. In that case we must NOT erase the pending
-        // incoming below - it still needs to be reported through handle_incoming_connection
-        // when its own completion arrives.
+        // If we cancelled this outgoing on purpose to let a colliding incoming connection win (see
+        // OnDeferredIncomingExpired), the controller emits a separate Connection Complete for the
+        // incoming, so the pending incoming survives a failed completion here. A successful one
+        // is matched to the outgoing like any other, and the pending incoming is dropped.
         bool cancelled_for_incoming = cancelled_outgoing_address_set_.erase(address) != 0;
         handle_outgoing_connection();
-        // Check if incoming request also exists for this address
-        if (!cancelled_for_incoming && incoming_connecting_address_set_.find(address) !=
-                                               incoming_connecting_address_set_.end()) {
-          log::warn("Incoming connection request also exists for {}", address);
-          incoming_connecting_address_set_.erase(address);
+        auto deferred = deferred_incoming_.find(address);
+        if (deferred != deferred_incoming_.end()) {
+          // The incoming request from the same peer was held back until this outgoing resolved.
+          DeferredIncoming incoming = std::move(deferred->second);
+          deferred_incoming_.erase(deferred);
+          if (succeeded) {
+            log::info("Outgoing connection to {} succeeded, rejecting colliding incoming", address);
+            incoming_connecting_address_set_.erase(address);
+            incoming.reject.Invoke();
+          } else {
+            log::info("Outgoing connection to {} failed, accepting colliding incoming", address);
+            incoming.accept.Invoke();
+          }
+        } else if (incoming_connecting_address_set_.find(address) !=
+                   incoming_connecting_address_set_.end()) {
+          if (!cancelled_for_incoming || succeeded) {
+            log::warn("Incoming connection request also exists for {}", address);
+            incoming_connecting_address_set_.erase(address);
+          }
         }
         try_dequeue_next_operation();
         return;
@@ -106,6 +130,16 @@ struct AclScheduler::impl {
       log::error("Outgoing connection failure reported, but we're currently doing an RNR!");
       return;
     }
+    // The Create Connection never started at the controller, so there is no collision left to wait
+    // for: release an accept that was held back for this peer.
+    auto deferred = deferred_incoming_.find(entry->address);
+    if (deferred != deferred_incoming_.end()) {
+      DeferredIncoming incoming = std::move(deferred->second);
+      deferred_incoming_.erase(deferred);
+      log::info("Outgoing connection to {} failed to start, accepting incoming", entry->address);
+      incoming.accept.Invoke();
+    }
+    cancelled_outgoing_address_set_.erase(entry->address);
     outgoing_entry_.reset();
     try_dequeue_next_operation();
   }
@@ -121,13 +155,24 @@ struct AclScheduler::impl {
             [&]() { cancel_connection(); },
             [&](auto /* entry */) { cancel_connection_completed(); });
     if (ok) {
+      // An accept held back for this peer was waiting on the outgoing connection we just asked to
+      // cancel, so the collision is resolved: release it right behind the Create Connection Cancel
+      // (both go through the same handler, in order) and keep the fallback timer from sending a
+      // second Cancel.
+      auto deferred = deferred_incoming_.find(address);
+      if (deferred != deferred_incoming_.end()) {
+        DeferredIncoming incoming = std::move(deferred->second);
+        deferred_incoming_.erase(deferred);
+        log::info("Outgoing connection to {} cancelled by the user, accepting incoming", address);
+        cancelled_outgoing_address_set_.insert(address);
+        incoming.accept.Invoke();
+      }
       return;
     }
-    // Only reachable when an incoming connection's Accept Connection Request failed (Command
-    // Disallowed / similar), which means the controller will never send a matching Connection
-    // Complete for it. If the address was registered as a pending incoming connection, clear it
-    // here - otherwise it blocks every future outgoing operation (ACL connections *and* Remote
-    // Name Requests, to any peer) until AclScheduler::Stop() runs.
+    // No outgoing or queued Create Connection matches. If the address is only registered as a
+    // pending incoming connection that will never complete (for instance the caller gave up on
+    // it), clear it here - otherwise it blocks every future outgoing operation (ACL connections
+    // *and* Remote Name Requests, to any peer) until AclScheduler::Stop() runs.
     if (incoming_connecting_address_set_.erase(address) != 0) {
       log::info("Cleared pending incoming connection to {} after failed accept", address);
       try_dequeue_next_operation();
@@ -136,29 +181,40 @@ struct AclScheduler::impl {
     log::error("Attempted to cancel connection to {} that does not exist", address);
   }
 
-  // Cancel an outstanding/queued OUTGOING Create Connection to this address, if any, so it does
-  // not collide at the controller with an incoming connection request from the same peer. Unlike
-  // CancelAclConnection this is a silent no-op when nothing matches, so it is safe to call
-  // unconditionally on every incoming connection.
-  void CancelOutgoingAclConnectionIfPending(
-          Address address, common::ContextualOnceCallback<void()> cancel_connection) {
-    // Is this address the currently-outstanding outgoing Create Connection?
+  void HandleIncomingConnectionRequest(Address address,
+                                       common::ContextualOnceCallback<void()> accept,
+                                       common::ContextualOnceCallback<void()> reject,
+                                       common::ContextualOnceCallback<void()> cancel_outgoing) {
+    if (stopped_) {
+      log::warn("Scheduler stopped, accepting incoming connection from {} without scheduling",
+                address);
+      accept.Invoke();
+      return;
+    }
+    // A Create Connection to this address is already at the controller: accepting now would collide
+    // with our own page. Hold the accept back until that outgoing resolves.
     if (outgoing_entry_.has_value()) {
       auto* entry = std::get_if<AclCreateConnectionQueueEntry>(&outgoing_entry_.value());
       if (entry != nullptr && entry->address == address) {
-        // The Create Connection was already sent; ask the caller to emit Create Connection
-        // Cancel. outgoing_entry_ stays set until the resulting Connection Complete arrives
-        // (same contract as CancelAclConnection). Remember that we cancelled it on purpose so
-        // ReportAclConnectionCompletion does not erase the incoming we are about to accept.
-        log::info("Cancelling outstanding outgoing connection to {} to accept incoming", address);
-        cancelled_outgoing_address_set_.insert(address);
-        cancel_connection();
+        log::info("Incoming connection from {} collides with outgoing, deferring accept", address);
+        uint64_t id = ++next_deferred_id_;
+        // The fallback timer lives in the record, so dropping the record (resolved, cancelled or
+        // Stop()) also drops the timer.
+        auto& deferred =
+                deferred_incoming_
+                        .insert_or_assign(address,
+                                          DeferredIncoming{id, std::move(accept), std::move(reject),
+                                                           std::move(cancel_outgoing), nullptr})
+                        .first->second;
+        deferred.alarm = std::make_unique<os::Alarm>(&handler_->thread(), /* isWakeAlarm */ false);
+        deferred.alarm->Schedule(common::BindOnce(&impl::OnDeferredAlarmFired,
+                                                  common::Unretained(this), address, id),
+                                 kCollisionGracePeriod);
         return;
       }
     }
     // Otherwise drop any queued (not-yet-started) outgoing Create Connection to this address. Such
-    // an entry never reached the controller, so there is no Connection Complete to wait for and
-    // nothing to remember.
+    // an entry never reached the controller, so there is no Connection Complete to wait for.
     auto it = std::find_if(pending_outgoing_operations_.begin(), pending_outgoing_operations_.end(),
                            [&](const QueueEntry& e) {
                              auto* p = std::get_if<AclCreateConnectionQueueEntry>(&e);
@@ -167,6 +223,35 @@ struct AclScheduler::impl {
     if (it != pending_outgoing_operations_.end()) {
       log::info("Dropping queued outgoing connection to {} to accept incoming", address);
       pending_outgoing_operations_.erase(it);
+    }
+    accept.Invoke();
+  }
+
+  // Runs on the alarm's reactor. Go through the handler queue so that anything already queued (such
+  // as the Connection Complete that would resolve the collision) is handled first.
+  void OnDeferredAlarmFired(Address address, uint64_t id) {
+    handler_->CallOn(this, &impl::OnDeferredIncomingExpired, address, id);
+  }
+
+  // The outgoing Create Connection did not resolve the collision by itself within the grace period
+  // (the controller is stuck paging and accepting the same peer), so cancel it and accept.
+  void OnDeferredIncomingExpired(Address address, uint64_t id) {
+    auto it = deferred_incoming_.find(address);
+    if (it == deferred_incoming_.end() || it->second.id != id) {
+      return;
+    }
+    DeferredIncoming incoming = std::move(it->second);
+    deferred_incoming_.erase(it);
+    log::info("Outgoing connection to {} still pending, cancelling it to accept incoming", address);
+    cancelled_outgoing_address_set_.insert(address);
+    incoming.cancel_outgoing.Invoke();
+    incoming.accept.Invoke();
+  }
+
+  void ReportIncomingAcceptFailure(Address address) {
+    if (incoming_connecting_address_set_.erase(address) != 0) {
+      log::info("Cleared pending incoming connection to {} after failed accept", address);
+      try_dequeue_next_operation();
     }
   }
 
@@ -242,6 +327,7 @@ struct AclScheduler::impl {
     outgoing_entry_.reset();
     incoming_connecting_address_set_.clear();
     cancelled_outgoing_address_set_.clear();
+    deferred_incoming_.clear();
     log::info("AclScheduler stopped: state cleared.");
   }
 
@@ -410,9 +496,21 @@ private:
   std::optional<QueueEntry> outgoing_entry_;
   std::deque<QueueEntry> pending_outgoing_operations_;
   std::unordered_set<Address> incoming_connecting_address_set_;
+  // Incoming connection requests whose accept is held back because an outgoing Create Connection to
+  // the same peer is at the controller (see HandleIncomingConnectionRequest).
+  struct DeferredIncoming {
+    uint64_t id;
+    common::ContextualOnceCallback<void()> accept;
+    common::ContextualOnceCallback<void()> reject;
+    common::ContextualOnceCallback<void()> cancel_outgoing;
+    std::unique_ptr<os::Alarm> alarm;
+  };
+  std::map<Address, DeferredIncoming> deferred_incoming_;
+  uint64_t next_deferred_id_ = 0;
   // Addresses whose outstanding outgoing Create Connection we cancelled on purpose to resolve a
   // page/accept collision in favor of an incoming connection. Used to avoid erasing the pending
-  // incoming when the cancelled outgoing's completion arrives.
+  // incoming when the cancelled outgoing's failed completion arrives (a successful one means our
+  // connection won after all, and the pending incoming is dropped).
   std::unordered_set<Address> cancelled_outgoing_address_set_;
   bool stopped_ = false;
 
@@ -444,11 +542,12 @@ void AclScheduler::RegisterPendingIncomingConnection(Address address) {
 void AclScheduler::ReportAclConnectionCompletion(
         Address address, common::ContextualOnceCallback<void()> handle_outgoing_connection,
         common::ContextualOnceCallback<void()> handle_incoming_connection,
-        common::ContextualOnceCallback<void(std::string)> handle_unknown_connection) {
+        common::ContextualOnceCallback<void(std::string)> handle_unknown_connection,
+        bool succeeded) {
   pimpl_->handler_->Call(&impl::ReportAclConnectionCompletion, common::Unretained(pimpl_.get()),
                          address, std::move(handle_outgoing_connection),
                          std::move(handle_incoming_connection),
-                         std::move(handle_unknown_connection));
+                         std::move(handle_unknown_connection), succeeded);
 }
 
 void AclScheduler::ReportOutgoingAclConnectionFailure() {
@@ -463,10 +562,17 @@ void AclScheduler::CancelAclConnection(
                          std::move(cancel_connection), std::move(cancel_connection_completed));
 }
 
-void AclScheduler::CancelOutgoingAclConnectionIfPending(
-        Address address, common::ContextualOnceCallback<void()> cancel_connection) {
-  pimpl_->handler_->Call(&impl::CancelOutgoingAclConnectionIfPending,
-                         common::Unretained(pimpl_.get()), address, std::move(cancel_connection));
+void AclScheduler::HandleIncomingConnectionRequest(
+        Address address, common::ContextualOnceCallback<void()> accept,
+        common::ContextualOnceCallback<void()> reject,
+        common::ContextualOnceCallback<void()> cancel_outgoing) {
+  pimpl_->handler_->Call(&impl::HandleIncomingConnectionRequest, common::Unretained(pimpl_.get()),
+                         address, std::move(accept), std::move(reject), std::move(cancel_outgoing));
+}
+
+void AclScheduler::ReportIncomingAcceptFailure(Address address) {
+  pimpl_->handler_->Call(&impl::ReportIncomingAcceptFailure, common::Unretained(pimpl_.get()),
+                         address);
 }
 
 void AclScheduler::EnqueueRemoteNameRequest(

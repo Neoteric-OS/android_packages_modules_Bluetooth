@@ -380,6 +380,7 @@ TEST_F(BtifHhHogpReconnectStormTest, cr_4611672_hogp_open_failure_does_not_retry
                           .link_spec = kHogpDeviceLinkSpec,
                           .status = BTHH_ERR,
                           .handle = BTA_HH_INVALID_HANDLE,
+                          .suppress_reconnect = false,
                   },
   };
 
@@ -396,13 +397,8 @@ TEST_F(BtifHhHogpReconnectStormTest, cr_4611672_hogp_open_failure_does_not_retry
     ASSERT_EQ(BTHH_CONN_STATE_DISCONNECTED, res.state);
   }
 
-  // Pre-fix: hh_open_handler() re-issued BTA_HhOpen() unconditionally on every failed
-  // completion -- call count would equal kFailureBurstSize, reproducing CR 4611672.
-  // Post-fix: the alarm-based guard schedules the timer on the first failure and
-  // suppresses all subsequent retries from within the synchronous callback.  Because
-  // the mloop timer does NOT fire during this synchronous test loop (no real mloop
-  // thread is pumped), zero BTA_HhOpen() calls should be observed here; the single
-  // deferred retry will fire later when the alarm fires on the main loop.
+  // These callbacks represent the 0x3e failure policy: no automatic retry is
+  // scheduled after connection establishment failure.
   int open_calls = get_func_call_count("BTA_HhOpen");
   EXPECT_EQ(0, open_calls)
           << "BTA_HhOpen() was called " << open_calls << " times synchronously for "

@@ -280,9 +280,9 @@ bool background_connect_targeted_announcement_add(tAPP_ID app_id, const RawAddre
       log::info("app_id={}, address={}, already in direct connection", static_cast<int>(app_id),
                 address);
 
-    } else if (!targeted_filtering_enabled && !it->second.doing_bg_conn.empty()) {
-      // device is already in the acceptlist so we would have to remove it
-      log::info("already doing background connection to address={}. Need to disable it.", address);
+    } else if (!targeted_filtering_enabled && it->second.is_in_accept_list &&
+               it->second.doing_bg_conn.empty()) {
+      log::info("accept-list entry has no background connect owner to address={}. removing it before enabling targeted announcements.", address);
       disable_accept_list = true;
     }
   }

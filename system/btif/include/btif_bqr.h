@@ -177,6 +177,8 @@ static constexpr uint8_t kVersion5_0ParamsTotalLen = 7;
 static constexpr uint8_t kVersion6_0ParamsTotalLen = 6;
 // Added in BQR V7.0 for Energy Monitor Event
 static constexpr uint8_t kEnergyMonitorVersion7_0ParamsTotalLen = 8;
+// Added in BQR V8.0 for Link Quality Event
+static constexpr uint8_t kVersion8_0ParamsTotalLen = 7;
 
 // Warning criteria of the RSSI value.
 static constexpr int8_t kCriWarnRssi = -80;
@@ -224,8 +226,8 @@ static constexpr uint16_t kBqrVersion5_0 = 0x103;
 static constexpr uint16_t kBqrVersion6_0 = 0x104;
 // The Health MonitorStatsEvent was introduced in v1.05(261)
 static constexpr uint16_t kBqrVersion7_0 = 0x105;
-// The features LeaBroadcastSource and ChannelSounding were introduced in v1.07(262)
-static constexpr uint16_t kBqrVersion8_0 = 0x106;
+// The features LeaBroadcastSource and ChannelSounding were introduced in v1.07(263)
+static constexpr uint16_t kBqrVersion8_0 = 0x107;
 // Action definition
 //
 // Action to Add, Delete or Clear the reporting of quality event(s).

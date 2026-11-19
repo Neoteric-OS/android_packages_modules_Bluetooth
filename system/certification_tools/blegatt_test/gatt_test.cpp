@@ -329,6 +329,59 @@ int start_advertising_set_advertiser_id = -1;
 int start_advertising_set_tx_power = -1;
 int start_advertising_set_status = -1;
 
+// ============================================================
+// GAP/ADV/BV-20-C and GAP/ADV/BV-21-C: Encrypted Advertising Data
+// AD Type 0x31 (Encrypted Data) - Bluetooth 5.4 Spec Section 2.3.4.9
+// ============================================================
+
+// AD Type for Encrypted Data (Bluetooth 5.4 spec)
+#define ENC_ADV_DATA_AD_TYPE      0x31
+#define ENC_ADV_RANDOMIZER_LEN    5
+#define ENC_ADV_MIC_LEN           4
+// Manufacturer ID used for encrypted advertising data payloads
+#define ENC_ADV_MANUFACTURER_ID   0x00E0  // Google (matches enc_adv_validator tool)
+
+// Test step tracking for GAP/ADV/BV-20-C and GAP/ADV/BV-21-C
+static int g_enc_adv_step = 0;
+static bool g_enc_adv_bv21_mode = false;  // true = BV-21-C (non-significant data allowed)
+
+// Payload 1: 8-byte plaintext manufacturer data for Steps 1, 2, 5, 6
+// This is the raw data bytes passed to the BT stack for AES-CCM encryption.
+// The stack wraps it in AD Type 0xFF (Manufacturer Specific Data) before encrypting.
+static const uint8_t g_enc_adv_payload1[] = {
+    0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08
+};
+static const size_t g_enc_adv_payload1_len = sizeof(g_enc_adv_payload1);
+
+// Payload 2: 8-byte plaintext manufacturer data for Steps 3, 4 (MUST differ from Payload 1)
+static const uint8_t g_enc_adv_payload2[] = {
+    0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88
+};
+static const size_t g_enc_adv_payload2_len = sizeof(g_enc_adv_payload2);
+
+// Non-significant data for BV-21-C (placed in regular adv_data, NOT encrypted)
+// Per spec Table 4.34: IUT MAY send non-significant data after the encrypted AD structures
+static const uint8_t g_enc_adv_non_sig_data[] = {
+    0x03, 0xFF, 0x00, 0x01   // Manufacturer Specific Data (non-significant padding)
+};
+static const size_t g_enc_adv_non_sig_data_len = sizeof(g_enc_adv_non_sig_data);
+
+// Key material: Session_Key(16B) + IV(8B) = 24 bytes total
+// This matches key material index 0 from the enc_adv_validator tool.
+// Configure PTS with this key material for decryption validation.
+// Session_Key: 10FF013EC8F52A21923385C2B469E1F1
+// IV:          35186BDF90049D66
+static const uint8_t g_enc_adv_key_material[24] = {
+    // Session_Key (16 bytes)
+    0x10, 0xFF, 0x01, 0x3E, 0xC8, 0xF5, 0x2A, 0x21,
+    0x92, 0x33, 0x85, 0xC2, 0xB4, 0x69, 0xE1, 0xF1,
+    // IV (8 bytes)
+    0x35, 0x18, 0x6B, 0xDF, 0x90, 0x04, 0x9D, 0x66
+};
+
+// Saved advertising parameters for payload update (restart advertising)
+static AdvertiseParameters g_enc_adv_params;
+
 enum { L2CAP_NOT_CONNECTED, L2CAP_CONN_SETUP, L2CAP_CONNECTED };
 
 static tL2CAP_CFG_INFO tl2cap_cfg_info;
@@ -1772,6 +1825,11 @@ void do_send_le_xdt_features_enable(char* p);
 void reset_rcv_iteration(char* p);
 void do_l2cap_cos_ced_bi_29_c(char* p);
 
+// GAP/ADV/BV-20-C and GAP/ADV/BV-21-C: Encrypted Advertising Data commands
+void do_start_enc_adv_set(char* p);
+void do_update_enc_adv_payload(char* p);
+void do_stop_enc_adv_set(char* p);
+
 
 /*******************************************************************
  *
@@ -2017,6 +2075,32 @@ const t_cmd console_cmd_list[] = {
      0},
 
     {"l2cap_coc_listen", l2cap_coc_listen, "\t::\t psm [39], \n\t::\tresult ",
+     0},
+
+    /* GAP/ADV/BV-20-C and GAP/ADV/BV-21-C: Encrypted Advertising Data */
+    {" ", NULL,
+     "\n\t\t\033[0m\033[34mEncrypted Advertising Data Commands"
+     " (GAP/ADV/BV-20-C, GAP/ADV/BV-21-C)\033[0m",
+     0},
+    {"start_enc_adv_set", do_start_enc_adv_set,
+     ":: GAP/ADV/BV-20-C / BV-21-C - Step 1 & 2: Start advertising with\n"
+     "\t Encrypted Advertising Data (AD Type 0x31, BT5.4 Spec)\n"
+     "\t adv_evt_properties(hex, e.g. 10 for non-conn non-scan extended),\n"
+     "\t interval(1=low 160-210, 2=medium 400-450, 3=high 1600-1650),\n"
+     "\t primary_phy(1=LE 1M, 3=LE Coded),\n"
+     "\t secondary_phy(1=LE 1M, 2=LE 2M, 3=LE Coded),\n"
+     "\t own_addr_type(0=PUBLIC, 1=RANDOM),\n"
+     "\t bv21_mode(0=BV-20-C no non-sig data, 1=BV-21-C with non-sig data)\n"
+     "\t NOTE: Session Key printed - configure PTS with this key",
+     0},
+    {"update_enc_adv_payload", do_update_enc_adv_payload,
+     ":: GAP/ADV/BV-20-C / BV-21-C - Step 3 or Step 5:\n"
+     "\t Update encrypted advertising payload\n"
+     "\t payload_num: 2 = Payload 2 (Step 3, different from Payload 1)\n"
+     "\t              1 = Payload 1 (Step 5, same as original Payload 1)",
+     0},
+    {"stop_enc_adv_set", do_stop_enc_adv_set,
+     ":: GAP/ADV/BV-20-C / BV-21-C: Stop encrypted advertising set",
      0},
 
     /* last entry */
@@ -2884,6 +2968,7 @@ void do_le_client_scan_start(char* p) { sGattIfaceScan->scanner->Scan(true); }
 void do_le_client_scan_stop(char* p) { sGattIfaceScan->scanner->Scan(false); }
 
 void DoNothing2(uint8_t, uint8_t) {}
+void DoNothing1(uint8_t) {}
 
 void StartAdvertisingSetCb(uint8_t advertiser_id, int8_t tx_power,
                            uint8_t status) {
@@ -4366,7 +4451,6 @@ void reset_rcv_iteration(char* p) {
   rcv_iteration = 0;
 }
 
-
 /* ---- BI-29-C constants ---- */
 #define BI_29_C_TOTAL_ITER      255   /* Steps 1-4 (×1) + Step 5 (×1) + Step 6 (×253) */
 #define BI_29_C_CONN_TIMEOUT_S   35   /* > L2CAP_CHNL_CONNECT_TIMEOUT_MS (30 s)        */
@@ -4535,6 +4619,411 @@ void do_l2cap_cos_ced_bi_29_c(char* p) {
          "(CST_OPEN state, no second connect event)\n");
   printf("[BI-29-C]   Phase 4 (Steps 14-15): IUT sent "
          "L2CAP_DISCONNECTION_RSP via l2test_l2c_disconnect_ind_cb\n");
+}
+// ============================================================
+// GAP/ADV/BV-20-C and GAP/ADV/BV-21-C: Encrypted Advertising Data
+// Implementation of test commands
+// ============================================================
+
+/**
+ * print_enc_adv_step_info - Print detailed validation information for each
+ * step of GAP/ADV/BV-20-C or GAP/ADV/BV-21-C test.
+ *
+ * This function prints step-by-step guidance to help the tester validate
+ * the test case against PTS.
+ */
+static void print_enc_adv_step_info(int step, const uint8_t* payload,
+                                    size_t payload_len, bool bv21_mode) {
+  printf("\n");
+  printf("=================================================================\n");
+  printf("[GAP/ADV/BV-%s-C] Encrypted Advertising Data Test\n",
+         bv21_mode ? "21" : "20");
+  printf("=================================================================\n");
+  printf("STEP %d VALIDATION:\n", step);
+
+  switch (step) {
+    case 1:
+      printf("  [Step 1] Upper Tester orders IUT to start advertising\n");
+      printf("           IUT enters broadcast/discoverable mode\n");
+      printf("           IUT begins advertising with Encrypted Advertising Data\n");
+      printf("           using a random payload (Payload 1)\n");
+      printf("  [Action] Advertising started with Payload 1\n");
+      break;
+    case 2:
+      printf("  [Step 2] IUT sends Advertising Event with Encrypted Advertising Data\n");
+      printf("           Payload: Payload 1\n");
+      printf("  [Expected AD Structure (AD Type 0x%02X)]:\n",
+             ENC_ADV_DATA_AD_TYPE);
+      printf("    - AD Type  : 0x%02X (Encrypted Data, BT5.4 Spec)\n",
+             ENC_ADV_DATA_AD_TYPE);
+      printf("    - Randomizer: %d octets (random value)\n",
+             ENC_ADV_RANDOMIZER_LEN);
+      printf("    - Encrypted Payload: %zu octets\n", payload_len);
+      printf("    - MIC      : %d octets (valid)\n", ENC_ADV_MIC_LEN);
+      printf("  [Verify]  PTS decrypts payload - MUST match Payload 1\n");
+      break;
+    case 3:
+      printf("  [Step 3] Upper Tester orders IUT to begin advertising\n");
+      printf("           with a DIFFERENT payload (Payload 2)\n");
+      printf("  [Action] Advertising updated with Payload 2\n");
+      break;
+    case 4:
+      printf("  [Step 4] IUT sends Advertising Event with Encrypted Advertising Data\n");
+      printf("           Payload: Payload 2 (DIFFERENT from Payload 1)\n");
+      printf("  [Expected AD Structure (AD Type 0x%02X)]:\n",
+             ENC_ADV_DATA_AD_TYPE);
+      printf("    - AD Type  : 0x%02X (Encrypted Data)\n", ENC_ADV_DATA_AD_TYPE);
+      printf("    - Randomizer: %d octets (DIFFERENT from Step 2)\n",
+             ENC_ADV_RANDOMIZER_LEN);
+      printf("    - Encrypted Payload: %zu octets (DIFFERENT from Step 2)\n",
+             payload_len);
+      printf("    - MIC      : %d octets (valid, DIFFERENT from Step 2)\n",
+             ENC_ADV_MIC_LEN);
+      if (bv21_mode) {
+        printf("  [BV-21-C]  Non-significant data MAY be appended after\n");
+        printf("             the encrypted AD structure (%zu bytes appended)\n",
+               g_enc_adv_non_sig_data_len);
+      }
+      printf("  [Verify]  PTS decrypts payload - MUST match Payload 2\n");
+      break;
+    case 5:
+      printf("  [Step 5] Upper Tester orders IUT to begin advertising\n");
+      printf("           with the SAME payload as Step 1 (Payload 1 again)\n");
+      printf("  [Action] Advertising updated back to Payload 1\n");
+      break;
+    case 6:
+      printf("  [Step 6] IUT sends Advertising Event with Encrypted Advertising Data\n");
+      printf("           Payload: Payload 1 (same as Step 1)\n");
+      printf("  [Expected AD Structure (AD Type 0x%02X)]:\n",
+             ENC_ADV_DATA_AD_TYPE);
+      printf("    - AD Type  : 0x%02X (Encrypted Data)\n", ENC_ADV_DATA_AD_TYPE);
+      printf("    - Randomizer: %d octets (DIFFERENT from Steps 2 and 4)\n",
+             ENC_ADV_RANDOMIZER_LEN);
+      printf("    - Encrypted Payload: %zu octets\n", payload_len);
+      printf("    - MIC      : %d octets (valid, DIFFERENT from Steps 2 and 4)\n",
+             ENC_ADV_MIC_LEN);
+      printf("  [Verify]  PTS decrypts payload - MUST match Payload 1\n");
+      printf("            (same as Step 2 decrypted payload)\n");
+      break;
+    default:
+      printf("  [Unknown step %d]\n", step);
+      break;
+  }
+
+  printf("\nPlaintext Payload (%zu bytes):\n  ", payload_len);
+  for (size_t i = 0; i < payload_len; i++) {
+    printf("%02X ", payload[i]);
+  }
+  printf("\n");
+
+  printf("\nKey Material (24 bytes: Session_Key[16] + IV[8]) - Configure PTS:\n  ");
+  for (int i = 0; i < 24; i++) {
+    printf("%02X ", g_enc_adv_key_material[i]);
+  }
+  printf("\n  Session_Key: ");
+  for (int i = 0; i < 16; i++) printf("%02X ", g_enc_adv_key_material[i]);
+  printf("\n  IV:          ");
+  for (int i = 16; i < 24; i++) printf("%02X ", g_enc_adv_key_material[i]);
+  printf("\n");
+  printf("=================================================================\n\n");
+}
+
+/**
+ * build_enc_adv_vectors - Build the encrypted advertising data vectors
+ * for use with StartAdvertisingSet.
+ *
+ * CORRECT APPROACH (matching enc_adv_validator Java tool):
+ *   adv_data_enc = plaintext AD structures to be encrypted by the BT stack.
+ *                  Format: [Length][AD Type 0xFF][Mfg ID LSB][Mfg ID MSB][Data...]
+ *                  The stack encrypts this and sends it as AD Type 0x31.
+ *   enc_key_vec  = 24-byte key material: Session_Key(16B) + IV(8B)
+ *                  The stack uses this for AES-CCM encryption.
+ *   adv_data     = regular (non-encrypted) advertising data.
+ *                  For BV-21-C: contains non-significant data.
+ *                  For BV-20-C: empty.
+ *
+ * @param payload              Plaintext payload bytes (manufacturer data)
+ * @param payload_len          Length of plaintext payload
+ * @param include_non_sig_data true for BV-21-C (non-significant data in adv_data)
+ * @param adv_data             Output: regular advertising data (non-encrypted)
+ * @param adv_data_enc         Output: plaintext data for stack to encrypt
+ * @param enc_key_vec          Output: 24-byte key material (Session_Key + IV)
+ */
+static void build_enc_adv_vectors(const uint8_t* payload, size_t payload_len,
+                                  bool include_non_sig_data,
+                                  std::vector<uint8_t>& adv_data,
+                                  std::vector<uint8_t>& adv_data_enc,
+                                  std::vector<uint8_t>& enc_key_vec) {
+  adv_data.clear();
+  adv_data_enc.clear();
+  enc_key_vec.clear();
+
+  // adv_data_enc: plaintext Manufacturer Specific Data AD structure
+  // The BT stack will encrypt this and send as AD Type 0x31 (Encrypted Data).
+  // Format: [Length][AD Type 0xFF][Mfg ID LSB][Mfg ID MSB][payload bytes...]
+  // Length = 1 (AD Type) + 2 (Manufacturer ID) + payload_len
+  uint8_t mfg_ad_length = (uint8_t)(1 + 2 + payload_len);
+  adv_data_enc.push_back(mfg_ad_length);                          // AD Length
+  adv_data_enc.push_back(0xFF);                                   // AD Type: Manufacturer Specific
+  adv_data_enc.push_back((uint8_t)(ENC_ADV_MANUFACTURER_ID & 0xFF));  // Mfg ID LSB
+  adv_data_enc.push_back((uint8_t)((ENC_ADV_MANUFACTURER_ID >> 8) & 0xFF)); // Mfg ID MSB
+  printf("[ENC_ADV] adv_data_enc (plaintext to encrypt): ");
+  printf("[len=%02X type=FF mfg=%04X data=", mfg_ad_length, ENC_ADV_MANUFACTURER_ID);
+  for (size_t i = 0; i < payload_len; i++) {
+    adv_data_enc.push_back(payload[i]);
+    printf("%02X ", payload[i]);
+  }
+  printf("]\n");
+  printf("[ENC_ADV] Stack will encrypt adv_data_enc -> AD Type 0x31 (EAD)\n");
+
+  // For BV-21-C: non-significant data goes in regular adv_data (NOT encrypted)
+  // Per spec Table 4.34: IUT MAY send non-significant data after encrypted AD
+  if (include_non_sig_data) {
+    printf("[ENC_ADV] BV-21-C: Non-significant data in adv_data (%zu bytes): ",
+           g_enc_adv_non_sig_data_len);
+    for (size_t i = 0; i < g_enc_adv_non_sig_data_len; i++) {
+      adv_data.push_back(g_enc_adv_non_sig_data[i]);
+      printf("%02X ", g_enc_adv_non_sig_data[i]);
+    }
+    printf("\n");
+  }
+
+  // enc_key_vec: 24-byte key material = Session_Key(16B) + IV(8B)
+  // The stack uses this for AES-CCM encryption of adv_data_enc.
+  printf("[ENC_ADV] enc_key_vec (24-byte key material):\n");
+  printf("[ENC_ADV]   Session_Key: ");
+  for (int i = 0; i < 16; i++) {
+    enc_key_vec.push_back(g_enc_adv_key_material[i]);
+    printf("%02X ", g_enc_adv_key_material[i]);
+  }
+  printf("\n[ENC_ADV]   IV:          ");
+  for (int i = 16; i < 24; i++) {
+    enc_key_vec.push_back(g_enc_adv_key_material[i]);
+    printf("%02X ", g_enc_adv_key_material[i]);
+  }
+  printf("\n");
+  printf("[ENC_ADV] adv_data_enc size=%zu, enc_key_vec size=%zu\n",
+         adv_data_enc.size(), enc_key_vec.size());
+}
+
+/**
+ * do_start_enc_adv_set - Start advertising with Encrypted Advertising Data
+ *
+ * GAP/ADV/BV-20-C and GAP/ADV/BV-21-C: Steps 1 and 2
+ *
+ * The IUT starts advertising using Encrypted Advertising Data (AD Type 0x31).
+ * The advertising data contains a 5-byte Randomizer, encrypted Payload 1,
+ * and a 4-byte MIC computed by the controller using AES-CCM.
+ *
+ * Usage: start_enc_adv_set <adv_evt_properties(hex)> <interval(1-3)>
+ *        <primary_phy(1/3)> <secondary_phy(1/2/3)>
+ *        <own_addr_type(0/1)> <bv21_mode(0/1)>
+ *
+ * Example (BV-20-C): start_enc_adv_set 10 1 1 1 1 0
+ * Example (BV-21-C): start_enc_adv_set 10 1 1 1 1 1
+ */
+void do_start_enc_adv_set(char* p) {
+  std::vector<uint8_t> scan_resp;
+  std::vector<uint8_t> scan_resp_enc;
+  PeriodicAdvertisingParameters periodic_params;
+  periodic_params.enable = false;
+  std::vector<uint8_t> periodic_data;
+  std::vector<uint8_t> periodic_data_enc;
+  int interval;
+
+  // Parse advertising parameters
+  g_enc_adv_params.advertising_event_properties = get_hex(&p, 0x10);
+  interval = get_int(&p, INTERVAL_LOW);
+
+  switch (interval) {
+    case INTERVAL_LOW:
+      g_enc_adv_params.min_interval = 160;
+      g_enc_adv_params.max_interval = 210;
+      break;
+    case INTERVAL_MEDIUM:
+      g_enc_adv_params.min_interval = 400;
+      g_enc_adv_params.max_interval = 450;
+      break;
+    case INTERVAL_HIGH:
+      g_enc_adv_params.min_interval = 1600;
+      g_enc_adv_params.max_interval = 1650;
+      break;
+    default:
+      g_enc_adv_params.min_interval = 160;
+      g_enc_adv_params.max_interval = 210;
+      break;
+  }
+
+  g_enc_adv_params.primary_advertising_phy   = get_int(&p, 1);
+  g_enc_adv_params.secondary_advertising_phy = get_int(&p, 1);
+  g_enc_adv_params.channel_map               = 0x07;
+  g_enc_adv_params.tx_power                  = -7;
+  g_enc_adv_params.own_address_type          = get_int(&p, BLE_ADDR_RANDOM);
+  g_enc_adv_params.scan_request_notification_enable = false;
+
+  int bv21_val = get_int(&p, 0);
+  g_enc_adv_bv21_mode = (bv21_val == 1);
+
+  printf("\n[GAP/ADV/BV-%s-C] Starting Encrypted Advertising Data test\n",
+         g_enc_adv_bv21_mode ? "21" : "20");
+  printf("  adv_evt_properties=0x%04X, min_interval=%d, max_interval=%d\n",
+         g_enc_adv_params.advertising_event_properties,
+         g_enc_adv_params.min_interval, g_enc_adv_params.max_interval);
+  printf("  primary_phy=%d, secondary_phy=%d, own_addr_type=%d\n",
+         g_enc_adv_params.primary_advertising_phy,
+         g_enc_adv_params.secondary_advertising_phy,
+         g_enc_adv_params.own_address_type);
+
+  // Build encrypted advertising data with Payload 1
+  // Regular adv_data is empty - all data goes in adv_data_enc
+  std::vector<uint8_t> adv_data;
+  std::vector<uint8_t> adv_data_enc;
+  std::vector<uint8_t> enc_key_vec;
+
+  build_enc_adv_vectors(g_enc_adv_payload1, g_enc_adv_payload1_len,
+                        g_enc_adv_bv21_mode, adv_data, adv_data_enc, enc_key_vec);
+
+  // Print Step 1 validation info
+  g_enc_adv_step = 1;
+  print_enc_adv_step_info(1, g_enc_adv_payload1, g_enc_adv_payload1_len,
+                          g_enc_adv_bv21_mode);
+
+  // Register callbacks and start advertising
+  sGattIfaceScan->advertiser->RegisterCallbacksNative(&gatt_adv_callbacks_,
+                                                      0x02);
+  sGattIfaceScan->advertiser->StartAdvertisingSet(
+      0x02, reg_inst_id, base::Bind(&StartAdvertisingSetCb),
+      g_enc_adv_params, adv_data, adv_data_enc, scan_resp, scan_resp_enc,
+      periodic_params, periodic_data, periodic_data_enc,
+      0, 0, enc_key_vec, base::Bind(DoNothing2));
+
+  // Print Step 2 validation info
+  g_enc_adv_step = 2;
+  print_enc_adv_step_info(2, g_enc_adv_payload1, g_enc_adv_payload1_len,
+                          g_enc_adv_bv21_mode);
+
+  printf("[GAP/ADV/BV-%s-C] Steps 1 & 2: Advertising started with Payload 1\n",
+         g_enc_adv_bv21_mode ? "21" : "20");
+  printf("  PTS (Lower Tester) should receive advertising event\n");
+  printf("  PTS should decrypt and verify payload matches Payload 1\n");
+  printf("  Advertiser ID will be set in callback (current: %d)\n\n",
+         start_advertising_set_advertiser_id);
+}
+
+/**
+ * do_update_enc_adv_payload - Update encrypted advertising payload
+ *
+ * GAP/ADV/BV-20-C and GAP/ADV/BV-21-C:
+ *   - payload_num=2: Steps 3 & 4 (different payload from Payload 1)
+ *   - payload_num=1: Steps 5 & 6 (same payload as original Payload 1)
+ *
+ * This function updates the advertising data on the EXISTING advertising set
+ * using SetAdvertisingData() - the advertising set continues running without
+ * interruption. The BT stack generates a new Randomizer, re-encrypts the
+ * payload with AES-CCM, and computes a new MIC automatically.
+ *
+ * Per BT5.4 spec: Randomizer, EncPayload, and MIC MUST differ each time
+ * the payload data changes (enforced by the controller).
+ *
+ * Usage: update_enc_adv_payload <payload_num(1 or 2)>
+ */
+void do_update_enc_adv_payload(char* p) {
+  int payload_num = get_int(&p, -1);
+
+  if (payload_num != 1 && payload_num != 2) {
+    printf("ERROR: Invalid payload_num=%d. Use 1 (Payload 1) or 2 (Payload 2)\n",
+           payload_num);
+    printf("  payload_num=2: Step 3 (different payload)\n");
+    printf("  payload_num=1: Step 5 (same as original Payload 1)\n");
+    return;
+  }
+
+  if (start_advertising_set_advertiser_id < 0) {
+    printf("ERROR: No active advertising set. Run 'start_enc_adv_set' first.\n");
+    return;
+  }
+
+  const uint8_t* payload = (payload_num == 1) ?
+      g_enc_adv_payload1 : g_enc_adv_payload2;
+  size_t payload_len = (payload_num == 1) ?
+      g_enc_adv_payload1_len : g_enc_adv_payload2_len;
+
+  int step_set = (payload_num == 2) ? 3 : 5;
+  int step_adv = (payload_num == 2) ? 4 : 6;
+
+  printf("\n[GAP/ADV/BV-%s-C] Updating encrypted advertising payload to Payload %d\n",
+         g_enc_adv_bv21_mode ? "21" : "20", payload_num);
+  printf("  Advertiser ID: %d (advertising set remains ACTIVE)\n",
+         start_advertising_set_advertiser_id);
+
+  // Print step_set validation info
+  g_enc_adv_step = step_set;
+  print_enc_adv_step_info(step_set, payload, payload_len, g_enc_adv_bv21_mode);
+
+  // Build new encrypted advertising data with updated payload
+  // The advertising set stays running - we only update the data
+  std::vector<uint8_t> adv_data;
+  std::vector<uint8_t> adv_data_enc;
+  std::vector<uint8_t> enc_key_vec;
+
+  build_enc_adv_vectors(payload, payload_len, g_enc_adv_bv21_mode,
+                        adv_data, adv_data_enc, enc_key_vec);
+
+  // Update advertising data on the EXISTING advertising set using SetData().
+  // This is equivalent to AdvertisingSet.setAdvertisingData() in the Java API.
+  // Signature: SetData(advertiser_id, set_scan_rsp, data, data_enc, cb)
+  //   - set_scan_rsp = false: update advertising data (not scan response)
+  //   - data        = regular adv data (non-encrypted, or non-sig for BV-21-C)
+  //   - data_enc    = plaintext data for stack to encrypt into AD Type 0x31
+  // The BT stack updates the encrypted payload without stopping advertising.
+  // The controller generates a new Randomizer and MIC for the updated payload.
+  printf("[ENC_ADV] Calling SetData on advertiser_id=%d\n",
+         start_advertising_set_advertiser_id);
+  sGattIfaceScan->advertiser->SetData(
+      start_advertising_set_advertiser_id,
+      false,        // set_scan_rsp=false: update advertising data (not scan response)
+      adv_data,     // regular adv data (non-encrypted)
+      adv_data_enc, // plaintext data for stack to encrypt -> AD Type 0x31
+      base::Bind(DoNothing1));  // StatusCallback = base::Callback<void(uint8_t)>
+
+  // Print step_adv validation info
+  g_enc_adv_step = step_adv;
+  print_enc_adv_step_info(step_adv, payload, payload_len, g_enc_adv_bv21_mode);
+
+  printf("[GAP/ADV/BV-%s-C] Step %d: Advertising data updated with Payload %d\n",
+         g_enc_adv_bv21_mode ? "21" : "20", step_set, payload_num);
+  printf("  Step %d: IUT should now send advertising event with Payload %d\n",
+         step_adv, payload_num);
+  printf("  NOTE: New Randomizer/EncPayload/MIC generated by controller\n");
+  printf("  PTS (Lower Tester) should receive advertising event\n");
+  printf("  PTS should decrypt and verify payload matches Payload %d\n\n",
+         payload_num);
+}
+
+/**
+ * do_stop_enc_adv_set - Stop encrypted advertising set
+ *
+ * GAP/ADV/BV-20-C and GAP/ADV/BV-21-C: Stop advertising after test completion
+ *
+ * Usage: stop_enc_adv_set
+ */
+void do_stop_enc_adv_set(char* p) {
+  if (start_advertising_set_advertiser_id >= 0) {
+    printf("[GAP/ADV/BV-%s-C] Stopping encrypted advertising set\n",
+           g_enc_adv_bv21_mode ? "21" : "20");
+    printf("  Advertiser ID: %d\n", start_advertising_set_advertiser_id);
+    sGattIfaceScan->advertiser->Unregister(start_advertising_set_advertiser_id);
+    start_advertising_set_advertiser_id = -1;
+    g_enc_adv_step = 0;
+    printf("[GAP/ADV/BV-%s-C] Encrypted advertising stopped.\n",
+           g_enc_adv_bv21_mode ? "21" : "20");
+    printf("  Test complete. Expected outcome: PASS\n");
+    printf("  Verify PTS shows PASS verdict for GAP/ADV/BV-%s-C\n\n",
+           g_enc_adv_bv21_mode ? "21" : "20");
+  } else {
+    printf("No active encrypted advertising set to stop.\n");
+    printf("Run 'start_enc_adv_set' first.\n");
+  }
 }
 
 #endif  // TEST_APP_INTERFACE

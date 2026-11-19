@@ -168,8 +168,13 @@
 #define AVRCP_CA_SUPPORT_BITMASK 0x01
 #define AVRCP_APP_SETTINGS_BITMASK 0x10
 
-#define AVRCP_FEAT_CA_BIT 0x0180
-#define AVRCP_FEAT_BRW_BIT 0x0040
+// Prepare Feature Mask on TG based on CT supported feature-set
+
+#define AVRCP_FEAT_CA_BIT  (AVRC_SUPF_CT_COVER_ART_GET_IMAGE_PROP | \
+                            AVRC_SUPF_CT_COVER_ART_GET_THUMBNAIL  | \
+                            AVRC_SUPF_CT_COVER_ART_GET_IMAGE)
+
+#define AVRCP_FEAT_BRW_BIT AVRC_SUPF_CT_BROWSE
 
 /*****************************************************************************
  *  data type definitions

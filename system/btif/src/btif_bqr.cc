@@ -67,7 +67,7 @@ static uint16_t LmpLlMessageTraceCounter = 0;
 static uint16_t BtSchedulingTraceCounter = 0;
 
 // Must match the value of BqrCommon.BQR_COMMON_LEN in BluetoothQualityReport.java exactly.
-static const int kBqrCommonLength = 85;
+static const int kBqrCommonLength = 92;
 
 class BluetoothQualityReportInterfaceImpl;
 static std::unique_ptr<BluetoothQualityReportInterface> bluetoothQualityReportInstance;
@@ -1109,6 +1109,15 @@ private:
 
     length += kVersion6_0ParamsTotalLen;
     if (vendor_cap_supported_version <= kBqrVersion7_0) {
+      return length;
+    }
+
+    if (vendor_cap_supported_version < kBqrVersion8_0) {
+      return length;
+    }
+
+    length += kVersion8_0ParamsTotalLen;
+    if (vendor_cap_supported_version <= kBqrVersion8_0) {
       return length;
     }
 

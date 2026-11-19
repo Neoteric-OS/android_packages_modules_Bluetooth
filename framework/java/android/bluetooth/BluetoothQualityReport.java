@@ -255,17 +255,22 @@ public final class BluetoothQualityReport implements Parcelable {
 
     private static final int BQR_VERSION_4_0 = 0x101;
     private static final int BQR_VERSION_5_0 = 0x103;
-    private static final int BQR_VERSION_7_0 = 0x105;
+    private static final int BQR_VERSION_8_0 = 0x107;
 
     private static int getBqrCommonLength(int version) {
+        if (Flags.bqrCommonPartUnifiedLength()) {
+            return BqrCommon.BQR_COMMON_LEN;
+        }
         if (version == 0) {
             return BqrCommon.BQR_COMMON_LEN;
         } else if (version < BQR_VERSION_4_0) {
             return 55;
         } else if (version <= BQR_VERSION_5_0) {
             return 79;
-        } else if (version <= BQR_VERSION_7_0) {
+        } else if (version < BQR_VERSION_8_0) {
             return 85;
+        } else if (version <= BQR_VERSION_8_0) {
+            return 92;
         } else  {
            throw new IllegalArgumentException(TAG + ": unsupported version:" + version);
         }
@@ -741,7 +746,7 @@ public final class BluetoothQualityReport implements Parcelable {
         private static final String TAG =
                 BluetoothQualityReport.TAG + "." + BqrCommon.class.getSimpleName();
 
-        static final int BQR_COMMON_LEN = 85;
+        static final int BQR_COMMON_LEN = 92;
 
         private final @QualityReportId int mQualityReportId;
         private int mPacketType;

@@ -979,12 +979,17 @@ static bool initNative(JNIEnv* env, jobject obj, jboolean isGuest, jboolean isCo
 }
 
 static bool cleanupNative(JNIEnv* env, jobject /* obj */) {
-  std::unique_lock<std::shared_timed_mutex> lock(jniObjMutex);
-
   log::verbose("");
 
+  // bluetooth_cleanup() synchronously shuts down the jni thread and waits for it
+  // to drain its queue. Every callback on that thread takes a shared lock on
+  // jniObjMutex, so holding the unique lock here would deadlock until
+  // MessageLoopThread::Suspend() asserts. Take the lock only after cleanup,
+  // when no more callbacks can run, to release the JNI global refs.
   bluetooth_cleanup();
   log::info("return from cleanup");
+
+  std::unique_lock<std::shared_timed_mutex> lock(jniObjMutex);
 
   if (sJniCallbacksObj) {
     env->DeleteGlobalRef(sJniCallbacksObj);

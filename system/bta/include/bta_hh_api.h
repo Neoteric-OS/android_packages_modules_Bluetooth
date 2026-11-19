@@ -215,6 +215,7 @@ typedef struct {
   uint8_t sub_class;      /* Cod sub class */
   uint16_t attr_mask;     /* attribute mask */
   uint8_t app_id;
+  bool suppress_reconnect; /* suppress automatic reconnect for this failure */
 } tBTA_HH_CONN;
 
 typedef tBTA_HH_CONN tBTA_HH_DEV_INFO;

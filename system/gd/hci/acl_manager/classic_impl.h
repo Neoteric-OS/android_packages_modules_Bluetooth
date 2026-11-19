@@ -268,17 +268,16 @@ public:
     acl_scheduler_.RegisterPendingIncomingConnection(address);
 
     if (is_classic_link_already_connected(address)) {
-      auto reason = RejectConnectionReason::UNACCEPTABLE_BD_ADDR;
-      this->reject_connection(RejectConnectionRequestBuilder::Create(address, reason));
+      reject_incoming_connection(address);
     } else {
-      // If we are simultaneously paging this same peer (an outgoing Create Connection is
-      // outstanding/queued for this address), accepting now would collide with our own page
-      // at the controller and end in LMP_RESPONSE_TIMEOUT. Cancel the outstanding outgoing
-      // first so the incoming can be accepted cleanly. This is a no-op when there is no such
-      // outgoing.
-      acl_scheduler_.CancelOutgoingAclConnectionIfPending(
-              address, handler_->BindOnceOn(this, &classic_impl::actually_cancel_connect, address));
-      this->accept_connection(address);
+      // If we are paging this same peer at the same moment (an outgoing Create Connection to it is
+      // already at the controller), the scheduler holds the accept back until that outgoing
+      // resolves, rather than accepting into a page/accept collision. The controller usually
+      // settles the collision itself, so no Create Connection Cancel is needed.
+      acl_scheduler_.HandleIncomingConnectionRequest(
+              address, handler_->BindOnceOn(this, &classic_impl::accept_connection, address),
+              handler_->BindOnceOn(this, &classic_impl::reject_incoming_connection, address),
+              handler_->BindOnceOn(this, &classic_impl::actually_cancel_connect, address));
     }
   }
 
@@ -407,7 +406,8 @@ public:
                       }
                       remote_name_request_module->ReportRemoteNameRequestCancellation(address);
                     },
-                    base::Unretained(&remote_name_request_module_), address, status));
+                    base::Unretained(&remote_name_request_module_), address, status),
+            status == ErrorCode::SUCCESS);
   }
 
   void cancel_connect(Address address) {
@@ -704,7 +704,9 @@ public:
     auto accept_status = AcceptConnectionRequestStatusView::Create(status);
     log::assert_that(accept_status.IsValid(), "assert failed: accept_status.IsValid()");
     if (status.GetStatus() != ErrorCode::SUCCESS) {
-      cancel_connect(address);
+      // No Connection Complete will follow for this incoming connection, so only its pending
+      // registration needs clearing. An outgoing connection to the same peer is left alone.
+      acl_scheduler_.ReportIncomingAcceptFailure(address);
     }
   }
 
@@ -755,6 +757,11 @@ public:
     acl_connection_interface_->EnqueueCommand(
             AcceptConnectionRequestBuilder::Create(address, role),
             handler_->BindOnceOn(this, &classic_impl::on_accept_connection_status, address));
+  }
+
+  void reject_incoming_connection(Address address) {
+    auto reason = RejectConnectionReason::UNACCEPTABLE_BD_ADDR;
+    reject_connection(RejectConnectionRequestBuilder::Create(address, reason));
   }
 
   void reject_connection(std::unique_ptr<RejectConnectionRequestBuilder> builder) {

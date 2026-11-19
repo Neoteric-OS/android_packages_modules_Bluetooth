@@ -712,7 +712,7 @@ static void hh_open_handler(tBTA_HH_CONN& conn) {
     hh_connect_complete(conn, BTHH_CONN_STATE_DISCONNECTED);
 
     // Resume background connection attempt for added HOGP device.
-    if (conn.link_spec.transport == BT_TRANSPORT_LE) {
+    if (conn.link_spec.transport == BT_TRANSPORT_LE && !conn.suppress_reconnect) {
       btif_hh_added_device_t* added_dev = btif_hh_find_added_dev(conn.link_spec);
       if (added_dev != nullptr && added_dev->reconnect_allowed) {
         if (added_dev->reconnect_timer == nullptr) {
@@ -733,7 +733,11 @@ static void hh_open_handler(tBTA_HH_CONN& conn) {
                              btif_hh_hogp_reconnect_timeout, added_dev);
         }
       }
+    } else if (conn.suppress_reconnect) {
+      log::warn("Suppressing automatic HOGP reconnect for {} after connection establishment failure",
+                conn.link_spec);
     }
+
     return;
   }
 
@@ -1313,6 +1317,9 @@ BtStatus btif_hh_connect(const AclLinkSpec& link_spec, bool direct) {
 
     // Reset the connection policy to allow incoming reconnections
     added_dev->reconnect_allowed = true;
+    if (direct) {
+      alarm_cancel(added_dev->reconnect_timer);
+    }
     btif_storage_set_hid_connection_policy(link_spec, true);
   }
 

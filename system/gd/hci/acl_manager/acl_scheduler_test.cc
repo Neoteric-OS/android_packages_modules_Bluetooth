@@ -25,8 +25,12 @@
 #include <future>
 #include <utility>
 
+#include "common/bind.h"
 #include "hci/address.h"
 #include "os/thread.h"
+#ifdef USE_FAKE_TIMERS
+#include "os/fake_timer/fake_timerfd.h"
+#endif
 
 #define TEST_BT com::android::bluetooth::flags
 
@@ -70,6 +74,15 @@ protected:
 
     delete client_handler_;
     delete thread_;
+#ifdef USE_FAKE_TIMERS
+    os::fake_timer::fake_timerfd_reset();
+#endif
+  }
+
+  void advance_fake_timers(uint64_t ms) {
+#ifdef USE_FAKE_TIMERS
+    client_handler_->Post(common::BindOnce(os::fake_timer::fake_timerfd_advance, ms));
+#endif
   }
 
   common::ContextualOnceCallback<void(std::string)> impossibleCallbackTakingString() {
@@ -425,11 +438,193 @@ TEST_F(AclSchedulerTest, CancelUnknownIncomingConnectionClearsStaleEntry) {
                                            impossibleCallback());
   EXPECT_THAT(future.wait_for(timeout), std::future_status::timeout);
 
-  // Accept Connection Request for address1 failed; CancelAclConnection is invoked for it.
+  // CancelAclConnection is invoked for address1, which only has a pending incoming registration.
   // It is not an outgoing/queued connection, so the existing matcher finds nothing ...
   acl_scheduler_->CancelAclConnection(address1, impossibleCallback(), impossibleCallback());
 
-  // ... but the fix must still clear the stale incoming registration and unblock the queue.
+  // ... but it must still clear the stale incoming registration and unblock the queue.
+  EXPECT_THAT(future, IsSet());
+}
+
+// Page/accept collisions: an incoming request from a peer we are already paging.
+
+TEST_F(AclSchedulerTest, IncomingWithoutOutgoingAcceptsImmediately) {
+  auto promise = std::promise<void>{};
+  auto future = promise.get_future();
+
+  acl_scheduler_->RegisterPendingIncomingConnection(address1);
+  acl_scheduler_->HandleIncomingConnectionRequest(address1, promiseCallback(std::move(promise)),
+                                                  impossibleCallback(), impossibleCallback());
+
+  EXPECT_THAT(future, IsSet());
+}
+
+TEST_F(AclSchedulerTest, IncomingDropsQueuedOutgoingToSamePeerAndAccepts) {
+  auto accepted = std::promise<void>{};
+  auto accepted_future = accepted.get_future();
+  auto promise2 = std::promise<void>{};
+  auto future2 = promise2.get_future();
+
+  // address2 is on the wire; the connection to address1 only sits in the queue
+  acl_scheduler_->EnqueueOutgoingAclConnection(address2, emptyCallback());
+  acl_scheduler_->EnqueueOutgoingAclConnection(address1, impossibleCallback());
+
+  acl_scheduler_->RegisterPendingIncomingConnection(address1);
+  acl_scheduler_->HandleIncomingConnectionRequest(address1, promiseCallback(std::move(accepted)),
+                                                  impossibleCallback(), impossibleCallback());
+  EXPECT_THAT(accepted_future, IsSet());
+
+  // the dropped entry never runs, whatever completes afterwards
+  acl_scheduler_->ReportAclConnectionCompletion(address2, emptyCallback(), impossibleCallback(),
+                                                impossibleCallbackTakingString());
+  acl_scheduler_->ReportAclConnectionCompletion(address1, impossibleCallback(), emptyCallback(),
+                                                impossibleCallbackTakingString());
+  acl_scheduler_->EnqueueOutgoingAclConnection(address3, promiseCallback(std::move(promise2)));
+  EXPECT_THAT(future2, IsSet());
+}
+
+// Controller resolves the collision itself: the outgoing page ends with Controller Busy.
+TEST_F(AclSchedulerTest, CollisionOutgoingFailsThenIncomingIsAcceptedWithoutCancel) {
+  auto accepted = std::promise<void>{};
+  auto accepted_future = accepted.get_future();
+  auto promise_in = std::promise<void>{};
+  auto future_in = promise_in.get_future();
+
+  acl_scheduler_->EnqueueOutgoingAclConnection(address1, emptyCallback());
+  acl_scheduler_->RegisterPendingIncomingConnection(address1);
+  acl_scheduler_->HandleIncomingConnectionRequest(address1, promiseCallback(std::move(accepted)),
+                                                  impossibleCallback(), impossibleCallback());
+
+  // the accept is held back while our own page is at the controller
+  EXPECT_THAT(accepted_future.wait_for(timeout), std::future_status::timeout);
+
+  // Connection Complete with a failure status (Controller Busy) is matched to the outgoing
+  acl_scheduler_->ReportAclConnectionCompletion(address1, emptyCallback(), impossibleCallback(),
+                                                impossibleCallbackTakingString(),
+                                                /* succeeded = */ false);
+  EXPECT_THAT(accepted_future, IsSet());
+
+  // the pending incoming survived, so its own Connection Complete is reported as incoming
+  acl_scheduler_->ReportAclConnectionCompletion(address1, impossibleCallback(),
+                                                promiseCallback(std::move(promise_in)),
+                                                impossibleCallbackTakingString());
+  EXPECT_THAT(future_in, IsSet());
+}
+
+// Our page wins: the incoming is rejected and its registration dropped.
+TEST_F(AclSchedulerTest, CollisionOutgoingSucceedsThenIncomingIsRejected) {
+  auto rejected = std::promise<void>{};
+  auto rejected_future = rejected.get_future();
+  auto promise_next = std::promise<void>{};
+  auto future_next = promise_next.get_future();
+
+  acl_scheduler_->EnqueueOutgoingAclConnection(address1, emptyCallback());
+  acl_scheduler_->EnqueueOutgoingAclConnection(address2, promiseCallback(std::move(promise_next)));
+  acl_scheduler_->RegisterPendingIncomingConnection(address1);
+  acl_scheduler_->HandleIncomingConnectionRequest(address1, impossibleCallback(),
+                                                  promiseCallback(std::move(rejected)),
+                                                  impossibleCallback());
+
+  acl_scheduler_->ReportAclConnectionCompletion(address1, emptyCallback(), impossibleCallback(),
+                                                impossibleCallbackTakingString(),
+                                                /* succeeded = */ true);
+  EXPECT_THAT(rejected_future, IsSet());
+
+  // no stale incoming registration is left to block the queue
+  EXPECT_THAT(future_next, IsSet());
+}
+
+// The outgoing page never resolves: after the grace period it is cancelled and the incoming is
+// accepted.
+TEST_F(AclSchedulerTest, CollisionUnresolvedOutgoingIsCancelledThenIncomingAccepted) {
+  auto accepted = std::promise<void>{};
+  auto accepted_future = accepted.get_future();
+  auto cancelled = std::promise<void>{};
+  auto cancelled_future = cancelled.get_future();
+  auto promise_in = std::promise<void>{};
+  auto future_in = promise_in.get_future();
+
+  acl_scheduler_->EnqueueOutgoingAclConnection(address1, emptyCallback());
+  acl_scheduler_->RegisterPendingIncomingConnection(address1);
+  acl_scheduler_->HandleIncomingConnectionRequest(address1, promiseCallback(std::move(accepted)),
+                                                  impossibleCallback(),
+                                                  promiseCallback(std::move(cancelled)));
+
+  EXPECT_THAT(accepted_future.wait_for(timeout), std::future_status::timeout);
+  advance_fake_timers(600);
+  EXPECT_THAT(accepted_future, IsSet());
+  EXPECT_THAT(cancelled_future, IsSet());
+
+  // the cancelled outgoing completes (Unknown Connection Identifier): the incoming must survive it
+  acl_scheduler_->ReportAclConnectionCompletion(address1, emptyCallback(), impossibleCallback(),
+                                                impossibleCallbackTakingString(),
+                                                /* succeeded = */ false);
+  acl_scheduler_->ReportAclConnectionCompletion(address1, impossibleCallback(),
+                                                promiseCallback(std::move(promise_in)),
+                                                impossibleCallbackTakingString());
+  EXPECT_THAT(future_in, IsSet());
+}
+
+// The user cancels the outgoing while the accept is held back: the accept follows the user's Create
+// Connection Cancel at once, and the fallback timer must not send a second one.
+TEST_F(AclSchedulerTest, CollisionUserCancelReleasesAcceptWithoutSecondCancel) {
+  auto accepted = std::promise<void>{};
+  auto accepted_future = accepted.get_future();
+  auto cancelled = std::promise<void>{};
+  auto cancelled_future = cancelled.get_future();
+  auto promise_in = std::promise<void>{};
+  auto future_in = promise_in.get_future();
+
+  acl_scheduler_->EnqueueOutgoingAclConnection(address1, emptyCallback());
+  acl_scheduler_->RegisterPendingIncomingConnection(address1);
+  acl_scheduler_->HandleIncomingConnectionRequest(address1, promiseCallback(std::move(accepted)),
+                                                  impossibleCallback(), impossibleCallback());
+  EXPECT_THAT(accepted_future.wait_for(timeout), std::future_status::timeout);
+
+  acl_scheduler_->CancelAclConnection(address1, promiseCallback(std::move(cancelled)),
+                                      impossibleCallback());
+  EXPECT_THAT(cancelled_future, IsSet());
+  EXPECT_THAT(accepted_future, IsSet());
+
+  // the fallback timer was disarmed with the record: the second Cancel would fail the test
+  advance_fake_timers(600);
+  EXPECT_TRUE(client_handler_->Synchronize(timeout));
+
+  // the cancelled outgoing fails, and the pending incoming survives it
+  acl_scheduler_->ReportAclConnectionCompletion(address1, emptyCallback(), impossibleCallback(),
+                                                impossibleCallbackTakingString(),
+                                                /* succeeded = */ false);
+  acl_scheduler_->ReportAclConnectionCompletion(address1, impossibleCallback(),
+                                                promiseCallback(std::move(promise_in)),
+                                                impossibleCallbackTakingString());
+  EXPECT_THAT(future_in, IsSet());
+}
+
+// The Create Connection fails to even start: the held back accept must not wait for the timer.
+TEST_F(AclSchedulerTest, CollisionOutgoingFailsToStartReleasesAccept) {
+  auto accepted = std::promise<void>{};
+  auto accepted_future = accepted.get_future();
+
+  acl_scheduler_->EnqueueOutgoingAclConnection(address1, emptyCallback());
+  acl_scheduler_->RegisterPendingIncomingConnection(address1);
+  acl_scheduler_->HandleIncomingConnectionRequest(address1, promiseCallback(std::move(accepted)),
+                                                  impossibleCallback(), impossibleCallback());
+  EXPECT_THAT(accepted_future.wait_for(timeout), std::future_status::timeout);
+
+  acl_scheduler_->ReportOutgoingAclConnectionFailure();
+  EXPECT_THAT(accepted_future, IsSet());
+}
+
+// Accept Connection Request itself failed: the outgoing page is left alone and the queue unblocks.
+TEST_F(AclSchedulerTest, AcceptFailureClearsIncomingWithoutTouchingOutgoing) {
+  auto promise = std::promise<void>{};
+  auto future = promise.get_future();
+
+  acl_scheduler_->RegisterPendingIncomingConnection(address1);
+  acl_scheduler_->EnqueueOutgoingAclConnection(address2, promiseCallback(std::move(promise)));
+  EXPECT_THAT(future.wait_for(timeout), std::future_status::timeout);
+
+  acl_scheduler_->ReportIncomingAcceptFailure(address1);
   EXPECT_THAT(future, IsSet());
 }
 

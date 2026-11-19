@@ -127,7 +127,8 @@ public:
   virtual void ReportAclConnectionCompletion(
           Address /* address */, common::ContextualOnceCallback<void()> handle_outgoing_connection,
           common::ContextualOnceCallback<void()> handle_incoming_connection,
-          common::ContextualOnceCallback<void(std::string)> handle_unknown_connection) override {
+          common::ContextualOnceCallback<void(std::string)> handle_unknown_connection,
+          bool /* succeeded */) override {
     if (handle_outgoing_connection_) {
       handle_outgoing_connection();
       return;

@@ -2400,7 +2400,9 @@ bool LeAudioDeviceGroup::IsAudioSetConfigurationSupported(
     uint8_t const max_required_ase_per_dev = ase_cnt / device_cnt + (ase_cnt % device_cnt);
 
     // Use strategy for the whole group (not only the connected devices)
-    auto required_snk_strategy = FindGroupStrategyForConfig(audio_set_conf);
+    auto selected_codec_id = ase_confs[0].codec.id;
+    auto required_snk_strategy = (selected_codec_id == types::LeAudioCodecIdLc3) ?
+        GetGroupSinkStrategy() : FindGroupStrategyForConfig(audio_set_conf);
     auto strategy = utils::GetStrategyForAseConfig(ase_confs, device_cnt);
 
     /* When the group-size flag is enabled, device_cnt above is forced to the

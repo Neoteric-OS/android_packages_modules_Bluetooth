@@ -50,11 +50,14 @@ public:
   void RegisterPendingIncomingConnection(Address address);
 
   // Report that an ACL connection has completed, and dispatch to the appropriate callback based on
-  // the internal state. Then, start the next operation.
+  // the internal state. Then, start the next operation. `succeeded` is whether the Connection
+  // Complete carried status SUCCESS; it decides how a deferred incoming accept for the same address
+  // is resolved (see HandleIncomingConnectionRequest).
   virtual void ReportAclConnectionCompletion(
           Address address, common::ContextualOnceCallback<void()> handle_outgoing_connection,
           common::ContextualOnceCallback<void()> handle_incoming_connection,
-          common::ContextualOnceCallback<void(std::string)> handle_unknown_connection);
+          common::ContextualOnceCallback<void(std::string)> handle_unknown_connection,
+          bool succeeded = true);
 
   // Same as above, but for the outgoing ACL connection in particular (and no callbacks)
   void ReportOutgoingAclConnectionFailure();
@@ -66,14 +69,26 @@ public:
                            common::ContextualOnceCallback<void()> cancel_connection,
                            common::ContextualOnceCallback<void()> cancel_connection_completed);
 
-  // Cancel an outstanding/queued outgoing ACL Create Connection to this address, if any, to
-  // avoid a page/accept collision with an incoming connection from the same peer. Unlike
-  // CancelAclConnection, this is a silent no-op when there is no matching outgoing, so it is
-  // safe to call unconditionally when handling an incoming connection. If an outgoing request
-  // was already sent to the controller, cancel_connection is invoked (to emit Create
-  // Connection Cancel) and the outgoing entry is retained until its completion arrives.
-  void CancelOutgoingAclConnectionIfPending(
-          Address address, common::ContextualOnceCallback<void()> cancel_connection);
+  // Decide when to accept an incoming connection request from `address`, which the caller has
+  // already registered with RegisterPendingIncomingConnection.
+  //  - No outgoing Create Connection to this address is in flight: any queued (not yet sent) one is
+  //    dropped and `accept` runs right away.
+  //  - A Create Connection to this address is already at the controller (page/accept collision):
+  //    `accept` is held back until that outgoing connection completes. If it fails (the controller
+  //    resolves the collision itself, typically with Controller Busy), `accept` runs then and the
+  //    pending incoming is kept for its own Connection Complete. If it succeeds, `reject` runs and
+  //    the pending incoming is dropped. If it is still unresolved after a short grace period,
+  //    `cancel_outgoing` (Create Connection Cancel) and `accept` run. `accept` also runs, without
+  //    the grace period, when the outgoing is cancelled through CancelAclConnection or never
+  //    starts (ReportOutgoingAclConnectionFailure).
+  void HandleIncomingConnectionRequest(Address address,
+                                       common::ContextualOnceCallback<void()> accept,
+                                       common::ContextualOnceCallback<void()> reject,
+                                       common::ContextualOnceCallback<void()> cancel_outgoing);
+
+  // The Accept Connection Request for `address` failed, so no Connection Complete will follow for
+  // it. Drop the pending incoming registration without touching any outgoing connection.
+  void ReportIncomingAcceptFailure(Address address);
 
   // Schedule a Remote Name Request. When the request is started, start_request will be invoked. If
   // the request is cancelled before it is dequeued, cancel_request_completed will be invoked.

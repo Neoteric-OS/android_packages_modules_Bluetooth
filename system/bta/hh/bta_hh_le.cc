@@ -1820,11 +1820,16 @@ void bta_hh_le_open_fail(tBTA_HH_DEV_CB* p_cb, const tBTA_HH_DATA* p_data) {
     bta_hh_clear_service_cache(p_cb);
   }
 
-  if (p_cb->status != BTHH_ERR_SDP) {
+  const bool suppress_reconnect =
+          le_close->reason == GATT_CONN_FAILED_ESTABLISHMENT;
+  if (p_cb->status != BTHH_ERR_SDP && !suppress_reconnect) {
     log::debug("gd_acl: Re-adding HID device to acceptlist");
     // gd removes from bg list after failed connection
     // Correct the cached state to allow re-add to acceptlist.
     bta_hh_le_add_dev_bg_conn(p_cb);
+  } else if (suppress_reconnect) {
+    log::warn("Not re-adding HID device {} to acceptlist after connection establishment failure",
+              p_cb->link_spec);
   }
 
   p_cb->disc_active = BTA_HH_LE_DISC_NONE;
@@ -1836,6 +1841,7 @@ void bta_hh_le_open_fail(tBTA_HH_DEV_CB* p_cb, const tBTA_HH_DATA* p_data) {
                           .status = (le_close->reason != GATT_CONN_OK) ? BTHH_ERR : p_cb->status,
                           .handle = p_cb->hid_handle,
                           .scps_supported = p_cb->scps_supported,
+                          .suppress_reconnect = suppress_reconnect,
                   },
   };
 
